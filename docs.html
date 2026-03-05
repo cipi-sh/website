@@ -1115,6 +1115,7 @@
 
             <div class="sidebar-group">
                 <span class="sidebar-group-label">advanced</span>
+                <a href="#cipi-api" class="sidebar-link"><code>cipi api</code></a>
                 <a href="#cipi-and-ai" class="sidebar-link">Cipi &amp; AI agents</a>
                 <a href="#redis" class="sidebar-link">redis</a>
                 <a href="#self-update" class="sidebar-link">self-update</a>
@@ -3753,8 +3754,161 @@ myapp@server:~$ crontab -e</pre>
             <hr class="doc-divider">
 
             <!-- ── Advanced ── -->
-            <div class="doc-section" id="cipi-and-ai">
+            <div class="doc-section" id="cipi-api">
                 <p class="doc-section-label">Advanced</p>
+                <h2><code>cipi api</code></h2>
+                <p>Cipi can optionally enable a REST API layer on the server via <code>cipi api
+                    &lt;domain&gt;</code>. The API exposes operations on apps, aliases, and SSL with Bearer token
+                    authentication and granular permissions.</p>
+
+                <h3>Commands</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi api &lt;domain&gt;           <span class="c"># configure API at root (e.g. api.myhosting.com)</span>
+<span class="p">$</span> cipi api ssl                  <span class="c"># install Let's Encrypt certificate for API domain</span>
+<span class="p">$</span> cipi api token list           <span class="c"># list tokens</span>
+<span class="p">$</span> cipi api token create         <span class="c"># create a new token (choose abilities)</span>
+<span class="p">$</span> cipi api token revoke &lt;id&gt;    <span class="c"># revoke a token</span>
+<span class="p">$</span> cipi api status               <span class="c"># Laravel version, queue worker status, pending jobs</span>
+<span class="p">$</span> cipi api update               <span class="c"># soft update: composer update on Laravel and API packages</span>
+<span class="p">$</span> cipi api upgrade              <span class="c"># full rebuild with rollback at /opt/cipi/api.old</span></pre>
+                </div>
+
+                <h3>Token creation and granular permissions</h3>
+                <p>Authentication uses <strong>Sanctum</strong>. Each token can have one or more <em>abilities</em> that
+                    limit allowed operations:</p>
+                <ul>
+                    <li><code>apps-view</code> — read apps</li>
+                    <li><code>apps-create</code> — create apps</li>
+                    <li><code>apps-edit</code> — edit apps</li>
+                    <li><code>apps-delete</code> — delete apps</li>
+                    <li><code>deploy-manage</code> — deploy, rollback, unlock</li>
+                    <li><code>ssl-manage</code> — install and manage SSL certificates</li>
+                    <li><code>aliases-view</code> — read aliases</li>
+                    <li><code>aliases-create</code> — add aliases</li>
+                    <li><code>aliases-delete</code> — remove aliases</li>
+                    <li><code>mcp-access</code> — access the MCP server</li>
+                </ul>
+
+                <h3>REST endpoints</h3>
+                <p>All endpoints require the <code>Authorization: Bearer &lt;token&gt;</code> header. Write operations
+                    (create, edit, delete, deploy, rollback, unlock, SSL, alias) are asynchronous: they return
+                    <code>202 Accepted</code> with a <code>job_id</code> to poll via <code>GET /api/jobs/{id}</code>.</p>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Required ability</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>GET</td><td><code>/api/apps</code></td><td>apps-view</td></tr>
+                        <tr><td>GET</td><td><code>/api/apps/{name}</code></td><td>apps-view</td></tr>
+                        <tr><td>POST</td><td><code>/api/apps</code></td><td>apps-create</td></tr>
+                        <tr><td>PUT</td><td><code>/api/apps/{name}</code></td><td>apps-edit</td></tr>
+                        <tr><td>DELETE</td><td><code>/api/apps/{name}</code></td><td>apps-delete</td></tr>
+                        <tr><td>GET</td><td><code>/api/apps/{name}/aliases</code></td><td>aliases-view</td></tr>
+                        <tr><td>POST</td><td><code>/api/apps/{name}/aliases</code></td><td>aliases-create</td></tr>
+                        <tr><td>DELETE</td><td><code>/api/apps/{name}/aliases</code></td><td>aliases-delete</td></tr>
+                        <tr><td>POST</td><td><code>/api/apps/{name}/deploy</code></td><td>deploy-manage</td></tr>
+                        <tr><td>POST</td><td><code>/api/apps/{name}/deploy/rollback</code></td><td>deploy-manage</td></tr>
+                        <tr><td>POST</td><td><code>/api/apps/{name}/deploy/unlock</code></td><td>deploy-manage</td></tr>
+                        <tr><td>POST</td><td><code>/api/ssl/{name}</code></td><td>ssl-manage</td></tr>
+                        <tr><td>GET</td><td><code>/api/jobs/{id}</code></td><td>—</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Swagger / OpenAPI</h3>
+                <p>Interactive documentation is available at <code>/docs</code> (Swagger UI, OpenAPI spec 2.0.0).</p>
+
+                <h3>MCP server</h3>
+                <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via Streamable
+                    HTTP. It requires a token with the <code>mcp-access</code> ability. It exposes tools for app, alias,
+                    deploy, and SSL management — <code>AppList</code>, <code>AppShow</code>, <code>AppCreate</code>,
+                    <code>AppEdit</code>, <code>AppDelete</code>, <code>AppDeploy</code>, <code>AppDeployRollback</code>,
+                    <code>AppDeployUnlock</code>, <code>AliasList</code>, <code>AliasAdd</code>, <code>AliasRemove</code>,
+                    <code>SslInstall</code> — with async dispatch and <code>job_id</code> return for polling.</p>
+
+                <h3>Installing the MCP server</h3>
+                <p>The MCP endpoint is optional and loads only when the required MCP package is installed. To use it from
+                    <strong>VS Code</strong>, <strong>Cursor</strong>, or <strong>Claude Desktop</strong>:</p>
+                <ol>
+                    <li>Configure the API with <code>cipi api &lt;domain&gt;</code> and <code>cipi api ssl</code></li>
+                    <li>Create a token with <code>cipi api token create</code> and select at least <code>mcp-access</code></li>
+                    <li>Add the MCP server to your client config (see below)</li>
+                </ol>
+
+                <h4>Cursor</h4>
+                <p>Add to <code>~/.cursor/mcp.json</code> (or Cursor &rarr; Settings &rarr; MCP):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>{
+  "mcpServers": {
+    "cipi-api": {
+      "type": "http",
+      "url": "https://&lt;your-api-domain&gt;/mcp",
+      "headers": {
+        "Authorization": "Bearer &lt;your-token&gt;"
+      }
+    }
+  }
+}</pre>
+                </div>
+                <p>Cursor connects natively over HTTP — no bridge needed.</p>
+
+                <h4>VS Code</h4>
+                <p>VS Code (with GitHub Copilot) supports MCP natively since 1.102. Add to <code>.vscode/mcp.json</code> or
+                    run <strong>MCP: Open User Configuration</strong> for a global setup:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>{
+  "servers": {
+    "cipi-api": {
+      "type": "http",
+      "url": "https://&lt;your-api-domain&gt;/mcp",
+      "headers": {
+        "Authorization": "Bearer &lt;your-token&gt;"
+      }
+    }
+  }
+}</pre>
+                </div>
+                <p>Use <strong>MCP: Add Server</strong> from the Command Palette for a guided setup. VS Code connects over
+                    HTTP — no bridge needed.</p>
+
+                <h4>Claude Desktop</h4>
+                <p>Claude Desktop requires the <strong>mcp-remote</strong> bridge to convert stdio to HTTP. Add to
+                    <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (macOS) or the equivalent
+                    config path on your OS:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>{
+  "mcpServers": {
+    "cipi-api": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://&lt;your-api-domain&gt;/mcp",
+        "--header",
+        "Authorization: Bearer &lt;your-token&gt;"
+      ]
+    }
+  }
+}</pre>
+                </div>
+                <p>Install <code>mcp-remote</code> once with <code>npm install -g mcp-remote</code>.</p>
+
+                <p>Replace <code>&lt;your-api-domain&gt;</code> with your API domain (e.g. <code>api.myhosting.com</code>)
+                    and <code>&lt;your-token&gt;</code> with the token created in step 2.</p>
+            </div>
+
+            <div class="doc-section" id="cipi-and-ai">
                 <h2>Cipi &amp; AI agents</h2>
                 <p>Because Cipi is entirely CLI-driven, SSH-accessible, and produces human-readable output, it is
                     naturally composable with any AI system that can execute shell commands or call tools. An AI agent
