@@ -4610,7 +4610,8 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
             <!-- ── Email Notifications ── -->
             <div class="doc-section" id="cipi-smtp">
                 <h2>Email Notifications</h2>
-                <p>Cipi can send email alerts when backup errors, deploy failures, or system cron job failures occur.
+                <p>Cipi can send email alerts when backup errors, deploy failures, system cron job failures, or
+                    security-relevant authentication events occur.
                     SMTP configuration is stored encrypted in <code>/etc/cipi/smtp.json</code> and included in sync
                     exports.</p>
 
@@ -4632,7 +4633,25 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <li>Backup errors (S3 upload failures, dump errors)</li>
                     <li>Deploy failures (Deployer errors, rollback triggers)</li>
                     <li>System cron job failures (via the <code>cipi-cron-notify</code> wrapper)</li>
+                    <li>Sudo elevation — notifies when any user successfully elevates to root via
+                        <code>sudo</code>, including who ran it and from which TTY</li>
+                    <li>Privileged SSH login — notifies when <code>root</code> or any sudoer logs in via SSH,
+                        including source IP</li>
                 </ul>
+
+                <h3>Security auth notifications</h3>
+                <p>Starting from v4.1.1, Cipi integrates PAM-based authentication notifications via
+                    <code>pam_exec.so</code>. When SMTP is configured, the system automatically sends email alerts
+                    on two security-relevant events:</p>
+                <ul>
+                    <li><strong>Sudo elevation</strong> — triggered when any user successfully runs
+                        <code>sudo</code>. The notification includes the username, the TTY, and the timestamp.</li>
+                    <li><strong>Privileged SSH login</strong> — triggered when <code>root</code> or any user in the
+                        <code>sudo</code> group logs in via SSH. The notification includes the username and the
+                        source IP address.</li>
+                </ul>
+                <p>Notifications run asynchronously in the background so they never delay login or command
+                    execution. If SMTP is not configured, the hooks fail silently with no impact on the system.</p>
 
                 <h3>Cron wrapper</h3>
                 <p>The <code>cipi-cron-notify</code> utility wraps system cron jobs and sends a notification if the job
@@ -5002,6 +5021,13 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     90 days. This satisfies the GDPR data minimization principle while preserving enough history for
                     debugging and audit trails. See <a href="#cipi-log-retention">Log retention</a> for the full
                     policy.</p>
+
+                <h3>Auth notifications</h3>
+                <p>Cipi monitors privileged authentication events via PAM (<code>pam_exec.so</code>) and sends
+                    real-time email alerts when a user elevates to root via <code>sudo</code> or when
+                    <code>root</code>/sudoers log in via SSH. Notifications include contextual details (username,
+                    TTY, source IP) and run asynchronously to avoid login delays. Requires SMTP configured — fails
+                    silently otherwise. See <a href="#cipi-smtp">Email Notifications</a> for setup.</p>
 
                 <h3>No web panel</h3>
                 <p>Cipi has no web interface. There is no attack surface from an admin panel. All management happens
