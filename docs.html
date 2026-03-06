@@ -1120,6 +1120,10 @@
             <div class="sidebar-group">
                 <span class="sidebar-group-label">advanced</span>
                 <a href="#cipi-api" class="sidebar-link"><code>cipi api</code></a>
+                <a href="#cipi-sync" class="sidebar-link"><code>cipi sync</code></a>
+                <a href="#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
+                <a href="#cipi-smtp" class="sidebar-link">email notifications</a>
+                <a href="#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="#redis" class="sidebar-link">redis</a>
                 <a href="#self-update" class="sidebar-link">self-update</a>
                 <a href="#wildcard-domains" class="sidebar-link">wildcard domains</a>
@@ -1170,8 +1174,13 @@
                 </div>
 
                 <p>At the end of the installation you will see a summary screen with the MariaDB root password.
-                    <strong>Save it immediately</strong> — it is shown only once. The password is also stored encrypted
-                    in <code>/etc/cipi/server.json</code>.
+                    <strong>Save it immediately</strong> — it is shown only once. The password is stored in
+                    <code>/etc/cipi/server.json</code>, which — like all Cipi configuration files — is
+                    <strong>encrypted at rest</strong> using AES-256-CBC via the built-in <a href="#cipi-vault">Vault</a>
+                    system. Credentials, SSH keys, <code>.env</code> files, and database dumps are protected both on disk
+                    and during transfer (via <a href="#cipi-sync">Sync</a> encrypted archives). Cipi also enforces
+                    <strong>GDPR-compliant log retention</strong> with automatic rotation policies for application,
+                    security, and HTTP logs — see <a href="#cipi-log-retention">Log retention</a> for details.
                 </p>
 
                 <div class="callout warning">
@@ -4156,6 +4165,531 @@ myapp@server:~$ crontab -e</pre>
                 </p>
             </div>
 
+            <!-- ── Sync ── -->
+            <div class="doc-section" id="cipi-sync">
+                <h2><code>cipi sync</code></h2>
+                <p>Transfer, replicate, and back up entire Laravel applications between Cipi servers — including
+                    configuration, database dumps, storage files, SSH keys, workers, and crontabs. Every archive is
+                    <strong>encrypted with AES-256-CBC</strong> and protected by a user-defined passphrase, so credentials
+                    and sensitive data are safe at rest and during transfer.
+                </p>
+
+                <h3>Commands overview</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi sync export [app ...] [--with-db] [--with-storage] [--output=&lt;path&gt;] [--passphrase=&lt;secret&gt;]
+<span class="p">$</span> cipi sync import &lt;archive.tar.gz.enc&gt; [app ...] [--update] [--deploy] [--yes] [--passphrase=&lt;secret&gt;]
+<span class="p">$</span> cipi sync push   [app ...] [--host=IP] [--port=22] [--with-db] [--with-storage] [--import] [--passphrase=&lt;secret&gt;]
+<span class="p">$</span> cipi sync list   &lt;archive.tar.gz.enc&gt; [--passphrase=&lt;secret&gt;]</pre>
+                </div>
+
+                <h3>Archive encryption</h3>
+                <p>All sync archives are <strong>encrypted by default</strong> with AES-256-CBC. During export you are
+                    prompted for a passphrase (minimum 8 characters) that protects the archive. The same passphrase is
+                    required to import or inspect it. This protects SSH keys, <code>.env</code> files, database dumps,
+                    and credentials at rest and during transfer.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Interactive mode (default) — prompted for passphrase</span>
+<span class="p">$</span> cipi sync export --with-db
+<span class="c">#   Enter passphrase to encrypt the archive: ********</span>
+<span class="c">#   Confirm passphrase: ********</span>
+
+<span class="c"># Non-interactive mode — for cron jobs and scripts</span>
+<span class="p">$</span> cipi sync export --with-db --passphrase="MyStr0ngP@ss"</pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>For automated setups, store the passphrase in a secure file and reference it in your scripts:
+                        <code>echo "MyStr0ngP@ss" > /etc/cipi/.sync_passphrase && chmod 400
+                            /etc/cipi/.sync_passphrase</code>. Then use
+                        <code>--passphrase="$(cat /etc/cipi/.sync_passphrase)"</code> in cron jobs.
+                    </div>
+                </div>
+
+                <h3>Export</h3>
+                <p>Packs app configs into an encrypted <code>.tar.gz.enc</code> archive. Optionally includes database
+                    dumps and storage files.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Export all apps (config only)</span>
+<span class="p">$</span> cipi sync export
+
+<span class="c"># Export three specific apps with database + storage</span>
+<span class="p">$</span> cipi sync export shop blog api --with-db --with-storage
+
+<span class="c"># Export to a custom path (non-interactive)</span>
+<span class="p">$</span> cipi sync export --with-db --output=/root/backups/cipi-march.tar.gz --passphrase="MyStr0ngP@ss"</pre>
+                </div>
+
+                <h4>What goes into the archive</h4>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Description</th>
+                            <th>Included</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>env</code></td>
+                            <td>The app's <code>.env</code> from <code>/home/&lt;app&gt;/shared/.env</code></td>
+                            <td>Always</td>
+                        </tr>
+                        <tr>
+                            <td><code>auth.json</code></td>
+                            <td>Composer auth credentials (if exists)</td>
+                            <td>Always</td>
+                        </tr>
+                        <tr>
+                            <td><code>deploy.php</code></td>
+                            <td>Deployer config</td>
+                            <td>Always</td>
+                        </tr>
+                        <tr>
+                            <td><code>ssh/*</code></td>
+                            <td>Deploy key, known_hosts, authorized_keys, SSH config</td>
+                            <td>Always</td>
+                        </tr>
+                        <tr>
+                            <td><code>supervisor.conf</code></td>
+                            <td>Queue workers config</td>
+                            <td>Always</td>
+                        </tr>
+                        <tr>
+                            <td><code>crontab</code></td>
+                            <td>App's crontab (scheduler + deploy trigger)</td>
+                            <td>Always</td>
+                        </tr>
+                        <tr>
+                            <td><code>db.sql.gz</code></td>
+                            <td>Gzipped MariaDB dump (schema + data + routines)</td>
+                            <td><code>--with-db</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>storage.tar.gz</code></td>
+                            <td>Archive of <code>/home/&lt;app&gt;/shared/storage/</code></td>
+                            <td><code>--with-storage</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Plus global configs: <code>apps.json</code> (filtered to selected apps), <code>databases.json</code>,
+                    <code>backup.json</code>, <code>api.json</code>.
+                </p>
+
+                <h3>Import</h3>
+                <p>Restores apps from an archive onto the current server.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Import all apps from archive</span>
+<span class="p">$</span> cipi sync import /tmp/cipi-sync-aws01-20260306.tar.gz.enc
+
+<span class="c"># Import only two apps from an archive that contains ten</span>
+<span class="p">$</span> cipi sync import /tmp/cipi-sync-aws01-20260306.tar.gz.enc shop blog --passphrase="MyStr0ngP@ss"
+
+<span class="c"># Import and deploy code from Git immediately</span>
+<span class="p">$</span> cipi sync import /tmp/cipi-sync-aws01-20260306.tar.gz.enc --deploy
+
+<span class="c"># Non-interactive (skip all prompts)</span>
+<span class="p">$</span> cipi sync import /tmp/cipi-sync-aws01-20260306.tar.gz.enc --yes --passphrase="MyStr0ngP@ss"</pre>
+                </div>
+
+                <h4>What import does for a NEW app</h4>
+                <p>When an app does not exist on the target server, import creates it from scratch — equivalent to
+                    <code>cipi app create</code> with all configs pre-filled from the archive:
+                </p>
+                <ol>
+                    <li><strong>Linux user</strong> — Creates a new user with a random password</li>
+                    <li><strong>Directories</strong> — Creates <code>/home/&lt;app&gt;/shared/</code>,
+                        <code>logs/</code>, <code>.ssh/</code>, <code>.deployer/</code>
+                    </li>
+                    <li><strong>SSH deploy key</strong> — Restores from archive (same key works with GitHub/GitLab
+                        without reconfiguration)</li>
+                    <li><strong>MariaDB database</strong> — Creates database + user with a <strong>new random
+                            password</strong></li>
+                    <li><strong>Database data</strong> — Imports the dump if <code>--with-db</code> was used during
+                        export</li>
+                    <li><strong><code>.env</code></strong> — Copies from archive, then <strong>overwrites</strong>
+                        <code>DB_PASSWORD</code>, <code>DB_USERNAME</code>, <code>DB_DATABASE</code>,
+                        <code>DB_HOST</code> with the new server's values. Everything else (<code>APP_KEY</code>,
+                        <code>MAIL_*</code>, <code>REDIS_*</code>, custom vars) stays as-is
+                    </li>
+                    <li><strong>PHP-FPM pool, Nginx vhost, Supervisor workers, Crontab, Deployer</strong> — Fully
+                        configured from archive data</li>
+                </ol>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>At the end of import, Cipi prints the new SSH and DB passwords. <strong>Save them</strong> — they
+                        are shown only once.</div>
+                </div>
+
+                <h4>Safety checks before import</h4>
+                <p>The import runs pre-flight checks before touching anything:</p>
+                <ul>
+                    <li><strong>App already exists</strong> — blocked unless <code>--update</code> is passed</li>
+                    <li><strong>Domain conflict</strong> — blocked if another app already uses the same domain</li>
+                    <li><strong>Missing PHP version</strong> — warning (the app is skipped; install the version first with
+                        <code>cipi php install</code>)
+                    </li>
+                </ul>
+
+                <h3>Update mode (<code>--update</code>)</h3>
+                <p>The key feature for <strong>repeated sync</strong> (e.g. failover replication). Without
+                    <code>--update</code>, import refuses to touch apps that already exist. With <code>--update</code>, it
+                    <strong>updates</strong> existing apps and <strong>creates</strong> new ones.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi sync import /tmp/archive.tar.gz.enc --update --passphrase="MyStr0ngP@ss"</pre>
+                </div>
+
+                <h4>What update does for an existing app</h4>
+                <ul>
+                    <li><strong><code>.env</code> sync</strong> — The archive <code>.env</code> replaces the local one, but
+                        <code>DB_PASSWORD</code>, <code>DB_USERNAME</code>, <code>DB_DATABASE</code>, and
+                        <code>DB_HOST</code> are <strong>preserved from the local server</strong>. Everything else
+                        (<code>APP_KEY</code>, <code>MAIL_*</code>, <code>REDIS_*</code>, custom vars) comes from the
+                        source.
+                    </li>
+                    <li><strong>Database data</strong> — If the archive has a dump, drops all tables (with
+                        <code>SET FOREIGN_KEY_CHECKS=0</code>) and reimports. Uses local root credentials.
+                    </li>
+                    <li><strong>Storage</strong> — If the archive has storage, extracts over the existing directory (new
+                        files added, existing overwritten).</li>
+                    <li><strong>PHP version migration</strong> — If the source uses a different PHP version, the update
+                        migrates FPM pool, supervisor, crontab, deployer, and <code>.env</code> automatically.</li>
+                    <li><strong>Nginx vhost, Supervisor workers, Deployer config</strong> — Regenerated from archive data.
+                    </li>
+                    <li><strong>Deploy</strong> — If <code>--deploy</code> is passed, runs <code>dep deploy</code> to pull
+                        latest code.</li>
+                </ul>
+
+                <h4>What update does NOT change</h4>
+                <ul>
+                    <li>Linux user password</li>
+                    <li>SSH deploy keys (kept from first import)</li>
+                    <li>MariaDB user credentials (target keeps its own)</li>
+                    <li>SSL certificates (run <code>cipi ssl install</code> separately)</li>
+                </ul>
+
+                <h3>List (inspect archive)</h3>
+                <p>View what is inside an archive without importing anything.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi sync list /tmp/cipi-sync-aws01-20260306.tar.gz.enc --passphrase="MyStr0ngP@ss"
+
+<span class="c">Cipi Sync Archive</span>
+<span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="c">  Cipi           v4.1.0</span>
+<span class="c">  Exported       2026-03-06T15:00:00Z</span>
+<span class="c">  Source         aws01 (3.120.xx.xx)</span>
+<span class="c">  Database       true</span>
+<span class="c">  Storage        true</span>
+<span class="c"> </span>
+<span class="c">  Apps</span>
+<span class="c">  APP            DOMAIN                       PHP    DB       STORAGE</span>
+<span class="c">  shop           shop.example.com             8.4    yes      yes</span>
+<span class="c">  blog           blog.example.com             8.4    yes      yes</span>
+<span class="c">  api            api.example.com              8.5    yes      yes</span>
+<span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span></pre>
+                </div>
+
+                <h3>Push (export + transfer + import)</h3>
+                <p>Combines export, rsync transfer, and remote import in one command. Runs entirely from the
+                    <strong>source</strong> server.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Interactive push — prompted for target IP and passphrase</span>
+<span class="p">$</span> cipi sync push --with-db --with-storage --import
+
+<span class="c"># Non-interactive push (for cron and scripts)</span>
+<span class="p">$</span> cipi sync push --host=51.195.xx.xx --port=22 --with-db --with-storage --import --passphrase="MyStr0ngP@ss"
+
+<span class="c"># Push specific apps only</span>
+<span class="p">$</span> cipi sync push shop blog --host=51.195.xx.xx --with-db --import --passphrase="MyStr0ngP@ss"
+
+<span class="c"># Push without auto-import (transfer only — import manually on remote)</span>
+<span class="p">$</span> cipi sync push --host=51.195.xx.xx --with-db --passphrase="MyStr0ngP@ss"</pre>
+                </div>
+
+                <h4>How push works</h4>
+                <ol>
+                    <li><strong>Step 1:</strong> Runs <code>cipi sync export</code> locally (encrypts with passphrase)</li>
+                    <li><strong>Step 2:</strong> Transfers the encrypted archive to the target via rsync</li>
+                    <li><strong>Step 3:</strong> If <code>--import</code> is passed, runs <code>cipi sync import --update --yes</code> on the target via SSH</li>
+                </ol>
+                <p>Push always adds <code>--update</code> and <code>--yes</code> when calling import on the remote. This
+                    means: first run creates all apps, subsequent runs incrementally update them. This is what makes push
+                    safe to run repeatedly via cron.</p>
+
+                <h4>SSH setup for push</h4>
+                <p>The source server needs SSH access to the target as root. Set up key-based auth for unattended
+                    operation:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># On the source server</span>
+<span class="p">$</span> ssh-copy-id -p 22 root@51.195.xx.xx</pre>
+                </div>
+
+                <h3>Practical scenarios</h3>
+
+                <h4>Scenario 1: Migrate all apps from AWS to OVH</h4>
+                <p>You have 20 apps on AWS. You bought an OVH VPS and installed Cipi on it.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># On AWS (source server)</span>
+<span class="p">$</span> cipi sync push --host=51.195.xx.xx --with-db --with-storage --import</pre>
+                </div>
+                <p>On the OVH target: 20 Linux users, 20 databases, 20 nginx vhosts, PHP-FPM pools, supervisor configs,
+                    crontabs — all created automatically. DB data imported, storage extracted, <code>.env</code> files
+                    copied with OVH's DB passwords, SSH deploy keys preserved (same keys work with GitHub). After import,
+                    install SSL and update DNS:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># On OVH (target server)</span>
+<span class="p">$</span> cipi ssl install shop
+<span class="p">$</span> cipi ssl install blog
+<span class="c"># ... then update DNS A records to OVH IP</span></pre>
+                </div>
+
+                <h4>Scenario 2: Scheduled failover replication (cron)</h4>
+                <p>Every 6 hours, Server 1 syncs all apps to Server 2. If Server 1 dies, change DNS and go live on
+                    Server 2.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># One-time setup on Server 1</span>
+<span class="p">$</span> ssh-copy-id root@server2-ip
+<span class="p">$</span> echo "YourStr0ngPassphrase!" > /etc/cipi/.sync_passphrase
+<span class="p">$</span> chmod 400 /etc/cipi/.sync_passphrase
+
+<span class="c"># First push (manual, to verify)</span>
+<span class="p">$</span> cipi sync push --host=server2-ip --with-db --with-storage --import --passphrase="$(cat /etc/cipi/.sync_passphrase)"
+
+<span class="c"># Add to crontab for automatic replication</span>
+<span class="p">$</span> crontab -e</pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">cron</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>0 */6 * * * /usr/local/bin/cipi sync push --host=51.195.xx.xx --port=22 --with-db --with-storage --import --passphrase="$(cat /etc/cipi/.sync_passphrase)" >> /var/log/cipi/sync-replica.log 2>&1</pre>
+                </div>
+                <p>Data loss window equals the cron interval (6 hours in this example). When Server 1 goes down: change
+                    DNS to Server 2, run <code>cipi ssl install</code> for each app, and you are live.</p>
+
+                <h4>Scenario 3: Replicate to multiple servers</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">cron</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Stagger by 30 minutes so exports don't run simultaneously</span>
+0 */6 * * * /usr/local/bin/cipi sync push --host=51.195.xx.xx --with-db --with-storage --import --passphrase="$(cat /etc/cipi/.sync_passphrase)" >> /var/log/cipi/sync-ovh.log 2>&1
+30 */6 * * * /usr/local/bin/cipi sync push --host=164.90.xx.xx --with-db --with-storage --import --passphrase="$(cat /etc/cipi/.sync_passphrase)" >> /var/log/cipi/sync-do.log 2>&1</pre>
+                </div>
+
+                <h4>Scenario 4: Daily encrypted backup (no transfer)</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">cron</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>0 3 * * * /usr/local/bin/cipi sync export --with-db --with-storage --output=/root/backups/cipi-$(date +\%Y\%m\%d).tar.gz --passphrase="$(cat /etc/cipi/.sync_passphrase)" >> /var/log/cipi/export.log 2>&1</pre>
+                </div>
+                <p>Creates an encrypted portable archive every night. Restore on any Cipi server at any time with
+                    <code>cipi sync import</code>.
+                </p>
+
+                <h3>Limitations</h3>
+                <ul>
+                    <li><strong>SSL certificates</strong> are not included in the archive. Run <code>cipi ssl install</code>
+                        after importing on a new server.</li>
+                    <li><strong>DB sync is full replace</strong>, not incremental. Each update drops all tables and
+                        reimports.</li>
+                    <li><strong>Storage sync is full extract</strong>, not incremental rsync. Deleted files on the source
+                        remain on the target.</li>
+                    <li><strong>Deploy keys</strong> are the same on source and target — no GitHub/GitLab reconfiguration
+                        needed.</li>
+                </ul>
+            </div>
+
+
+
+            <!-- ── Vault & Encryption ── -->
+            <div class="doc-section" id="cipi-vault">
+                <h2>Vault &amp; Encryption</h2>
+                <p>Cipi encrypts all configuration files at rest using <strong>AES-256-CBC</strong>. The Vault system
+                    provides transparent encryption and decryption so that sensitive data — database passwords, API tokens,
+                    SSH keys, <code>.env</code> contents — is never stored in plaintext on disk.</p>
+
+                <h3>Architecture</h3>
+                <p>The system is built on two layers:</p>
+                <ul>
+                    <li><strong>Vault</strong> — transparent encryption of JSON configuration files on disk
+                        (<code>server.json</code>, <code>apps.json</code>, <code>databases.json</code>,
+                        <code>backup.json</code>, <code>smtp.json</code>, <code>api.json</code>)
+                    </li>
+                    <li><strong>Sync encryption</strong> — passphrase-based encryption of export archives for secure
+                        transfer between servers</li>
+                </ul>
+
+                <h3>How Vault works</h3>
+                <p>A master key is generated during installation with <code>openssl rand -base64 32</code> and stored at
+                    <code>/etc/cipi/.vault_key</code> (<code>chmod 400</code>, root-only). Every JSON config file is
+                    encrypted on disk with <code>openssl enc -aes-256-cbc -salt -pbkdf2</code>. Files keep the
+                    <code>.json</code> extension — the content is simply an encrypted blob instead of readable JSON.
+                </p>
+                <p>The <code>vault_read</code> function auto-detects whether a file is plaintext or encrypted (backward
+                    compatibility), so existing servers migrate seamlessly during update.</p>
+
+                <h3>Vault functions</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Core functions in lib/vault.sh</span>
+vault_init          <span class="c"># Generate .vault_key if not present</span>
+vault_read &lt;file&gt;   <span class="c"># Decrypt and output JSON to stdout (auto-detect plain/encrypted)</span>
+vault_write &lt;file&gt;  <span class="c"># Read JSON from stdin, encrypt and write to disk</span>
+vault_seal &lt;file&gt;   <span class="c"># Encrypt an existing plaintext file in-place</span>
+vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read | jq</span></pre>
+                </div>
+
+                <h3>Public projection</h3>
+                <p>Cipi generates an <code>apps-public.json</code> file containing only non-sensitive fields (domain,
+                    aliases, PHP version, branch, repository, user, creation timestamp). The <code>cipi-api</code> group
+                    reads this plaintext projection instead of the encrypted file, keeping the vault key restricted to
+                    root.</p>
+
+                <h3>Sync archive encryption</h3>
+                <p>When you run <code>cipi sync export</code>, configs are decrypted from the vault into a staging area,
+                    then the entire archive is encrypted with your passphrase. On import, the archive is decrypted with
+                    the passphrase, and configs are re-encrypted with the <strong>destination server's vault key</strong>.
+                </p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>If the vault key is lost, configuration files become irrecoverable. The key is protected by
+                        <code>chmod 400</code> and included in server backups. Consider exporting it manually for
+                        additional safety.
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- ── Email Notifications ── -->
+            <div class="doc-section" id="cipi-smtp">
+                <h2>Email Notifications</h2>
+                <p>Cipi can send email alerts when backup errors, deploy failures, or system cron job failures occur.
+                    SMTP configuration is stored encrypted in <code>/etc/cipi/smtp.json</code> and included in sync
+                    exports.</p>
+
+                <h3>Commands</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi smtp configure      <span class="c"># interactive setup (Gmail, SendGrid, Mailgun, custom)</span>
+<span class="p">$</span> cipi smtp status          <span class="c"># display current notification settings</span>
+<span class="p">$</span> cipi smtp test            <span class="c"># send a verification email</span>
+<span class="p">$</span> cipi smtp enable          <span class="c"># enable notifications</span>
+<span class="p">$</span> cipi smtp disable         <span class="c"># disable without losing settings</span>
+<span class="p">$</span> cipi smtp delete          <span class="c"># remove SMTP configuration entirely</span></pre>
+                </div>
+
+                <h3>Automatic alerts</h3>
+                <p>Once configured, Cipi sends email notifications on:</p>
+                <ul>
+                    <li>Backup errors (S3 upload failures, dump errors)</li>
+                    <li>Deploy failures (Deployer errors, rollback triggers)</li>
+                    <li>System cron job failures (via the <code>cipi-cron-notify</code> wrapper)</li>
+                </ul>
+
+                <h3>Cron wrapper</h3>
+                <p>The <code>cipi-cron-notify</code> utility wraps system cron jobs and sends a notification if the job
+                    exits with a non-zero code. This is useful for monitoring critical scheduled tasks.</p>
+            </div>
+
+
+
+            <!-- ── Log Retention ── -->
+            <div class="doc-section" id="cipi-log-retention">
+                <h2>Log Retention (GDPR)</h2>
+                <p>Cipi enforces automatic log rotation policies designed to meet GDPR and general data protection
+                    requirements. Logs are rotated and deleted automatically — no manual cleanup needed.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Logs</th>
+                            <th>Retention</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Application</td>
+                            <td>Laravel, PHP-FPM, workers, deploy, system</td>
+                            <td>12 months</td>
+                        </tr>
+                        <tr>
+                            <td>Security</td>
+                            <td>Fail2ban, UFW firewall, authentication</td>
+                            <td>12 months</td>
+                        </tr>
+                        <tr>
+                            <td>HTTP / Navigation</td>
+                            <td>Nginx access and error logs</td>
+                            <td>90 days</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>HTTP/navigation logs (nginx access logs) contain IP addresses, which are personal data under
+                        GDPR. The 90-day retention ensures compliance with the data minimization principle while
+                        preserving enough history for debugging and security analysis. Application and security logs are
+                        retained for 12 months to support audit trails and incident investigation.</div>
+                </div>
+            </div>
+
+
+
             <div class="doc-section" id="redis">
                 <h2>Redis</h2>
                 <p><strong>Redis</strong> is an in-memory data store that Cipi installs as part of the default stack
@@ -4445,6 +4979,30 @@ myapp@server:~$ crontab -e</pre>
                     webhook handler in cipi-agent returns 200 immediately and writes a flag file — Deployer runs
                     separately as the app user with no elevated privileges.</p>
 
+                <h3>Configuration encryption (Vault)</h3>
+                <p>All Cipi configuration files — <code>server.json</code>, <code>apps.json</code>,
+                    <code>databases.json</code>, <code>backup.json</code>, <code>smtp.json</code>,
+                    <code>api.json</code> — are <strong>encrypted at rest</strong> using AES-256-CBC via the built-in
+                    Vault system. A per-server master key (<code>/etc/cipi/.vault_key</code>, <code>chmod 400</code>)
+                    ensures that even if an attacker gains read access to the filesystem, configuration files containing
+                    database passwords, API tokens, and credentials are unreadable without root privileges. See
+                    <a href="#cipi-vault">Vault &amp; Encryption</a> for the full architecture.
+                </p>
+
+                <h3>Encrypted sync archives</h3>
+                <p>When transferring applications between servers via <code>cipi sync</code>, the entire archive —
+                    including <code>.env</code> files, SSH keys, database dumps, and configuration — is encrypted with
+                    AES-256-CBC using a user-provided passphrase. Archives use the <code>.tar.gz.enc</code> extension
+                    and cannot be read without the passphrase. This protects sensitive data both at rest (on disk) and
+                    in transit (during rsync/scp transfer). See <a href="#cipi-sync">Sync</a> for details.</p>
+
+                <h3>GDPR-compliant log retention</h3>
+                <p>Cipi enforces automatic log rotation: application and security logs are retained for 12 months,
+                    while HTTP/navigation logs (which contain IP addresses — personal data under GDPR) are retained for
+                    90 days. This satisfies the GDPR data minimization principle while preserving enough history for
+                    debugging and audit trails. See <a href="#cipi-log-retention">Log retention</a> for the full
+                    policy.</p>
+
                 <h3>No web panel</h3>
                 <p>Cipi has no web interface. There is no attack surface from an admin panel. All management happens
                     over SSH using the <code>cipi</code> CLI.</p>
@@ -4651,9 +5209,10 @@ myapp@server:~$ crontab -e</pre>
                 <h2>Cipi vs alternatives</h2>
                 <p>There are many tools for provisioning and managing web servers. This page explains where Cipi sits in
                     that landscape and why you might — or might not — choose it over each category. The comparison is
-                    focused on five axes: <strong>AI integration (dual MCP server — per-app and global)</strong>,
+                    focused on seven axes: <strong>AI integration (dual MCP server — per-app and global)</strong>,
                     <strong>native Git deploy (GitHub &amp; GitLab)</strong>, <strong>REST API</strong>,
-                    <strong>CLI-first automation</strong>, and <strong>total cost of ownership</strong>.
+                    <strong>CLI-first automation</strong>, <strong>encryption at rest (Vault)</strong>,
+                    <strong>GDPR compliance</strong>, and <strong>total cost of ownership</strong>.
                 </p>
 
                 <div class="callout info">
@@ -4665,14 +5224,14 @@ myapp@server:~$ crontab -e</pre>
                     </svg>
                     <div>Cipi's core proposition: <strong>free forever, MIT open source, Laravel-only, CLI-first,
                             AI-ready with dual MCP server, native GitHub &amp; GitLab integration, full REST API,
+                            AES-256-CBC encryption at rest, GDPR-compliant log retention,
                             self-contained on your VPS</strong>. It does one thing and does it well — it does not try to
                         be a generic hosting panel, a SaaS platform, or a multi-stack tool. Cipi provides automatic
                         deployment integration with GitHub and GitLab, a complete REST API for managing hosts and
-                        applications programmatically, and a dual MCP server architecture — one per-app MCP server for
-                        single-application management and one global MCP server for creating, deploying, modifying,
-                        deleting, and managing SSL certificates across all applications on the server. Cipi is the only
-                        server panel with native AI integration at both per-app and global scope, enabling seamless
-                        management from any AI-powered IDE or agent.</div>
+                        applications programmatically, a dual MCP server architecture for AI-driven management, built-in
+                        Vault encryption for all configuration files and sync archives, and GDPR-compliant automatic
+                        log rotation. No credentials, SSH keys, or sensitive data are ever stored in plaintext — and no
+                        infrastructure data ever leaves your VPS.</div>
                 </div>
 
                 <!-- Quick overview table -->
@@ -5090,6 +5649,16 @@ myapp@server:~$ crontab -e</pre>
                         deploying, modifying, deleting, and managing SSL certificates across all applications on the
                         server. This enables full AI-driven infrastructure management from any MCP-compatible IDE or
                         agent.</li>
+                    <li><strong>Encryption at rest</strong> — All Cipi configuration files (passwords, tokens, SSH keys)
+                        are encrypted with AES-256-CBC via the Vault system. Forge stores server credentials on its
+                        own SaaS infrastructure; Cipi keeps everything encrypted on your VPS.</li>
+                    <li><strong>GDPR / data sovereignty</strong> — Cipi runs entirely on your server. No infrastructure
+                        data is sent to any third party. Forge is operated by a US company and processes your server
+                        metadata under US law — requiring a DPA for GDPR compliance. With Cipi there is no third-party
+                        data processor to manage.</li>
+                    <li><strong>Server sync &amp; replication</strong> — Built-in encrypted server-to-server sync with
+                        <code>cipi sync push</code> enables automated failover replication via cron. Forge has no
+                        equivalent feature.</li>
                 </ul>
                 <p><strong>Where Forge wins:</strong> GUI, multi-cloud provisioning, teams, monitoring dashboards,
                     heartbeats, health checks, and years of production hardening. If your team is not comfortable with
@@ -5108,13 +5677,17 @@ myapp@server:~$ crontab -e</pre>
                     free tier (capped at 25 git deploys/month).</p>
                 <p>Both Ploi and Moss trade a monthly fee and SaaS dependency for a polished GUI and built-in
                     monitoring. Cipi trades the GUI for zero cost, open source code, full CLI control, a complete REST
-                    API, native GitHub &amp; GitLab deployment integration, and a dual MCP server (per-app and global)
-                    for AI-driven management. Notable differences: Moss is not Laravel-exclusive (no built-in Deployer,
-                    no artisan shortcuts) and its free tier imposes a deploy quota that runs out quickly on active
-                    workflows — Cipi has no deploy limits. Ploi is the more Laravel-focused of the two and the better
-                    choice if you want a Forge-like experience at a lower price point. Both remain the right choice over
-                    Cipi if your team prefers a GUI and does not need CLI-first pipeline automation or AI
-                    integration.</p>
+                    API, native GitHub &amp; GitLab deployment integration, a dual MCP server (per-app and global)
+                    for AI-driven management, AES-256-CBC encryption at rest for all configs, and built-in encrypted
+                    server-to-server sync for automated failover replication. Notable differences: Moss is not
+                    Laravel-exclusive (no built-in Deployer, no artisan shortcuts) and its free tier imposes a deploy
+                    quota that runs out quickly on active workflows — Cipi has no deploy limits. On data sovereignty:
+                    Ploi is EU-based (Netherlands) and natively GDPR-compliant, which is a genuine advantage over
+                    US-based alternatives. Cipi goes further — no infrastructure data leaves your VPS at all, and all
+                    configs are encrypted on disk. Neither Ploi nor Moss offer config encryption at rest or built-in
+                    server sync. Ploi is the better choice if you want a Forge-like experience at a lower price point.
+                    Both remain the right choice over Cipi if your team prefers a GUI and does not need CLI-first
+                    pipeline automation or AI integration.</p>
 
                 <!-- RunCloud -->
                 <h3>Cipi vs RunCloud</h3>
@@ -5313,6 +5886,12 @@ myapp@server:~$ crontab -e</pre>
                         forkable, and MIT-licensed.</li>
                     <li>You need <strong>GDPR / data sovereignty compliance</strong> — no infrastructure data leaves
                         your VPS, no third-party data processor, no DPA required.</li>
+                    <li>You need <strong>encryption at rest</strong> — all configuration files, credentials, and SSH keys
+                        are encrypted with AES-256-CBC via the Vault system. Sync archives are also encrypted with a
+                        user-defined passphrase.</li>
+                    <li>You need <strong>server-to-server sync and replication</strong> — <code>cipi sync push</code>
+                        enables automated failover replication via cron, with encrypted transfer and incremental
+                        updates.</li>
                     <li>You are comfortable with SSH — Cipi has no GUI and does not try to have one.</li>
                 </ul>
                 <h3>When to choose something else</h3>
