@@ -1077,6 +1077,7 @@
                 <a href="#agent-webhook" class="sidebar-link">webhook</a>
                 <a href="#agent-health" class="sidebar-link">health check</a>
                 <a href="#agent-mcp" class="sidebar-link">MCP server</a>
+                <a href="#agent-anonymizer" class="sidebar-link">database anonymizer</a>
                 <a href="#agent-env" class="sidebar-link">ENV variables</a>
             </div>
 
@@ -1417,7 +1418,8 @@
                 <h2>Installation</h2>
                 <p><strong>cipi-agent</strong> is a lightweight Laravel package that connects your application to Cipi.
                     It provides a webhook endpoint for automatic deploys on <code>git push</code>, a health check
-                    endpoint, and a couple of useful Artisan commands.</p>
+                    endpoint, an MCP server for AI assistants, a database anonymizer for GDPR-safe data exports,
+                    and a set of useful Artisan commands.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -1459,6 +1461,23 @@
                         <tr>
                             <td>php artisan cipi:mcp</td>
                             <td>Show the MCP endpoint URL and setup snippets for Cursor, VS Code, and Claude Desktop
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>php artisan cipi:generate-token {type}</td>
+                            <td>Generate a secure token. Type can be <code>mcp</code>, <code>health</code>, or
+                                <code>anonymize</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>php artisan cipi:service {type} --enable|--disable</td>
+                            <td>Toggle a service on or off. Updates <code>.env</code> in place. Type can be
+                                <code>mcp</code> or <code>anonymize</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>php artisan cipi:init-anonymize</td>
+                            <td>Scaffold the anonymization config at <code>/home/{app_user}/.db/anonymization.json</code>
                             </td>
                         </tr>
                     </tbody>
@@ -1525,13 +1544,15 @@
             <div class="doc-section" id="agent-health">
                 <h2>Health Check</h2>
                 <p>The agent also exposes a GET endpoint at <code>/cipi/health</code> that returns a JSON payload with
-                    the status of the app, database, cache, and queue. Useful for external monitoring services such as
-                    UptimeRobot.</p>
+                    the status of the app, database, cache, queue, and the currently deployed Git commit hash. Useful
+                    for external monitoring services such as UptimeRobot. Protected by the
+                    <code>CIPI_HEALTH_TOKEN</code> Bearer token — generate one with
+                    <code>php artisan cipi:generate-token health</code>.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> curl -H "Authorization: Bearer YOUR_TOKEN" \
+                    <pre><span class="p">$</span> curl -H "Authorization: Bearer YOUR_CIPI_HEALTH_TOKEN" \
     https://yourdomain.com/cipi/health</pre>
                 </div>
 
@@ -1542,6 +1563,7 @@
   <span class="s">"app_user"</span>: <span class="s">"myapp"</span>,
   <span class="s">"php"</span>: <span class="s">"8.4"</span>,
   <span class="s">"laravel"</span>: <span class="s">"12.0.0"</span>,
+  <span class="s">"commit"</span>: <span class="s">"a1b2c3d"</span>,
   <span class="s">"checks"</span>: {
     <span class="s">"database"</span>: { <span class="s">"ok"</span>: <span class="k">true</span> },
     <span class="s">"cache"</span>:    { <span class="s">"ok"</span>: <span class="k">true</span> },
@@ -1549,6 +1571,9 @@
   }
 }</pre>
                 </div>
+
+                <p>The <code>commit</code> field shows the short Git hash of the currently deployed release, useful
+                    for verifying which version is running in production.</p>
             </div>
 
 
@@ -1559,12 +1584,18 @@
                     that exposes your application to AI assistants such as <strong>Cursor</strong>,
                     <strong>VS Code</strong> (with GitHub Copilot), and <strong>Claude Desktop</strong>. The endpoint
                     implements MCP 2024-11-05 over HTTP using JSON-RPC 2.0
-                    and is protected by the same <code>CIPI_WEBHOOK_TOKEN</code> Bearer token already present in your
-                    <code>.env</code>.
+                    and is protected by the <code>CIPI_MCP_TOKEN</code> Bearer token.
                 </p>
 
-                <p>The MCP endpoint is available at <code>POST /cipi/mcp</code> and is enabled by default. To disable
-                    it, set <code>CIPI_MCP_ENABLED=false</code> in your <code>.env</code>.</p>
+                <p>The MCP endpoint is available at <code>POST /cipi/mcp</code> and is disabled by default. To enable
+                    it:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:service mcp --enable
+<span class="p">$</span> php artisan cipi:generate-token mcp</pre>
+                </div>
 
                 <h3>Available tools</h3>
                 <p>The MCP server exposes six tools that an AI assistant can invoke by name:</p>
@@ -1648,7 +1679,7 @@
       <span class="s">"type"</span>: <span class="s">"http"</span>,
       <span class="s">"url"</span>: <span class="s">"https://yourdomain.com/cipi/mcp"</span>,
       <span class="s">"headers"</span>: {
-        <span class="s">"Authorization"</span>: <span class="s">"Bearer YOUR_CIPI_WEBHOOK_TOKEN"</span>
+        <span class="s">"Authorization"</span>: <span class="s">"Bearer YOUR_CIPI_MCP_TOKEN"</span>
       }
     }
   }
@@ -1656,7 +1687,7 @@
                 </div>
 
                 <p>Replace <code>cipi-myapp</code> with your app user name, <code>yourdomain.com</code> with your
-                    actual domain, and <code>YOUR_CIPI_WEBHOOK_TOKEN</code> with the token from your
+                    actual domain, and <code>YOUR_CIPI_MCP_TOKEN</code> with the token from your
                     <code>.env</code>. Cursor connects natively over HTTP — no bridge needed.
                 </p>
 
@@ -1675,7 +1706,7 @@
       <span class="s">"type"</span>: <span class="s">"http"</span>,
       <span class="s">"url"</span>: <span class="s">"https://yourdomain.com/cipi/mcp"</span>,
       <span class="s">"headers"</span>: {
-        <span class="s">"Authorization"</span>: <span class="s">"Bearer YOUR_CIPI_WEBHOOK_TOKEN"</span>
+        <span class="s">"Authorization"</span>: <span class="s">"Bearer YOUR_CIPI_MCP_TOKEN"</span>
       }
     }
   }
@@ -1683,7 +1714,7 @@
                 </div>
 
                 <p>Replace <code>cipi-myapp</code>, <code>yourdomain.com</code>, and
-                    <code>YOUR_CIPI_WEBHOOK_TOKEN</code>
+                    <code>YOUR_CIPI_MCP_TOKEN</code>
                     as above. Use <strong>MCP: Add Server</strong> from the Command Palette for a guided setup. VS Code
                     connects over HTTP — no bridge needed.
                 </p>
@@ -1704,7 +1735,7 @@
         <span class="s">"mcp-remote"</span>,
         <span class="s">"https://yourdomain.com/cipi/mcp"</span>,
         <span class="s">"--header"</span>,
-        <span class="s">"Authorization: Bearer YOUR_CIPI_WEBHOOK_TOKEN"</span>
+        <span class="s">"Authorization: Bearer YOUR_CIPI_MCP_TOKEN"</span>
       ]
     }
   }
@@ -1776,10 +1807,128 @@
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <div>Keep your <code>CIPI_WEBHOOK_TOKEN</code> secret. Anyone with the token can trigger deploys,
+                    <div>Keep your <code>CIPI_MCP_TOKEN</code> secret. Anyone with the token can trigger deploys,
                         read logs, run database queries, and run Artisan commands through the MCP endpoint. If you
                         suspect a leak, regenerate
-                        the token in your <code>.env</code> and restart the application.</div>
+                        the token with <code>php artisan cipi:generate-token mcp</code> and restart the application.</div>
+                </div>
+            </div>
+
+
+
+            <div class="doc-section" id="agent-anonymizer">
+                <h2>Database Anonymizer</h2>
+                <p><strong>cipi-agent</strong> includes a built-in database anonymizer that creates sanitized copies of
+                    your production database — ideal for sharing with developers, QA teams, or staging environments
+                    without exposing real user data. It supports both MySQL and PostgreSQL and uses
+                    <strong>Faker</strong>-based transformations configured via a JSON file.
+                </p>
+
+                <h3>How it works</h3>
+                <ol>
+                    <li>A <code>POST /cipi/db</code> request queues an <code>AnonymizeDatabaseJob</code> in the
+                        background</li>
+                    <li>The job runs <code>php artisan cipi:anonymize</code>, which dumps the database, applies
+                        Faker-based transformations according to <code>anonymization.json</code>, and produces a
+                        sanitized SQL file</li>
+                    <li>When complete, an email notification is sent with a signed download URL</li>
+                    <li><code>GET /cipi/db/{token}</code> serves the anonymized dump via a signed URL that expires
+                        after 15 minutes</li>
+                </ol>
+
+                <p>A utility endpoint <code>POST /cipi/db/user</code> is also available for user ID lookup, useful
+                    when building anonymization rules.</p>
+
+                <h3>Setup</h3>
+                <p>Scaffold the anonymization configuration file:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:init-anonymize</pre>
+                </div>
+
+                <p>This creates <code>/home/{app_user}/.db/anonymization.json</code> with a starter template. The
+                    file is stored outside the project repository for security — it never gets committed.</p>
+
+                <h3>Configuration</h3>
+                <p>Edit <code>/home/{app_user}/.db/anonymization.json</code> to define which tables and columns to
+                    anonymize:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span></div>
+                    <pre>{
+  <span class="s">"tables"</span>: {
+    <span class="s">"users"</span>: {
+      <span class="s">"name"</span>: <span class="s">"name"</span>,
+      <span class="s">"email"</span>: <span class="s">"safeEmail"</span>,
+      <span class="s">"phone"</span>: <span class="s">"phoneNumber"</span>,
+      <span class="s">"address"</span>: <span class="s">"address"</span>
+    },
+    <span class="s">"orders"</span>: {
+      <span class="s">"shipping_address"</span>: <span class="s">"address"</span>,
+      <span class="s">"notes"</span>: <span class="s">"sentence"</span>
+    }
+  }
+}</pre>
+                </div>
+
+                <p>Each key under <code>tables</code> is a database table name. Each nested key is a column name,
+                    and the value is a <a href="https://fakerphp.org/formatters/" target="_blank"
+                        rel="noopener">Faker formatter</a> (e.g. <code>name</code>, <code>safeEmail</code>,
+                    <code>phoneNumber</code>, <code>address</code>, <code>sentence</code>).
+                </p>
+
+                <h3>Endpoints</h3>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>POST</td>
+                            <td>/cipi/db</td>
+                            <td>Queue an anonymization job. Returns immediately; sends email when done.</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td>/cipi/db/user</td>
+                            <td>User ID lookup utility</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td>/cipi/db/{token}</td>
+                            <td>Download the anonymized dump (signed URL, expires in 15 minutes)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>All endpoints are protected by the <code>CIPI_ANONYMIZER_TOKEN</code> Bearer token.</p>
+
+                <h3>Enable the anonymizer</h3>
+                <p>The anonymizer is disabled by default. Enable it and generate a token:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:service anonymize --enable
+<span class="p">$</span> php artisan cipi:generate-token anonymize</pre>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>The anonymization config file contains the mapping of your database schema. Keep it outside
+                        your repository (the default path <code>/home/{app_user}/.db/</code> is already excluded).
+                        Never commit it to version control.</div>
                 </div>
             </div>
 
@@ -1815,12 +1964,45 @@
                             <td>auto-set</td>
                         </tr>
                         <tr>
-                            <td>CIPI_MCP_ENABLED</td>
+                            <td>CIPI_MCP</td>
                             <td>Enable or disable the MCP server endpoint at <code>/cipi/mcp</code></td>
-                            <td><code>true</code></td>
+                            <td><code>false</code></td>
+                        </tr>
+                        <tr>
+                            <td>CIPI_MCP_TOKEN</td>
+                            <td>Bearer token for MCP endpoint authentication</td>
+                            <td><em>none</em></td>
+                        </tr>
+                        <tr>
+                            <td>CIPI_HEALTH_TOKEN</td>
+                            <td>Bearer token for the <code>/cipi/health</code> endpoint</td>
+                            <td><em>none</em></td>
+                        </tr>
+                        <tr>
+                            <td>CIPI_ANONYMIZER</td>
+                            <td>Enable or disable the database anonymizer endpoints at <code>/cipi/db</code></td>
+                            <td><code>false</code></td>
+                        </tr>
+                        <tr>
+                            <td>CIPI_ANONYMIZER_TOKEN</td>
+                            <td>Bearer token for the anonymizer endpoints</td>
+                            <td><em>none</em></td>
                         </tr>
                     </tbody>
                 </table>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Use <code>php artisan cipi:generate-token {type}</code> to generate tokens for
+                        <code>mcp</code>, <code>health</code>, or <code>anonymize</code>. Use
+                        <code>php artisan cipi:service {type} --enable|--disable</code> to toggle services — the
+                        command updates your <code>.env</code> in place.</div>
+                </div>
             </div>
 
             <hr class="doc-divider">
@@ -2021,7 +2203,7 @@
                             <td>Cipi</td>
                         </tr>
                         <tr>
-                            <td>CIPI_MCP_ENABLED</td>
+                            <td>CIPI_MCP</td>
                             <td>Enable or disable the built-in MCP server at <code>/cipi/mcp</code></td>
                             <td>User (<code>true</code> by default)</td>
                         </tr>
@@ -2198,6 +2380,7 @@ myapp@server:~$ ls -lt ~/releases/</pre>
 
                 <h3>Deploy pipeline</h3>
                 <ol>
+                    <li>Stop queue workers (<code>cipi worker stop</code>)</li>
                     <li>Clone repo into <code>releases/N/</code></li>
                     <li>Run <code>composer install --no-dev</code></li>
                     <li>Link <code>shared/.env</code> and <code>shared/storage/</code></li>
@@ -3843,7 +4026,8 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi worker list myapp
 <span class="p">$</span> cipi worker edit myapp --queue=default --processes=3
 <span class="p">$</span> cipi worker remove myapp emails
-<span class="p">$</span> cipi worker restart myapp   <span class="c"># restart all workers for the app</span></pre>
+<span class="p">$</span> cipi worker restart myapp   <span class="c"># restart all workers for the app</span>
+<span class="p">$</span> cipi worker stop myapp      <span class="c"># stop all workers for the app (used during deploys)</span></pre>
                 </div>
 
                 <table class="cmd-table">
@@ -3871,7 +4055,10 @@ myapp@server:~$ crontab -e</pre>
                     </tbody>
                 </table>
 
-                <p>Workers are automatically restarted after every deploy.</p>
+                <p>Workers are stopped before the symlink swap and restarted after every deploy, preventing
+                    Supervisor from picking up stale <code>artisan</code> paths. Supervisor is configured with
+                    <code>autorestart=unexpected</code> so workers only restart on unexpected exits, not on graceful
+                    stops.</p>
             </div>
 
 
@@ -4403,7 +4590,7 @@ myapp@server:~$ crontab -e</pre>
 
 <span class="c">Cipi Sync Archive</span>
 <span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
-<span class="c">  Cipi           v4.1.0</span>
+<span class="c">  Cipi           v4.1.2</span>
 <span class="c">  Exported       2026-03-06T15:00:00Z</span>
 <span class="c">  Source         aws01 (3.120.xx.xx)</span>
 <span class="c">  Database       true</span>
@@ -4952,9 +5139,12 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                 native webhook support for GitHub and GitLab were added from day one. v4 also introduced
                                 a complete <strong>REST API</strong> for programmatic management of hosts and
                                 applications, native integration with <strong>GitHub and GitLab</strong> git providers,
-                                and a groundbreaking <strong>dual MCP server</strong> architecture — one per-app and one
+                                a groundbreaking <strong>dual MCP server</strong> architecture — one per-app and one
                                 global — enabling full AI-driven infrastructure management directly from any
-                                MCP-compatible IDE or AI agent. The result is the version you are using today.</p>
+                                MCP-compatible IDE or AI agent, <strong>encrypted server sync</strong> for
+                                migrating apps between VPS instances, and a built-in <strong>database
+                                    anonymizer</strong> for GDPR-safe data exports. The result is the version you are
+                                using today.</p>
                             <div class="callout info" style="margin-top:16px;">
                                 <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2">
