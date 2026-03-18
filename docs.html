@@ -1105,6 +1105,7 @@
             <div class="sidebar-group">
                 <span class="sidebar-group-label">apps</span>
                 <a href="#cli-app-create" class="sidebar-link"><code>app create</code></a>
+                <a href="#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
                 <a href="#cli-app-env" class="sidebar-link"><code>app env</code></a>
                 <a href="#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
@@ -2105,12 +2106,14 @@ MariaDB: database '<span class="tree-accent">myapp</span>', user '<span class="t
             <div class="doc-section" id="cli-app-create">
                 <p class="doc-section-label">Apps</p>
                 <h2><code>cipi app create</code></h2>
-                <p>Creates a fully isolated Laravel application: Linux user, PHP-FPM pool, Nginx vhost, MariaDB
-                    database, Supervisor worker, crontab entry, Deployer config, SSH deploy key, and auto-compiled
-                    <code>.env</code>.
+                <p><code>cipi app create</code> supports two app types: <strong>Laravel</strong> (default) and
+                    <strong>Custom</strong> (<code>--custom</code>). Laravel apps get a fully isolated environment:
+                    Linux user, PHP-FPM pool, Nginx vhost, MariaDB database, Supervisor worker, crontab entry,
+                    Deployer zero-downtime releases, SSH deploy key, and auto-compiled <code>.env</code>. Custom apps
+                    are simpler — see <a href="#cli-app-custom">custom apps</a> for details.
                 </p>
 
-                <h3>Interactive mode</h3>
+                <h3>Laravel app (default)</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -2157,7 +2160,35 @@ MariaDB: database '<span class="tree-accent">myapp</span>', user '<span class="t
                 </div>
             </div>
 
-
+            <div class="doc-section" id="cli-app-custom">
+                <h2><code>cipi app create --custom</code></h2>
+                <p>Creates a <strong>custom app</strong> with classic deploy (no zero-downtime): code is deployed into
+                    <code>htdocs</code> — no <code>current</code>/<code>shared</code> symlinks. Ideal for static sites,
+                    SPAs (Vue, React, Svelte), WordPress, other CMS, or any non-Laravel PHP project or framework.
+                </p>
+                <p>During creation you only choose the document root (default <code>/</code>, or e.g. <code>www</code>,
+                    <code>dist</code>, <code>public</code>). Nginx is pre-configured with <code>index index.html
+                    index.php</code>, <code>try_files $uri $uri/ /index.php?$args</code>, and
+                    <code>error_page 404 /404.html</code> — no prompts for try_files or entry point.
+                </p>
+                <p>Custom apps have <strong>no database</strong>, <strong>no <code>.env</code></strong>, no cron, no
+                    queue workers, no webhook. The post-creation summary shows only SSH access, deploy key, and next
+                    steps.
+                </p>
+                <p>If your custom app needs a database (e.g. WordPress, Drupal), create one with
+                    <code>cipi db create --name=&lt;app&gt;</code> after deployment. See <a href="#cli-db">cipi db</a>
+                    for backup, restore, and password management.
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app create --custom --user=mysite --domain=mysite.com \
+    --repository=git@github.com:you/mysite.git --docroot=dist</pre>
+                </div>
+                <p>Use <code>cipi deploy &lt;app&gt;</code> to deploy. Code is cloned into
+                    <code>/home/&lt;app&gt;/htdocs</code>.
+                </p>
+            </div>
 
             <div class="doc-section" id="cli-app-manage">
                 <h2><code>app list</code> / <code>app show</code> / <code>app edit</code> / <code>app delete</code></h2>
@@ -2176,7 +2207,8 @@ MariaDB: database '<span class="tree-accent">myapp</span>', user '<span class="t
                         </tr>
                         <tr>
                             <td>cipi app show &lt;app&gt;</td>
-                            <td>Full details: domain, PHP, deploy key, workers, webhook</td>
+                            <td>Full details: domain, PHP, deploy key, workers, webhook. For custom apps: type
+                                "Custom", docroot; webhook line omitted.</td>
                         </tr>
                         <tr>
                             <td>cipi app edit &lt;app&gt; --php=8.5</td>
@@ -2189,7 +2221,8 @@ MariaDB: database '<span class="tree-accent">myapp</span>', user '<span class="t
                         </tr>
                         <tr>
                             <td>cipi app env &lt;app&gt;</td>
-                            <td>Open the app's <code>.env</code> file in nano as the app user</td>
+                            <td>Open the app's <code>.env</code> file in nano as the app user. Exits with error for
+                                custom apps (no .env).</td>
                         </tr>
                         <tr>
                             <td>cipi app reset-password &lt;app&gt;</td>
@@ -2199,13 +2232,15 @@ MariaDB: database '<span class="tree-accent">myapp</span>', user '<span class="t
                         <tr>
                             <td>cipi app reset-db-password &lt;app&gt;</td>
                             <td>Regenerate the app's MariaDB password and automatically update the
-                                <code>DB_PASSWORD</code> value in the app's <code>.env</code> file
+                                <code>DB_PASSWORD</code> value in the app's <code>.env</code> file. Exits with error for
+                                custom apps (no database).
                             </td>
                         </tr>
                         <tr>
                             <td>cipi app delete &lt;app&gt;</td>
-                            <td>Permanently remove the app, user, database, Nginx vhost, FPM pool, and Supervisor
-                                workers. Asks for confirmation.</td>
+                            <td>Permanently remove the app, user, database (if Laravel), Nginx vhost, FPM pool, and
+                                Supervisor workers. For custom apps, skips database drop (none was created). Asks for
+                                confirmation.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -2215,7 +2250,8 @@ MariaDB: database '<span class="tree-accent">myapp</span>', user '<span class="t
 
             <div class="doc-section" id="cli-app-env">
                 <h2>Managing ENV variables</h2>
-                <p>Every app has a single <code>.env</code> file living at <code>/home/&lt;app&gt;/shared/.env</code>.
+                <p>Every <strong>Laravel</strong> app has a single <code>.env</code> file living at
+                    <code>/home/&lt;app&gt;/shared/.env</code>. Custom apps have no <code>.env</code>.
                     It is created and pre-populated by Cipi during <code>app create</code> with the database
                     credentials, <code>APP_KEY</code>, <code>APP_URL</code>, cache/session/queue settings, and the
                     webhook token. The <code>shared/</code> directory is symlinked into every release, so the same
@@ -3861,8 +3897,10 @@ cleanup-preview:
 
             <div class="doc-section" id="cli-db">
                 <h2><code>cipi db</code></h2>
-                <p>Cipi creates a dedicated MariaDB database for each app automatically during <code>app create</code>.
-                    After database setup, a ready-to-use <code>mariadb+ssh://</code> connection URL is displayed,
+                <p>Cipi creates a dedicated MariaDB database for each <strong>Laravel</strong> app automatically during
+                    <code>app create</code>. Custom apps do not get a database — use <code>cipi db create
+                    --name=&lt;app&gt;</code> if you need one (e.g. for WordPress or another CMS). After database
+                    setup, a ready-to-use <code>mariadb+ssh://</code> connection URL is displayed,
                     combining SSH credentials, server IP, and database information in a single copyable string for
                     GUI clients like TablePlus, DBeaver, or Sequel Pro.
                     You can also manage additional standalone databases.</p>
@@ -5659,8 +5697,9 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                 <div>The full v4 changelog is available on <a
                                         href="https://github.com/cipi-sh/cipi/releases" target="_blank"
                                         rel="noopener">GitHub Releases</a>.
-                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.3.2"
-                                        target="_blank" rel="noopener">4.3.2</a>.
+                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.3.3"
+                                        target="_blank" rel="noopener">4.3.3</a> — adds
+                                    <code>cipi app create --custom</code> for static sites and SPAs.
                                 </div>
                             </div>
                         </div>
