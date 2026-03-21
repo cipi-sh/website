@@ -1164,16 +1164,16 @@ def main() -> None:
             var ANCHOR_TO_PAGE = {redirect_map};
             var h = (location.hash || "").slice(1);
             if (h && ANCHOR_TO_PAGE[h]) {{
-                location.replace("/docs/" + ANCHOR_TO_PAGE[h] + "#" + h);
+                location.replace("docs/" + ANCHOR_TO_PAGE[h] + "#" + h);
             }} else {{
-                location.replace("/docs/");
+                location.replace("docs/");
             }}
         }})();
     </script>
-    <meta http-equiv="refresh" content="0;url=/docs/">
+    <meta http-equiv="refresh" content="0;url=docs/">
 </head>
 <body>
-    <p style="font-family: system-ui, sans-serif; padding: 2rem;">Redirecting to <a href="/docs/">documentation</a>…</p>
+    <p style="font-family: system-ui, sans-serif; padding: 2rem;">Redirecting to <a href="docs/">documentation</a>…</p>
 </body>
 </html>
 """
