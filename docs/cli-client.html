@@ -4,24 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cipi Docs — Apps</title>
-    <meta name="description" content="Create, manage, and configure Laravel and custom applications with Cipi.">
+    <title>Cipi Docs — CLI Client</title>
+    <meta name="description" content="cipi-cli — manage your Cipi servers remotely from the terminal. Apps, databases, SSL, deploys, and more via the REST API.">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://cipi.sh/docs/apps">
+    <link rel="canonical" href="https://cipi.sh/docs/cli-client">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Cipi">
-    <meta property="og:url" content="https://cipi.sh/docs/apps">
-    <meta property="og:title" content="Cipi Docs — Apps">
-    <meta property="og:description" content="Create, manage, and configure Laravel and custom applications with Cipi.">
+    <meta property="og:url" content="https://cipi.sh/docs/cli-client">
+    <meta property="og:title" content="Cipi Docs — CLI Client">
+    <meta property="og:description" content="cipi-cli — manage your Cipi servers remotely from the terminal. Apps, databases, SSL, deploys, and more via the REST API.">
     <meta property="og:image" content="https://cipi.sh/og.png">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@cipi_sh">
-    <meta name="twitter:title" content="Cipi Docs — Apps">
-    <meta name="twitter:description" content="Create, manage, and configure Laravel and custom applications with Cipi.">
+    <meta name="twitter:title" content="Cipi Docs — CLI Client">
+    <meta name="twitter:description" content="cipi-cli — manage your Cipi servers remotely from the terminal. Apps, databases, SSL, deploys, and more via the REST API.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <link rel="icon" id="favicon" type="image/png" sizes="48x48" href="/favicon-light.png">
@@ -215,116 +215,103 @@
 
         <main class="docs-content" id="docsContent">
 
-            <div class="doc-section" id="cli-app-create">
-                <p class="doc-section-label">Apps</p>
-                <h2><code>cipi app create</code></h2>
-                <p><code>cipi app create</code> supports two app types: <strong>Laravel</strong> (default) and
-                    <strong>Custom</strong> (<code>--custom</code>). Laravel apps get a fully isolated environment:
-                    Linux user, PHP-FPM pool, Nginx vhost, MariaDB database, Supervisor worker, crontab entry,
-                    Deployer zero-downtime releases, SSH deploy key, and auto-compiled <code>.env</code>. Custom apps
-                    are simpler — see <a href="apps#cli-app-custom">custom apps</a> for details.
-                </p>
+            <!-- ── Installation ── -->
 
-                <h3>Laravel app (default)</h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app create</pre>
-                </div>
-
-                <h3>Non-interactive (flags)</h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app create \
-    --user=myapp \
-    --domain=myapp.com \
-    --repository=git@github.com:you/myapp.git \
-    --branch=main \
-    --php=8.5</pre>
-                </div>
-
-                <div class="options-list">
-                    <div class="option-item"><code>--user</code><span>Linux username for the app. Must be unique,
-                            lowercase, alphanumeric.</span></div>
-                    <div class="option-item"><code>--domain</code><span>Primary domain (e.g. <code>myapp.com</code>).
-                            Used for Nginx vhost and <code>APP_URL</code>.</span></div>
-                    <div class="option-item"><code>--repository</code><span>SSH Git URL (e.g.
-                            <code>git@github.com:you/repo.git</code>). Must be SSH, not HTTPS.</span></div>
-                    <div class="option-item"><code>--branch</code><span>Branch to deploy. Defaults to
-                            <code>main</code>.</span></div>
-                    <div class="option-item"><code>--php</code><span>PHP version for this app (e.g. <code>8.5</code>).
-                            Defaults to PHP 8.5. Must be an installed version.</span></div>
-                </div>
+            <div class="doc-section" id="cli-install">
+                <p class="doc-section-label">CLI Client</p>
+                <h2>Installation</h2>
+                <p><code>cipi-cli</code> is a standalone Go binary that talks to the Cipi REST API from your local
+                    machine. No SSH required — manage apps, databases, SSL certificates, and deployments from any
+                    terminal. Binaries are available for Linux and macOS (amd64 and arm64).</p>
 
                 <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
-                    <div>If a GitHub or GitLab token is configured, Cipi automatically adds the SSH deploy key and
-                        creates the webhook on the repository — no manual steps needed. See
-                        <a href="deploy#git-auto-setup">Git auto-setup</a> for setup instructions and
-                        fallback options when auto-configuration is not available.
-                    </div>
+                    <span>The Cipi server must have the API package installed and configured before using
+                        <code>cipi-cli</code>. See <a href="advanced#cipi-api"><code>cipi api</code></a> for
+                        setup instructions.</span>
                 </div>
-            </div>
 
-            <div class="doc-section" id="cli-app-custom">
-                <h2><code>cipi app create --custom</code></h2>
-                <p>Creates a <strong>custom app</strong> with classic deploy (no zero-downtime): code is deployed into
-                    <code>htdocs</code> — no <code>current</code>/<code>shared</code> symlinks. Ideal for static sites,
-                    SPAs (Vue, React, Svelte), WordPress, other CMS, or any non-Laravel PHP project or framework.
-                </p>
-                <p>During creation you only choose the document root (default <code>/</code>, or e.g. <code>www</code>,
-                    <code>dist</code>, <code>public</code>). Nginx is pre-configured with <code>index index.html
-                    index.php</code>, <code>try_files $uri $uri/ /index.php?$args</code>, and
-                    <code>error_page 404 /404.html</code> — no prompts for try_files or entry point.
-                </p>
-                <h3>Git optional (SFTP-only)</h3>
-                <p>The Git repository is <strong>optional</strong> for custom apps.
-                    <strong>Laravel</strong> apps still require a repository. If you skip the repository for a custom
-                    app,
-                    Cipi creates <code>/home/&lt;app&gt;/htdocs</code> with a placeholder <code>index.html</code> and
-                    does
-                    not configure a deploy key or webhook — you upload files with <strong>SFTP</strong> (or SCP/rsync)
-                    to
-                    <code>~/htdocs</code> as the app user. The onboarding output explains this “no repo — SFTP only”
-                    workflow. If you do provide a repository, behavior is unchanged: use <code>cipi deploy
-                    &lt;app&gt;</code> to pull code into <code>htdocs</code>.
-                </p>
-                <h3>What’s included and what you add</h3>
-                <p>Custom apps have <strong>no database</strong>, <strong>no <code>.env</code></strong>, no cron, and no
-                    queue workers. When a repository is configured, a deploy key and (with Git auto-setup) webhook are
-                    shown; for SFTP-only apps, those are omitted. The post-creation summary lists SSH access and next
-                    steps accordingly.
-                </p>
-                <p>If your custom app needs a database (e.g. WordPress, Drupal), create one with
-                    <code>cipi db create --name=&lt;app&gt;</code> after deployment. See <a href="infrastructure#cli-db">cipi db</a>
-                    for backup, restore, and password management.
-                </p>
-                <p>With Git — non-interactive example:</p>
+                <h3>Download binary</h3>
+                <p>Download the latest release for your platform from the
+                    <a href="https://github.com/cipi-sh/cli/releases" target="_blank">Releases page</a>, then:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app create --custom --user=mysite --domain=mysite.com \
-    --repository=git@github.com:you/mysite.git --docroot=dist</pre>
+                    <pre>chmod +x cipi-cli-*
+sudo mv cipi-cli-* /usr/local/bin/cipi-cli</pre>
                 </div>
-                <p>SFTP-only — omit <code>--repository</code> and <code>--branch</code>:</p>
+
+                <h3>Build from source</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app create --custom --user=mysite --domain=mysite.com --docroot=dist</pre>
+                    <pre>git clone https://github.com/cipi-sh/cli.git
+cd cli
+make build
+sudo make install</pre>
                 </div>
-                <p>With a repository, use <code>cipi deploy &lt;app&gt;</code> to deploy; code is cloned into
-                    <code>/home/&lt;app&gt;/htdocs</code>.
-                </p>
+
+                <h3>Verify installation</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli version
+<span class="c">cipi-cli v0.1.1 (linux/amd64)</span></pre>
+                </div>
             </div>
 
-            <div class="doc-section" id="cli-app-manage">
-                <h2><code>app list</code> / <code>app show</code> / <code>app edit</code> / <code>app delete</code></h2>
+            <hr class="doc-divider">
+
+            <!-- ── Configuration ── -->
+
+            <div class="doc-section" id="cli-configure">
+                <p class="doc-section-label">CLI Client</p>
+                <h2>Configuration</h2>
+                <p>Before using <code>cipi-cli</code>, connect it to your Cipi API server. You need the API endpoint URL and a
+                    Sanctum token created with <code>cipi api token create</code> on your server.</p>
+
+                <h3>Interactive setup</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli configure
+<span class="c">API endpoint: https://api.example.com</span>
+<span class="c">Token: 1|yourtoken...</span>
+<span class="s">Configuration saved to ~/.cipi/config.json</span></pre>
+                </div>
+
+                <h3>Non-interactive setup</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli configure --endpoint https://api.example.com --token "1|yourtoken..."</pre>
+                </div>
+
+                <h3>Show current configuration</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli configure show
+<span class="c">Endpoint: https://api.example.com</span>
+<span class="c">Token:    1|a8Kz••••••••</span></pre>
+                </div>
+
+                <p>Credentials are stored in <code>~/.cipi/config.json</code> with permissions <code>0600</code>.</p>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Apps ── -->
+
+            <div class="doc-section" id="cli-apps">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>apps</code></h2>
+                <p>Manage applications on your Cipi server.</p>
 
                 <table class="cmd-table">
                     <thead>
@@ -335,322 +322,386 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>cipi app list</td>
-                            <td>List all apps with domain, PHP version, and status</td>
+                            <td>cipi-cli apps list</td>
+                            <td>List all applications</td>
                         </tr>
                         <tr>
-                            <td>cipi app show &lt;app&gt;</td>
-                            <td>Full details: domain, PHP, deploy key, workers, webhook. For custom apps: type
-                                "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a repository.
-                            </td>
+                            <td>cipi-cli apps show &lt;name&gt;</td>
+                            <td>Show application details</td>
                         </tr>
                         <tr>
-                            <td>cipi app edit &lt;app&gt; --php=8.5</td>
-                            <td>Hot-swap PHP version. Updates FPM pool, Nginx socket, Supervisor, crontab, Deployer
-                                config, and <code>.env</code> — zero downtime</td>
+                            <td>cipi-cli apps create [flags]</td>
+                            <td>Create a new application</td>
                         </tr>
                         <tr>
-                            <td>cipi app edit &lt;app&gt; --branch=develop</td>
-                            <td>Change the deploy branch</td>
+                            <td>cipi-cli apps edit &lt;name&gt; [flags]</td>
+                            <td>Edit an application</td>
                         </tr>
                         <tr>
-                            <td>cipi app env &lt;app&gt;</td>
-                            <td>Open the app's <code>.env</code> file in nano as the app user. Exits with error for
-                                custom apps (no .env).</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app reset-password &lt;app&gt;</td>
-                            <td>Regenerate the app's Linux user SSH password. The new password is displayed on
-                                screen — save it immediately</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app reset-db-password &lt;app&gt;</td>
-                            <td>Regenerate the app's MariaDB password and automatically update the
-                                <code>DB_PASSWORD</code> value in the app's <code>.env</code> file. Exits with error for
-                                custom apps (no database).
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>cipi app delete &lt;app&gt;</td>
-                            <td>Permanently remove the app, user, database (if Laravel), Nginx vhost, FPM pool, and
-                                Supervisor workers. For custom apps, skips database drop (none was created). Asks for
-                                confirmation.</td>
+                            <td>cipi-cli apps delete &lt;name&gt; [-y]</td>
+                            <td>Delete an application</td>
                         </tr>
                     </tbody>
                 </table>
+
+                <h3>Create flags</h3>
+                <div class="options-list">
+                    <div class="option-item">
+                        <code>--name</code>
+                        <span>Application name (used as Linux user and database name)</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--domain</code>
+                        <span>Primary domain for the application</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--php</code>
+                        <span>PHP version (e.g. <code>8.5</code>)</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--repository</code>
+                        <span>Git repository URL</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--branch</code>
+                        <span>Git branch to deploy from</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--custom</code>
+                        <span>Create a custom (non-Laravel) app with <code>htdocs</code> deploy</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--docroot</code>
+                        <span>Document root relative to <code>htdocs</code> (custom apps only)</span>
+                    </div>
+                </div>
+
+                <h3>Edit flags</h3>
+                <div class="options-list">
+                    <div class="option-item">
+                        <code>--php</code>
+                        <span>Change PHP version</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--repository</code>
+                        <span>Update Git repository URL</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--branch</code>
+                        <span>Change deploy branch</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--domain</code>
+                        <span>Change primary domain</span>
+                    </div>
+                </div>
+
+                <h3>Examples</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># List all apps</span>
+<span class="p">$</span> cipi-cli apps list
+
+<span class="c"># Create a Laravel app</span>
+<span class="p">$</span> cipi-cli apps create --name=myapp --domain=myapp.com \
+    --php=8.5 --repository=git@github.com:acme/myapp.git --branch=main
+
+<span class="c"># Create a custom (non-Laravel) app</span>
+<span class="p">$</span> cipi-cli apps create --name=landing --domain=landing.acme.com \
+    --custom --docroot=dist
+
+<span class="c"># Edit an existing app</span>
+<span class="p">$</span> cipi-cli apps edit myapp --php=8.4
+
+<span class="c"># Delete an app (skip confirmation)</span>
+<span class="p">$</span> cipi-cli apps delete myapp -y</pre>
+                </div>
             </div>
 
+            <hr class="doc-divider">
 
+            <!-- ── Deploy ── -->
 
-            <div class="doc-section" id="cli-app-env">
-                <h2>Managing ENV variables</h2>
-                <p>Every <strong>Laravel</strong> app has a single <code>.env</code> file living at
-                    <code>/home/&lt;app&gt;/shared/.env</code>. Custom apps have no <code>.env</code>.
-                    It is created and pre-populated by Cipi during <code>app create</code> with the database
-                    credentials, <code>APP_KEY</code>, <code>APP_URL</code>, cache/session/queue settings, and the
-                    webhook token. The <code>shared/</code> directory is symlinked into every release, so the same
-                    <code>.env</code> is always active regardless of which release is current.
-                </p>
+            <div class="doc-section" id="cli-deploy">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>deploy</code></h2>
+                <p>Trigger deployments, rollback to the previous release, or unlock a stuck deployment.</p>
 
-                <h3>Edit interactively via CLI</h3>
-                <p>The safest way to change ENV values is through Cipi itself — it opens the file in nano as the app
-                    user, with the correct permissions:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app env myapp</pre>
-                </div>
-                <p>Save with <kbd>Ctrl+O</kbd> then exit with <kbd>Ctrl+X</kbd>. Changes take effect immediately for new
-                    requests — no restart needed for most values. If you change queue connection or cache driver,
-                    restart the workers:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi worker restart myapp</pre>
-                </div>
-
-                <h3>Edit directly via SSH</h3>
-                <p>You can also edit the file directly over SSH as root or as the app user:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="c"># as root</span>
-<span class="p">$</span> nano /home/myapp/shared/.env
-
-<span class="c"># or switch to the app user first</span>
-<span class="p">$</span> su - myapp
-<span class="p">$</span> nano ~/shared/.env</pre>
-                </div>
-
-                <h3>Key ENV variables set by Cipi</h3>
-                <table class="env-table">
+                <table class="cmd-table">
                     <thead>
                         <tr>
-                            <th>Variable</th>
+                            <th>Command</th>
                             <th>Description</th>
-                            <th>Set by</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>APP_KEY</td>
-                            <td>Laravel encryption key — generated once at app creation</td>
-                            <td>Cipi</td>
+                            <td>cipi-cli deploy &lt;app&gt;</td>
+                            <td>Trigger a zero-downtime deployment</td>
                         </tr>
                         <tr>
-                            <td>APP_URL</td>
-                            <td>Updated automatically by <code>cipi ssl install</code></td>
-                            <td>Cipi</td>
+                            <td>cipi-cli deploy rollback &lt;app&gt; [-y]</td>
+                            <td>Rollback to previous release</td>
                         </tr>
                         <tr>
-                            <td>DB_CONNECTION</td>
-                            <td>Always <code>mysql</code> (MariaDB is drop-in compatible)</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>DB_DATABASE / DB_USERNAME / DB_PASSWORD</td>
-                            <td>Auto-generated credentials for the app's isolated database</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CACHE_STORE</td>
-                            <td><code>database</code> — uses the app's MariaDB</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>SESSION_DRIVER</td>
-                            <td><code>database</code></td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>QUEUE_CONNECTION</td>
-                            <td><code>database</code></td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CIPI_WEBHOOK_TOKEN</td>
-                            <td>HMAC secret for cipi-agent webhook validation</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CIPI_APP_USER</td>
-                            <td>Linux username owning this app</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CIPI_MCP</td>
-                            <td>Enable or disable the built-in MCP server at <code>/cipi/mcp</code></td>
-                            <td>User (<code>true</code> by default)</td>
+                            <td>cipi-cli deploy unlock &lt;app&gt;</td>
+                            <td>Unlock a stuck deployment</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div><strong>Do not change DB credentials manually.</strong> If you need to regenerate the database
-                        password use <code>cipi db password myapp</code> — it updates both MariaDB and the
-                        <code>.env</code> atomically. Editing them by hand risks leaving the two out of sync.
-                    </div>
-                </div>
-
-                <h3>Adding your own variables</h3>
-                <p>Add any custom variable at the bottom of the file as you normally would in a Laravel project. They
-                    are preserved across deploys because the <code>.env</code> lives in <code>shared/</code> and is
-                    never overwritten by Deployer.</p>
                 <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
-                    <pre><span class="c"># your custom variables</span>
-STRIPE_KEY=sk_live_...
-STRIPE_SECRET=sk_live_...
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailgun.org</pre>
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli deploy myapp
+<span class="c">Deploying myapp...</span>
+<span class="c">Polling job #42...</span> <span class="s">completed</span>
+<span class="s">Deployed to release #14. Zero downtime.</span>
+
+<span class="p">$</span> cipi-cli deploy rollback myapp
+<span class="s">Rolled back to release #13.</span></pre>
                 </div>
             </div>
 
+            <hr class="doc-divider">
 
+            <!-- ── SSL ── -->
 
-            <div class="doc-section" id="cli-app-logs">
-                <h2><code>cipi app logs</code></h2>
-                <p>Tail application logs in real-time. Logs are rotated daily and kept for 14 days. By
-                    default, all logs are shown including Laravel daily logs
-                    (<code>laravel-YYYY-MM-DD.log</code>) from <code>shared/storage/logs/</code>.</p>
+            <div class="doc-section" id="cli-ssl">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>ssl</code></h2>
+                <p>Install Let's Encrypt certificates for your applications.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli ssl install &lt;app&gt;</td>
+                            <td>Install Let's Encrypt certificate (covers primary domain and all aliases)</td>
+                        </tr>
+                    </tbody>
+                </table>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app logs myapp                  <span class="c"># all logs (incl. Laravel daily logs)</span>
-<span class="p">$</span> cipi app logs myapp --type=nginx     <span class="c"># Nginx access + error</span>
-<span class="p">$</span> cipi app logs myapp --type=php       <span class="c"># PHP-FPM errors</span>
-<span class="p">$</span> cipi app logs myapp --type=worker    <span class="c"># queue worker output</span>
-<span class="p">$</span> cipi app logs myapp --type=deploy    <span class="c"># deploy history</span>
-<span class="p">$</span> cipi app logs myapp --type=laravel   <span class="c"># Laravel application logs</span></pre>
+                    <pre><span class="p">$</span> cipi-cli ssl install myapp
+<span class="s">Certificate provisioned for myapp.com</span></pre>
                 </div>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Aliases ── -->
+
+            <div class="doc-section" id="cli-aliases">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>aliases</code></h2>
+                <p>Manage domain aliases for an application.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli aliases list &lt;app&gt;</td>
+                            <td>List all aliases for an app</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli aliases add &lt;app&gt; &lt;domain&gt;</td>
+                            <td>Add a domain alias</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli aliases remove &lt;app&gt; &lt;domain&gt; [-y]</td>
+                            <td>Remove a domain alias</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli aliases add myapp www.myapp.com
+<span class="s">Alias www.myapp.com added to myapp.</span>
+
+<span class="p">$</span> cipi-cli aliases list myapp
+<span class="c">  www.myapp.com</span>
+<span class="c">  api.myapp.com</span>
+
+<span class="c"># Re-run ssl install to include new aliases in the certificate</span>
+<span class="p">$</span> cipi-cli ssl install myapp</pre>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Databases ── -->
+
+            <div class="doc-section" id="cli-db">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>db</code></h2>
+                <p>Manage MariaDB databases.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli db list</td>
+                            <td>List all databases</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli db create &lt;name&gt;</td>
+                            <td>Create a database</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli db delete &lt;name&gt; [-y]</td>
+                            <td>Delete a database</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli db backup &lt;name&gt;</td>
+                            <td>Create a database backup</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli db restore &lt;name&gt; [-y]</td>
+                            <td>Restore database from backup</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli db password &lt;name&gt; [-y]</td>
+                            <td>Regenerate database password</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli db list
+<span class="c">  NAME       SIZE</span>
+<span class="c">  myapp      24.5 MB</span>
+<span class="c">  blog       8.2 MB</span>
+
+<span class="p">$</span> cipi-cli db backup myapp
+<span class="s">Backup created: myapp_20260402_143022.sql.gz</span>
+
+<span class="p">$</span> cipi-cli db restore myapp -y
+<span class="s">Database restored successfully.</span></pre>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Jobs ── -->
+
+            <div class="doc-section" id="cli-jobs">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>jobs</code></h2>
+                <p>Write operations (create, edit, delete, deploy, SSL, etc.) are asynchronous on the Cipi API. The CLI
+                    automatically polls for job completion and displays a spinner while waiting. If you prefer to handle
+                    polling manually, use the <code>jobs</code> commands.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli jobs show &lt;id&gt;</td>
+                            <td>Show job status</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli jobs wait &lt;id&gt;</td>
+                            <td>Wait for a job to complete (blocking)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli jobs show 42
+<span class="c">Job #42: deploy myapp — completed</span>
+
+<span class="p">$</span> cipi-cli jobs wait 43
+<span class="c">Waiting for job #43...</span> <span class="s">completed</span></pre>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Global Flags ── -->
+
+            <div class="doc-section" id="cli-global-flags">
+                <p class="doc-section-label">CLI Client</p>
+                <h2>Global Flags</h2>
+                <p>These flags are available on all commands.</p>
 
                 <div class="options-list">
-                    <div class="option-item"><code>--type=nginx</code><span>Nginx access and error logs</span></div>
-                    <div class="option-item"><code>--type=php</code><span>PHP-FPM error log</span></div>
-                    <div class="option-item"><code>--type=worker</code><span>Supervisor / queue worker output</span>
+                    <div class="option-item">
+                        <code>--json</code>
+                        <span>Output in JSON format — useful for scripting and CI/CD pipelines</span>
                     </div>
-                    <div class="option-item"><code>--type=deploy</code><span>Deployer output — full deploy history with
-                            timestamps</span></div>
-                    <div class="option-item"><code>--type=laravel</code><span>Laravel application logs from
-                            <code>shared/storage/logs/</code> (daily rotating
-                            <code>laravel-YYYY-MM-DD.log</code>)</span></div>
+                    <div class="option-item">
+                        <code>--no-color</code>
+                        <span>Disable colored output</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--help</code>
+                        <span>Show help for any command</span>
+                    </div>
                 </div>
-            </div>
-
-
-
-            <div class="doc-section" id="cli-app-artisan">
-                <h2><code>app artisan</code> &amp; <code>app tinker</code></h2>
-                <p>Run Artisan commands and Tinker as the app user with the correct PHP version and
-                    <code>open_basedir</code> context — exactly as they would run during a deploy.
-                </p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app artisan myapp migrate:status
-<span class="p">$</span> cipi app artisan myapp queue:retry all
-<span class="p">$</span> cipi app artisan myapp db:seed --class=ProductionSeeder
-<span class="p">$</span> cipi app artisan myapp cache:clear
-<span class="p">$</span> cipi app tinker myapp</pre>
-                </div>
-            </div>
+                    <pre><span class="c"># JSON output for scripting</span>
+<span class="p">$</span> cipi-cli apps list --json
+<span class="c">[{"name":"myapp","domain":"myapp.com","php":"8.5"}, ...]</span>
 
+<span class="c"># Pipe to jq for filtering</span>
+<span class="p">$</span> cipi-cli apps list --json | jq '.[].name'
+<span class="s">"myapp"</span>
+<span class="s">"blog"</span>
 
-
-            <div class="doc-section" id="cli-app-ssh">
-                <h2>SSH as the app user</h2>
-                <p>Each app runs under its own isolated Linux user. Sometimes you need to work directly inside that
-                    user's environment — inspect files, run one-off scripts, or debug something that only reproduces as
-                    the correct user.</p>
-
-                <h3>Direct SSH as app user (recommended)</h3>
-                <p>App users can SSH directly to the server with the password generated at app creation:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="c"># connect as the app user (password auth)</span>
-<span class="p">$</span> ssh myapp@your-server-ip
-
-<span class="c"># you are directly inside the app user's shell</span>
-myapp@server:~$ pwd
-/home/myapp
-
-myapp@server:~$ cd ~/current
-myapp@server:~$ ls</pre>
-                </div>
-                <p>The password is shown when the app is created (or use <code>cipi app reset-password myapp</code> to
-                    regenerate it). This works for SFTP clients, IDE remote sessions, and terminal access.</p>
-
-                <h3>Via cipi (admin path)</h3>
-                <p>If you are already connected as <code>cipi</code>, you can switch directly to any app user:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> ssh cipi@your-server-ip
-cipi@server:~$ sudo su - myapp
-
-myapp@server:~$ pwd
-/home/myapp</pre>
+<span class="c"># Help for a specific command</span>
+<span class="p">$</span> cipi-cli apps create --help</pre>
                 </div>
 
-                <h3>Reset the app user password</h3>
-                <p>If you need to regenerate an app user's password (e.g. for direct SSH or SFTP), use:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app reset-password myapp</pre>
-                </div>
-                <p>The new password is displayed on screen — save it immediately.</p>
+                <h3>Releases</h3>
+                <p>Releases are automated via GitHub Actions. Pre-built binaries for Linux (amd64/arm64) and macOS
+                    (amd64/arm64) are published with SHA-256 checksums on the
+                    <a href="https://github.com/cipi-sh/cli/releases" target="_blank">GitHub Releases page</a>.</p>
 
-                <h3>Useful commands once logged in as the app user</h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="c"># navigate to the active release</span>
-myapp@server:~$ cd ~/current
-
-<span class="c"># run artisan directly with the correct PHP version</span>
-myapp@server:~$ /usr/bin/php8.5 ~/current/artisan tinker
-
-<span class="c"># inspect the shared .env</span>
-myapp@server:~$ cat ~/shared/.env
-
-<span class="c"># tail all logs</span>
-myapp@server:~$ tail -f ~/logs/*.log
-
-<span class="c"># check active releases</span>
-myapp@server:~$ ls -lt ~/releases/</pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>The app user's <code>open_basedir</code> restriction limits PHP to <code>/home/myapp</code>.
-                        This is enforced at the PHP-FPM level, not at the shell level — you can access any file your
-                        shell user can read when working in the terminal.</div>
-                </div>
+                <h3>Source code</h3>
+                <p><code>cipi-cli</code> is open source, MIT licensed, and written in Go. Contributions welcome on
+                    <a href="https://github.com/cipi-sh/cli" target="_blank">GitHub</a>.</p>
             </div>
 
             <div class="page-nav">
-                <a href="agent" class="page-nav-link page-nav-link--prev">
+                <a href="infrastructure" class="page-nav-link page-nav-link--prev">
                     <span class="page-nav-label">Previous</span>
-                    <span class="page-nav-title">Cipi Agent</span>
+                    <span class="page-nav-title">Infrastructure</span>
                 </a>
-                <a href="deploy" class="page-nav-link page-nav-link--next">
+                <a href="advanced" class="page-nav-link page-nav-link--next">
                     <span class="page-nav-label">Next</span>
-                    <span class="page-nav-title">Deploy & CI/CD</span>
+                    <span class="page-nav-title">Advanced</span>
                 </a>
             </div>
 
@@ -659,7 +710,7 @@ myapp@server:~$ ls -lt ~/releases/</pre>
 
     <footer>
         <div class="footer-inner">
-            <span>Made with ❤️ by <a href="https://web.ap.it" target="_blank">Andrea Pollastri</a> — Open source, MIT
+            <span>Made with &#10084;&#65039; by <a href="https://web.ap.it" target="_blank">Andrea Pollastri</a> — Open source, MIT
                 Licensed</span>
             <ul class="footer-links">
                 <li><a href="https://conn.web.ap.it" target="_blank">Try SSH
