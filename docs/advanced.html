@@ -250,6 +250,7 @@
                     <li><code>apps-view</code> — read apps</li>
                     <li><code>apps-create</code> — create apps</li>
                     <li><code>apps-edit</code> — edit apps</li>
+                    <li><code>apps-suspend</code> — suspend and unsuspend apps</li>
                     <li><code>apps-delete</code> — delete apps</li>
                     <li><code>deploy-manage</code> — deploy, rollback, unlock</li>
                     <li><code>ssl-manage</code> — install and manage SSL certificates</li>
@@ -278,6 +279,13 @@
                     <strong>1.6.1+</strong> on the server (<code>cipi api update</code> / <code>cipi api upgrade</code>)
                     so validation and OpenAPI match this behavior.
                 </p>
+                <p><code>POST /api/apps/{name}/suspend</code> takes an app offline by swapping its Nginx vhost for a
+                    generic <strong>HTTP 503</strong> maintenance page (HTTPS included) without deleting it, while
+                    <code>POST /api/apps/{name}/unsuspend</code> restores the normal vhost. Both require the
+                    <code>apps-suspend</code> ability and return <code>409</code> if the app is already in the target
+                    state. The <code>suspended</code> flag survives vhost regeneration and is exposed on
+                    <code>GET /api/apps</code> and <code>GET /api/apps/{name}</code>. These endpoints require the API
+                    package <strong>1.8.1+</strong> and Cipi <strong>4.5.8+</strong> on the server.</p>
                 <table class="cmd-table">
                     <thead>
                         <tr>
@@ -306,6 +314,16 @@
                             <td>PUT</td>
                             <td><code>/api/apps/{name}</code></td>
                             <td>apps-edit</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/suspend</code></td>
+                            <td>apps-suspend</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/unsuspend</code></td>
+                            <td>apps-suspend</td>
                         </tr>
                         <tr>
                             <td>DELETE</td>
@@ -391,12 +409,13 @@
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
                     Streamable
-                    HTTP. It requires a token with the <code>mcp-access</code> ability. It exposes 19 tools for app,
+                    HTTP. It requires a token with the <code>mcp-access</code> ability. It exposes 21 tools for app,
                     alias, database, deploy, and SSL management — with async dispatch and <code>job_id</code> return
                     for polling:</p>
                 <ul>
                     <li><strong>Applications:</strong> <code>AppList</code>, <code>AppShow</code>,
-                        <code>AppCreate</code>, <code>AppEdit</code>, <code>AppDelete</code>,
+                        <code>AppCreate</code>, <code>AppEdit</code>, <code>AppSuspend</code>,
+                        <code>AppUnsuspend</code>, <code>AppDelete</code>,
                         <code>AppDeploy</code>, <code>AppDeployRollback</code>, <code>AppDeployUnlock</code>
                     </li>
                     <li><strong>Aliases:</strong> <code>AliasList</code>, <code>AliasAdd</code>,
@@ -543,6 +562,10 @@
                             <td>Change Package</td>
                         </tr>
                         <tr>
+                            <td><code>apps-suspend</code></td>
+                            <td>Suspend / Unsuspend</td>
+                        </tr>
+                        <tr>
                             <td><code>apps-delete</code></td>
                             <td>Terminate Account</td>
                         </tr>
@@ -668,9 +691,15 @@
                             </td>
                         </tr>
                         <tr>
-                            <td><strong>Suspend / Unsuspend</strong></td>
-                            <td><em>none</em></td>
-                            <td>Returns success so WHMCS updates billing state (Cipi has no suspend endpoint)</td>
+                            <td><strong>Suspend</strong></td>
+                            <td><code>POST /api/apps/{name}/suspend</code></td>
+                            <td>Takes the app offline (HTTP 503 maintenance page) without deleting it; waits for async
+                                jobs</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Unsuspend</strong></td>
+                            <td><code>POST /api/apps/{name}/unsuspend</code></td>
+                            <td>Restores the app&rsquo;s normal Nginx vhost; waits for async jobs</td>
                         </tr>
                         <tr>
                             <td><strong>Terminate Account</strong></td>
@@ -684,6 +713,10 @@
                         </tr>
                     </tbody>
                 </table>
+                <p><strong>Suspend / Unsuspend</strong> require <strong>Cipi 4.5.8+</strong> (suspend/unsuspend
+                    endpoints), the API package <strong>1.8.1+</strong>, and a token with the <code>apps-suspend</code>
+                    ability. Suspending swaps the app&rsquo;s vhost for a generic HTTP 503 maintenance page;
+                    unsuspending restores it.</p>
 
                 <h3>Admin buttons</h3>
                 <p>From the WHMCS admin service view, operators can trigger one-click actions:</p>
@@ -742,7 +775,7 @@
                     <tbody>
                         <tr>
                             <td><strong>Apps</strong></td>
-                            <td>listApps, getApp, createApp, editApp, deleteApp</td>
+                            <td>listApps, getApp, createApp, editApp, suspendApp, unsuspendApp, deleteApp</td>
                         </tr>
                         <tr>
                             <td><strong>Deploy</strong></td>
@@ -1060,7 +1093,7 @@
 
 <span class="c">Cipi Sync Archive</span>
 <span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
-<span class="c">  Cipi           v4.5.7</span>
+<span class="c">  Cipi           v4.5.8</span>
 <span class="c">  Exported       2026-03-06T15:00:00Z</span>
 <span class="c">  Source         aws01 (3.120.xx.xx)</span>
 <span class="c">  Database       true</span>
