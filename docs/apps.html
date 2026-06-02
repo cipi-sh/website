@@ -137,6 +137,7 @@
                 <a href="apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="apps#cli-basicauth" class="sidebar-link"><code>basicauth</code></a>
                 <a href="apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
                 <a href="apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
                 <a href="apps#cli-app-artisan" class="sidebar-link"><code>app artisan / tinker</code></a>
@@ -254,7 +255,9 @@
                     <div class="option-item"><code>--branch</code><span>Branch to deploy. Defaults to
                             <code>main</code>.</span></div>
                     <div class="option-item"><code>--php</code><span>PHP version for this app (e.g. <code>8.5</code>).
-                            Defaults to PHP 8.5. Must be an installed version.</span></div>
+                            Defaults to PHP 8.5. Must be an installed version — only <code>8.3</code>, <code>8.4</code>
+                            and <code>8.5</code> are accepted since v4.5.4 (Deployer 8 requires PHP &ge; 8.3).</span>
+                    </div>
                 </div>
 
                 <div class="callout info">
@@ -378,6 +381,58 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+
+
+            <div class="doc-section" id="cli-basicauth">
+                <h2><code>cipi basicauth</code></h2>
+                <p>Available since <strong>v4.5.2</strong>. Protect any app — Laravel or custom — behind an Nginx
+                    username/password prompt. Useful for staging sites, internal tools, or apps that aren't ready for
+                    public traffic yet.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi basicauth enable &lt;app&gt; [--user=NAME] [--password=PASS]</td>
+                            <td>Turn on HTTP basic auth. Credentials are generated when omitted and shown once on
+                                screen — save them immediately</td>
+                        </tr>
+                        <tr>
+                            <td>cipi basicauth disable &lt;app&gt;</td>
+                            <td>Remove the prompt and clear stored credentials</td>
+                        </tr>
+                        <tr>
+                            <td>cipi basicauth status &lt;app&gt;</td>
+                            <td>Show whether basic auth is enabled and the configured user</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Credentials are hashed with <code>openssl passwd -apr1</code> (no <code>apache2-utils</code> needed)
+                    and stored in <code>/etc/nginx/cipi-basicauth/&lt;app&gt;.htpasswd</code>; the enabled state lives in
+                    <code>apps.json</code>. The <code>auth_basic</code> directives are injected per <code>location</code>
+                    block, so protection survives vhost regeneration (alias changes, PHP edits) and is cloned into the
+                    <code>:443</code> block by certbot — <strong>HTTPS is covered too</strong>. ACME challenges stay
+                    public, so certificate issuance and renewal are never blocked. Basic auth is removed automatically on
+                    <code>cipi app delete</code>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>This is distinct from <code>cipi auth</code>, which manages the Composer
+                        <code>auth.json</code> for private package repositories.</div>
+                </div>
             </div>
 
 
