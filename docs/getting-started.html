@@ -31,7 +31,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -629,6 +629,135 @@ MariaDB:      database '<span class="tree-accent">myapp</span>', user '<span cla
             const page = location.pathname.split('/').pop().replace('.html', '') || 'index';
             document.querySelectorAll('.sidebar-group').forEach(g => {
                 if (g.dataset.chapter === page) g.classList.add('current-chapter');
+            });
+        })();
+
+        // ── Reading progress bar ──
+        (function () {
+            const content = document.getElementById('docsContent');
+            if (!content) return;
+            const bar = document.createElement('div');
+            bar.className = 'reading-progress';
+            const fill = document.createElement('span');
+            bar.appendChild(fill);
+            document.body.appendChild(bar);
+            function update() {
+                const rect = content.getBoundingClientRect();
+                const total = content.offsetHeight - window.innerHeight;
+                const scrolled = Math.min(Math.max(-rect.top, 0), Math.max(total, 0));
+                fill.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            window.addEventListener('resize', update);
+            update();
+        })();
+
+        // ── "On this page" TOC ──
+        (function () {
+            const layout = document.querySelector('.docs-layout');
+            const secs = Array.from(document.querySelectorAll('.doc-section[id]'));
+            if (!layout || secs.length < 2) return;
+            const aside = document.createElement('aside');
+            aside.className = 'docs-toc';
+            const inner = document.createElement('div');
+            inner.className = 'docs-toc-inner';
+            const title = document.createElement('span');
+            title.className = 'docs-toc-title';
+            title.textContent = 'On this page';
+            const list = document.createElement('nav');
+            list.className = 'docs-toc-list';
+            secs.forEach(s => {
+                const h = s.querySelector('h2');
+                if (!h) return;
+                const a = document.createElement('a');
+                a.href = '#' + s.id;
+                a.textContent = h.textContent;
+                a.dataset.target = s.id;
+                list.appendChild(a);
+            });
+            if (!list.children.length) return;
+            inner.appendChild(title);
+            inner.appendChild(list);
+            aside.appendChild(inner);
+            layout.appendChild(aside);
+            const tocObs = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        list.querySelectorAll('a').forEach(l => l.classList.remove('active'));
+                        const a = list.querySelector('a[data-target="' + entry.target.id + '"]');
+                        if (a) a.classList.add('active');
+                    }
+                });
+            }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+            secs.forEach(s => tocObs.observe(s));
+        })();
+
+        // ── Full-text docs search ──
+        (function () {
+            const sidebar = document.getElementById('docsSidebar');
+            if (!sidebar) return;
+            const box = document.createElement('div');
+            box.className = 'sidebar-search';
+            box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input type="text" placeholder="Search docs… (press /)" aria-label="Search documentation" autocomplete="off" spellcheck="false">';
+            sidebar.insertBefore(box, sidebar.firstChild);
+            const input = box.querySelector('input');
+            const results = document.createElement('div');
+            results.className = 'search-results';
+            box.insertAdjacentElement('afterend', results);
+
+            let index = [];
+            const sc = document.createElement('script');
+            sc.src = 'search-index.js';
+            sc.onload = function () { index = window.CIPI_DOCS || []; if (input.value) render(); };
+            document.head.appendChild(sc);
+
+            function esc(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+            function rx(q) { return new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'); }
+            function mark(s, q) { return esc(s).replace(rx(q), m => '<mark>' + m + '</mark>'); }
+            function snippet(text, q) {
+                const i = text.toLowerCase().indexOf(q);
+                let start = i > 50 ? i - 50 : 0;
+                let str = text.slice(start, start + 180);
+                if (start > 0) str = '… ' + str;
+                if (start + 180 < text.length) str += ' …';
+                return mark(str, q);
+            }
+
+            function render() {
+                const q = input.value.trim().toLowerCase();
+                if (q.length < 2) { sidebar.classList.remove('has-results'); results.innerHTML = ''; return; }
+                const hits = [];
+                for (const e of index) {
+                    const inH = e.h.toLowerCase().includes(q);
+                    const inC = (e.c || '').toLowerCase().includes(q);
+                    const inT = e.t.toLowerCase().includes(q);
+                    if (inH || inC || inT) hits.push({ e: e, rank: inH ? 0 : (inC ? 1 : 2) });
+                }
+                hits.sort((a, b) => a.rank - b.rank);
+                sidebar.classList.add('has-results');
+                if (!hits.length) { results.innerHTML = '<div class="search-empty">No results for “' + esc(q) + '”</div>'; return; }
+                const top = hits.slice(0, 20);
+                let html = '<div class="search-count">' + hits.length + ' result' + (hits.length > 1 ? 's' : '') + '</div>';
+                html += top.map(function (o) {
+                    const e = o.e;
+                    const sn = e.t.toLowerCase().includes(q) ? snippet(e.t, q) : esc(e.t.slice(0, 150)) + ' …';
+                    return '<a class="search-result" href="' + e.p + '#' + e.id + '">' +
+                        '<span class="search-result-chapter">' + esc(e.c) + '</span>' +
+                        '<span class="search-result-title">' + mark(e.h, q) + '</span>' +
+                        '<span class="search-result-snippet">' + sn + '</span></a>';
+                }).join('');
+                results.innerHTML = html;
+            }
+
+            input.addEventListener('input', render);
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { input.value = ''; render(); input.blur(); }
+            });
+            document.addEventListener('keydown', function (e) {
+                const tag = document.activeElement ? document.activeElement.tagName : '';
+                if (e.key === '/' && document.activeElement !== input && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+                    e.preventDefault(); input.focus();
+                }
             });
         })();
 
