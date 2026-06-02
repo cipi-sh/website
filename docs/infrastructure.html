@@ -161,6 +161,7 @@
                 <a href="infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
+                <a href="infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
@@ -312,6 +313,81 @@
 <span class="p">$</span> cipi alias list myapp
 <span class="p">$</span> cipi alias remove myapp myapp.it</pre>
                 </div>
+            </div>
+
+            <div class="doc-section" id="cli-domains">
+                <h2><code>cipi domains</code></h2>
+                <p>Available since <strong>v4.5.5</strong>. A top-level command that lists <strong>every</strong>
+                    domain and alias across <strong>all</strong> apps in a single table — the global counterpart to
+                    the per-app <code>cipi alias list &lt;app&gt;</code>. Ideal for auditing the whole
+                    domain-to-app mapping or spotting a domain that is still missing a certificate.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi domains   <span class="c"># list all domains and aliases across every app</span></pre>
+                </div>
+
+                <p>Each row shows the following columns:</p>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>DOMAIN</strong></td>
+                            <td>The domain or alias name. Rows are sorted alphabetically by domain.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>APP</strong></td>
+                            <td>The app that owns the domain.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>KIND</strong></td>
+                            <td><code>primary</code> or <code>alias</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>TYPE</strong></td>
+                            <td><code>Laravel</code> or <code>Custom</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PHP</strong></td>
+                            <td>The app's PHP version.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>DOCROOT</strong></td>
+                            <td><code>public</code> for Laravel apps, <code>/&lt;docroot&gt;</code> for custom apps.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>BRANCH</strong></td>
+                            <td>The Git branch deployed for the app.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>LAST DEPLOY</strong></td>
+                            <td>Human-relative age (<code>just now</code>, <code>10m ago</code>, <code>2h ago</code>,
+                                <code>3d ago</code>, <code>2w ago</code>, <code>2mo ago</code>, <code>2y ago</code>) —
+                                derived from the mtime of the app's <code>current</code> symlink, which Deployer
+                                atomically re-points on every successful deploy. Shows <code>-</code> when the app was
+                                never deployed.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SSL</strong></td>
+                            <td>Per-name certificate status (<code>&#10003;</code>/<code>&#10007;</code>), detected from
+                                <code>/etc/letsencrypt/live/&lt;domain&gt;</code>.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>REPOSITORY</strong></td>
+                            <td>The Git repository, or <code>(SFTP only)</code> for custom apps with no repo.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>A footer summarises the totals — number of domains, apps, and certificates — making it easy to
+                    audit the whole mapping at a glance.</p>
             </div>
 
             <div class="doc-section" id="cli-ssl">
