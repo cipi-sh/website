@@ -194,7 +194,7 @@
                 <a href="advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
                 <a href="advanced#cipi-smtp" class="sidebar-link">email notifications</a>
                 <a href="advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
-                <a href="advanced#redis" class="sidebar-link">redis</a>
+                <a href="advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="advanced#self-update" class="sidebar-link">self-update</a>
                 <a href="advanced#wildcard-domains" class="sidebar-link">wildcard domains</a>
                 <a href="advanced#nginx-config" class="sidebar-link">edit Nginx config</a>
@@ -750,17 +750,20 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi service stop supervisor         <span class="c"># asks for confirmation</span></pre>
                 </div>
 
-                <p>Supported service names: <code>nginx</code>, <code>mariadb</code>, <code>redis-server</code>,
+                <p>Supported service names: <code>nginx</code>, <code>mariadb</code>, <code>valkey-server</code>,
                     <code>supervisor</code>, <code>fail2ban</code>, <code>php&lt;ver&gt;-fpm</code> (e.g.
                     <code>php8.5-fpm</code>). The keyword
-                    <code>php</code> targets all installed PHP-FPM versions at once.
+                    <code>php</code> targets all installed PHP-FPM versions at once. For the cache backend,
+                    <code>redis-server</code>, <code>redis</code>, and <code>valkey</code> are accepted as aliases of
+                    <code>valkey-server</code>.
                 </p>
-                <p>Redis is included in the default stack (from Cipi 4.0.4). It is installed with a password, bound to
+                <p>Valkey — the BSD-licensed, Redis-compatible fork — is included in the default stack and replaces
+                    <code>redis-server</code> since Cipi 4.5.6. It is installed with a password, bound to
                     <code>localhost</code> only, and its credentials (user, password) are saved in
-                    <code>/etc/cipi/server.json</code> and shown at the end of installation. <code>redis-server</code>
-                    is
-                    added to the unattended-upgrades blacklist — Cipi manages it, so it is not auto-upgraded
-                    automatically.
+                    <code>/etc/cipi/server.json</code> and shown at the end of installation.
+                    <code>valkey-server</code> is added to the unattended-upgrades blacklist — Cipi manages it, so it is
+                    not auto-upgraded automatically. See the <a href="advanced#valkey">Valkey</a> section for details
+                    and the automatic Redis → Valkey migration.
                 </p>
             </div>
 
@@ -836,7 +839,7 @@ myapp@server:~$ crontab -e</pre>
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi reset root-password     <span class="c"># regenerate the root Linux user SSH password</span>
 <span class="p">$</span> cipi reset db-password       <span class="c"># regenerate the MariaDB root password</span>
-<span class="p">$</span> cipi reset redis-password    <span class="c"># regenerate the Redis password and restart the service</span></pre>
+<span class="p">$</span> cipi reset valkey-password  <span class="c"># regenerate the Valkey password and restart the service</span></pre>
                 </div>
 
                 <div class="callout warning">
@@ -846,9 +849,9 @@ myapp@server:~$ crontab -e</pre>
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <div><code>cipi reset redis-password</code> restarts the Redis service. Connected clients will be
-                        temporarily disconnected. If your apps use Redis for cache or sessions, expect a brief
-                        interruption.</div>
+                    <div><code>cipi reset valkey-password</code> (alias <code>cipi reset redis-password</code>)
+                        restarts the Valkey service. Connected clients will be temporarily disconnected. If your apps
+                        use Valkey for cache or sessions, expect a brief interruption.</div>
                 </div>
             </div>
 

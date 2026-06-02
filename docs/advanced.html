@@ -198,7 +198,7 @@
                 <a href="advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
                 <a href="advanced#cipi-smtp" class="sidebar-link">email notifications</a>
                 <a href="advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
-                <a href="advanced#redis" class="sidebar-link">redis</a>
+                <a href="advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="advanced#self-update" class="sidebar-link">self-update</a>
                 <a href="advanced#wildcard-domains" class="sidebar-link">wildcard domains</a>
                 <a href="advanced#nginx-config" class="sidebar-link">edit Nginx config</a>
@@ -1416,17 +1416,66 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 
 
 
-            <div class="doc-section" id="redis">
-                <h2>Redis</h2>
-                <p><strong>Redis</strong> is an in-memory data store that Cipi installs as part of the default stack
-                    (from version 4.0.4). It excels at caching, session storage, message queues, real-time broadcasting,
-                    and rate limiting.</p>
-                <h3>System configuration</h3>
-                <p>Redis binds to <code>localhost</code> only, uses a password, and runs as a system service.
-                    Credentials (user, password) are in <code>/etc/cipi/server.json</code>. Host: 127.0.0.1, Port: 6379.
-                </p>
+            <div class="doc-section" id="valkey">
+                <h2>Valkey</h2>
+                <p><strong>Valkey</strong> is the in-memory data store that Cipi installs as part of the default stack.
+                    Since <strong>v4.5.6</strong> Cipi provisions <strong>Valkey</strong> instead of
+                    <code>redis-server</code>. It excels at caching, session storage, message queues, real-time
+                    broadcasting, and rate limiting.</p>
+
+                <h3>Why Valkey instead of Redis</h3>
+                <p>Valkey is the <strong>truly open-source, BSD-licensed</strong> fork of Redis, stewarded by the
+                    <strong>Linux Foundation</strong>. It was created in 2024 after Redis Inc. relicensed Redis away
+                    from the permissive BSD license to the source-available SSPL / RSALv2 — a change that no longer met
+                    the open-source definition. Backed by AWS, Google Cloud, Oracle, and a large community, Valkey
+                    continues the same battle-tested codebase under a license that stays <strong>free forever</strong>.
+                    That makes it a perfect fit for Cipi's MIT, no-vendor-lock-in philosophy, and it ships
+                    <strong>natively in Ubuntu 24.04's Universe repository</strong> (packages
+                    <code>valkey-server</code> + <code>valkey-tools</code>) — no third-party PPA to trust.</p>
+                <p>Just as importantly, Valkey is a <strong>drop-in replacement</strong>: it speaks the exact same RESP
+                    protocol on the same port (<code>127.0.0.1:6379</code>), honours the same
+                    <code>requirepass</code> / <code>bind</code> directives, and reads the same RDB/AOF data format. Your
+                    apps need <strong>zero changes</strong> — the <code>phpredis</code> extension and your existing
+                    <code>REDIS_*</code> <code>.env</code> values keep working exactly as before.</p>
+
+                <h3>How Cipi implements it</h3>
+                <ul>
+                    <li><strong>Install</strong> — <code>setup.sh</code> installs and configures Valkey
+                        (<code>/etc/valkey/valkey.conf</code>, service <code>valkey-server</code>), bound to
+                        <code>localhost</code> only and protected with a password.</li>
+                    <li><strong>Service management</strong> — <code>cipi service …</code> manages
+                        <code>valkey-server</code> (the names <code>redis-server</code>, <code>redis</code>, and
+                        <code>valkey</code> are still accepted as aliases). It is added to the unattended-upgrades
+                        blacklist, so Cipi manages it instead of an automatic upgrade.</li>
+                    <li><strong>Credentials</strong> — stored under <code>valkey_user</code> /
+                        <code>valkey_password</code> in <code>/etc/cipi/server.json</code> (the legacy
+                        <code>redis_*</code> keys are still read as a fallback). Host: 127.0.0.1, Port: 6379.</li>
+                    <li><strong>Password reset</strong> — <code>cipi reset valkey-password</code> regenerates the
+                        password and restarts the service (<code>cipi reset redis-password</code> stays as an alias).</li>
+                </ul>
+
+                <h3>Migrating from Redis (4.5.6 / 4.5.7)</h3>
+                <p>Existing servers are switched to Valkey automatically on <code>cipi self-update</code> — no app
+                    <code>.env</code> editing required. The migration reuses the current Redis password (recovered from
+                    <code>server.json</code> or <code>/etc/redis/redis.conf</code>), forces an RDB <code>SAVE</code> and
+                    snapshots <code>dump.rdb</code>/AOF, purges <code>redis-server</code>, installs
+                    <code>valkey-server</code> + <code>valkey-tools</code> on the same port with the same
+                    <code>requirepass</code> / <code>bind</code>, restores the dataset, and rewrites
+                    <code>server.json</code> (<code>redis_*</code> → <code>valkey_*</code>) and the unattended-upgrades
+                    blacklist — so cache, sessions, and queued jobs survive the switch.</p>
+                <p><strong>v4.5.7</strong> corrects the package name to <code>valkey-server</code> (the Ubuntu 24.04
+                    daemon package; <code>4.5.6</code> initially used <code>valkey</code>) and makes the migration fully
+                    self-contained and safe. It auto-enables the <code>universe</code> APT component when the package
+                    isn't found, runs a post-start health check (<code>PING</code> → <code>PONG</code> with the
+                    password), and <strong>rolls back to <code>redis-server</code></strong> — restoring both the saved
+                    password and the dataset — if Valkey can't be installed or doesn't come up healthy. The dataset
+                    snapshot is kept until the switch is verified, then cleaned up. The migration is idempotent: servers
+                    already on Valkey skip it.</p>
+
                 <h3>Laravel integration</h3>
-                <p>Add these variables to your <code>.env</code> via <code>cipi app env myapp</code>:</p>
+                <p>Add these variables to your <code>.env</code> via <code>cipi app env myapp</code>. The variable names
+                    stay <code>REDIS_*</code> — that is what <code>phpredis</code> and Laravel's <code>redis</code>
+                    driver expect, and Valkey answers on the very same socket:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">env</span><button class="code-copy-btn"
                             onclick="copyCode(this)">Copy</button></div>
@@ -1444,7 +1493,7 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <li><strong>Broadcasting</strong> — <code>BROADCAST_CONNECTION=redis</code></li>
                 </ul>
                 <p>Install the <code>phpredis</code> PHP extension for best performance, or use
-                    <code>predis/predis</code> as a pure-PHP fallback.
+                    <code>predis/predis</code> as a pure-PHP fallback. Both talk to Valkey transparently.
                 </p>
             </div>
 
@@ -1701,10 +1750,10 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> systemctl stop nginx mariadb redis-server fail2ban supervisor
+                    <pre><span class="p">$</span> systemctl stop nginx mariadb valkey-server fail2ban supervisor
 <span class="p">$</span> systemctl stop php*-fpm
 
-<span class="p">$</span> apt purge -y nginx* mariadb-server mariadb-client redis-server \
+<span class="p">$</span> apt purge -y nginx* mariadb-server mariadb-client valkey-server \
     fail2ban supervisor certbot python3-certbot-nginx \
     php8.4* php8.5* nodejs
 
