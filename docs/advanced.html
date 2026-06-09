@@ -210,12 +210,15 @@
                 <a href="cli-client#cli-configure" class="sidebar-link">configuration</a>
                 <a href="cli-client#cli-profiles" class="sidebar-link"><code>profiles</code></a>
                 <a href="cli-client#cli-apps" class="sidebar-link"><code>apps</code></a>
+                <a href="cli-client#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="cli-client#cli-deploy" class="sidebar-link"><code>deploy</code></a>
                 <a href="cli-client#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="cli-client#cli-aliases" class="sidebar-link"><code>aliases</code></a>
                 <a href="cli-client#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
+                <a href="cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="cli-client#cli-global-flags" class="sidebar-link">global flags</a>
+                <a href="cli-client#cli-requirements" class="sidebar-link">requirements</a>
             </div>
 
             <div class="sidebar-group" data-chapter="advanced">
@@ -277,8 +280,11 @@
                 <ul>
                     <li><code>apps-view</code> — read apps</li>
                     <li><code>apps-create</code> — create apps</li>
-                    <li><code>apps-edit</code> — edit apps</li>
+                    <li><code>apps-edit</code> — edit apps (PHP, repository, branch, primary domain since API
+                        <strong>1.9.0+</strong> / Cipi <strong>4.6.2+</strong>)</li>
                     <li><code>apps-suspend</code> — suspend and unsuspend apps</li>
+                    <li><code>apps-basicauth</code> — enable, disable, and inspect HTTP Basic Auth on apps (API
+                        <strong>1.10.0+</strong>)</li>
                     <li><code>apps-delete</code> — delete apps</li>
                     <li><code>deploy-manage</code> — deploy, rollback, unlock</li>
                     <li><code>ssl-manage</code> — install and manage SSL certificates</li>
@@ -314,6 +320,25 @@
                     state. The <code>suspended</code> flag survives vhost regeneration and is exposed on
                     <code>GET /api/apps</code> and <code>GET /api/apps/{name}</code>. These endpoints require the API
                     package <strong>1.8.1+</strong> and Cipi <strong>4.5.8+</strong> on the server.</p>
+                <p><code>PUT /api/apps/{name}</code> accepts an optional <code>domain</code> field to rename the
+                    app&rsquo;s primary domain. The API validates the format synchronously and returns
+                    <code>409</code> if the domain is already used by another app (aliases of the current app are
+                    allowed, so promoting an alias to primary works). Requires the API package <strong>1.9.0+</strong>
+                    and Cipi <strong>4.6.2+</strong>. The MCP tool <code>AppEdit</code> accepts the same
+                    <code>domain</code> parameter.</p>
+                <p><code>GET /api/apps</code> and <code>GET /api/apps/{name}</code> expose boolean
+                    <code>suspended</code> and <code>basic_auth</code> flags per app (from <code>apps.json</code>).</p>
+                <p>HTTP Basic Auth endpoints under <code>/api/apps/{name}/basicauth/*</code> wrap
+                    <code>cipi basicauth</code> synchronously — they do not return a <code>job_id</code>. Enable accepts
+                    optional <code>user</code> and <code>password</code> (auto-generated when omitted; returned once in
+                    the response). Requires the <code>apps-basicauth</code> ability and API package
+                    <strong>1.10.0+</strong>. This is distinct from Composer <code>auth.json</code> management — see
+                    <a href="apps#cli-basicauth"><code>cipi basicauth</code></a>.</p>
+                <p><code>GET /api/dbs</code> lists databases synchronously by running
+                    <code>sudo cipi db list</code> on the host (same as the server CLI). Other
+                    <code>/api/dbs/*</code> write operations are asynchronous jobs. Database commands require Cipi
+                    <strong>4.4.17+</strong> on the server (<code>cipi db …</code> entries in the API sudoers
+                    whitelist).</p>
                 <table class="cmd-table">
                     <thead>
                         <tr>
@@ -395,6 +420,21 @@
                         </tr>
                         <tr>
                             <td>GET</td>
+                            <td><code>/api/apps/{name}/basicauth</code></td>
+                            <td>apps-basicauth</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/basicauth/enable</code></td>
+                            <td>apps-basicauth</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/basicauth/disable</code></td>
+                            <td>apps-basicauth</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
                             <td><code>/api/dbs</code></td>
                             <td>dbs-view</td>
                         </tr>
@@ -432,19 +472,28 @@
                 </table>
 
                 <h3>Swagger / OpenAPI</h3>
-                <p>Interactive documentation is available at <code>/docs</code> (Swagger UI, OpenAPI spec 2.0.0).</p>
+                <p>Interactive documentation is available at <code>/docs</code> (Swagger UI). The OpenAPI spec is
+                    generated from <code>public/api-docs/openapi.json</code> and covers apps (including suspend,
+                    unsuspend, domain rename, and basic auth), aliases, deploy, SSL, databases, job polling with
+                    structured <code>result</code> types, and MCP tool schemas. Current API package version:
+                    <strong>1.10.0</strong>.</p>
 
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
                     Streamable
-                    HTTP. It requires a token with the <code>mcp-access</code> ability. It exposes 21 tools for app,
-                    alias, database, deploy, and SSL management — with async dispatch and <code>job_id</code> return
-                    for polling:</p>
+                    HTTP. It requires a token with the <code>mcp-access</code> ability. It exposes 24 tools for app,
+                    alias, database, deploy, SSL, and HTTP Basic Auth management — with async dispatch and
+                    <code>job_id</code> return for polling on write operations (basic auth actions run synchronously):
+                </p>
                 <ul>
                     <li><strong>Applications:</strong> <code>AppList</code>, <code>AppShow</code>,
                         <code>AppCreate</code>, <code>AppEdit</code>, <code>AppSuspend</code>,
                         <code>AppUnsuspend</code>, <code>AppDelete</code>,
                         <code>AppDeploy</code>, <code>AppDeployRollback</code>, <code>AppDeployUnlock</code>
+                    </li>
+                    <li><strong>HTTP Basic Auth:</strong> <code>AppBasicAuthStatus</code>,
+                        <code>AppBasicAuthEnable</code>, <code>AppBasicAuthDisable</code> (require
+                        <code>apps-basicauth</code> on the token, API <strong>1.10.0+</strong>)
                     </li>
                     <li><strong>Aliases:</strong> <code>AliasList</code>, <code>AliasAdd</code>,
                         <code>AliasRemove</code>
@@ -1121,7 +1170,7 @@
 
 <span class="c">Cipi Sync Archive</span>
 <span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
-<span class="c">  Cipi           v4.6.1</span>
+<span class="c">  Cipi           v4.6.2</span>
 <span class="c">  Exported       2026-03-06T15:00:00Z</span>
 <span class="c">  Source         aws01 (3.120.xx.xx)</span>
 <span class="c">  Database       true</span>

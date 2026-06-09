@@ -206,12 +206,15 @@
                 <a href="cli-client#cli-configure" class="sidebar-link">configuration</a>
                 <a href="cli-client#cli-profiles" class="sidebar-link"><code>profiles</code></a>
                 <a href="cli-client#cli-apps" class="sidebar-link"><code>apps</code></a>
+                <a href="cli-client#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="cli-client#cli-deploy" class="sidebar-link"><code>deploy</code></a>
                 <a href="cli-client#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="cli-client#cli-aliases" class="sidebar-link"><code>aliases</code></a>
                 <a href="cli-client#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
+                <a href="cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="cli-client#cli-global-flags" class="sidebar-link">global flags</a>
+                <a href="cli-client#cli-requirements" class="sidebar-link">requirements</a>
             </div>
 
             <div class="sidebar-group" data-chapter="advanced">
@@ -290,7 +293,7 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli version
-<span class="c">cipi-cli v0.1.1 (linux/amd64)</span></pre>
+<span class="c">cipi-cli v1.0.1 (linux/amd64)</span></pre>
                 </div>
             </div>
 
@@ -336,12 +339,12 @@ sudo make install</pre>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi-cli configure show prod
+                    <pre><span class="p">$</span> cipi-cli profiles show prod
 <span class="c">Profile:   prod</span>
 <span class="c">Endpoint:  https://api.example.com</span>
 <span class="c">Token:     1|a8Kz...4f2a</span>
 
-<span class="p">$</span> cipi-cli configure show
+<span class="p">$</span> cipi-cli profiles show
 <span class="c"># Shows all configured profiles</span></pre>
                 </div>
             </div>
@@ -458,13 +461,21 @@ sudo make install</pre>
                             <td>cipi-cli apps delete &lt;name&gt; [-y]</td>
                             <td>Delete an application</td>
                         </tr>
+                        <tr>
+                            <td>cipi-cli apps suspend &lt;name&gt;</td>
+                            <td>Take an app offline (HTTP 503 maintenance page) without deleting it</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli apps unsuspend &lt;name&gt;</td>
+                            <td>Restore a suspended app to normal service</td>
+                        </tr>
                     </tbody>
                 </table>
 
                 <h3>Create flags</h3>
                 <div class="options-list">
                     <div class="option-item">
-                        <code>--name</code>
+                        <code>--user</code>
                         <span>Application name (used as Linux user and database name)</span>
                     </div>
                     <div class="option-item">
@@ -509,7 +520,8 @@ sudo make install</pre>
                     </div>
                     <div class="option-item">
                         <code>--domain</code>
-                        <span>Change primary domain</span>
+                        <span>Rename the primary domain (requires Cipi <strong>4.6.2+</strong> and API
+                            <strong>1.9.0+</strong>)</span>
                     </div>
                 </div>
 
@@ -521,18 +533,72 @@ sudo make install</pre>
 <span class="p">$</span> cipi-cli apps list
 
 <span class="c"># Create a Laravel app</span>
-<span class="p">$</span> cipi-cli apps create --name=myapp --domain=myapp.com \
+<span class="p">$</span> cipi-cli apps create --user=myapp --domain=myapp.com \
     --php=8.5 --repository=git@github.com:acme/myapp.git --branch=main
 
 <span class="c"># Create a custom (non-Laravel) app</span>
-<span class="p">$</span> cipi-cli apps create --name=landing --domain=landing.acme.com \
+<span class="p">$</span> cipi-cli apps create --user=landing --domain=landing.acme.com \
     --custom --docroot=dist
 
 <span class="c"># Edit an existing app</span>
 <span class="p">$</span> cipi-cli apps edit myapp --php=8.4
 
+<span class="c"># Suspend staging for maintenance</span>
+<span class="p">$</span> cipi-cli apps suspend staging
+
 <span class="c"># Delete an app (skip confirmation)</span>
 <span class="p">$</span> cipi-cli apps delete myapp -y</pre>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Domains ── -->
+
+            <div class="doc-section" id="cli-domains">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>domains</code></h2>
+                <p>List every primary domain and alias across all apps on the server in a single table — the remote
+                    counterpart to <a href="infrastructure#cli-domains"><code>cipi domains</code></a> on the server.
+                    Useful for auditing DNS coverage or spotting domains missing SSL before a certificate renewal.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli domains</td>
+                            <td>List every domain and alias across all apps</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli domains
+<span class="c">  DOMAIN              APP     KIND    TYPE     PHP   SSL</span>
+<span class="c">  api.myapp.com       myapp   alias   Laravel  8.5   ✓</span>
+<span class="c">  myapp.com           myapp   primary Laravel  8.5   ✓</span>
+<span class="c">  www.myapp.com       myapp   alias   Laravel  8.5   ✓</span>
+
+<span class="c">3 domains · 1 app · 3 certificates</span></pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>The global domain map is built from <code>GET /api/apps</code> on the server. It requires
+                        Cipi <strong>4.5.5+</strong> on the server (for the underlying
+                        <code>cipi domains</code> data) but no minimum API package version.</span>
                 </div>
             </div>
 
@@ -763,6 +829,47 @@ sudo make install</pre>
 
             <hr class="doc-divider">
 
+            <!-- ── Update ── -->
+
+            <div class="doc-section" id="cli-update">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>update</code></h2>
+                <p>Update <code>cipi-cli</code> to the latest release from GitHub. The command downloads the matching
+                    binary for your platform, verifies its SHA-256 checksum, and replaces the running binary in place.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli update</td>
+                            <td>Update to the latest release</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli update --force</td>
+                            <td>Reinstall even if already up to date</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli update
+<span class="s">Downloading cipi-cli v1.0.1...</span>
+<span class="s">Checksum verified. Updated to v1.0.1.</span>
+
+<span class="c"># If installed in a system path, use sudo</span>
+<span class="p">$</span> sudo cipi-cli update</pre>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
             <!-- ── Global Flags ── -->
 
             <div class="doc-section" id="cli-global-flags">
@@ -809,6 +916,55 @@ sudo make install</pre>
                 <h3>Source code</h3>
                 <p><code>cipi-cli</code> is open source, MIT licensed, and written in Go. Contributions welcome on
                     <a href="https://github.com/cipi-sh/cli" target="_blank">GitHub</a>.</p>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Requirements ── -->
+
+            <div class="doc-section" id="cli-requirements">
+                <p class="doc-section-label">CLI Client</p>
+                <h2>Requirements</h2>
+                <p>The Cipi server must have the <a href="advanced#cipi-api">API package</a> installed and configured
+                    before using <code>cipi-cli</code>:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi api &lt;domain&gt;
+<span class="p">$</span> cipi api ssl
+<span class="p">$</span> cipi api token create</pre>
+                </div>
+
+                <p>New app PHP versions must be <strong>8.3</strong>, <strong>8.4</strong>, or <strong>8.5</strong>
+                    (Cipi 4.5.4+). Some CLI features depend on specific server and API versions:</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Minimum Cipi</th>
+                            <th>Minimum API</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Suspend / unsuspend (<code>apps suspend</code>)</td>
+                            <td>4.5.8</td>
+                            <td>1.8.1</td>
+                        </tr>
+                        <tr>
+                            <td>Rename primary domain (<code>apps edit --domain</code>)</td>
+                            <td>4.6.2</td>
+                            <td>1.9.0</td>
+                        </tr>
+                        <tr>
+                            <td>Global domain map (<code>domains</code>)</td>
+                            <td>4.5.5</td>
+                            <td>— (built from <code>/api/apps</code>)</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="page-nav">
