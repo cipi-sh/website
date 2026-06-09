@@ -204,6 +204,7 @@
                 <a href="cli-client" class="sidebar-group-label">CLI client</a>
                 <a href="cli-client#cli-install" class="sidebar-link">installation</a>
                 <a href="cli-client#cli-configure" class="sidebar-link">configuration</a>
+                <a href="cli-client#cli-profiles" class="sidebar-link"><code>profiles</code></a>
                 <a href="cli-client#cli-apps" class="sidebar-link"><code>apps</code></a>
                 <a href="cli-client#cli-deploy" class="sidebar-link"><code>deploy</code></a>
                 <a href="cli-client#cli-ssl" class="sidebar-link"><code>ssl</code></a>
@@ -300,36 +301,124 @@ sudo make install</pre>
             <div class="doc-section" id="cli-configure">
                 <p class="doc-section-label">CLI Client</p>
                 <h2>Configuration</h2>
-                <p>Before using <code>cipi-cli</code>, connect it to your Cipi API server. You need the API endpoint URL and a
-                    Sanctum token created with <code>cipi api token create</code> on your server.</p>
+                <p>Before using <code>cipi-cli</code>, connect it to your Cipi API server. Each profile maps to one
+                    server — use separate profiles for production, staging, or any other environment. You need the API
+                    endpoint URL and a Sanctum token created with <code>cipi api token create</code> on your server.</p>
+
+                <p>Credentials are stored per profile in <code>~/.cipi/config.json</code> with permissions
+                    <code>0600</code>. If you omit <code>--profile</code>, the profile name defaults to
+                    <code>default</code>.</p>
 
                 <h3>Interactive setup</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi-cli configure
-<span class="c">API endpoint: https://api.example.com</span>
-<span class="c">Token: 1|yourtoken...</span>
-<span class="s">Configuration saved to ~/.cipi/config.json</span></pre>
+                    <pre><span class="p">$</span> cipi-cli configure --profile prod
+<span class="c">Cipi API endpoint: https://api.example.com</span>
+<span class="c">API token: 1|yourtoken...</span>
+<span class="s">Profile "prod" saved to ~/.cipi/config.json</span>
+
+<span class="p">$</span> cipi-cli configure --profile staging
+<span class="c">Cipi API endpoint: https://staging-api.example.com</span>
+<span class="c">API token: 1|stagingtoken...</span>
+<span class="s">Profile "staging" saved to ~/.cipi/config.json</span></pre>
                 </div>
 
                 <h3>Non-interactive setup</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi-cli configure --endpoint https://api.example.com --token "1|yourtoken..."</pre>
+                    <pre><span class="p">$</span> cipi-cli configure --profile prod \
+    --endpoint https://api.example.com --token "1|yourtoken..."</pre>
                 </div>
 
-                <h3>Show current configuration</h3>
+                <h3>Show configuration</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi-cli configure show
-<span class="c">Endpoint: https://api.example.com</span>
-<span class="c">Token:    1|a8Kz••••••••</span></pre>
+                    <pre><span class="p">$</span> cipi-cli configure show prod
+<span class="c">Profile:   prod</span>
+<span class="c">Endpoint:  https://api.example.com</span>
+<span class="c">Token:     1|a8Kz...4f2a</span>
+
+<span class="p">$</span> cipi-cli configure show
+<span class="c"># Shows all configured profiles</span></pre>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Profiles ── -->
+
+            <div class="doc-section" id="cli-profiles">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>profiles</code></h2>
+                <p>Manage multiple server connections from a single <code>cipi-cli</code> installation. Prefix any
+                    command with a profile name to target that server, or set a default profile to omit the prefix.</p>
+
+                <h3>Targeting a server</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli prod apps list
+<span class="p">$</span> cipi-cli staging apps show myapp
+<span class="p">$</span> cipi-cli prod deploy myapp
+<span class="p">$</span> cipi-cli prod ssl install myapp</pre>
                 </div>
 
-                <p>Credentials are stored in <code>~/.cipi/config.json</code> with permissions <code>0600</code>.</p>
+                <p>With a default profile set, you can run commands without the prefix:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli profiles default prod
+<span class="s">Default profile set to "prod"</span>
+
+<span class="p">$</span> cipi-cli apps list
+<span class="c"># Uses the prod profile</span></pre>
+                </div>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli profiles</td>
+                            <td>List configured profiles</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli profiles list</td>
+                            <td>List configured profiles</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli profiles show [profile]</td>
+                            <td>Show one profile, or all if omitted</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli profiles default &lt;profile&gt;</td>
+                            <td>Set the default profile</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli profiles delete &lt;profile&gt; [-y]</td>
+                            <td>Delete a profile</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>The same profile subcommands are also available under
+                        <code>cipi-cli configure list</code>, <code>configure show</code>,
+                        <code>configure default</code>, and <code>configure delete</code>.</span>
+                </div>
             </div>
 
             <hr class="doc-divider">
