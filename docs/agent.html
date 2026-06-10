@@ -316,6 +316,10 @@
                                 <code>/home/{app_user}/.db/anonymization.json</code>
                             </td>
                         </tr>
+                        <tr>
+                            <td>php artisan cipi:anonymize {config} {output}</td>
+                            <td>Run an anonymized database dump directly from the CLI (no HTTP)</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -658,104 +662,320 @@
                 <h2>Database Anonymizer</h2>
                 <p><strong>cipi-agent</strong> includes a built-in database anonymizer that creates sanitized copies of
                     your production database — ideal for sharing with developers, QA teams, or staging environments
-                    without exposing real user data. It supports both MySQL and PostgreSQL and uses
-                    <strong>Faker</strong>-based transformations configured via a JSON file.
-                </p>
+                    without exposing real user data. It supports both <strong>MySQL</strong> and <strong>PostgreSQL</strong>,
+                    uses <strong>Faker</strong>-based transformations configured via a JSON file, and runs as a
+                    background job so large databases do not block HTTP requests.</p>
 
-                <h3>How it works</h3>
-                <ol>
-                    <li>A <code>POST /cipi/db</code> request queues an <code>AnonymizeDatabaseJob</code> in the
-                        background</li>
-                    <li>The job runs <code>php artisan cipi:anonymize</code>, which dumps the database, applies
-                        Faker-based transformations according to <code>anonymization.json</code>, and produces a
-                        sanitized SQL file</li>
-                    <li>When complete, an email notification is sent with a signed download URL</li>
-                    <li><code>GET /cipi/db/{token}</code> serves the anonymized dump via a signed URL that expires
-                        after 15 minutes</li>
-                </ol>
+                <p>This feature lives inside your <strong>Laravel application</strong> (the <code>cipi/agent</code>
+                    package). It is separate from the server-level database backup API exposed by
+                    <a href="advanced#cipi-api"><code>cipi api</code></a> — see
+                    <a href="#agent-anonymizer-vs-api">Agent vs Cipi API</a> below.</p>
 
-                <p>A utility endpoint <code>POST /cipi/db/user</code> is also available for user ID lookup, useful
-                    when building anonymization rules.</p>
+                <h3>Use cases</h3>
+                <ul>
+                    <li><strong>Local development</strong> — give every developer a realistic dataset without copying
+                        production emails, addresses, or payment notes</li>
+                    <li><strong>Staging / preview environments</strong> — refresh a non-production database from
+                        production structure and volume, with PII replaced</li>
+                    <li><strong>QA and demos</strong> — reproduce bugs that depend on relational data without GDPR risk
+                    </li>
+                    <li><strong>Vendor or contractor access</strong> — share a SQL dump when a full VPN + production
+                        access is not acceptable</li>
+                    <li><strong>CI pipelines</strong> — run <code>cipi:anonymize</code> on the server or trigger
+                        <code>POST /cipi/db</code> from a secure automation step</li>
+                </ul>
 
-                <h3>Setup</h3>
-                <p>Scaffold the anonymization configuration file:</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> php artisan cipi:init-anonymize</pre>
-                </div>
-
-                <p>This creates <code>/home/{app_user}/.db/anonymization.json</code> with a starter template. The
-                    file is stored outside the project repository for security — it never gets committed.</p>
-
-                <h3>Configuration</h3>
-                <p>Edit <code>/home/{app_user}/.db/anonymization.json</code> to define which tables and columns to
-                    anonymize:</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">json</span></div>
-                    <pre>{
-  <span class="s">"tables"</span>: {
-    <span class="s">"users"</span>: {
-      <span class="s">"name"</span>: <span class="s">"name"</span>,
-      <span class="s">"email"</span>: <span class="s">"safeEmail"</span>,
-      <span class="s">"phone"</span>: <span class="s">"phoneNumber"</span>,
-      <span class="s">"address"</span>: <span class="s">"address"</span>
-    },
-    <span class="s">"orders"</span>: {
-      <span class="s">"shipping_address"</span>: <span class="s">"address"</span>,
-      <span class="s">"notes"</span>: <span class="s">"sentence"</span>
-    }
-  }
-}</pre>
-                </div>
-
-                <p>Each key under <code>tables</code> is a database table name. Each nested key is a column name,
-                    and the value is a <a href="https://fakerphp.org/formatters/" target="_blank" rel="noopener">Faker
-                        formatter</a> (e.g. <code>name</code>, <code>safeEmail</code>,
-                    <code>phoneNumber</code>, <code>address</code>, <code>sentence</code>).
-                </p>
-
-                <h3>Endpoints</h3>
+                <h3>Prerequisites</h3>
                 <table class="cmd-table">
                     <thead>
                         <tr>
-                            <th>Method</th>
-                            <th>Endpoint</th>
-                            <th>Description</th>
+                            <th>Requirement</th>
+                            <th>Why</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>POST</td>
-                            <td>/cipi/db</td>
-                            <td>Queue an anonymization job. Returns immediately; sends email when done.</td>
+                            <td><code>composer require cipi/agent</code></td>
+                            <td>The anonymizer is part of the agent package, not the Cipi server CLI</td>
                         </tr>
                         <tr>
-                            <td>POST</td>
-                            <td>/cipi/db/user</td>
-                            <td>User ID lookup utility</td>
+                            <td>Queue worker running</td>
+                            <td><code>POST /cipi/db</code> dispatches <code>AnonymizeDatabaseJob</code> — without a
+                                worker the job never runs (use <code>cipi worker status</code> on the server)</td>
                         </tr>
                         <tr>
-                            <td>GET</td>
-                            <td>/cipi/db/{token}</td>
-                            <td>Download the anonymized dump (signed URL, expires in 15 minutes)</td>
+                            <td><code>mysqldump</code> or <code>pg_dump</code></td>
+                            <td>The command shells out to the native dump tool for your DB driver</td>
+                        </tr>
+                        <tr>
+                            <td>Mail configured in Laravel</td>
+                            <td>Completion and failure notifications are sent by email</td>
+                        </tr>
+                        <tr>
+                            <td><code>anonymization.json</code> on the server</td>
+                            <td>Must exist at <code>/home/{app_user}/.db/</code> or
+                                <code>/home/{app_user}/.cipi/</code> before triggering a job
+                            </td>
                         </tr>
                     </tbody>
                 </table>
 
-                <p>All endpoints are protected by the <code>CIPI_ANONYMIZER_TOKEN</code> Bearer token.</p>
+                <h3 id="agent-anonymizer-vs-api">Agent vs Cipi API</h3>
+                <p>Both Cipi components touch databases, but they solve different problems:</p>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Agent anonymizer (<code>cipi/agent</code>)</th>
+                            <th>Cipi API backups (<a href="https://github.com/cipi-sh/api" target="_blank"
+                                    rel="noopener"><code>cipi/api</code></a>)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Scope</td>
+                            <td>One Laravel app's database (from the app's <code>.env</code>)</td>
+                            <td>Any database on the Cipi server (MariaDB vault)</td>
+                        </tr>
+                        <tr>
+                            <td>Runs on</td>
+                            <td>Inside the app (PHP + queue worker)</td>
+                            <td>On the Cipi host via <code>sudo cipi db …</code> jobs</td>
+                        </tr>
+                        <tr>
+                            <td>Output</td>
+                            <td>SQL dump with <strong>Faker-transformed</strong> sensitive columns</td>
+                            <td><strong>Full compressed backup</strong> — real data, unchanged</td>
+                        </tr>
+                        <tr>
+                            <td>Auth</td>
+                            <td><code>CIPI_ANONYMIZER_TOKEN</code> (per app)</td>
+                            <td>Sanctum token with <code>dbs-manage</code> (per server)</td>
+                        </tr>
+                        <tr>
+                            <td>Typical endpoint</td>
+                            <td><code>POST https://myapp.com/cipi/db</code></td>
+                            <td><code>POST https://api.example.com/api/dbs/{name}/backup</code></td>
+                        </tr>
+                        <tr>
+                            <td>GDPR / PII</td>
+                            <td>Designed for safe sharing — only configured columns are transformed</td>
+                            <td>Disaster recovery and cloning — treat backups as production-secret</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                <h3>Enable the anonymizer</h3>
-                <p>The anonymizer is disabled by default. Enable it and generate a token:</p>
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Use <strong>Cipi API <code>DbBackup</code></strong> when you need a faithful snapshot for
+                        restore. Use the <strong>agent anonymizer</strong> when people need data that <em>looks</em>
+                        real but must not contain real identities. You can use both on the same project: backup for ops,
+                        anonymize for humans.</div>
+                </div>
 
+                <h3>How it works</h3>
+                <ol>
+                    <li>An authenticated <code>POST /cipi/db</code> request (with a recipient <code>email</code>)
+                        queues <code>AnonymizeDatabaseJob</code></li>
+                    <li>The job runs <code>php artisan cipi:anonymize</code>, which:
+                        <ul>
+                            <li>dumps the database with <code>mysqldump</code> or <code>pg_dump</code></li>
+                            <li>streams through <code>INSERT</code> statements and rewrites only the columns listed in
+                                <code>anonymization.json</code></li>
+                            <li>writes the result to <code>storage/cipi/anonymized_{jobId}.sql</code></li>
+                        </ul>
+                    </li>
+                    <li>On success, Laravel sends an email with a <strong>time-limited download URL</strong>
+                        (15 minutes)</li>
+                    <li><code>GET /cipi/db/{token}</code> serves the file — no Bearer token; the URL itself is the
+                        credential</li>
+                    <li>On failure, a plain-text error email is sent to the same address</li>
+                </ol>
+
+                <h3>Setup — step by step</h3>
+                <p>Run these commands <strong>on the server as the app user</strong> (SSH:
+                    <code>cipi app ssh myapp</code>):
+                </p>
+
+                <p><strong>1. Install the agent</strong> (if not already in <code>composer.json</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> composer require cipi/agent
+<span class="c"># commit, push, deploy — or run on the current release</span></pre>
+                </div>
+
+                <p><strong>2. Enable the service and create a token:</strong></p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> php artisan cipi:service anonymize --enable
 <span class="p">$</span> php artisan cipi:generate-token anonymize</pre>
                 </div>
+
+                <p><strong>3. Scaffold the configuration file:</strong></p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:init-anonymize</pre>
+                </div>
+
+                <p>This creates <code>/home/{app_user}/.db/anonymization.json</code> (permissions <code>0640</code>)
+                    from the built-in template. The file lives <strong>outside the Git repository</strong> — it is never
+                    deployed with your code. Use <code>--force</code> to overwrite an existing file.</p>
+
+                <p><strong>4. Edit the config</strong> to match your real tables and sensitive columns (see
+                    <a href="#agent-anonymizer-config">Configuration</a>).
+                </p>
+
+                <p><strong>5. Verify queue and mail:</strong></p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:status          <span class="c"># DB connectivity</span>
+<span class="p">$</span> php artisan queue:work --once   <span class="c"># optional: confirm worker can run jobs</span></pre>
+                </div>
+
+                <p><strong>6. Trigger your first anonymized export</strong> via HTTP or CLI (see examples below).</p>
+
+                <h3 id="agent-anonymizer-config">Configuration</h3>
+                <p>Valid paths (first match wins):</p>
+                <ul>
+                    <li><code>/home/{app_user}/.db/anonymization.json</code> — recommended</li>
+                    <li><code>/home/{app_user}/.cipi/anonymization.json</code> — alternative</li>
+                </ul>
+
+                <p>The JSON file has two top-level keys: <code>transformations</code> (required) and
+                    <code>options</code> (optional).
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>{
+  <span class="s">"transformations"</span>: {
+    <span class="s">"users"</span>: {
+      <span class="s">"name"</span>: <span class="s">"fakeName"</span>,
+      <span class="s">"email"</span>: <span class="s">"fakeEmail"</span>,
+      <span class="s">"password"</span>: <span class="s">"password"</span>,
+      <span class="s">"phone"</span>: <span class="s">"fakePhoneNumber"</span>,
+      <span class="s">"address"</span>: <span class="s">"fakeAddress"</span>
+    },
+    <span class="s">"orders"</span>: {
+      <span class="s">"customer_notes"</span>: <span class="s">"fakeParagraph"</span>,
+      <span class="s">"shipping_address"</span>: <span class="s">"fakeAddress"</span>
+    },
+    <span class="s">"support_tickets"</span>: {
+      <span class="s">"user_message"</span>: <span class="s">"fakeParagraph"</span>,
+      <span class="s">"agent_response"</span>: <span class="s">"fakeParagraph"</span>
+    }
+  },
+  <span class="s">"options"</span>: {
+    <span class="s">"hash_algorithm"</span>: <span class="s">"auto"</span>,
+    <span class="s">"preserve_ids"</span>: <span class="k">true</span>,
+    <span class="s">"faker_locale"</span>: <span class="s">"en_US"</span>
+  }
+}</pre>
+                </div>
+
+                <p>Under <code>transformations</code>, each key is a <strong>table name</strong>. Nested keys are
+                    <strong>column names</strong>; values are transformation types (not raw Faker method names — see
+                    table below). Columns <em>not</em> listed keep their original values, so you can anonymize PII while
+                    preserving foreign keys, enums, and business logic fields.</p>
+
+                <h4>Supported transformations</h4>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Transformation</th>
+                            <th>Example output</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>fakeName</code></td>
+                            <td>Full name (e.g. "Jane Cooper")</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakeFirstName</code> / <code>fakeLastName</code></td>
+                            <td>First or last name only</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakeEmail</code></td>
+                            <td>Random email address</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakeCompany</code></td>
+                            <td>Company name</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakeAddress</code> / <code>fakeCity</code> / <code>fakePostcode</code></td>
+                            <td>Street address, city, postal code</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakePhoneNumber</code></td>
+                            <td>Phone number</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakeDate</code></td>
+                            <td>Random date string</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakeUrl</code></td>
+                            <td>URL</td>
+                        </tr>
+                        <tr>
+                            <td><code>fakeParagraph</code></td>
+                            <td>Lorem-style paragraph (notes, bios, ticket bodies)</td>
+                        </tr>
+                        <tr>
+                            <td><code>password</code></td>
+                            <td>Re-hashes the value using <code>hash_algorithm</code> (bcrypt, argon, or Laravel
+                                <code>auto</code>) — use on <code>users.password</code> so login still works with a
+                                known test password if you set one before dump, or accept random hashes
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Options</h4>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Option</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>hash_algorithm</code></td>
+                            <td><code>auto</code></td>
+                            <td><code>auto</code> (Laravel default), <code>bcrypt</code>, <code>argon</code>,
+                                <code>argon2i</code>, <code>argon2d</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>faker_locale</code></td>
+                            <td><code>en_US</code></td>
+                            <td>Faker locale for names, addresses, etc. (e.g. <code>it_IT</code>,
+                                <code>de_DE</code>)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><code>preserve_ids</code></td>
+                            <td><code>true</code></td>
+                            <td>Reserved for future use — IDs are kept unless you add an <code>id</code> column under
+                                transformations
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
 
                 <div class="callout warning">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -764,9 +984,230 @@
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <div>The anonymization config file contains the mapping of your database schema. Keep it outside
-                        your repository (the default path <code>/home/{app_user}/.db/</code> is already excluded).
-                        Never commit it to version control.</div>
+                    <div>Anonymization is <strong>opt-in per column</strong>. If a table holds PII in a JSON column,
+                        blob, or column you forgot to list, that data is copied verbatim. Review schema regularly —
+                        especially <code>metadata</code>, <code>settings</code>, and audit tables.</div>
+                </div>
+
+                <h3>HTTP API — endpoints</h3>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Auth</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/cipi/db</code></td>
+                            <td>Bearer <code>CIPI_ANONYMIZER_TOKEN</code></td>
+                            <td>Queue anonymization job; email sent when complete</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/cipi/db/user</code></td>
+                            <td>Bearer <code>CIPI_ANONYMIZER_TOKEN</code></td>
+                            <td>Resolve <code>users.id</code> from email (debug helper)</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/cipi/db/{token}</code></td>
+                            <td>Signed URL (from email)</td>
+                            <td>Download the <code>.sql</code> dump; expires in 15 minutes</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>When the anonymizer is disabled (<code>CIPI_ANONYMIZER=false</code>), routes return
+                    <strong>404</strong> — the endpoints are hidden entirely.
+                </p>
+
+                <h3 id="agent-anonymizer-curl">Practical examples (curl)</h3>
+                <p>Set variables once (replace with your app domain and token from <code>.env</code>):</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="k">export</span> APP_URL=<span class="s">"https://myapp.example.com"</span>
+<span class="k">export</span> CIPI_ANONYMIZER_TOKEN=<span class="s">"your-token-from-env"</span></pre>
+                </div>
+
+                <h4>1. Queue an anonymization job</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -X POST <span class="s">"${APP_URL}/cipi/db"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_ANONYMIZER_TOKEN}"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -H <span class="s">"Accept: application/json"</span> \
+  -d <span class="s">'{"email": "developer@example.com"}'</span></pre>
+                </div>
+
+                <p>Successful response (<code>200</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span></div>
+                    <pre>{
+  <span class="s">"status"</span>: <span class="s">"queued"</span>,
+  <span class="s">"message"</span>: <span class="s">"Database anonymization job has been queued. You will receive an email with download instructions when complete."</span>,
+  <span class="s">"email"</span>: <span class="s">"developer@example.com"</span>
+}</pre>
+                </div>
+
+                <p>The HTTP call returns immediately. Processing can take minutes on large databases (job timeout: 1
+                    hour). Check <code>storage/logs/laravel.log</code> or run <code>php artisan queue:failed</code> if
+                    no email arrives.</p>
+
+                <h4>2. Download the dump (from email link)</h4>
+                <p>The completion email contains a URL like:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">text</span></div>
+                    <pre>https://myapp.example.com/cipi/db/AbCdEf...?expires=1710000000&amp;signature=...</pre>
+                </div>
+
+                <p>Save it with curl (paste the full URL from the email — no Bearer header):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -L -o anonymized.sql <span class="s">"PASTE_FULL_SIGNED_URL_FROM_EMAIL"</span>
+
+<span class="c"># Import locally (MySQL example)</span>
+mysql -u root -p myapp_local &lt; anonymized.sql</pre>
+                </div>
+
+                <p>Expired or invalid links return <code>410 Gone</code> or <code>404</code>. Request a new export with
+                    <code>POST /cipi/db</code> if the 15-minute window passed.
+                </p>
+
+                <h4>3. Look up a user ID by email</h4>
+                <p>After anonymization, emails are fake — but <strong>user IDs stay the same</strong>. Use this
+                    <em>before</em> anonymizing to map a known production email to an ID you can find later in the
+                    dump:
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -X POST <span class="s">"${APP_URL}/cipi/db/user"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_ANONYMIZER_TOKEN}"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"email": "customer@production.com"}'</span></pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span></div>
+                    <pre>{
+  <span class="s">"user_id"</span>: <span class="k">42</span>,
+  <span class="s">"email"</span>: <span class="s">"customer@production.com"</span>,
+  <span class="s">"found_at"</span>: <span class="s">"2026-06-10T14:22:01+00:00"</span>
+}</pre>
+                </div>
+
+                <p>This queries the live <code>users</code> table — run only when you are allowed to touch production
+                    data. It does not modify anything.</p>
+
+                <h4>4. Error responses (troubleshooting)</h4>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>HTTP</th>
+                            <th>Meaning</th>
+                            <th>Fix</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>403</td>
+                            <td>Invalid or missing Bearer token</td>
+                            <td>Regenerate with <code>php artisan cipi:generate-token anonymize</code></td>
+                        </tr>
+                        <tr>
+                            <td>404</td>
+                            <td>Service disabled or config file missing</td>
+                            <td><code>cipi:service anonymize --enable</code> and
+                                <code>cipi:init-anonymize</code>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>422</td>
+                            <td>Missing or invalid <code>email</code> in JSON body</td>
+                            <td>Send <code>{"email":"you@example.com"}</code></td>
+                        </tr>
+                        <tr>
+                            <td>400</td>
+                            <td>Invalid JSON or empty <code>transformations</code></td>
+                            <td>Validate <code>anonymization.json</code> syntax and content</td>
+                        </tr>
+                        <tr>
+                            <td>500</td>
+                            <td>Token not configured, DB error, or dump tool missing</td>
+                            <td>Check <code>.env</code>, <code>mysqldump</code>/<code>pg_dump</code>, Laravel logs
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>CLI — run without HTTP</h3>
+                <p>For scripts, cron, or one-off exports on the server:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:anonymize \
+    /home/myapp/.db/anonymization.json \
+    /home/myapp/anonymized_export.sql</pre>
+                </div>
+
+                <p>The command prints three steps (dump → transform → save) and exits non-zero on failure. It does not
+                    send email — copy the file via SCP or your own secure channel.</p>
+
+                <h3>Comparison curl: Cipi API raw backup</h3>
+                <p>For reference, a <strong>non-anonymized</strong> server backup via
+                    <a href="advanced#cipi-api">Cipi API</a> looks like this (different host, token, and semantics):
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="k">export</span> CIPI_API_URL=<span class="s">"https://api.myserver.com"</span>
+<span class="k">export</span> CIPI_API_TOKEN=<span class="s">"sanctum-token-with-dbs-manage"</span>
+
+curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Accept: application/json"</span></pre>
+                </div>
+
+                <p>That returns <code>202</code> with a <code>job_id</code> — poll <code>GET /api/jobs/{id}</code> for
+                    the backup path on the server. The archive contains <strong>real production data</strong>; restrict
+                    access accordingly.</p>
+
+                <h3>Security and GDPR tips</h3>
+                <ul>
+                    <li>Store <code>CIPI_ANONYMIZER_TOKEN</code> in secrets management — anyone with it can queue dumps
+                        and query <code>/cipi/db/user</code></li>
+                    <li>Rotate the token after team changes:
+                        <code>php artisan cipi:generate-token anonymize</code>
+                    </li>
+                    <li>Disable when not needed:
+                        <code>php artisan cipi:service anonymize --disable</code> (endpoints return 404)
+                    </li>
+                    <li>Download links expire in <strong>15 minutes</strong> — forward emails carefully</li>
+                    <li>Document which columns are transformed for your DPA / privacy policy</li>
+                    <li>Test the dump: grep for a known production email — it should not appear if
+                        <code>fakeEmail</code> was set on that column
+                    </li>
+                </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>The anonymization config maps your database schema. Keep it outside your repository (default
+                        path <code>/home/{app_user}/.db/</code> is already excluded from deploys). Never commit
+                        <code>anonymization.json</code> to version control.
+                    </div>
                 </div>
             </div>
 
