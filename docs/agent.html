@@ -708,8 +708,10 @@
                             <td>The command shells out to the native dump tool for your DB driver</td>
                         </tr>
                         <tr>
-                            <td>Mail configured in Laravel</td>
-                            <td>Completion and failure notifications are sent by email</td>
+                            <td>Laravel mail (<code>MAIL_*</code> in app <code>.env</code>)</td>
+                            <td>Success and failure notifications are sent via Laravel's mailer — if SMTP is missing or
+                                misconfigured, the anonymization job can still finish but <strong>no email is
+                                delivered</strong> and the download link is only in that message</td>
                         </tr>
                         <tr>
                             <td><code>anonymization.json</code> on the server</td>
@@ -797,6 +799,70 @@
                     <li>On failure, a plain-text error email is sent to the same address</li>
                 </ol>
 
+                <h3 id="agent-anonymizer-email">Email notifications</h3>
+                <p>The HTTP API does not return the download URL in the JSON response — <strong>email is the only
+                        delivery channel</strong> for <code>POST /cipi/db</code>. Understanding who receives it and
+                    what must be configured avoids silent failures.</p>
+
+                <h4>Who receives the email?</h4>
+                <p>Exactly the address you pass in the JSON body — nothing else:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span></div>
+                    <pre>{ <span class="s">"email"</span>: <span class="s">"developer@example.com"</span> }</pre>
+                </div>
+                <ul>
+                    <li>Success → HTML email with the signed download link (15 minutes)</li>
+                    <li>Failure → plain-text email with the error and job ID</li>
+                    <li>No CC, BCC, or fallback to the Cipi admin, <code>CIPI_APP_USER</code>, or a fixed address in
+                        <code>.env</code>
+                    </li>
+                    <li>Whoever holds <code>CIPI_ANONYMIZER_TOKEN</code> chooses the recipient on each request</li>
+                </ul>
+
+                <h4>Laravel mail must work</h4>
+                <p>Notifications use Laravel's <code>Mail</code> facade and your application's
+                    <code>MAIL_*</code> settings — the same config as password resets or contact forms. This is
+                    <strong>independent</strong> of Cipi server SMTP (<code>cipi smtp configure</code> for backup/deploy
+                    alerts on the host).
+                </p>
+                <p>Typical production <code>.env</code> entries:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
+                    <pre>MAIL_MAILER=smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=...
+MAIL_PASSWORD=...
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=noreply@myapp.example.com
+MAIL_FROM_NAME="${APP_NAME}"</pre>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Job succeeded, inbox empty?</strong> The dump may already exist under
+                        <code>storage/cipi/anonymized_{jobId}.sql</code> on the server even when mail failed. The API
+                        still returned <code>{"status":"queued"}</code> immediately — that only means the job was
+                        queued, not that email delivery succeeded. Check <code>storage/logs/laravel.log</code> for mail
+                        errors, verify <code>MAIL_*</code>, and send a test message before relying on
+                        <code>POST /cipi/db</code> in production.
+                    </div>
+                </div>
+
+                <p>Quick mail test (as the app user, before your first export):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan tinker --execute=<span class="s">"Mail::raw('Cipi anonymizer mail test', fn (\$m) => \$m->to('you@example.com')->subject('Mail test'));"</span></pre>
+                </div>
+                <p>If that message does not arrive, fix Laravel mail first — or use the CLI path
+                    (<code>php artisan cipi:anonymize</code>) which writes the file directly and skips email.</p>
+
                 <h3>Setup — step by step</h3>
                 <p>Run these commands <strong>on the server as the app user</strong> (SSH:
                     <code>cipi app ssh myapp</code>):
@@ -833,12 +899,17 @@
                     <a href="#agent-anonymizer-config">Configuration</a>).
                 </p>
 
-                <p><strong>5. Verify queue and mail:</strong></p>
+                <p><strong>5. Verify queue and mail:</strong> confirm the worker runs jobs and Laravel can send to the
+                    address you will pass in <code>POST /cipi/db</code> (see
+                    <a href="#agent-anonymizer-email">Email notifications</a>).
+                </p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> php artisan cipi:status          <span class="c"># DB connectivity</span>
-<span class="p">$</span> php artisan queue:work --once   <span class="c"># optional: confirm worker can run jobs</span></pre>
+<span class="p">$</span> php artisan queue:work --once   <span class="c"># optional: confirm worker can run jobs</span>
+<span class="c"># send a test email — must arrive before using POST /cipi/db</span>
+<span class="p">$</span> php artisan tinker --execute=<span class="s">"Mail::raw('Mail test', fn (\$m) => \$m->to('you@example.com')->subject('Mail test'));"</span></pre>
                 </div>
 
                 <p><strong>6. Trigger your first anonymized export</strong> via HTTP or CLI (see examples below).</p>
@@ -1056,9 +1127,14 @@
 }</pre>
                 </div>
 
-                <p>The HTTP call returns immediately. Processing can take minutes on large databases (job timeout: 1
-                    hour). Check <code>storage/logs/laravel.log</code> or run <code>php artisan queue:failed</code> if
-                    no email arrives.</p>
+                <p>The HTTP call returns immediately with <code>status: queued</code> — that does <strong>not</strong>
+                    guarantee the notification email was sent. Processing can take minutes on large databases (job
+                    timeout: 1 hour). The completion message goes only to the <code>email</code> in your JSON body; if
+                    nothing arrives, check <code>storage/logs/laravel.log</code> for mail transport errors,
+                    <code>php artisan queue:failed</code> for a failed job, and that
+                    <code>MAIL_*</code> is configured (see
+                    <a href="#agent-anonymizer-email">Email notifications</a>).
+                </p>
 
                 <h4>2. Download the dump (from email link)</h4>
                 <p>The completion email contains a URL like:</p>
@@ -1143,6 +1219,14 @@ mysql -u root -p myapp_local &lt; anonymized.sql</pre>
                             <td>500</td>
                             <td>Token not configured, DB error, or dump tool missing</td>
                             <td>Check <code>.env</code>, <code>mysqldump</code>/<code>pg_dump</code>, Laravel logs
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>—</td>
+                            <td>API returned <code>queued</code> but no email (job may have succeeded)</td>
+                            <td>Verify <code>MAIL_*</code> and send a test with
+                                <code>php artisan tinker</code>; read <code>storage/logs/laravel.log</code> for SMTP
+                                errors — or use <code>cipi:anonymize</code> on the server to get the file without mail
                             </td>
                         </tr>
                     </tbody>
