@@ -296,8 +296,15 @@
                     <li><code>dbs-create</code> — create databases</li>
                     <li><code>dbs-delete</code> — delete databases</li>
                     <li><code>dbs-manage</code> — backup, restore, regenerate password</li>
+                    <li><code>status-view</code> — read server status snapshot (<code>GET /api/status</code>, API
+                        <strong>1.11.6+</strong>)</li>
                     <li><code>mcp-access</code> — access the MCP server</li>
                 </ul>
+                <p>Since Cipi <strong>4.6.3</strong> / API <strong>1.11.7+</strong>,
+                    <code>cipi api token create</code> reads the canonical ability list from the panel API package
+                    (same entries as <code>php artisan cipi:token-abilities</code> on the server). Migration
+                    <strong>4.6.3</strong> retrofits existing servers with the updated list (including
+                    <code>status-view</code>, <code>apps-suspend</code>, and <code>apps-basicauth</code>).</p>
 
                 <h3>REST endpoints</h3>
                 <p>All endpoints require the <code>Authorization: Bearer &lt;token&gt;</code> header. Write operations
@@ -340,6 +347,12 @@
                     <code>/api/dbs/*</code> write operations are asynchronous jobs. Database commands require Cipi
                     <strong>4.4.17+</strong> on the server (<code>cipi db …</code> entries in the API sudoers
                     whitelist).</p>
+                <p><code>GET /api/status</code> returns the same structured JSON as <code>cipi status</code> (system,
+                    resources, services, PHP pools, app count). Since API <strong>1.11.8+</strong> the endpoint prefers
+                    <code>sudo cipi status</code> on the host and falls back to direct host reads when sudo is
+                    unavailable. Requires the <code>status-view</code> ability (API <strong>1.11.6+</strong>). The MCP
+                    tool <code>ServerStatus</code> returns the same payload and requires only
+                    <code>mcp-access</code>.</p>
                 <table class="cmd-table">
                     <thead>
                         <tr>
@@ -466,6 +479,11 @@
                         </tr>
                         <tr>
                             <td>GET</td>
+                            <td><code>/api/status</code></td>
+                            <td>status-view</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
                             <td><code>/api/jobs/{id}</code></td>
                             <td>—</td>
                         </tr>
@@ -475,26 +493,30 @@
                 <h3>Swagger / OpenAPI</h3>
                 <p>Interactive documentation is available at <code>/docs</code> (Swagger UI). The OpenAPI spec is
                     generated from <code>public/api-docs/openapi.json</code> and covers apps (including suspend,
-                    unsuspend, domain rename, and basic auth), aliases, deploy, SSL, databases, job polling with
-                    structured <code>result</code> types, and MCP tool schemas. Current API package version:
-                    <strong>1.10.0</strong>.</p>
+                    unsuspend, domain rename, and basic auth), aliases, deploy, SSL, databases, server status, job
+                    polling with structured <code>result</code> types, and MCP tool schemas. Current API package
+                    version: <strong>1.11.8</strong>.</p>
 
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
-                    Streamable
-                    HTTP. It requires a token with the <code>mcp-access</code> ability. It exposes 24 tools for app,
-                    alias, database, deploy, SSL, and HTTP Basic Auth management — with async dispatch and
-                    <code>job_id</code> return for polling on write operations (basic auth actions run synchronously):
+                    Streamable HTTP. Since API package <strong>1.11.1+</strong>, a token with the
+                    <code>mcp-access</code> ability is sufficient for <strong>all</strong> MCP tools — per-endpoint REST
+                    abilities (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>, etc.)
+                    are not checked on <code>/mcp</code>. The server exposes <strong>29 tools</strong> for app, alias,
+                    database, deploy, SSL, HTTP Basic Auth, job polling, logs, Artisan, and server monitoring. Write
+                    operations that dispatch async jobs return a <code>job_id</code> — poll with <code>JobShow</code>
+                    (API <strong>1.11.0+</strong>). Basic auth actions and read-only tools run synchronously.
                 </p>
                 <ul>
                     <li><strong>Applications:</strong> <code>AppList</code>, <code>AppShow</code>,
                         <code>AppCreate</code>, <code>AppEdit</code>, <code>AppSuspend</code>,
                         <code>AppUnsuspend</code>, <code>AppDelete</code>,
-                        <code>AppDeploy</code>, <code>AppDeployRollback</code>, <code>AppDeployUnlock</code>
+                        <code>AppDeploy</code>, <code>AppDeployRollback</code>, <code>AppDeployUnlock</code>,
+                        <code>AppArtisan</code> (Laravel apps only; rejects custom apps and
+                        <code>tinker</code>)
                     </li>
                     <li><strong>HTTP Basic Auth:</strong> <code>AppBasicAuthStatus</code>,
-                        <code>AppBasicAuthEnable</code>, <code>AppBasicAuthDisable</code> (require
-                        <code>apps-basicauth</code> on the token, API <strong>1.10.0+</strong>)
+                        <code>AppBasicAuthEnable</code>, <code>AppBasicAuthDisable</code>
                     </li>
                     <li><strong>Aliases:</strong> <code>AliasList</code>, <code>AliasAdd</code>,
                         <code>AliasRemove</code>
@@ -504,7 +526,35 @@
                         <code>DbPassword</code>
                     </li>
                     <li><strong>SSL:</strong> <code>SslInstall</code></li>
+                    <li><strong>Jobs &amp; logs:</strong> <code>JobShow</code> (poll async job status, parsed
+                        <code>result</code>, and CLI output), <code>AppLogs</code> (recent app logs by type:
+                        <code>all</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>,
+                        <code>deploy</code>, <code>laravel</code> — same as <a href="apps#cli-app-logs"><code>cipi app
+                            logs</code></a>), <code>ApiLogShow</code> (recent Laravel logs for the panel API host)
+                    </li>
+                    <li><strong>Server monitoring:</strong> <code>ServerStatus</code> (structured JSON matching
+                        <code>GET /api/status</code> / <a href="infrastructure#cli-cipi"><code>cipi status</code></a>),
+                        <code>ServiceList</code> (system service status via <code>cipi service list</code>)
+                    </li>
                 </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Since API <strong>1.11.5+</strong>, MCP log tools (<code>AppLogs</code>,
+                        <code>ApiLogShow</code>) prefix every response with a production-content warning and redact
+                        common secrets before delivery. Sensitive CLI output from <code>JobShow</code> and
+                        <code>AppArtisan</code> is redacted too; structured job <code>result</code> objects (e.g. app
+                        credentials from create jobs) are left intact so operators can still read them once.</div>
+                </div>
+
+                <p>Since Cipi <strong>4.6.3</strong>, the panel API package is soft-updated nightly at
+                    <strong>04:30</strong> via <code>/etc/cron.d/cipi-api</code> (<code>cipi api update</code>), so MCP
+                    and REST endpoints stay current without manual intervention.</p>
 
                 <h3>Installing the MCP server</h3>
                 <p>The MCP endpoint is optional and loads only when the required MCP package is installed. To use it
@@ -1171,7 +1221,7 @@
 
 <span class="c">Cipi Sync Archive</span>
 <span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
-<span class="c">  Cipi           v4.6.2</span>
+<span class="c">  Cipi           v4.6.6</span>
 <span class="c">  Exported       2026-03-06T15:00:00Z</span>
 <span class="c">  Source         aws01 (3.120.xx.xx)</span>
 <span class="c">  Database       true</span>
@@ -1410,6 +1460,23 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 <span class="p">$</span> cipi smtp disable         <span class="c"># disable without losing settings</span>
 <span class="p">$</span> cipi smtp delete          <span class="c"># remove SMTP configuration entirely</span></pre>
                 </div>
+
+                <h3>Granular notification triggers</h3>
+                <p>Since <strong>v4.6.3</strong>, you can control which events send email when SMTP is configured.
+                    All triggers are <strong>on by default</strong>; events are always logged to
+                    <code>/var/log/cipi/events.log</code> regardless.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi notifications list              <span class="c"># all triggers grouped by category</span>
+<span class="p">$</span> cipi notifications enable &lt;trigger&gt;   <span class="c"># turn one trigger on</span>
+<span class="p">$</span> cipi notifications disable &lt;trigger&gt;  <span class="c"># turn one trigger off</span>
+<span class="p">$</span> cipi notifications enable-all          <span class="c"># re-enable everything</span>
+<span class="p">$</span> cipi notifications disable-all         <span class="c"># mute all email alerts</span>
+<span class="p">$</span> cipi notifications reset               <span class="c"># restore defaults (all on)</span></pre>
+                </div>
+                <p>Config: <code>/etc/cipi/notifications.json</code>. Covers apps, deploy, SSL, aliases, PHP, security,
+                    cron, API, git, sync, services, and more.</p>
 
                 <h3>Automatic alerts</h3>
                 <p>Once configured, Cipi sends email notifications on:</p>
