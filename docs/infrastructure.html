@@ -156,6 +156,7 @@
                 <a href="agent#agent-health" class="sidebar-link">health check</a>
                 <a href="agent#agent-mcp" class="sidebar-link">MCP server</a>
                 <a href="agent#agent-anonymizer" class="sidebar-link">database anonymizer</a>
+                <a href="agent#agent-security" class="sidebar-link">security</a>
                 <a href="agent#agent-env" class="sidebar-link">ENV variables</a>
             </div>
 
@@ -164,6 +165,7 @@
                 <a href="apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
                 <a href="apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
                 <a href="apps#cli-app-artisan" class="sidebar-link"><code>app artisan / tinker</code></a>
@@ -419,11 +421,16 @@
                             <td><strong>REPOSITORY</strong></td>
                             <td>The Git repository, or <code>(SFTP only)</code> for custom apps with no repo.</td>
                         </tr>
+                        <tr>
+                            <td><strong>(suffix)</strong></td>
+                            <td>When the owning app is suspended, each row ends with <code>⏸ suspended</code> (yellow).
+                                The footer also reports how many apps are suspended.</td>
+                        </tr>
                     </tbody>
                 </table>
 
-                <p>A footer summarises the totals — number of domains, apps, and certificates — making it easy to
-                    audit the whole mapping at a glance.</p>
+                <p>A footer summarises the totals — number of domains, apps, certificates, and suspended apps — making
+                    it easy to audit the whole mapping at a glance.</p>
             </div>
 
             <div class="doc-section" id="cli-ssl">
@@ -710,6 +717,21 @@ myapp@server:~$ crontab -e</pre>
                     <code>autorestart=unexpected</code> so workers only restart on unexpected exits, not on graceful
                     stops.
                 </p>
+
+                <h3>App-user helper: <code>cipi-worker</code></h3>
+                <p>Each app user can restart, stop, or check workers without root — via a restricted sudo helper
+                    installed at <code>/usr/local/bin/cipi-worker</code>:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># run as the app user (SSH or sudo su - myapp)</span>
+<span class="p">$</span> sudo cipi-worker status myapp
+<span class="p">$</span> sudo cipi-worker stop myapp      <span class="c"># used by Deployer before symlink swap</span>
+<span class="p">$</span> sudo cipi-worker restart myapp</pre>
+                </div>
+                <p>As root, use <code>cipi worker list|restart|stop &lt;app&gt;</code> instead. There is no
+                    <code>cipi worker status</code> admin command — use <code>cipi worker list</code> or the app-user
+                    helper above.</p>
             </div>
 
 

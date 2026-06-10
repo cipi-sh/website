@@ -160,6 +160,7 @@
                 <a href="agent#agent-health" class="sidebar-link">health check</a>
                 <a href="agent#agent-mcp" class="sidebar-link">MCP server</a>
                 <a href="agent#agent-anonymizer" class="sidebar-link">database anonymizer</a>
+                <a href="agent#agent-security" class="sidebar-link">security</a>
                 <a href="agent#agent-env" class="sidebar-link">ENV variables</a>
             </div>
 
@@ -168,6 +169,7 @@
                 <a href="apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
                 <a href="apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
                 <a href="apps#cli-app-artisan" class="sidebar-link"><code>app artisan / tinker</code></a>
@@ -258,10 +260,40 @@
                 <p class="doc-section-label">Advanced</p>
                 <h2><code>cipi api</code></h2>
                 <p>Cipi can optionally enable a REST API layer on the server via <code>cipi api
-                    &lt;domain&gt;</code>. The API exposes operations on apps, aliases, databases, and SSL with Bearer
-                    token authentication and granular permissions. The package requires <strong>PHP 8.2+</strong> and
-                    <strong>Laravel 12+</strong>.
+                    &lt;domain&gt;</code>. It is powered by the Laravel package
+                    <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener"><code>cipi/api</code></a>
+                    (current release <strong>1.11.8</strong>), which exposes:
                 </p>
+                <ul>
+                    <li><strong>REST API</strong> — apps, aliases, deploy, SSL, databases, server status (<code>/api/*</code>)</li>
+                    <li><strong>MCP server</strong> — 29 tools at <code>/mcp</code> (Streamable HTTP)</li>
+                    <li><strong>Swagger UI</strong> — interactive reference at <code>/docs</code></li>
+                </ul>
+                <p>Requires <strong>PHP 8.2+</strong> and <strong>Laravel 12+</strong> on the panel host. This is
+                    <strong>server-level</strong> automation — distinct from the per-app
+                    <a href="agent">Cipi Agent</a> package (<code>cipi/agent</code> on each Laravel app).</p>
+
+                <h3 id="cipi-api-package">The <code>cipi/api</code> package</h3>
+                <p>On a normal Cipi server you never install the package manually — <code>cipi api &lt;domain&gt;</code>
+                    provisions Laravel at <code>/opt/cipi/api</code>, Nginx, SSL, SQLite job queue, and
+                    <code>cipi-queue.service</code>. For reference or custom setups:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> composer require cipi/api
+<span class="p">$</span> php artisan vendor:publish --tag=cipi-config
+<span class="p">$</span> php artisan vendor:publish --tag=cipi-assets
+<span class="p">$</span> php artisan migrate
+<span class="p">$</span> php artisan cipi:seed-api-user
+<span class="p">$</span> php artisan cipi:token-create</pre>
+                </div>
+                <p>Panel <code>.env</code> uses <code>CIPI_APPS_JSON=/etc/cipi/apps.json</code> (or
+                    <code>apps-public.json</code> projection for non-sensitive fields). Token abilities are defined in
+                    <code>config/cipi.php</code> — list them with <code>php artisan cipi:token-abilities</code> (same
+                    list as <code>cipi api token create</code> since Cipi <strong>4.6.3</strong>).</p>
+                <p>Source and changelog:
+                    <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener">github.com/cipi-sh/api</a>
+                    (MIT). Client wrapper: <a href="cli-client">cipi-cli</a>.</p>
 
                 <h3>Commands</h3>
                 <div class="code-block">
@@ -272,10 +304,26 @@
 <span class="p">$</span> cipi api token list           <span class="c"># list tokens</span>
 <span class="p">$</span> cipi api token create         <span class="c"># create a new token (choose abilities)</span>
 <span class="p">$</span> cipi api token revoke &lt;id&gt;    <span class="c"># revoke a token</span>
-<span class="p">$</span> cipi api status               <span class="c"># Laravel version, queue worker status, pending jobs</span>
+<span class="p">$</span> cipi api status               <span class="c"># Laravel + cipi-api versions, queue worker, pending jobs, FPM pool</span>
+<span class="p">$</span> cipi api fix-permissions      <span class="c"># repair panel storage/database ownership (www-data)</span>
 <span class="p">$</span> cipi api update               <span class="c"># soft update: composer update on Laravel and API packages</span>
 <span class="p">$</span> cipi api upgrade              <span class="c"># full rebuild with rollback at /opt/cipi/api.old</span></pre>
                 </div>
+
+                <h3>Panel API troubleshooting</h3>
+                <p>After <code>cipi self-update</code>, root-owned files under <code>/opt/cipi/api</code> can prevent
+                    PHP-FPM (<code>www-data</code>) from writing logs or the SQLite job database — the browser shows a
+                    bare <strong>HTTP 500</strong> on <code>/docs</code> or <code>/mcp</code>. Cipi normally repairs
+                    ownership automatically during self-update; if problems persist:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi api fix-permissions   <span class="c"># chown storage, database, bootstrap/cache, .env → www-data</span>
+<span class="p">$</span> cipi api status              <span class="c"># confirm Laravel version, queue worker, pending jobs</span></pre>
+                </div>
+                <p><code>cipi api status</code> prints the installed Laravel and <code>cipi/api</code> package versions,
+                    whether <code>cipi-queue.service</code> is active, pending async jobs in the panel SQLite database,
+                    and PHP-FPM pool stats for the API vhost (including slow requests when configured).</p>
 
                 <h3>Token creation and granular permissions</h3>
                 <p>Authentication uses <strong>Sanctum</strong>. Each token can have one or more <em>abilities</em> that
@@ -487,10 +535,78 @@
                         <tr>
                             <td>GET</td>
                             <td><code>/api/jobs/{id}</code></td>
-                            <td>—</td>
+                            <td>any authenticated token</td>
                         </tr>
                     </tbody>
                 </table>
+
+                <h3 id="cipi-api-curl">REST examples (curl)</h3>
+                <p>Set your API base URL and token (from <code>cipi api token create</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="k">export</span> CIPI_API_URL=<span class="s">"https://api.myserver.com"</span>
+<span class="k">export</span> CIPI_API_TOKEN=<span class="s">"your-sanctum-token"</span></pre>
+                </div>
+
+                <p><strong>List apps</strong> (sync, <code>200</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS <span class="s">"${CIPI_API_URL}/api/apps"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Accept: application/json"</span></pre>
+                </div>
+
+                <p><strong>Server status</strong> (sync, requires <code>status-view</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS <span class="s">"${CIPI_API_URL}/api/status"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span></pre>
+                </div>
+
+                <p><strong>Deploy an app</strong> (async, <code>202</code> + <code>job_id</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/deploy"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Accept: application/json"</span>
+
+<span class="c"># poll until completed</span>
+curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span></pre>
+                </div>
+
+                <p><strong>Database backup</strong> (async, <code>dbs-manage</code>) — returns a real backup path in
+                    the job <code>result</code>, not an anonymized dump (see
+                    <a href="agent#agent-anonymizer">Agent anonymizer</a>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span></pre>
+                </div>
+
+                <h3 id="cipi-api-host">Host integration (sudoers)</h3>
+                <p>The panel API runs as <code>www-data</code> and executes Cipi CLI commands via
+                    <code>sudo</code> using <code>/etc/sudoers.d/cipi-api</code> — an explicit whitelist of
+                    <code>cipi</code> subcommands. Vault and MariaDB credentials stay inside Cipi, not in PHP.</p>
+                <ul>
+                    <li><code>GET /api/dbs</code> — runs <code>sudo cipi db list</code> (sync). Requires Cipi
+                        <strong>4.4.17+</strong> (migration adds <code>cipi db …</code> to sudoers). Without it:
+                        <code>sudo: a terminal is required</code>.</li>
+                    <li><code>GET /api/status</code> / MCP <code>ServerStatus</code> — prefer
+                        <code>sudo cipi status</code> (API <strong>1.11.8+</strong>); host-read fallback when sudo fails.
+                    </li>
+                    <li>MCP <code>ServiceList</code> — <code>sudo cipi service list</code></li>
+                    <li>MCP <code>AppArtisan</code> — <code>sudo cipi app artisan &lt;app&gt; …</code></li>
+                    <li>Async jobs — <code>cipi app</code>, <code>deploy</code>, <code>alias</code>, <code>ssl</code>,
+                        <code>db create|delete|backup|restore|password</code>, etc.</li>
+                </ul>
+                <p>After <code>cipi self-update</code>, run <code>cipi api fix-permissions</code> if
+                    <code>/docs</code> or <code>/mcp</code> return HTTP 500 (see troubleshooting above).</p>
 
                 <h3>Swagger / OpenAPI</h3>
                 <p>Interactive documentation is available at <code>/docs</code> (Swagger UI). The OpenAPI spec is
@@ -592,26 +708,33 @@
 
                 <h4>VS Code</h4>
                 <p>VS Code (with GitHub Copilot) supports MCP natively since 1.102. Add to <code>.vscode/mcp.json</code>
-                    or
-                    run <strong>MCP: Open User Configuration</strong> for a global setup:</p>
+                    or run <strong>MCP: Open User Configuration</strong> for a global setup. Use
+                    <code>inputs</code> to prompt for the token once and store it securely:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">json</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre>{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "cipi-token",
+      "description": "Cipi API Token",
+      "password": true
+    }
+  ],
   "servers": {
     "cipi-api": {
       "type": "http",
       "url": "https://&lt;your-api-domain&gt;/mcp",
       "headers": {
-        "Authorization": "Bearer &lt;your-token&gt;"
+        "Authorization": "Bearer ${input:cipi-token}"
       }
     }
   }
 }</pre>
                 </div>
-                <p>Use <strong>MCP: Add Server</strong> from the Command Palette for a guided setup. VS Code connects
-                    over
-                    HTTP — no bridge needed.</p>
+                <p>Restart VS Code after saving. Use <strong>MCP: Add Server</strong> from the Command Palette for a
+                    guided setup.</p>
 
                 <h4>Claude Code</h4>
                 <p>Add the MCP server directly from the CLI:</p>
@@ -1416,9 +1539,10 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 
                 <h3>Public projection</h3>
                 <p>Cipi generates an <code>apps-public.json</code> file containing only non-sensitive fields (domain,
-                    aliases, PHP version, branch, repository, user, creation timestamp). The <code>cipi-api</code> group
-                    reads this plaintext projection instead of the encrypted file, keeping the vault key restricted to
-                    root.</p>
+                    aliases, PHP version, branch, repository, user, creation timestamp, plus
+                    <code>suspended</code> and <code>basic_auth</code> flags). The <code>cipi-api</code> group reads
+                    this plaintext projection instead of the encrypted file, keeping the vault key restricted to root.
+                </p>
 
                 <h3>Sync archive encryption</h3>
                 <p>When you run <code>cipi sync export</code>, configs are decrypted from the vault into a staging area,
@@ -1477,8 +1601,69 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 <span class="p">$</span> cipi notifications disable-all         <span class="c"># mute all email alerts</span>
 <span class="p">$</span> cipi notifications reset               <span class="c"># restore defaults (all on)</span></pre>
                 </div>
-                <p>Config: <code>/etc/cipi/notifications.json</code>. Covers apps, deploy, SSL, aliases, PHP, security,
-                    cron, API, git, sync, services, and more.</p>
+                <p>Config: <code>/etc/cipi/notifications.json</code>. Run
+                    <code>cipi notifications list</code> on the server for the live on/off state. Trigger IDs for
+                    <code>cipi notifications enable|disable &lt;trigger&gt;</code>:</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Trigger ID</th>
+                            <th>Category</th>
+                            <th>Event</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>app_create</code></td><td>Apps</td><td>App created</td></tr>
+                        <tr><td><code>app_edit</code></td><td>Apps</td><td>App modified</td></tr>
+                        <tr><td><code>app_delete</code></td><td>Apps</td><td>App deleted</td></tr>
+                        <tr><td><code>app_suspend</code></td><td>Apps</td><td>App suspended</td></tr>
+                        <tr><td><code>app_unsuspend</code></td><td>Apps</td><td>App unsuspended</td></tr>
+                        <tr><td><code>app_ssh_password_reset</code></td><td>Apps</td><td>App SSH password reset</td></tr>
+                        <tr><td><code>app_db_password_reset</code></td><td>Apps</td><td>App DB password reset</td></tr>
+                        <tr><td><code>alias_add</code></td><td>Domains</td><td>Alias added</td></tr>
+                        <tr><td><code>alias_remove</code></td><td>Domains</td><td>Alias removed</td></tr>
+                        <tr><td><code>auth_create</code></td><td>Auth</td><td>Composer auth.json created</td></tr>
+                        <tr><td><code>auth_edit</code></td><td>Auth</td><td>Composer auth.json edited</td></tr>
+                        <tr><td><code>auth_delete</code></td><td>Auth</td><td>Composer auth.json deleted</td></tr>
+                        <tr><td><code>basicauth_enable</code></td><td>Basic auth</td><td>HTTP basic auth enabled</td></tr>
+                        <tr><td><code>basicauth_disable</code></td><td>Basic auth</td><td>HTTP basic auth disabled</td></tr>
+                        <tr><td><code>deploy_success</code></td><td>Deploy</td><td>Deploy succeeded</td></tr>
+                        <tr><td><code>deploy_fail</code></td><td>Deploy</td><td>Deploy failed</td></tr>
+                        <tr><td><code>deploy_rollback</code></td><td>Deploy</td><td>Deploy rollback</td></tr>
+                        <tr><td><code>ssl_install</code></td><td>SSL</td><td>SSL certificate installed</td></tr>
+                        <tr><td><code>ssl_renew</code></td><td>SSL</td><td>SSL certificates renewed</td></tr>
+                        <tr><td><code>php_install</code></td><td>PHP</td><td>PHP version installed</td></tr>
+                        <tr><td><code>php_switch</code></td><td>PHP</td><td>System PHP switched</td></tr>
+                        <tr><td><code>php_remove</code></td><td>PHP</td><td>PHP version removed</td></tr>
+                        <tr><td><code>db_create</code></td><td>Database</td><td>Database created</td></tr>
+                        <tr><td><code>db_delete</code></td><td>Database</td><td>Database deleted</td></tr>
+                        <tr><td><code>worker_add</code></td><td>Workers</td><td>Worker added</td></tr>
+                        <tr><td><code>worker_remove</code></td><td>Workers</td><td>Worker removed</td></tr>
+                        <tr><td><code>ssh_key_add</code></td><td>SSH keys</td><td>SSH key added</td></tr>
+                        <tr><td><code>ssh_key_rename</code></td><td>SSH keys</td><td>SSH key renamed</td></tr>
+                        <tr><td><code>ssh_key_remove</code></td><td>SSH keys</td><td>SSH key removed</td></tr>
+                        <tr><td><code>ssh_login</code></td><td>Security</td><td>SSH login (cipi/root/sudo users)</td></tr>
+                        <tr><td><code>sudo</code></td><td>Security</td><td>Sudo elevation</td></tr>
+                        <tr><td><code>su</code></td><td>Security</td><td>su to root by cipi</td></tr>
+                        <tr><td><code>backup_fail</code></td><td>Backup</td><td>Backup failed</td></tr>
+                        <tr><td><code>cron_fail</code></td><td>Cron</td><td>Cron job failed</td></tr>
+                        <tr><td><code>reset_root_password</code></td><td>Reset</td><td>Root SSH password reset</td></tr>
+                        <tr><td><code>reset_db_password</code></td><td>Reset</td><td>MariaDB root password reset</td></tr>
+                        <tr><td><code>reset_valkey_password</code></td><td>Reset</td><td>Valkey password reset</td></tr>
+                        <tr><td><code>api_configure</code></td><td>API</td><td>Panel API configured</td></tr>
+                        <tr><td><code>api_update</code></td><td>API</td><td>Panel API updated</td></tr>
+                        <tr><td><code>api_upgrade</code></td><td>API</td><td>Panel API upgraded</td></tr>
+                        <tr><td><code>api_ssl</code></td><td>API</td><td>Panel API SSL installed</td></tr>
+                        <tr><td><code>git_configure</code></td><td>Git</td><td>Git provider token configured</td></tr>
+                        <tr><td><code>sync_export</code></td><td>Sync</td><td>Apps exported</td></tr>
+                        <tr><td><code>sync_import</code></td><td>Sync</td><td>Apps imported</td></tr>
+                        <tr><td><code>sync_push</code></td><td>Sync</td><td>Apps pushed to remote</td></tr>
+                        <tr><td><code>service_restart</code></td><td>Services</td><td>Service restarted</td></tr>
+                        <tr><td><code>service_start</code></td><td>Services</td><td>Service started</td></tr>
+                        <tr><td><code>service_stop</code></td><td>Services</td><td>Service stopped</td></tr>
+                    </tbody>
+                </table>
 
                 <h3>Automatic alerts</h3>
                 <p>Once configured, Cipi sends email notifications on:</p>
@@ -1708,6 +1893,44 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <code>ll='ls -al'</code> shell alias: it appends the alias to each app's <code>~/.bashrc</code>
                     once (only when missing, preserving ownership), so apps created before 4.5.5 get it on the next
                     <code>cipi self-update</code>.</p>
+
+                <h3>Automatic maintenance crons</h3>
+                <p>Cipi schedules several root-level jobs during installation. App-level crontabs (scheduler, deploy
+                    trigger) are separate — see <a href="infrastructure#cli-app-cron">User crontab</a>.</p>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Schedule</th>
+                            <th>Job</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Daily 02:00</td>
+                            <td><code>cipi backup run</code> — S3 backups for all apps</td>
+                        </tr>
+                        <tr>
+                            <td>Daily 03:00</td>
+                            <td><code>cipi backup prune --weeks=4</code></td>
+                        </tr>
+                        <tr>
+                            <td>Daily 03:50</td>
+                            <td><code>cipi self-update</code> (wrapped by <code>cipi-cron-notify</code>)</td>
+                        </tr>
+                        <tr>
+                            <td>Sun 04:10</td>
+                            <td><code>cipi ssl renew</code></td>
+                        </tr>
+                        <tr>
+                            <td>Daily 04:15</td>
+                            <td>Panel API maintenance (<code>cipi-api-maintain</code> — prune jobs/metrics)</td>
+                        </tr>
+                        <tr>
+                            <td>Daily 04:30</td>
+                            <td><code>cipi api update</code> — soft-update panel Laravel + <code>cipi/api</code></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
 

@@ -156,6 +156,7 @@
                 <a href="agent#agent-health" class="sidebar-link">health check</a>
                 <a href="agent#agent-mcp" class="sidebar-link">MCP server</a>
                 <a href="agent#agent-anonymizer" class="sidebar-link">database anonymizer</a>
+                <a href="agent#agent-security" class="sidebar-link">security</a>
                 <a href="agent#agent-env" class="sidebar-link">ENV variables</a>
             </div>
 
@@ -164,6 +165,7 @@
                 <a href="apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="apps#cli-basicauth" class="sidebar-link"><code>basicauth</code></a>
                 <a href="apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
                 <a href="apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
@@ -374,12 +376,14 @@
                     <tbody>
                         <tr>
                             <td>cipi app list</td>
-                            <td>List all apps with domain, PHP version, and status</td>
+                            <td>List all apps with domain, PHP version, and status (<code>(suspended)</code> when
+                                offline)</td>
                         </tr>
                         <tr>
                             <td>cipi app show &lt;app&gt;</td>
-                            <td>Full details: domain, PHP, deploy key, workers, webhook. For custom apps: type
-                                "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a repository.
+                            <td>Full details: domain, PHP, deploy key, workers, webhook, suspend state. For custom apps:
+                                type "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a
+                                repository.
                             </td>
                         </tr>
                         <tr>
@@ -397,6 +401,13 @@
                                 uniqueness, moves the old primary to aliases, regenerates the Nginx vhost, updates
                                 <code>APP_URL</code>, refreshes Git webhooks when auto-configured, and re-issues
                                 Let's Encrypt when a certificate already existed</td>
+                        </tr>
+                        <tr>
+                            <td>cipi app edit &lt;app&gt; --repository=&lt;SSH-URL&gt;</td>
+                            <td>Attach or change the Git repository (e.g. enable deploy on a custom SFTP-only app
+                                created without <code>--repository</code>). Composable with <code>--branch</code>,
+                                <code>--php</code>, and <code>--domain</code>
+                            </td>
                         </tr>
                         <tr>
                             <td>cipi app env &lt;app&gt;</td>
@@ -421,8 +432,82 @@
                                 Supervisor workers. For custom apps, skips database drop (none was created). Asks for
                                 confirmation.</td>
                         </tr>
+                        <tr>
+                            <td>cipi app delete &lt;app&gt; --force</td>
+                            <td>Same as delete but skips the confirmation prompt — for scripts, the panel API, and
+                                <code>cipi-cli</code>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
+            </div>
+
+
+
+            <div class="doc-section" id="cli-app-suspend">
+                <h2><code>app suspend</code> / <code>app unsuspend</code></h2>
+                <p>Available since <strong>v4.5.8</strong>. Take an app offline without deleting it — useful for billing
+                    holds, maintenance windows, or staging sites you want fully dark. Suspending swaps the Nginx vhost for
+                    a static <strong>HTTP 503</strong> page served from <code>/var/www/cipi-suspended/</code>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app suspend myapp      <span class="c"># take offline (503 page)</span>
+<span class="p">$</span> cipi app unsuspend myapp    <span class="c"># restore normal vhost</span></pre>
+                </div>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi app suspend &lt;app&gt;</td>
+                            <td>Sets <code>suspended: true</code> in <code>apps.json</code>, rebuilds the vhost to
+                                return 503 for all requests. Idempotent if already suspended.</td>
+                        </tr>
+                        <tr>
+                            <td>cipi app unsuspend &lt;app&gt;</td>
+                            <td>Clears the flag, restores the normal Laravel/custom vhost, and reapplies SSL blocks.
+                                Idempotent if already online.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Behaviour</h3>
+                <ul>
+                    <li><strong>HTTPS included</strong> — certbot clones the suspension vhost into the
+                        <code>:443</code> block, so HTTPS also shows the offline page</li>
+                    <li><strong>Let's Encrypt still works</strong> — the <code>/.well-known/acme-challenge/</code> path
+                        stays public so certificates can be issued or renewed while suspended</li>
+                    <li><strong>Survives vhost regeneration</strong> — alias changes, PHP edits, and SSL installs
+                        respect the suspended flag</li>
+                    <li><strong>Visible in listings</strong> — <code>cipi app list</code> marks suspended apps;
+                        <code>cipi domains</code> appends <code>⏸ suspended</code> on each row
+                    </li>
+                </ul>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Suspend vs basic auth:</strong> <a href="#cli-basicauth"><code>cipi basicauth</code></a>
+                        shows a login prompt but still runs your app. <code>app suspend</code> stops PHP entirely and
+                        serves a static offline page — visitors never reach Laravel. Use suspend for “site closed”;
+                        basic auth for “invite-only preview”.</div>
+                </div>
+
+                <p>Also available via the <a href="advanced#cipi-api">REST API</a>
+                    (<code>POST /api/apps/{name}/suspend</code>), <a href="cli-client">cipi-cli</a>
+                    (<code>apps suspend</code>), and the <a href="advanced#whmcs">WHMCS module</a> (Suspend /
+                    Unsuspend buttons). Requires token ability <code>apps-suspend</code> for API access.</p>
             </div>
 
 
