@@ -243,6 +243,7 @@
                 <a href="about" class="sidebar-group-label">about cipi</a>
                 <a href="about#history" class="sidebar-link">history</a>
                 <a href="about#security-model" class="sidebar-link">security model</a>
+                <a href="about#why-not-local" class="sidebar-link">why not local?</a>
                 <a href="about#why-mariadb" class="sidebar-link">why MariaDB?</a>
                 <a href="about#why-valkey" class="sidebar-link">why Valkey?</a>
                 <a href="about#why-laravel" class="sidebar-link">why Laravel?</a>
@@ -600,6 +601,68 @@
                         via SSH. Schedule the reboot at a convenient maintenance window with <code>sudo reboot</code>.
                     </div>
                 </div>
+            </div>
+
+
+
+            <div class="doc-section" id="why-not-local">
+                <h2>Why not local?</h2>
+                <p>Cipi is a <strong>production server provisioner</strong>. It is designed to turn a fresh Ubuntu VPS
+                    into a live, internet-facing Laravel host — not to run on your laptop, inside a local Docker
+                    container, or behind a home NAT.</p>
+
+                <p>This is explicit in the <a href="getting-started#requirements">requirements</a> and is not a bug or
+                    missing feature. Cipi needs a server that is:</p>
+                <ul>
+                    <li><strong>Reachable from the public internet</strong> — with a routable public IPv4 address, not
+                        hidden behind NAT (home router, corporate firewall, or NAT-only cloud tiers)</li>
+                    <li><strong>Running on real hardware or full KVM</strong> — not on shared-kernel virtualization
+                        (OpenVZ, LXC) or desktop container runtimes that emulate a Linux VM on your machine</li>
+                    <li><strong>Accessible on ports 22, 80, and 443</strong> — Let's Encrypt HTTP validation, Nginx
+                        vhosts, and SSH deploy workflows all assume inbound traffic can reach the host</li>
+                </ul>
+
+                <h3>Not compatible with local dockerization</h3>
+                <p><strong>Cipi is not compatible with local dockerized environments.</strong> Tools like Docker
+                    Desktop, OrbStack, Colima, and similar runtimes give you a Linux VM behind NAT on your Mac or
+                    Windows machine — no public IP, no inbound routing from the internet, and often a shared kernel
+                    under the hood. The Cipi installer may finish, but the result is not a production server:</p>
+                <ul>
+                    <li><strong>SSL will not work</strong> — Certbot cannot complete Let's Encrypt validation when
+                        the host is not reachable on port 80 from the internet</li>
+                    <li><strong>Domains will not resolve</strong> — there is no public endpoint for DNS to point to
+                    </li>
+                    <li><strong>Deploy and webhook flows break</strong> — Git providers, CI runners, and external
+                        services cannot reach a NAT-ted local VM</li>
+                </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Do not install Cipi inside Docker, OrbStack, WSL, or a local VM expecting a working
+                        production stack. Use a real VPS — even a €4/month instance is enough for development and
+                        staging.</div>
+                </div>
+
+                <h3>Industry-standard constraint</h3>
+                <p>No production server provisioner supports NAT-ted local environments. Commercial panels and
+                    open-source tools alike require a public, internet-accessible host — this is how SSL, domain
+                    routing, and remote deploy pipelines work. Cipi follows the same rule.</p>
+                <p>The difference is what Cipi does <em>not</em> ask for: no proprietary agent daemon, no dedicated
+                    outbound port to an external control panel, and no mandatory cloud account. Cipi runs entirely on
+                    your server — you SSH in and use the CLI. The public-internet requirement is about network topology,
+                    not about tying you to a SaaS vendor.</p>
+
+                <h3>What to use locally instead</h3>
+                <p>For local Laravel development, use <a href="https://laravel.com/docs/sail" target="_blank"
+                        rel="noopener">Laravel Sail</a>, <a href="https://herd.laravel.com/" target="_blank"
+                        rel="noopener">Laravel Herd</a>, or a plain <code>composer install</code> with
+                    <code>php artisan serve</code>. Provision a cheap VPS with Cipi when you need a real staging or
+                    production environment.</p>
             </div>
 
 
