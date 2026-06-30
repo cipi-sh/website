@@ -263,10 +263,11 @@
                 <p>Cipi can optionally enable a REST API layer on the server via <code>cipi api
                     &lt;domain&gt;</code>. It is powered by the Laravel package
                     <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener"><code>cipi/api</code></a>
-                    (current release <strong>1.11.8</strong>), which exposes:
+                    (current release <strong>1.11.11</strong>), which exposes:
                 </p>
                 <ul>
-                    <li><strong>REST API</strong> — apps, aliases, deploy, SSL, databases, server status (<code>/api/*</code>)</li>
+                    <li><strong>REST API</strong> — apps, aliases, deploy, SSL, databases, app logs, server status
+                        (<code>/api/*</code>)</li>
                     <li><strong>MCP server</strong> — 29 tools at <code>/mcp</code> (Streamable HTTP)</li>
                     <li><strong>Swagger UI</strong> — interactive reference at <code>/docs</code></li>
                 </ul>
@@ -361,6 +362,8 @@
                 <p>All endpoints require the <code>Authorization: Bearer &lt;token&gt;</code> header. Write operations
                     (create, edit, delete, deploy, rollback, unlock, SSL, alias, database) are asynchronous: they return
                     <code>202 Accepted</code> with a <code>job_id</code> to poll via <code>GET /api/jobs/{id}</code>.
+                    Read-only endpoints such as <code>GET /api/dbs</code>, <code>GET /api/status</code>, and
+                    <code>GET /api/apps/{name}/logs</code> (API <strong>1.11.9+</strong>) are synchronous.
                     <code>POST /api/apps</code> accepts optional <code>custom</code> (boolean) and
                     <code>docroot</code> (string) parameters for creating
                     <a href="apps#cli-app-custom">custom apps</a> with classic deployment.
@@ -404,6 +407,14 @@
                     unavailable. Requires the <code>status-view</code> ability (API <strong>1.11.6+</strong>). The MCP
                     tool <code>ServerStatus</code> returns the same payload and requires only
                     <code>mcp-access</code>.</p>
+                <p><code>GET /api/apps/{name}/logs</code> returns synchronous, paginated log snapshots for nginx,
+                    PHP-FPM, Laravel (when present), worker, and deploy logs — the REST counterpart to
+                    <a href="apps#cli-app-logs"><code>cipi app logs</code></a> and
+                    <a href="cli-client#cli-apps"><code>cipi-cli apps logs</code></a>. Query params:
+                    <code>type</code> (default <code>all</code>), <code>page</code> (default <code>1</code>, most
+                    recent first), <code>per_page</code> (default <code>50</code>, max <code>1000</code>). Requires the
+                    <code>apps-view</code> ability and API package <strong>1.11.9+</strong>. Log text is redacted for
+                    common secrets (same policy as MCP <code>AppLogs</code> since API <strong>1.11.5+</strong>).</p>
                 <table class="cmd-table">
                     <thead>
                         <tr>
@@ -421,6 +432,11 @@
                         <tr>
                             <td>GET</td>
                             <td><code>/api/apps/{name}</code></td>
+                            <td>apps-view</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/apps/{name}/logs</code></td>
                             <td>apps-view</td>
                         </tr>
                         <tr>
@@ -567,6 +583,15 @@
   -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span></pre>
                 </div>
 
+                <p><strong>App logs</strong> (sync, requires <code>apps-view</code>, API <strong>1.11.9+</strong>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS <span class="s">"${CIPI_API_URL}/api/apps/myapp/logs?type=deploy&amp;page=1&amp;per_page=50"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Accept: application/json"</span></pre>
+                </div>
+
                 <p><strong>Deploy an app</strong> (async, <code>202</code> + <code>job_id</code>):</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -612,9 +637,9 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                 <h3>Swagger / OpenAPI</h3>
                 <p>Interactive documentation is available at <code>/docs</code> (Swagger UI). The OpenAPI spec is
                     generated from <code>public/api-docs/openapi.json</code> and covers apps (including suspend,
-                    unsuspend, domain rename, and basic auth), aliases, deploy, SSL, databases, server status, job
-                    polling with structured <code>result</code> types, and MCP tool schemas. Current API package
-                    version: <strong>1.11.8</strong>.</p>
+                    unsuspend, domain rename, basic auth, and paginated logs), aliases, deploy, SSL, databases, server
+                    status, job polling with structured <code>result</code> types, and MCP tool schemas. Current API
+                    package version: <strong>1.11.11</strong>.</p>
 
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
@@ -649,7 +674,9 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                         <code>result</code>, and CLI output), <code>AppLogs</code> (recent app logs by type:
                         <code>all</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>,
                         <code>deploy</code>, <code>laravel</code> — same as <a href="apps#cli-app-logs"><code>cipi app
-                            logs</code></a>), <code>ApiLogShow</code> (recent Laravel logs for the panel API host)
+                            logs</code></a>; REST equivalent:
+                        <code>GET /api/apps/{name}/logs</code> since API <strong>1.11.9+</strong>),
+                        <code>ApiLogShow</code> (recent Laravel logs for the panel API host)
                     </li>
                     <li><strong>Server monitoring:</strong> <code>ServerStatus</code> (structured JSON matching
                         <code>GET /api/status</code> / <a href="infrastructure#cli-cipi"><code>cipi status</code></a>),

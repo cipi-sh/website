@@ -475,6 +475,10 @@ sudo make install</pre>
                             <td>cipi-cli apps unsuspend &lt;name&gt;</td>
                             <td>Restore a suspended app to normal service</td>
                         </tr>
+                        <tr>
+                            <td>cipi-cli apps logs &lt;name&gt; [flags]</td>
+                            <td>Read paginated application logs (nginx, PHP-FPM, Laravel, worker, deploy)</td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -531,6 +535,25 @@ sudo make install</pre>
                     </div>
                 </div>
 
+                <h3>Logs flags</h3>
+                <div class="options-list">
+                    <div class="option-item">
+                        <code>--type</code>
+                        <span>Log type filter: <code>all</code> (default), <code>nginx</code>, <code>php</code>,
+                            <code>worker</code>, <code>deploy</code>, or <code>laravel</code></span>
+                    </div>
+                    <div class="option-item">
+                        <code>--page</code>
+                        <span>Page number, starting at <code>1</code> for the most recent lines (default
+                            <code>1</code>)</span>
+                    </div>
+                    <div class="option-item">
+                        <code>--per-page</code>
+                        <span>Lines per log file per page (default <code>50</code>, max <code>1000</code>; requires API
+                            <strong>1.11.9+</strong>)</span>
+                    </div>
+                </div>
+
                 <h3>Examples</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -551,6 +574,12 @@ sudo make install</pre>
 
 <span class="c"># Suspend staging for maintenance</span>
 <span class="p">$</span> cipi-cli apps suspend staging
+
+<span class="c"># Read recent deploy logs (page 1 = newest lines)</span>
+<span class="p">$</span> cipi-cli apps logs myapp --type=deploy
+
+<span class="c"># Paginate older nginx lines</span>
+<span class="p">$</span> cipi-cli apps logs myapp --type=nginx --page=2 --per-page=100
 
 <span class="c"># Delete an app (skip confirmation)</span>
 <span class="p">$</span> cipi-cli apps delete myapp -y</pre>
@@ -963,6 +992,11 @@ sudo make install</pre>
                             <td>Rename primary domain (<code>apps edit --domain</code>)</td>
                             <td>4.6.2</td>
                             <td>1.9.0</td>
+                        </tr>
+                        <tr>
+                            <td>App logs (<code>apps logs</code>)</td>
+                            <td>—</td>
+                            <td>1.11.9</td>
                         </tr>
                         <tr>
                             <td>Global domain map (<code>domains</code>)</td>
