@@ -4,33 +4,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cipi Docs — Getting Started</title>
-    <meta name="description" content="Installation, requirements, quick start, tech stack, and app structure for Cipi.">
+    <title>Cipi Docs — Control Panel (GUI)</title>
+    <meta name="description" content="Cipi's optional web control panel — an opt-in Laravel dashboard to manage one or more Cipi servers from the browser via the REST API. Cipi stays CLI-first.">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://cipi.sh/docs/getting-started">
+    <link rel="canonical" href="https://cipi.sh/docs/gui">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Cipi">
-    <meta property="og:url" content="https://cipi.sh/docs/getting-started">
-    <meta property="og:title" content="Cipi Docs — Getting Started">
-    <meta property="og:description" content="Installation, requirements, quick start, tech stack, and app structure for Cipi.">
+    <meta property="og:url" content="https://cipi.sh/docs/gui">
+    <meta property="og:title" content="Cipi Docs — Control Panel (GUI)">
+    <meta property="og:description" content="Cipi's optional web control panel — an opt-in Laravel dashboard to manage one or more Cipi servers from the browser via the REST API. Cipi stays CLI-first.">
     <meta property="og:image" content="https://cipi.sh/og.png">
 
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Cipi Docs — Getting Started">
-    <meta name="twitter:description" content="Installation, requirements, quick start, tech stack, and app structure for Cipi.">
+    <meta name="twitter:title" content="Cipi Docs — Control Panel (GUI)">
+    <meta name="twitter:description" content="Cipi's optional web control panel — an opt-in Laravel dashboard to manage one or more Cipi servers from the browser via the REST API. Cipi stays CLI-first.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Cipi Docs — Getting Started",
-      "name": "Getting Started",
-      "url": "https://cipi.sh/docs/getting-started",
-      "description": "Installation, requirements, quick start, tech stack, and app structure for Cipi.",
+      "headline": "Cipi Docs — Control Panel (GUI)",
+      "name": "Control Panel (GUI)",
+      "url": "https://cipi.sh/docs/gui",
+      "description": "Cipi's optional web control panel — an opt-in Laravel dashboard to manage one or more Cipi servers from the browser via the REST API. Cipi stays CLI-first.",
       "inLanguage": "en",
       "image": "https://cipi.sh/og.png",
       "about": { "@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/" },
@@ -46,7 +46,7 @@
       "itemListElement": [
         { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/" },
         { "@type": "ListItem", "position": 2, "name": "Docs", "item": "https://cipi.sh/docs/" },
-        { "@type": "ListItem", "position": 3, "name": "Getting Started", "item": "https://cipi.sh/docs/getting-started" }
+        { "@type": "ListItem", "position": 3, "name": "Control Panel (GUI)", "item": "https://cipi.sh/docs/gui" }
       ]
     }
     </script>
@@ -266,366 +266,281 @@
 
         <main class="docs-content" id="docsContent">
 
-            <div class="doc-section" id="installation">
-                <p class="doc-section-label">Getting Started</p>
-                <h2>Installation</h2>
-                <p>Cipi installs a complete Laravel-ready production stack on Ubuntu 24.04 or 26.04 with a single
-                    command. The installer takes roughly 10 minutes and sets up Nginx, MariaDB, PHP, Valkey,
-                    Supervisor, Fail2ban, UFW, Certbot, Deployer, and the <code>cipi</code> CLI itself.</p>
+            <!-- ── Overview ── -->
 
-                <p>During installation, the wizard <strong>asks for your SSH public key</strong> (accepted formats:
-                    <code>ssh-rsa</code>, <code>ssh-ed25519</code>, <code>ecdsa</code>) before any package is
-                    installed. Cipi creates a dedicated <code>cipi</code> Linux user for <strong>admin SSH
-                        access</strong>
-                    and applies SSH hardening: root login is disabled, <code>cipi</code> uses public-key only (group
-                    <code>cipi-ssh</code>), app users (group <code>cipi-apps</code>) can connect with password. Login
-                    attempts are limited to 3 with a 20-second grace period, and X11 forwarding is disabled.
-                </p>
+            <div class="doc-section" id="gui-overview">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>The optional web control panel</h2>
+                <p>Cipi is, and always will be, <strong>CLI-first</strong>. Everything a server needs — apps, databases,
+                    SSL, deploys, backups, firewall — is a single <code>cipi</code> command away over SSH. But from
+                    <strong>v4.7.0</strong> Cipi also ships an <strong>optional</strong> web control panel: a
+                    self-hosted Laravel dashboard that manages one or more Cipi servers from the browser, over the same
+                    <a href="advanced#cipi-api">REST API</a> the CLI client and WHMCS module use.</p>
 
-                <p>The installer also generates a <strong>random 40-character root password</strong>, stores it in
-                    <code>/etc/cipi/server.json</code>, and displays it in the installation summary. Pasted SSH keys are
-                    automatically sanitized — comments, carriage returns, and excess whitespace are stripped before
-                    validation.
-                </p>
-
-                <h3>Standard installation</h3>
-                <div class="code-block">
-                    <div class="code-block-header">
-                        <span class="code-block-lang">bash</span>
-                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    </div>
-                    <pre><span class="p">$</span> wget -O - https://cipi.sh/setup.sh | bash</pre>
-                </div>
-
-                <h3>Non-interactive installation</h3>
-                <p>For automated setups, pass your SSH public key via the <code>SSH_PUBKEY</code> environment variable
-                    to skip the interactive prompt:</p>
-                <div class="code-block">
-                    <div class="code-block-header">
-                        <span class="code-block-lang">bash</span>
-                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    </div>
-                    <pre><span class="p">$</span> SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash</pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                <div class="callout success">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
-                    <div>If you don't have an SSH key yet, generate one with:
-                        <code>ssh-keygen -t rsa -b 4096</code>
-                    </div>
+                    <span><strong>100% optional.</strong> The panel is a separate package you install only if you want
+                        it. Skip it and Cipi runs exactly as before — a lean CLI with no daemon, no web surface, and
+                        nothing extra listening. Install it and your team or clients get a friendly UI without giving up
+                        the terminal. Your server, your choice.</span>
                 </div>
 
-                <h3>AWS (root login disabled by default)</h3>
-                <div class="code-block">
-                    <div class="code-block-header">
-                        <span class="code-block-lang">bash</span>
-                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    </div>
-                    <pre><span class="p">$</span> ssh ubuntu@your-server-ip
-<span class="p">$</span> sudo -s
-<span class="p">$</span> wget -O - https://cipi.sh/setup.sh | bash</pre>
-                </div>
+                <p>The panel is a thin visual layer on top of the API — it does not replace the CLI or add a proprietary
+                    control plane. Anything you do in the browser, you can still do from the terminal, and vice versa.
+                    A single panel can drive many servers, so it doubles as a lightweight multi-server cockpit.</p>
 
-                <p>At the end of the installation you will see a summary screen with the SSH access details, the
-                    auto-generated root password, and the MariaDB root password.
-                    <strong>Save them immediately</strong> — they are shown only once. Credentials are stored in
-                    <code>/etc/cipi/server.json</code>, which — like all Cipi configuration files — is
-                    <strong>encrypted at rest</strong> using AES-256-CBC via the built-in <a
-                        href="advanced#cipi-vault">Vault</a>
-                    system. Credentials, SSH keys, <code>.env</code> files, and database dumps are protected both on
-                    disk
-                    and during transfer (via <a href="advanced#cipi-sync">Sync</a> encrypted archives). Cipi also enforces
-                    <strong>GDPR-compliant log retention</strong> with automatic rotation policies for application,
-                    security, and HTTP logs — see <a href="advanced#cipi-log-retention">Log retention</a> for details.
-                </p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div><strong>Save the SSH access details, root password, and MariaDB root password.</strong> Shown
-                        only once during
-                        installation. Credentials are stored encrypted at <code>/etc/cipi/server.json</code>.</div>
-                </div>
-
-                <h3>Post-installation access</h3>
-                <p>After installation, <strong>admin access</strong> uses public-key authentication as the
-                    <code>cipi</code> user (root login is disabled). <strong>App users</strong> can SSH directly with
-                    <code>ssh myapp@server-ip</code> and the password generated at app creation. To run
-                    <code>cipi</code> commands or perform any administrative task, connect as <code>cipi</code> and
-                    then escalate:
-                </p>
-                <div class="code-block">
-                    <div class="code-block-header">
-                        <span class="code-block-lang">bash</span>
-                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
-                    </div>
-                    <pre><span class="c"># 1. connect to the server (key-based auth only)</span>
-<span class="p">$</span> ssh cipi@your-server-ip
-
-<span class="c"># 2. escalate to root to run cipi commands</span>
-cipi@server:~$ sudo -s
-
-<span class="c"># 3. now you can use all cipi commands</span>
-root@server:~# cipi status
-root@server:~# cipi app list
-
-<span class="c"># 4. to work as an app user, switch with su</span>
-root@server:~# su - myapp</pre>
-                </div>
+                <h3>What you can do from the panel</h3>
+                <ul>
+                    <li>Manage apps — create, edit, suspend/unsuspend, and delete Laravel and custom apps.</li>
+                    <li>Issue and renew <strong>SSL</strong> certificates.</li>
+                    <li>Browse application and server <strong>logs</strong>.</li>
+                    <li>Run <strong>database</strong> operations.</li>
+                    <li>Register and switch between <strong>multiple servers</strong> from one login.</li>
+                </ul>
             </div>
 
+            <!-- ── Requirements ── -->
 
-
-            <div class="doc-section" id="requirements">
+            <div class="doc-section" id="gui-requirements">
+                <p class="doc-section-label">Control Panel (GUI)</p>
                 <h2>Requirements</h2>
-                <ul>
-                    <li>Ubuntu 24.04 or 26.04 LTS (fresh installs only; interim releases are not supported)</li>
-                    <li>Root access (or <code>sudo -s</code> on AWS)</li>
-                    <li>Ports 22, 80, and 443 open</li>
-                    <li>A clean server — do not install Cipi on a server with an existing web stack</li>
-                    <li>A <strong>public internet-facing server</strong> with a routable <strong>public IPv4
-                            address</strong> — NAT-only VPS, home networks behind a router, and hosts not reachable from
-                        the internet are not supported</li>
-                    <li>Full KVM or bare-metal virtualization — <strong>not</strong> OpenVZ, LXC containers, or shared-kernel
-                        environments (including local Docker, Docker Desktop, OrbStack, Colima, WSL, and similar
-                        desktop container runtimes)</li>
-                </ul>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div><strong>Cipi does not run locally.</strong> It is not compatible with local dockerized
-                        environments. The installer may appear to succeed on a laptop VM or container, but SSL
-                        provisioning, domain routing, and production workflows will not work without a real public
-                        server. See <a href="about#why-not-local">Why not local?</a> for the full explanation.</div>
-                </div>
-
-                <p>Cipi is tested and works on: DigitalOcean, AWS EC2, Vultr, Linode / Akamai, Hetzner, Google Cloud,
-                    OVH, Scaleway, and any KVM or bare-metal host running Ubuntu with a public IP.</p>
-            </div>
-
-
-
-            <div class="doc-section" id="quickstart">
-                <h2>Quick Start</h2>
-
-                <h3>1. Create your first app</h3>
-                <p>The interactive wizard asks for a username, primary domain, Git repository URL (SSH format) and
-                    branch
-                    when applicable, and PHP version. Laravel apps always require a repository; for
-                    <strong>custom</strong>
-                    apps you can leave the repository empty to host the site via SFTP only — see
-                    <a href="apps#cli-app-custom">custom apps</a>.
-                </p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app create</pre>
-                </div>
-
-                <p>Or pass all flags directly to skip interactive mode:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app create \
-    --user=myapp \
-    --domain=myapp.com \
-    --repository=git@github.com:you/myapp.git \
-    --branch=main \
-    --php=8.5</pre>
-                </div>
-
-                <p>At the end, Cipi prints a credentials summary — <strong>save it, shown only once</strong> — including
-                    the server's public IP address (for DNS configuration), the SSH deploy key, database credentials,
-                    a ready-to-use <code>mariadb+ssh://</code> connection URL for GUI clients (TablePlus, DBeaver,
-                    Sequel Pro), webhook URL, and webhook token.</p>
-
-                <h3>2. Add the deploy key to your Git provider</h3>
-                <p>If you have configured a GitHub or GitLab token via <code>cipi git</code>, this step is
-                    <strong>automatic</strong> — Cipi adds the deploy key and creates the webhook for you. See
-                    <a href="deploy#git-auto-setup">Git auto-setup</a> for details.
-                </p>
-                <p>Otherwise, copy the <code>ssh-ed25519 ...</code> key shown after app creation and add it as a
-                    Deploy Key in your repository:</p>
-                <ul>
-                    <li><strong>GitHub:</strong> Repository → Settings → Deploy keys → Add deploy key</li>
-                    <li><strong>GitLab:</strong> Repository → Settings → Repository → Deploy keys</li>
-                </ul>
-
-                <h3>3. Prepare your Laravel project</h3>
-                <p>Cipi uses the database driver for cache, sessions, and queues. Run these once inside your Laravel
-                    project, commit, and push the generated migrations:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> php artisan cache:table
-<span class="p">$</span> php artisan session:table
-<span class="p">$</span> php artisan queue:table
-<span class="p">$</span> php artisan migrate</pre>
-                </div>
+                <p>The panel talks to your servers exclusively through the Cipi REST API. Before installing it, make sure
+                    each server you want to manage has the API enabled with a token that covers the full ability set.</p>
 
                 <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
-                    <div>Cipi automatically runs <code>artisan migrate --force</code> on every deploy. The cache,
-                        session, and queue tables will be created on first deploy if you commit the migrations.</div>
+                    <span>Each managed server needs <a href="advanced#cipi-api"><code>cipi api</code></a> installed and a
+                        Bearer token with all abilities. See the <a href="advanced#cipi-api">API setup guide</a> to
+                        generate one.</span>
                 </div>
 
-                <h3>4. Deploy</h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi deploy myapp</pre>
-                </div>
-                <p>Deployer clones your repo into a new <code>releases/N/</code> directory, runs
-                    <code>composer install --no-dev</code>, links <code>.env</code> and <code>storage/</code>, runs
-                    migrations, runs <code>artisan optimize</code>, creates <code>storage:link</code>, swaps the
-                    <code>current</code> symlink atomically, and restarts queue workers. Zero downtime.
-                </p>
-
-                <h3>5. Install SSL</h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi ssl install myapp</pre>
-                </div>
-                <p>Certbot provisions a Let's Encrypt certificate, configures Nginx for HTTPS, and updates
-                    <code>APP_URL</code> in <code>.env</code>. Your Laravel app is now live on
-                    <code>https://myapp.com</code>.
-                </p>
+                <ul>
+                    <li>A running Cipi server (Ubuntu 24.04 / 26.04) to host the panel — this can be one of the servers
+                        you manage or a small dedicated box.</li>
+                    <li>A domain (or subdomain) pointed at that server, e.g. <code>panel.example.com</code>.</li>
+                    <li><code>cipi api</code> enabled on every server you want to control, each with a full-ability
+                        token.</li>
+                </ul>
+                <p>PHP, the FPM pool, the Nginx vhost and the scheduler are all provisioned for you by the installer —
+                    you do not set up a Laravel environment by hand.</p>
             </div>
 
-            <div class="doc-section" id="tech-stack">
-                <h2>Tech Stack</h2>
-                <p>Cipi brings a complete, production-ready stack to your Ubuntu server. Here is everything that gets
-                    installed and configured:</p>
+            <!-- ── Installation ── -->
+
+            <div class="doc-section" id="gui-install">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Installation — <code>cipi gui &lt;domain&gt;</code></h2>
+                <p>One command provisions the whole panel on a Cipi server: a dedicated PHP-FPM pool, an Nginx vhost for
+                    your domain, and a scheduler cron job. The Laravel app is bundled at <code>/opt/cipi/gui</code>,
+                    the same model used by the <code>cipi-api</code> package.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui panel.example.com</pre>
+                </div>
+
+                <p>The installer prompts interactively for the first administrator account — an email and a password.
+                    The password must satisfy the panel's policy:</p>
+
+                <ul>
+                    <li>Minimum <strong>12 characters</strong>.</li>
+                    <li>At least one uppercase, one lowercase, one digit, and one special character.</li>
+                    <li>No more than <strong>4 identical consecutive</strong> characters.</li>
+                </ul>
+
+                <p>Configuration is written to <code>/etc/cipi/gui.json</code>. Once the command finishes, open your
+                    domain in a browser and log in with the admin account you just created.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>The panel is served over plain HTTP until you issue a certificate. Run
+                        <a href="#gui-ssl"><code>cipi gui ssl</code></a> right after installation to secure it.</span>
+                </div>
+            </div>
+
+            <!-- ── SSL ── -->
+
+            <div class="doc-section" id="gui-ssl">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>SSL — <code>cipi gui ssl</code></h2>
+                <p>Issue a free Let's Encrypt certificate for the panel's domain and switch it to HTTPS. The panel is
+                    HTTPS-aware and sets the correct forwarded headers behind the Cipi Nginx vhost.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui ssl</pre>
+                </div>
+                <p>The certificate renews automatically through the same ACME renewal that Cipi uses for app domains.</p>
+            </div>
+
+            <!-- ── 2FA ── -->
+
+            <div class="doc-section" id="gui-2fa">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Two-factor authentication (TOTP)</h2>
+                <p>The panel uses classic session login and supports <strong>optional TOTP two-factor
+                    authentication</strong>. Each administrator can enrol an authenticator app (Google Authenticator,
+                    1Password, Aegis, …) from their profile. 2FA is opt-in per user, not forced.</p>
+                <p>If an administrator loses access to their second factor, an operator with shell access can clear it
+                    from the server with <a href="#gui-operations"><code>cipi gui reset-user</code></a>, which rewrites
+                    the account and removes the 2FA enrolment.</p>
+            </div>
+
+            <!-- ── Updating ── -->
+
+            <div class="doc-section" id="gui-update">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Updating — <code>gui update</code> vs <code>gui upgrade</code></h2>
+                <p>The panel ships as the <code>cipi/gui</code> Composer package, so updates are ordinary Composer
+                    updates plus migrations. Two commands cover the common cases:</p>
+
+                <h3><code>cipi gui update</code> — soft update</h3>
+                <p>Runs <code>composer update cipi/gui</code>, applies database migrations, and refreshes the compiled
+                    theme. This is the day-to-day update path.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui update</pre>
+                </div>
+
+                <h3><code>cipi gui upgrade</code> — full rebuild</h3>
+                <p>Rebuilds the panel from scratch. Use it after a major release, or if an environment has drifted and a
+                    clean reinstall of the app code is the fastest way back to a known-good state.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui upgrade</pre>
+                </div>
+
+                <h3><code>cipi gui refresh-theme</code> — theme only</h3>
+                <p>Recompiles and reloads the panel theme without touching code or the database — handy after a theme
+                    tweak.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui refresh-theme</pre>
+                </div>
+            </div>
+
+            <!-- ── Operations ── -->
+
+            <div class="doc-section" id="gui-operations">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Operations</h2>
+
+                <h3><code>cipi gui status</code></h3>
+                <p>Report the panel's current status — whether it is installed, its domain, and the health of its
+                    services.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui status</pre>
+                </div>
+
+                <h3><code>cipi gui fix-permissions</code></h3>
+                <p>Repair the panel's PHP-FPM <code>open_basedir</code> restriction and all runtime file permissions.
+                    Run it if the panel starts throwing permission or autoload errors after an update.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui fix-permissions</pre>
+                </div>
+
+                <h3><code>cipi gui reset-user</code></h3>
+                <p>Rewrite an administrator's email, name and password, and clear their 2FA enrolment — the recovery path
+                    when someone is locked out. <code>reset-password</code> is an alias for the same command.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui reset-user</pre>
+                </div>
+            </div>
+
+            <!-- ── Removing ── -->
+
+            <div class="doc-section" id="gui-remove">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Removing the panel — <code>cipi gui remove</code></h2>
+                <p>Uninstall the panel and its Nginx vhost, PHP-FPM pool and scheduler. Your servers and apps are
+                    untouched — the panel is just a client of the API. <code>uninstall</code> is an alias, and
+                    <code>--force</code> skips the confirmation prompt.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui remove
+cipi gui remove --force</pre>
+                </div>
+                <p>Removing the panel is the ultimate expression of its optionality: uninstall it any time and Cipi is
+                    back to a pure CLI, exactly as it was before.</p>
+            </div>
+
+            <!-- ── Architecture ── -->
+
+            <div class="doc-section" id="gui-architecture">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Architecture</h2>
+                <p>The panel is a standard <strong>Laravel 12</strong> application distributed as the
+                    <code>cipi/gui</code> package from its own repository
+                    (<a href="https://github.com/cipi-sh/gui" target="_blank">cipi-sh/gui</a>) and installed via a
+                    Composer VCS entry tracking <code>dev-main</code>. It lives at <code>/opt/cipi/gui</code>, mirroring
+                    how the <code>cipi-api</code> package is bundled.</p>
+
                 <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Component</th>
-                            <th>Role</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Ubuntu</strong></td>
-                            <td>Base OS (24.04 or 26.04 LTS)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Nginx</strong></td>
-                            <td>Web server, reverse proxy, SSL termination. Since <strong>v4.5.9</strong>, mainline
-                                nginx from <a href="https://nginx.org/" target="_blank" rel="noopener">nginx.org</a>
-                                (1.29.8+) with <code>max_headers 1000</code> for HTTP/2 hardening — not the Ubuntu
-                                archive package</td>
-                        </tr>
-                        <tr>
-                            <td><strong>PHP-FPM</strong></td>
-                            <td>PHP runtime (8.3–8.5; ondrej/php, packages.sury.org, or Ubuntu main per release)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>MariaDB</strong></td>
-                            <td>Relational database (drop-in MySQL replacement)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Valkey</strong></td>
-                            <td>In-memory store for cache, sessions, queues, broadcast (BSD-licensed Redis fork)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Supervisor</strong></td>
-                            <td>Process manager for Laravel queue workers</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Deployer</strong></td>
-                            <td>Zero-downtime deployment tool</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Certbot</strong></td>
-                            <td>Let's Encrypt SSL certificates</td>
-                        </tr>
-                        <tr>
-                            <td><strong>UFW</strong></td>
-                            <td>Firewall (ports 22, 80, 443)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Fail2ban</strong></td>
-                            <td>Progressive brute-force protection with recidive jail</td>
-                        </tr>
-                        <tr>
-                            <td><strong>unattended-upgrades</strong></td>
-                            <td>Automatic security patches</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Composer</strong></td>
-                            <td>PHP dependency manager</td>
-                        </tr>
-                        <tr>
-                            <td><strong>cipi CLI</strong></td>
-                            <td>Server management and orchestration</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                        <thead>
+                            <tr><th>Aspect</th><th>Detail</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Framework</td><td>Laravel 12</td></tr>
+                            <tr><td>Package</td><td><code>cipi/gui</code> (GitHub <code>cipi-sh/gui</code>, Composer VCS <code>dev-main</code>)</td></tr>
+                            <tr><td>Install path</td><td><code>/opt/cipi/gui</code></td></tr>
+                            <tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr>
+                            <tr><td>Isolation</td><td>PHP-FPM <code>open_basedir</code> restricted to <code>/opt/cipi/gui/</code></td></tr>
+                            <tr><td>Auth</td><td>Session login + optional TOTP 2FA</td></tr>
+                            <tr><td>Jobs</td><td>No local queue worker — remote async jobs are polled through each managed server's <code>cipi api</code></td></tr>
+                        </tbody>
+                    </table>
 
-            <div class="doc-section" id="app-structure">
-                <h2>App Structure</h2>
-                <p>When you run <code>cipi app create</code>, Cipi creates a fully isolated environment for the app.
-                    Here is everything that gets set up:</p>
+                <p>Because it holds no local queue worker and stores no server state of its own, the panel stays
+                    stateless with respect to your infrastructure: it authenticates to each server's API, submits jobs,
+                    and polls their status. Tear the panel down and rebuild it elsewhere without touching a single
+                    managed server.</p>
 
-                <div class="tree-block"><pre><span class="tree-accent">/home/myapp/</span> <span class="tree-comment">← isolated Linux user (chmod 750)</span>
-├── .ssh/
-│   ├── id_ed25519 <span class="tree-comment">← deploy key (private)</span>
-│   └── id_ed25519.pub <span class="tree-comment">← deploy key (public — add to Git)</span>
-├── .deployer/
-│   └── deploy.php <span class="tree-comment">← Deployer config (auto-generated)</span>
-├── <span class="tree-accent">current</span> -&gt; releases/3/ <span class="tree-comment">← symlink to active release</span>
-├── releases/
-│   ├── 1/
-│   ├── 2/
-│   └── 3/ <span class="tree-comment">← latest release (last 5 kept)</span>
-├── shared/
-│   ├── .env <span class="tree-comment">← auto-compiled by Cipi</span>
-│   └── storage/ <span class="tree-comment">← persistent storage</span>
-└── logs/
-    ├── nginx-access.log
-    ├── nginx-error.log
-    ├── php-fpm-error.log
-    ├── worker-default.log
-    └── deploy.log</pre></div>
-
-                <p>In addition to the home directory, Cipi creates these system files:</p>
-                <div class="tree-block"><pre>PHP-FPM pool: /etc/php/8.5/fpm/pool.d/<span class="tree-accent">myapp</span>.conf <span class="tree-comment">(user=myapp)</span>
-Nginx vhost:  /etc/nginx/sites-available/<span class="tree-accent">myapp</span>
-Supervisor:   /etc/supervisor/conf.d/<span class="tree-accent">myapp</span>.conf
-Crontab:      * * * * * php artisan schedule:run
-MariaDB:      database '<span class="tree-accent">myapp</span>', user '<span class="tree-accent">myapp</span>'@'localhost'</pre></div>
-
-                <p>The <code>.env</code> is auto-compiled with all credentials — database name, password, webhook token,
-                    and <code>APP_KEY</code>. You never have to touch it manually, but you can always edit it with
-                    <code>cipi app env myapp</code>.
-                </p>
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>Prefer the terminal? See the <a href="cli-client">CLI client</a> for the same API-driven
+                        management from your shell, or the <a href="advanced#cipi-api"><code>cipi api</code></a> and
+                        <a href="advanced#whmcs">WHMCS module</a> for automation.</span>
+                </div>
             </div>
 
             <div class="page-nav">
-                <a href="agent" class="page-nav-link page-nav-link--next">
+                <a href="cli-client" class="page-nav-link page-nav-link--prev">
+                    <span class="page-nav-label">Previous</span>
+                    <span class="page-nav-title">CLI Client</span>
+                </a>
+                <a href="advanced" class="page-nav-link page-nav-link--next">
                     <span class="page-nav-label">Next</span>
-                    <span class="page-nav-title">Cipi Agent</span>
+                    <span class="page-nav-title">Advanced</span>
                 </a>
             </div>
 
@@ -634,7 +549,7 @@ MariaDB:      database '<span class="tree-accent">myapp</span>', user '<span cla
 
     <footer>
         <div class="footer-inner">
-            <span>Made with ❤️ by <a href="https://web.ap.it" target="_blank">Andrea Pollastri</a> <span class="footer-license">Open source, MIT Licensed</span></span>
+            <span>Made with &#10084;&#65039; by <a href="https://web.ap.it" target="_blank">Andrea Pollastri</a> <span class="footer-license">Open source, MIT Licensed</span></span>
             <ul class="footer-links">
                 <li><a href="https://conn.web.ap.it" target="_blank">Try SSH
                         Connection Manager with Cipi</a></li>
