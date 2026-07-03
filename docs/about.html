@@ -386,12 +386,19 @@
                                 <div>The full v4 changelog is available on <a
                                         href="https://github.com/cipi-sh/cipi/releases" target="_blank"
                                         rel="noopener">GitHub Releases</a>.
-                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.7.12"
-                                        target="_blank" rel="noopener">4.7.12</a> — security fixes: SQL injection in
-                                    <code>cipi db</code> commands (<code>validate_db_name()</code> in every
-                                    <code>_db_*</code> function) and PHP code injection via
+                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.7.13"
+                                        target="_blank" rel="noopener">4.7.13</a> — weekly PHP security patch check:
+                                    PHP packages are excluded from <code>unattended-upgrades</code> (managed by Cipi);
+                                    <code>cipi php upgrade</code> runs <code>apt-get update</code> and
+                                    <code>--only-upgrade</code> on all installed <code>php*</code> /
+                                    <code>libphp*</code> packages, restarts affected PHP-FPM pools, and emails when
+                                    upgrades were applied (<code>php_upgrade</code> trigger). Root crontab: Sunday 03:30
+                                    via <code>cipi-cron-notify</code>; log:
+                                    <code>/var/log/cipi/php-upgrade.log</code> (migration 4.7.13). <strong>4.7.12</strong>
+                                    fixed SQL injection in <code>cipi db</code> commands
+                                    (<code>validate_db_name()</code>) and PHP code injection via
                                     <code>cipi app create --repository=</code> / <code>--branch=</code> and
-                                    <code>cipi app edit</code> (<code>validate_git_branch()</code> and
+                                    <code>cipi app edit</code> (<code>validate_git_branch()</code> /
                                     <code>validate_git_repository()</code> before values are written to
                                     <code>deploy.php</code>; no migration required). The <strong>4.7.x</strong> series
                                     introduced the optional <a href="gui">web control panel</a>
@@ -621,7 +628,10 @@
                 <p>Cipi enables <strong>unattended-upgrades</strong> during installation, so the underlying Ubuntu
                     system applies security patches automatically — without any manual intervention. Only
                     security-classified updates are installed unattended; major version upgrades require explicit
-                    confirmation.</p>
+                    confirmation. <strong>PHP packages are excluded</strong> from unattended-upgrades and managed by
+                    Cipi instead: since <strong>v4.7.13</strong>, <code>cipi php upgrade</code> applies security patches
+                    to every installed PHP version on demand or weekly (Sunday 03:30). See
+                    <a href="infrastructure#cli-php">PHP management</a>.</p>
                 <p>You can verify and manage the configuration at any time:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button

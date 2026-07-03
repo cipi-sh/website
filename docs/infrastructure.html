@@ -295,8 +295,21 @@
                     <pre><span class="p">$</span> cipi php list              <span class="c"># list installed versions, status, and system default</span>
 <span class="p">$</span> cipi php install 8.4       <span class="c"># install an additional PHP version (8.3–8.5)</span>
 <span class="p">$</span> cipi php switch 8.4        <span class="c"># set system default (root/cipi, API pool)</span>
-<span class="p">$</span> cipi php remove 8.1        <span class="c"># remove a version, incl. legacy (blocks if default or apps use it)</span></pre>
+<span class="p">$</span> cipi php remove 8.1        <span class="c"># remove a version, incl. legacy (blocks if default or apps use it)</span>
+<span class="p">$</span> cipi php upgrade           <span class="c"># apply security patches to all installed PHP packages</span></pre>
                 </div>
+
+                <h3>Security patch upgrades</h3>
+                <p>Since <strong>v4.7.13</strong>, PHP packages are excluded from
+                    <code>unattended-upgrades</code> and managed by Cipi instead. <code>cipi php upgrade</code> runs
+                    <code>apt-get update</code> and <code>--only-upgrade</code> on every installed <code>php*</code> and
+                    <code>libphp*</code> package, then restarts the affected PHP-FPM pools. When SMTP is configured and
+                    packages were upgraded, Cipi sends an email (<code>php_upgrade</code> trigger; disable with
+                    <code>cipi notifications disable php_upgrade</code>).</p>
+                <p>A weekly check runs automatically on <strong>Sunday at 03:30</strong> via root crontab (wrapped by
+                    <code>cipi-cron-notify</code>). Log:
+                    <code>/var/log/cipi/php-upgrade.log</code>. Existing servers receive the cron on
+                    <code>cipi self-update</code> (migration 4.7.13).</p>
 
                 <h3>System default vs app-specific PHP</h3>
                 <p>The <strong>system default</strong> is the PHP version used by the <code>root</code> and
