@@ -620,7 +620,8 @@ deploy:cleanup          <span class="c">// keep last 5 releases, delete older</s
                 </div>
 
                 <h3>Adding custom tasks</h3>
-                <p>You can add tasks before or after any step. Common examples:</p>
+                <p>You can add tasks before or after any step. For a complete frontend build example (<code>npm install &amp;&amp; npm run build</code>), see
+                    <a href="#cli-deploy-script-npm">Building frontend assets</a> below. Other common examples:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn"
                             onclick="copyCode(this)">Copy</button></div>
@@ -635,6 +636,88 @@ task('notify:slack', function () {
     run('curl -X POST https://hooks.slack.com/... -d \'{"text":"Deployed!"}\'');
 });
 after('deploy:symlink', 'notify:slack');</pre>
+                </div>
+
+                <h3 id="cli-deploy-script-npm">Building frontend assets (npm / Vite)</h3>
+                <p>There is no dedicated <code>cipi</code> CLI flag for frontend builds (e.g. <code>npm install &amp;&amp; npm run build</code>).
+                    <strong>Customising <code>deploy.php</code> is the supported and expected approach</strong> — define a
+                    Deployer <code>task()</code> and hook it with <code>after()</code> or <code>before()</code>. You do not
+                    need to avoid this; extending the pipeline is exactly what the file is for.</p>
+                <p>Cipi installs <strong>Node.js and npm</strong> on the server during setup. Verify they are available as
+                    the app user:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> ssh myapp@your-server-ip
+myapp@server:~$ node -v &amp;&amp; npm -v</pre>
+                </div>
+                <p>Commit <code>package.json</code> and <code>package-lock.json</code> to your repository. Hook the build
+                    <strong>after <code>deploy:shared</code></strong> so <code>.env</code> is linked (Vite reads
+                    <code>VITE_*</code> variables from there) and <strong>before <code>deploy:symlink</code></strong> so
+                    compiled assets exist in the release before it goes live.</p>
+                <p>Append the block below at the <strong>bottom</strong> of
+                    <code>/home/myapp/.deployer/deploy.php</code>, below Cipi's auto-generated task definitions:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn"
+                            onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c">// ── Custom: frontend build (safe zone — keep below Cipi-managed blocks) ──</span>
+
+task('npm:build', function () {
+    cd('{{release_path}}');
+    run('npm ci --no-audit --no-fund &amp;&amp; npm run build');
+});
+
+<span class="c">// .env is linked → build assets → then migrations / optimize / symlink</span>
+after('deploy:shared', 'npm:build');</pre>
+                </div>
+                <p>This runs the equivalent of <code>npm install &amp;&amp; npm run build</code> on every deploy. Prefer
+                    <code>npm ci</code> in production when <code>package-lock.json</code> is committed — it is faster and
+                    reproducible. Use <code>npm install</code> instead only if you do not lock dependencies.</p>
+                <p>If you need separate install and build steps (e.g. to cache <code>node_modules</code> across releases),
+                    split them into two tasks:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn"
+                            onclick="copyCode(this)">Copy</button></div>
+                    <pre>task('npm:ci', function () {
+    cd('{{release_path}}');
+    run('npm ci --no-audit --no-fund');
+});
+
+task('npm:build', function () {
+    cd('{{release_path}}');
+    run('npm run build');
+});
+
+after('deploy:shared', 'npm:ci');
+after('npm:ci', 'npm:build');</pre>
+                </div>
+                <p>To speed up subsequent deploys, you can persist dependencies across releases by adding
+                    <code>node_modules</code> to Deployer's shared directories (optional — only if your project supports
+                    it):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn"
+                            onclick="copyCode(this)">Copy</button></div>
+                    <pre>add('shared_dirs', ['node_modules']);</pre>
+                </div>
+                <p>Edit the file on the server as the app user, then test with <code>cipi deploy myapp</code>:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> ssh myapp@your-server-ip
+myapp@server:~$ nano ~/.deployer/deploy.php
+<span class="c"># paste the custom tasks at the bottom, save, then as root:</span>
+<span class="p">$</span> cipi deploy myapp</pre>
+                </div>
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Alternative:</strong> run <code>npm ci &amp;&amp; npm run build</code> in GitHub Actions
+                        or GitLab CI <em>before</em> the SSH deploy step, so the server only receives pre-built assets.
+                        See <a href="#ci-pipeline-ssh">CI/CD pipelines — SSH deploy</a>.</div>
                 </div>
 
                 <h3>Running additional artisan commands</h3>
