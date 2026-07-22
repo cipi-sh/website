@@ -140,2115 +140,555 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap"
         rel="stylesheet">
+    <meta name="theme-color" content="#65A30D" id="themeColor">
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/site.css">
+
     <style>
-        :root {
-            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-display: 'Space Grotesk', 'Inter', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-            --radius: 14px;
-            --radius-sm: 8px;
+        /* Page-specific layouts — shared chrome lives in css/site.css */
+
+        .ai-grid,
+        .cli-grid,
+        .api-grid,
+        .whmcs-grid {
+            display: grid;
+            gap: 2.5rem;
+            align-items: start;
+        }
+        @media (min-width: 900px) {
+            .ai-grid,
+            .cli-grid,
+            .api-grid,
+            .whmcs-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 3.5rem;
+                align-items: center;
+            }
         }
 
-        [data-theme="light"] {
-            --bg: #FFFFFF;
-            --bg-warm: #F4F5F7;
-            --bg-card: #FFFFFF;
-            --text: #0A0A0A;
-            --text-secondary: #52525B;
-            --text-muted: #9CA3AF;
-            --accent: #65A30D;
-            --accent-light: #84CC16;
-            --border: #E5E7EB;
-            --border-light: #EFF1F3;
-            --code-bg: #0E1116;
-            --code-text: #E4E4E7;
-            --code-accent: #84CC16;
-            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-            --shadow-md: 0 6px 24px rgba(15, 23, 42, 0.07);
-            --shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.10);
-            --nav-bg: rgba(255, 255, 255, 0.82);
-            --tag-bg: rgba(101, 163, 13, 0.08);
-        }
-
-        [data-theme="dark"] {
-            --bg: #0A0A0B;
-            --bg-warm: #141417;
-            --bg-card: #161619;
-            --text: #F4F4F5;
-            --text-secondary: #A1A1AA;
-            --text-muted: #6B6B72;
-            --accent: #A3E635;
-            --accent-light: #BEF264;
-            --border: #26262B;
-            --border-light: #1C1C20;
-            --code-bg: #08080A;
-            --code-text: #E4E4E7;
-            --code-accent: #A3E635;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-            --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.4);
-            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-            --nav-bg: rgba(10, 10, 11, 0.82);
-            --tag-bg: rgba(163, 230, 53, 0.1);
-        }
-
-        *,
-        *::before,
-        *::after {
-            margin: 0;
+        .ai-capabilities,
+        .cli-features,
+        .api-features,
+        .whmcs-features {
+            list-style: none;
+            margin: 1.25rem 0 0;
             padding: 0;
-            box-sizing: border-box;
         }
-
-        html {
-            scroll-behavior: smooth;
-            font-size: 16px;
-        }
-
-        body {
-            font-family: var(--font-body);
-            color: var(--text);
-            background: var(--bg);
-            line-height: 1.7;
-            -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-            transition: background 0.3s, color 0.3s;
-        }
-
-        /* ── Utility ── */
-        .container {
-            max-width: 1120px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-        }
-
-        /* ── Navigation ── */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            background: var(--nav-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-light);
-            transition: box-shadow 0.3s ease, background 0.3s;
-        }
-
-        nav.scrolled {
-            box-shadow: var(--shadow-sm);
-        }
-
-        nav .container {
+        .ai-capabilities li,
+        .cli-features li,
+        .api-features li,
+        .whmcs-features li {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 64px;
-        }
-
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            color: var(--text);
-        }
-
-        .nav-logo svg.tux-logo {
-            width: 28px;
-            height: 28px;
-            flex-shrink: 0;
-            color: var(--text);
-        }
-
-        .nav-logo span {
-            font-family: var(--font-display);
-            font-weight: 600;
-            font-size: 1.15rem;
-            letter-spacing: -0.02em;
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 32px;
-            list-style: none;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            font-weight: 400;
-            letter-spacing: 0.01em;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover {
-            color: var(--text);
-        }
-
-        .nav-links .btn-nav {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--text);
-            color: var(--bg);
-            padding: 8px 20px;
-            border-radius: 100px;
-            font-weight: 500;
-            transition: opacity 0.2s;
-        }
-
-        .nav-links .btn-nav:hover {
-            opacity: 0.85;
-            color: var(--bg);
-        }
-
-        .nav-toggle {
-            display: none;
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            width: 36px;
-            height: 36px;
-            cursor: pointer;
-            align-items: center;
-            justify-content: center;
-            color: var(--text);
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .nav-toggle:hover {
-            border-color: var(--text-muted);
-        }
-
-        .nav-toggle svg {
-            width: 18px;
-            height: 18px;
-            stroke: var(--text);
-        }
-
-        /* Theme Toggle */
-        .theme-toggle {
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            width: 36px;
-            height: 36px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-
-        .theme-toggle:hover {
-            color: var(--text);
-            border-color: var(--text-muted);
-        }
-
-        .theme-toggle svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .theme-toggle .icon-moon {
-            display: block;
-        }
-
-        .theme-toggle .icon-sun {
-            display: none;
-        }
-
-        [data-theme="dark"] .theme-toggle .icon-moon {
-            display: none;
-        }
-
-        [data-theme="dark"] .theme-toggle .icon-sun {
-            display: block;
-        }
-
-        .nav-toggle .icon-open {
-            display: block;
-        }
-
-        .nav-toggle .icon-close {
-            display: none;
-        }
-
-        .nav-toggle.active .icon-open {
-            display: none;
-        }
-
-        .nav-toggle.active .icon-close {
-            display: block;
-        }
-
-        /* ── Hero ── */
-        .hero {
-            padding: 140px 0 100px;
-            position: relative;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 600px;
-            background: linear-gradient(180deg, var(--bg-warm) 0%, var(--bg) 100%);
-            z-index: -1;
-        }
-
-        .hero-content {
-            max-width: 720px;
-        }
-
-        /* ── Terminal demo ── */
-        .hero-terminal {
-            background: var(--code-bg);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.12);
-            position: relative;
-            min-height: 380px;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .hero-terminal::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(163, 230, 53, 0.6), transparent);
-        }
-
-        .terminal-topbar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            flex-shrink: 0;
-        }
-
-        .terminal-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .terminal-dot.red {
-            background: #FF5F57;
-        }
-
-        .terminal-dot.yellow {
-            background: #FFBD2E;
-        }
-
-        .terminal-dot.green {
-            background: #28C840;
-        }
-
-        .terminal-title {
-            font-family: var(--font-mono);
-            font-size: 0.68rem;
-            color: rgba(255, 255, 255, 0.25);
-            margin-left: 6px;
-            letter-spacing: 0.04em;
-        }
-
-        .terminal-body {
-            padding: 18px 20px 20px;
-            font-family: var(--font-mono);
-            font-size: 0.78rem;
-            line-height: 1.65;
-            flex: 1;
-            overflow: hidden;
-            text-align: left;
-        }
-
-        .t-line {
-            display: block;
-            white-space: pre;
-            opacity: 0;
-            transition: opacity 0.1s;
-        }
-
-        .t-line.visible {
-            opacity: 1;
-        }
-
-        .t-prompt {
-            color: var(--code-accent);
-        }
-
-        .t-cmd {
-            color: #E4E4E7;
-        }
-
-        .t-flag {
-            color: #C4B5FD;
-        }
-
-        .t-out {
-            color: #6B7280;
-        }
-
-        .t-ok {
-            color: var(--code-accent);
-        }
-
-        .t-bold {
-            color: #E4E4E7;
-            font-weight: 500;
-        }
-
-        .t-sep {
-            color: #374151;
-        }
-
-        .t-url {
-            color: #60A5FA;
-        }
-
-        .t-cursor {
-            display: inline-block;
-            width: 7px;
-            height: 13px;
-            background: var(--code-accent);
-            vertical-align: middle;
-            margin-left: 1px;
-            animation: blink 1s step-end infinite;
-        }
-
-        @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0;
-            }
-        }
-
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 16px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-            font-weight: 400;
-            letter-spacing: 0.02em;
-        }
-
-        .hero-badge .dot {
-            width: 6px;
-            height: 6px;
-            background: var(--accent);
-            border-radius: 50%;
-        }
-
-        .hero h1 {
-            font-family: var(--font-display);
-            font-size: clamp(2.5rem, 5.5vw, 3.75rem);
-            font-weight: 600;
-            line-height: 1.15;
-            letter-spacing: -0.03em;
-            color: var(--text);
-            margin-bottom: 24px;
-        }
-
-        .hero h1 em {
-            font-style: normal;
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        .hero p {
-            font-size: 1.125rem;
-            color: var(--text-secondary);
-            max-width: 540px;
-            line-height: 1.7;
-            margin-bottom: 40px;
-        }
-
-        .hero-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 28px;
-            background: var(--text);
-            color: var(--bg);
-            border-radius: 100px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-primary:hover {
-            opacity: 0.85;
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 28px;
-            background: transparent;
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 400;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--text-muted);
-            background: var(--bg-card);
-        }
-
-        /* ── Install Command ── */
-        .install-block {
-            margin-top: 48px;
-            background: var(--code-bg);
-            border-radius: var(--radius);
-            padding: 20px 24px;
-            max-width: 640px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .install-block::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(163, 230, 53, 0.4), transparent);
-        }
-
-        .install-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-            font-family: var(--font-mono);
-        }
-
-        .install-cmd {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .install-cmd code {
-            font-family: var(--font-mono);
-            font-size: 0.82rem;
-            color: var(--code-text);
-            white-space: nowrap;
-            overflow-x: auto;
-        }
-
-        .install-cmd code .prompt {
-            color: var(--code-accent);
-        }
-
-        .copy-btn {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 6px 10px;
-            cursor: pointer;
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            font-family: var(--font-mono);
-            transition: all 0.2s;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.14);
-            color: var(--code-text);
-        }
-
-        /* ── Section Shared ── */
-        section {
-            padding: 100px 0;
-        }
-
-        .section-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--text-muted);
-            font-weight: 500;
-            margin-bottom: 16px;
-        }
-
-        .section-title {
-            font-family: var(--font-display);
-            font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-            font-weight: 600;
-            letter-spacing: -0.03em;
-            line-height: 1.2;
-            margin-bottom: 16px;
-        }
-
-        .section-desc {
-            font-size: 1.05rem;
-            color: var(--text-secondary);
-            max-width: 520px;
-            line-height: 1.7;
-        }
-
-        /* ── Stack (What You Get) ── */
-        .stack-section {
-            background: var(--bg-warm);
-            border-top: 1px solid var(--border-light);
-            border-bottom: 1px solid var(--border-light);
-            transition: background 0.3s;
-        }
-
-        .stack-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1px;
-            background: var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-            margin-top: 56px;
-        }
-
-        .stack-item {
-            background: var(--bg-card);
-            padding: 36px 32px;
-            transition: background 0.3s;
-        }
-
-        .stack-item:hover {
-            background: var(--bg);
-        }
-
-        .stack-icon {
-            width: 36px;
-            height: 36px;
-            margin-bottom: 18px;
-            color: var(--accent);
-            opacity: 0.8;
-        }
-
-        .stack-item h3 {
+            gap: 0.65rem;
+            align-items: flex-start;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            color: #9aa3b2;
             font-size: 0.95rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-            letter-spacing: -0.01em;
         }
-
-        .stack-item p {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
+        .cli-section .cli-features li,
+        .api-section .api-features li,
+        .whmcs-section .whmcs-features li {
+            border-bottom-color: var(--line);
+            color: var(--muted);
         }
-
-        /* ── For who ── */
-        .forwhom-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 2px;
-            background: var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-            margin-top: 56px;
-        }
-
-        .forwhom-card {
-            background: var(--bg-card);
-            padding: 40px 36px;
-            transition: background 0.25s;
-            position: relative;
-        }
-
-        .forwhom-card:hover {
-            background: var(--bg);
-        }
-
-        .forwhom-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius-sm);
-            background: var(--tag-bg);
-            border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent);
-            margin-bottom: 20px;
-            transition: background 0.25s, border-color 0.25s;
-        }
-
-        .forwhom-card:hover .forwhom-icon {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-        }
-
-        .forwhom-label {
-            display: inline-block;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--accent);
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .forwhom-card h3 {
-            font-size: 1.05rem;
-            font-weight: 500;
-            letter-spacing: -0.01em;
-            margin-bottom: 10px;
-            line-height: 1.35;
-        }
-
-        .forwhom-card p {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.75;
-        }
-
-        @media (max-width: 768px) {
-            .forwhom-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ── Features ── */
-        .features-section {
-            background: var(--bg-warm);
-            border-top: 1px solid var(--border-light);
-            border-bottom: 1px solid var(--border-light);
-            transition: background 0.3s;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
-            margin-top: 56px;
-        }
-
-        .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 36px 32px;
-            transition: all 0.3s;
-        }
-
-        .feature-card:hover {
-            border-color: var(--border);
-            box-shadow: var(--shadow-md);
-            transform: translateY(-2px);
-        }
-
-        .feature-tag {
-            display: inline-block;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--accent);
-            background: var(--tag-bg);
-            padding: 4px 10px;
-            border-radius: 4px;
-            margin-bottom: 16px;
-            font-weight: 500;
-        }
-
-        .feature-card h3 {
-            font-size: 1.1rem;
-            font-weight: 500;
-            margin-bottom: 10px;
-            letter-spacing: -0.01em;
-        }
-
-        .feature-card p {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.7;
-        }
-
-        /* ── AI / MCP Section ── */
-        .ai-section {
-            background: var(--code-bg);
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            overflow: hidden;
-            position: relative;
-        }
-
-        .ai-section::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(ellipse 60% 60% at 80% 50%, rgba(163, 230, 53, 0.07) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .ai-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 72px;
-            align-items: center;
-            position: relative;
-        }
-
-        .ai-label {
-            display: inline-block;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-            color: var(--code-accent);
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-
-        .ai-headline {
-            font-family: var(--font-display);
-            font-size: clamp(2rem, 3.5vw, 2.8rem);
-            font-weight: 600;
-            line-height: 1.2;
-            color: #fff;
-            letter-spacing: -0.03em;
-            margin-bottom: 24px;
-        }
-
-        .ai-headline em {
-            font-style: normal;
-            font-weight: 600;
-            color: var(--code-accent);
-        }
-
-        .ai-desc {
-            font-size: 1rem;
-            color: rgba(228, 228, 231, 0.65);
-            line-height: 1.8;
-            margin-bottom: 36px;
-        }
-
-        .ai-capabilities {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 40px;
-        }
-
-        .ai-capabilities li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-            color: rgba(228, 228, 231, 0.8);
-        }
-
-        .ai-capabilities li svg {
-            flex-shrink: 0;
-            color: var(--code-accent);
-        }
-
-        .ai-frameworks {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 40px;
-        }
-
-        .ai-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            font-family: var(--font-mono);
-            color: rgba(228, 228, 231, 0.6);
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 5px 12px;
-            letter-spacing: 0.02em;
-            transition: all 0.2s;
-        }
-
-        .ai-pill:hover {
-            color: var(--code-accent);
-            border-color: rgba(163, 230, 53, 0.3);
-            background: rgba(163, 230, 53, 0.06);
-        }
-
-        .ai-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--code-accent);
-            text-decoration: none;
-            border: 1px solid rgba(163, 230, 53, 0.35);
-            border-radius: 8px;
-            padding: 12px 24px;
-            transition: all 0.25s;
-            background: rgba(163, 230, 53, 0.06);
-        }
-
-        .ai-cta:hover {
-            background: rgba(163, 230, 53, 0.12);
-            border-color: rgba(163, 230, 53, 0.6);
-            transform: translateY(-1px);
-        }
+        .ai-capabilities li svg,
+        .cli-features li svg { flex-shrink: 0; margin-top: 2px; color: var(--phosphor); }
+        .cli-section .cli-features li svg,
+        .api-section li svg { color: var(--signal); }
 
         .ai-mcp-box {
-            background: linear-gradient(135deg, rgba(163, 230, 53, 0.06) 0%, rgba(163, 230, 53, 0.02) 100%);
-            border: 1px solid rgba(163, 230, 53, 0.2);
-            border-radius: var(--radius);
-            padding: 24px 28px;
-            margin-bottom: 36px;
-            position: relative;
-            overflow: hidden;
+            margin: 1.25rem 0;
+            padding: 1rem 1.1rem;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: #0e1116;
         }
-
-        .ai-mcp-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--code-accent), transparent);
-        }
-
         .ai-mcp-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-family: var(--font-mono);
-            font-size: 0.65rem;
+            gap: 0.4rem;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--code-accent);
-            font-weight: 600;
-            margin-bottom: 10px;
+            color: var(--phosphor);
+            margin-bottom: 0.55rem;
         }
-
-        .ai-mcp-badge svg {
-            flex-shrink: 0;
-        }
-
         .ai-mcp-title {
-            font-family: var(--font-display);
+            font-family: var(--display);
+            font-weight: 600;
             font-size: 1.05rem;
-            font-weight: 400;
-            color: rgba(228, 228, 231, 0.92);
-            margin-bottom: 10px;
-            line-height: 1.5;
+            color: #fff;
+            margin-bottom: 0.35rem;
         }
-
         .ai-mcp-subtitle {
-            font-size: 0.82rem;
-            color: rgba(228, 228, 231, 0.5);
-            line-height: 1.6;
-            margin-bottom: 16px;
+            color: #8b95a5;
+            font-size: 0.92rem;
+            margin-bottom: 0.85rem;
         }
-
         .ai-mcp-install {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-family: var(--font-mono);
-            font-size: 0.78rem;
-            color: rgba(228, 228, 231, 0.8);
-            overflow-x: auto;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: #d7dde6;
         }
+        .ai-mcp-install .prompt { color: var(--phosphor); }
 
-        .ai-mcp-install .prompt {
-            color: var(--code-accent);
-            user-select: none;
-        }
-
-        /* Chat panel */
-        .ai-chat-panel {
-            background: #0C0C0F;
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            border-radius: var(--radius);
+        .ai-chat {
             overflow: hidden;
-            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-        }
-
-        .ai-chat-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .ai-chat-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .ai-chat-bar-title {
-            margin-left: 6px;
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            color: rgba(228, 228, 231, 0.35);
-            letter-spacing: 0.05em;
-        }
-
-        .ai-chat-body {
-            padding: 24px 20px;
+            min-height: 360px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            font-family: var(--font-mono);
-            font-size: 0.78rem;
-            line-height: 1.6;
         }
-
-        .ai-msg {
+        .ai-chat-tabs {
             display: flex;
-            gap: 12px;
-            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .ai-chat-tab {
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 0.65rem 0.85rem;
+            background: transparent;
+            border: 0;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            color: #8b95a5;
+            cursor: pointer;
+        }
+        .ai-chat-tab.active {
+            color: var(--phosphor);
+            background: rgba(163,230,53,0.08);
+        }
+        .ai-chat-body {
+            flex: 1;
+            padding: 1rem;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            line-height: 1.65;
+            overflow-y: auto;
+            color: #d7dde6;
         }
 
-        .ai-msg-avatar {
-            flex-shrink: 0;
-            width: 26px;
-            height: 26px;
-            border-radius: 6px;
+        .cli-terminal,
+        .hero-terminal {
+            overflow: hidden;
+            min-height: 280px;
+        }
+        .cli-terminal-topbar,
+        .terminal-topbar {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
+            gap: 0.45rem;
+            padding: 0.7rem 0.9rem;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: #8b95a5;
+        }
+        .cli-terminal-body,
+        .terminal-body {
+            padding: 0.85rem 1rem 1.25rem;
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            line-height: 1.7;
+            color: #d7dde6;
+        }
+        .cli-terminal-body .prompt,
+        .terminal-body .prompt { color: var(--phosphor); }
+        .cli-terminal-body .dim,
+        .terminal-body .dim { color: #7a8494; }
+        .cli-terminal-body .success,
+        .terminal-body .success { color: #3dbe7a; }
+        .terminal-dot.red { background: #ff5f57; }
+        .terminal-dot.yellow { background: #ffbd2e; }
+        .terminal-dot.green { background: #28c840; }
+        .terminal-dot { display: inline-block; }
+
+        .cli-cta-group,
+        .api-cta-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+        .cli-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            color: var(--signal);
             font-weight: 600;
-            letter-spacing: 0;
+            text-decoration: none;
         }
+        .cli-cta:hover { border-bottom: 1px solid var(--signal); }
 
-        .ai-msg-avatar.user {
-            background: rgba(163, 230, 53, 0.15);
-            color: var(--code-accent);
-            border: 1px solid rgba(163, 230, 53, 0.25);
+        .compat-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1.5rem;
+            align-items: center;
+            padding: 1.25rem 0;
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.92rem;
         }
-
-        .ai-msg-avatar.claude {
-            background: rgba(210, 120, 80, 0.15);
-            color: #D2784A;
-            border: 1px solid rgba(210, 120, 80, 0.25);
-        }
-
-        .ai-msg-avatar.tool {
-            background: rgba(100, 140, 230, 0.12);
-            color: #7DA4F0;
-            border: 1px solid rgba(100, 140, 230, 0.22);
-        }
-
-        .ai-msg-text {
-            color: rgba(228, 228, 231, 0.75);
-            flex: 1;
-        }
-
-        .ai-msg-text strong {
-            color: rgba(228, 228, 231, 0.95);
+        .compat-strip strong {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--signal);
             font-weight: 500;
         }
 
-        .ai-msg-text code {
-            color: var(--code-accent);
-            background: rgba(163, 230, 53, 0.08);
-            padding: 1px 5px;
-            border-radius: 3px;
-            font-size: 0.75rem;
-        }
-
-        .ai-msg-text .tool-call {
-            display: block;
-            margin-top: 6px;
-            padding: 8px 12px;
-            background: rgba(100, 140, 230, 0.07);
-            border-left: 2px solid rgba(100, 140, 230, 0.35);
-            border-radius: 0 4px 4px 0;
-            color: #7DA4F0;
-            font-size: 0.73rem;
-        }
-
-        .ai-msg-text .tool-result {
-            display: block;
-            margin-top: 6px;
-            padding: 8px 12px;
-            background: rgba(163, 230, 53, 0.06);
-            border-left: 2px solid rgba(163, 230, 53, 0.3);
-            border-radius: 0 4px 4px 0;
-            color: var(--code-accent);
-            font-size: 0.73rem;
-        }
-
-        .ai-msg-text .tool-log {
-            display: block;
-            margin-top: 6px;
-            padding: 8px 12px;
-            background: rgba(255, 95, 87, 0.06);
-            border-left: 2px solid rgba(255, 95, 87, 0.35);
-            border-radius: 0 4px 4px 0;
-            color: #FF6B6B;
-            font-size: 0.73rem;
-        }
-
-        .ai-chat-tabs {
+        .provider-pills {
             display: flex;
-            gap: 6px;
-            padding: 14px 20px 0;
             flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .provider-pills span {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            padding: 0.3rem 0.55rem;
+            border: 1px solid var(--line);
+            color: var(--ink-soft);
+            background: var(--white);
         }
 
-        .ai-chat-tab {
-            padding: 5px 12px;
-            font-family: var(--font-mono);
-            font-size: 0.65rem;
-            color: rgba(228, 228, 231, 0.4);
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            letter-spacing: 0.03em;
+        .providers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .provider-tag {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            padding: 0.35rem 0.6rem;
+            border: 1px solid var(--line);
+            color: var(--ink-soft);
+            background: var(--white);
         }
 
-        .ai-chat-tab:hover {
-            color: rgba(228, 228, 231, 0.7);
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.12);
+        /* ── API visual cards ── */
+        .api-visual {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.85rem;
+            max-width: 380px;
+            margin: 0 auto;
+        }
+        .api-visual-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+            background: var(--white);
+            border: 1px solid var(--line);
+            text-align: center;
+        }
+        .api-visual-icon {
+            width: 28px !important;
+            height: 28px !important;
+            max-width: 28px;
+            max-height: 28px;
+            margin-bottom: 0.75rem;
+            color: var(--signal);
+            flex-shrink: 0;
+            display: block;
+        }
+        .api-visual-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--ink);
+        }
+        .api-visual-sublabel {
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            color: var(--muted);
+            margin-top: 0.25rem;
+            letter-spacing: 0.02em;
+        }
+        @media (max-width: 900px) {
+            .api-visual { max-width: 100%; }
         }
 
-        .ai-chat-tab.active {
-            color: var(--code-accent);
-            background: rgba(163, 230, 53, 0.1);
-            border-color: rgba(163, 230, 53, 0.3);
+        /* ── WHMCS flow + feature lists ── */
+        .whmcs-features,
+        .cli-features,
+        .ai-capabilities {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 1.75rem;
+            display: grid;
+            gap: 0;
+        }
+        .whmcs-features li,
+        .cli-features li,
+        .ai-capabilities li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            padding: 0.65rem 0;
+            border-bottom: 1px solid var(--line);
+            font-size: 0.95rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .whmcs-features li svg,
+        .cli-features li svg,
+        .ai-capabilities li svg,
+        .cli-cta svg,
+        .api-cta svg,
+        .whmcs-cta svg {
+            width: 16px !important;
+            height: 16px !important;
+            max-width: 16px;
+            max-height: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            color: var(--signal);
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .btn-primary svg,
+        .btn-secondary svg {
+            width: 16px !important;
+            height: 16px !important;
+            max-width: 16px;
+            max-height: 16px;
+            flex-shrink: 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .btn-primary svg {
+            color: #fff !important;
+            fill: currentColor;
+        }
+        [data-theme="dark"] .btn-primary svg {
+            color: #0c0d10 !important;
+        }
+        .btn-secondary svg {
+            color: currentColor !important;
+        }
+        .ai-section .ai-capabilities li {
+            border-bottom-color: rgba(255,255,255,0.08);
+            color: #9aa3b2;
+        }
+        .ai-section .ai-capabilities li svg {
+            color: var(--phosphor);
+        }
+        .whmcs-cta-group,
+        .cli-cta-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .whmcs-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--signal);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .whmcs-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            max-width: 420px;
+            margin: 0 auto;
+            border-top: 1px solid var(--line);
+        }
+        .whmcs-flow-step {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.15rem 0;
+            border-bottom: 1px solid var(--line);
+            background: transparent;
+        }
+        .whmcs-flow-num {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            flex-shrink: 0;
+            background: var(--signal);
+            color: #fff;
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        [data-theme="dark"] .whmcs-flow-num {
+            color: #0c0d10;
+        }
+        .whmcs-flow-text strong {
+            display: block;
+            font-size: 0.95rem;
+            color: var(--ink);
+            margin-bottom: 0.15rem;
+        }
+        .whmcs-flow-text span {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+        .whmcs-flow-arrow {
+            display: none;
         }
 
-        #aiChatBody {
-            min-height: 280px;
+        /* Safety: never let section SVGs blow up */
+        .api-section svg:not(.brand-mark),
+        .whmcs-section svg:not(.brand-mark),
+        .cli-section svg:not(.brand-mark),
+        .ai-section svg:not(.brand-mark) {
+            max-width: 48px;
+        }
+        .api-visual-icon {
+            max-width: 28px !important;
         }
 
-        #aiChatBody .ai-msg {
+        /* AI chat demo */
+        .ai-frameworks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 1.25rem;
+        }
+        .ai-pill {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            padding: 0.3rem 0.55rem;
+            border: 1px solid rgba(255,255,255,0.14);
+            color: #9aa3b2;
+        }
+        .ai-chat-panel {
+            border: 1px solid rgba(255,255,255,0.12);
+            background: #0e1116;
+            overflow: hidden;
+            min-height: 420px;
+            display: flex;
+            flex-direction: column;
+        }
+        .ai-chat-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.7rem 0.9rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: #8b95a5;
+        }
+        .ai-chat-dot {
+            width: 8px;
+            height: 8px;
+            display: inline-block;
+        }
+        .ai-chat-body {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .ai-msg {
+            display: flex;
+            gap: 0.65rem;
+            margin-bottom: 1rem;
             opacity: 0;
-            transform: translateY(8px);
+            transform: translateY(6px);
+            transition: opacity 0.3s, transform 0.3s;
         }
-
-        #aiChatBody .ai-msg.visible {
-            animation: aiMsgIn 0.4s ease forwards;
+        .ai-msg.visible {
+            opacity: 1;
+            transform: none;
         }
-
-        @keyframes aiMsgIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .ai-msg-avatar {
+            flex: 0 0 1.75rem;
+            width: 1.75rem;
+            height: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--mono);
+            font-size: 0.58rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid rgba(255,255,255,0.14);
+            color: #8b95a5;
         }
-
+        .ai-msg-avatar.claude {
+            border-color: color-mix(in srgb, var(--phosphor) 50%, transparent);
+            color: var(--phosphor);
+        }
+        .ai-msg-avatar.user {
+            border-color: rgba(255,255,255,0.25);
+            color: #d7dde6;
+        }
+        .ai-msg-text {
+            flex: 1;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            color: #d7dde6;
+        }
+        .tool-call,
+        .tool-result,
+        .tool-log {
+            display: block;
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            margin-top: 0.45rem;
+            padding: 0.4rem 0.55rem;
+            border-left: 2px solid rgba(255,255,255,0.12);
+        }
+        .tool-call {
+            color: var(--phosphor);
+            border-left-color: var(--phosphor);
+            background: rgba(163,230,53,0.06);
+        }
+        .tool-result {
+            color: #3dbe7a;
+            border-left-color: #3dbe7a;
+            background: rgba(61,190,122,0.06);
+        }
+        .tool-log {
+            color: #f0b429;
+            border-left-color: #f0b429;
+            background: rgba(240,180,41,0.06);
+        }
         .ai-typing-indicator {
             display: inline-flex;
             gap: 4px;
             padding: 4px 0;
         }
-
         .ai-typing-indicator span {
             width: 5px;
             height: 5px;
-            border-radius: 50%;
-            background: rgba(210, 120, 80, 0.5);
-            animation: typingBounce 1.2s infinite;
+            background: #8b95a5;
+            animation: pulse 1s ease-in-out infinite;
         }
+        .ai-typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+        .ai-typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
 
-        .ai-typing-indicator span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .ai-typing-indicator span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typingBounce {
-
-            0%,
-            60%,
-            100% {
-                opacity: 0.3;
-                transform: scale(0.8);
-            }
-
-            30% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        @media (max-width: 900px) {
-            .ai-grid {
-                grid-template-columns: 1fr;
-                gap: 48px;
-            }
-        }
-
-        /* ── API Section ── */
-        .api-section {
-            background: var(--code-bg);
-            border-top: 1px solid rgba(255, 255, 255, 0.04);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        }
-
-        .api-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 72px;
-            align-items: center;
-        }
-
-        .api-label {
-            display: inline-block;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--code-accent);
-            margin-bottom: 12px;
-        }
-
-        .api-headline {
-            font-family: var(--font-display);
-            font-size: clamp(2rem, 3.5vw, 2.8rem);
-            font-weight: 600;
-            line-height: 1.2;
-            letter-spacing: -0.03em;
-            color: var(--code-text);
-            margin-bottom: 20px;
-        }
-
-        .api-headline em {
-            font-style: normal;
-            font-weight: 600;
-            color: var(--code-accent);
-        }
-
-        .api-desc {
-            font-size: 1.05rem;
-            line-height: 1.75;
-            color: rgba(228, 228, 231, 0.85);
-            margin-bottom: 32px;
-        }
-
-        .api-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--code-accent);
-            font-weight: 500;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-
-        .api-cta:hover {
-            opacity: 0.9;
-        }
-
-        .api-visual {
-            position: relative;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            max-width: 380px;
-            margin: 0 auto;
-        }
-
-        .api-visual-card {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 32px 24px;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius);
-            overflow: hidden;
-            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-        }
-
-        .api-visual-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 50% 0%, rgba(163, 230, 53, 0.12) 0%, transparent 60%);
-            pointer-events: none;
-        }
-
-        .api-visual-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(163, 230, 53, 0.3);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .api-visual-icon {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 16px;
-            color: var(--code-accent);
-        }
-
-        .api-visual-label {
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--code-text);
-            text-align: center;
-        }
-
-        .api-visual-sublabel {
-            font-size: 0.5rem;
-            color: rgba(228, 228, 231, 0.6);
-            margin-top: 4px;
-            text-align: center;
-        }
-
-        @media (max-width: 900px) {
-            .api-grid {
-                grid-template-columns: 1fr;
-                gap: 48px;
-            }
-
-            .api-visual {
-                max-width: 100%;
-            }
-        }
-
-        /* ── WHMCS Section ── */
-        .whmcs-section {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .whmcs-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 72px;
-            align-items: center;
-        }
-
-        .whmcs-label {
-            display: inline-block;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--accent);
-            background: var(--tag-bg);
-            padding: 3px 10px;
-            border-radius: 4px;
-            font-weight: 500;
-            margin-bottom: 14px;
-        }
-
-        .whmcs-headline {
-            font-family: var(--font-display);
-            font-size: clamp(2rem, 3.5vw, 2.8rem);
-            font-weight: 600;
-            line-height: 1.2;
-            letter-spacing: -0.03em;
-            margin-bottom: 20px;
-        }
-
-        .whmcs-headline em {
-            font-style: normal;
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        .whmcs-desc {
-            font-size: 1.05rem;
-            line-height: 1.75;
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-        }
-
-        .whmcs-features {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 36px;
-            display: grid;
-            gap: 14px;
-        }
-
-        .whmcs-features li {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .whmcs-features li svg {
-            flex-shrink: 0;
-            margin-top: 2px;
-            color: var(--accent);
-        }
-
-        .whmcs-cta-group {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .whmcs-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--accent);
-            font-weight: 500;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-
-        .whmcs-cta:hover {
-            opacity: 0.9;
-        }
-
-        .whmcs-flow {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            max-width: 420px;
-            margin: 0 auto;
-        }
-
-        .whmcs-flow-step {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 24px 28px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-        }
-
-        .whmcs-flow-step:hover {
-            transform: translateY(-3px);
-            border-color: var(--accent);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-        }
-
-        [data-theme="dark"] .whmcs-flow-step:hover {
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-
-        .whmcs-flow-num {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            flex-shrink: 0;
-            border-radius: 50%;
-            background: var(--accent);
-            color: #fff;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .whmcs-flow-text strong {
-            display: block;
-            font-size: 0.9rem;
-            margin-bottom: 2px;
-        }
-
-        .whmcs-flow-text span {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        .whmcs-flow-arrow {
-            text-align: center;
-            color: var(--accent);
-            opacity: 0.5;
-            font-size: 1.2rem;
-            line-height: 1;
-            margin: -8px 0;
-        }
-
-        @media (max-width: 900px) {
-            .whmcs-grid {
-                grid-template-columns: 1fr;
-                gap: 48px;
-            }
-
-            .whmcs-flow {
-                max-width: 100%;
-            }
-        }
-
-        /* ── CLI Client Section ── */
-        .cli-section {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cli-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 72px;
-            align-items: center;
-        }
-
-        .cli-label {
-            display: inline-block;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--accent);
-            background: var(--tag-bg);
-            padding: 3px 10px;
-            border-radius: 4px;
-            font-weight: 500;
-            margin-bottom: 14px;
-        }
-
-        .cli-headline {
-            font-family: var(--font-display);
-            font-size: clamp(2rem, 3.5vw, 2.8rem);
-            font-weight: 600;
-            line-height: 1.2;
-            letter-spacing: -0.03em;
-            margin-bottom: 20px;
-        }
-
-        .cli-headline em {
-            font-style: normal;
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        .cli-desc {
-            font-size: 1.05rem;
-            line-height: 1.75;
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-        }
-
-        .cli-features {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 36px;
-            display: grid;
-            gap: 14px;
-        }
-
-        .cli-features li {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        .cli-features li svg {
-            flex-shrink: 0;
-            margin-top: 2px;
-            color: var(--accent);
-        }
-
-        .cli-cta-group {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .cli-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--accent);
-            font-weight: 500;
-            text-decoration: none;
-            transition: opacity 0.2s;
-        }
-
-        .cli-cta:hover {
-            opacity: 0.9;
-        }
-
-        .cli-terminal {
-            background: var(--code-bg);
-            border-radius: var(--radius);
-            overflow: hidden;
-            box-shadow: var(--shadow-lg);
-            max-width: 480px;
-            margin: 0 auto;
-        }
-
-        .cli-terminal-topbar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 14px 18px;
-            background: rgba(0, 0, 0, 0.25);
-        }
-
-        .cli-terminal-topbar .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .cli-terminal-topbar .terminal-dot.red { background: #ff5f57; }
-        .cli-terminal-topbar .terminal-dot.yellow { background: #febc2e; }
-        .cli-terminal-topbar .terminal-dot.green { background: #28c840; }
-
-        .cli-terminal-title {
-            flex: 1;
-            text-align: center;
-            font-size: 0.7rem;
-            color: rgba(255, 255, 255, 0.35);
-            font-family: var(--font-mono);
-        }
-
-        .cli-terminal-body {
-            padding: 20px 22px;
-            font-family: var(--font-mono);
-            font-size: 0.82rem;
-            line-height: 1.9;
-            color: var(--code-text);
-        }
-
-        .cli-terminal-body .prompt { color: var(--code-accent); }
-        .cli-terminal-body .dim { color: rgba(228, 228, 231, 0.4); }
-        .cli-terminal-body .success { color: var(--code-accent); }
-
-        @media (max-width: 900px) {
-            .cli-grid {
-                grid-template-columns: 1fr;
-                gap: 48px;
-            }
-
-            .cli-terminal {
-                max-width: 100%;
-            }
-        }
-
-        /* ── Docs CTA Banner ── */
-        .docs-cta-banner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 40px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 40px 48px;
-            margin: 0 0 0 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .docs-cta-banner::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-light), transparent);
-        }
-
-        .docs-cta-left {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .docs-cta-label {
-            display: inline-block;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--accent);
-            background: var(--tag-bg);
-            padding: 3px 10px;
-            border-radius: 4px;
-            font-weight: 500;
-            margin-bottom: 14px;
-        }
-
-        .docs-cta-title {
-            font-family: var(--font-display);
-            font-size: clamp(1.2rem, 2.5vw, 1.55rem);
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            line-height: 1.25;
-            margin-bottom: 10px;
-        }
-
-        .docs-cta-desc {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.7;
-            max-width: 480px;
-        }
-
-        .docs-cta-right {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
-        .docs-cta-right .btn-primary,
-        .docs-cta-right .btn-secondary {
-            justify-content: center;
-            min-width: 160px;
-        }
-
-        @media (max-width: 768px) {
-            .docs-cta-banner {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 28px 24px;
-                gap: 24px;
-            }
-
-            .docs-cta-right {
-                flex-direction: row;
-                flex-wrap: wrap;
-                width: 100%;
-            }
-
-            .docs-cta-right .btn-primary,
-            .docs-cta-right .btn-secondary {
-                flex: 1;
-                min-width: 120px;
-            }
-        }
-
-        /* ── Providers ── */
-        .providers {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 32px;
-        }
-
-        .provider-tag {
-            padding: 10px 20px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            font-size: 0.82rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-            transition: all 0.2s;
-        }
-
-        .provider-tag:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        /* ── Comparison v3 vs v4 ── */
-        .comparison-table {
-            margin-top: 56px;
-            border-radius: var(--radius);
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        .comparison-table table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-
-        .comparison-table thead {
-            background: var(--bg-warm);
-        }
-
-        .comparison-table th {
-            padding: 14px 20px;
-            text-align: left;
-            font-weight: 500;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .comparison-table td {
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border-light);
-            color: var(--text-secondary);
-        }
-
-        .comparison-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .comparison-table td:first-child {
-            font-weight: 500;
-            color: var(--text);
-        }
-
-        .comparison-table td:last-child {
-            color: var(--accent);
-            font-weight: 500;
-        }
-
-        /* ── CTA ── */
-        .cta-section {
-            text-align: center;
-            padding: 120px 0;
-        }
-
-        .cta-section .section-title {
-            max-width: 500px;
-            margin: 0 auto 16px;
-        }
-
-        .cta-section .section-desc {
-            max-width: 400px;
-            margin: 0 auto 40px;
-        }
-
-        .cta-install {
-            background: var(--code-bg);
-            border-radius: var(--radius);
-            padding: 18px 24px;
-            max-width: 580px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta-install::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(163, 230, 53, 0.4), transparent);
-        }
-
-        .cta-install-text {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-            flex: 1;
-        }
-
-        .cta-install-text .prompt {
-            color: var(--code-accent);
-            font-family: var(--font-mono);
-            font-size: 0.82rem;
-            flex-shrink: 0;
-        }
-
-        .cta-install-text .cmd-truncated {
-            font-family: var(--font-mono);
-            font-size: 0.82rem;
-            color: var(--code-text);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            min-width: 0;
-        }
-
-        .cta-copy-btn {
-            background: rgba(163, 230, 53, 0.15);
-            border: 1px solid rgba(163, 230, 53, 0.25);
-            border-radius: 8px;
-            padding: 8px 18px;
-            cursor: pointer;
-            color: var(--code-accent);
-            font-size: 0.78rem;
-            font-family: var(--font-mono);
-            font-weight: 500;
-            transition: all 0.2s;
-            white-space: nowrap;
-            flex-shrink: 0;
-            letter-spacing: 0.02em;
-        }
-
-        .cta-copy-btn:hover {
-            background: rgba(163, 230, 53, 0.25);
-            border-color: rgba(163, 230, 53, 0.4);
-        }
-
-        /* ── Footer ── */
-        footer {
-            padding: 48px 0;
-            border-top: 1px solid var(--border-light);
-        }
-
-        .footer-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .footer-left {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-        }
-
-        .footer-left a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .footer-left a:hover {
-            color: var(--text);
-        }
-
-        .footer-links {
-            display: flex;
-            gap: 24px;
-            list-style: none;
-        }
-
-        .footer-links a {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .footer-links a:hover {
-            color: var(--text);
-        }
-
-        /* ── Animations ── */
-        .fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .fade-in.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* ── Mobile Menu Overlay ── */
-        .mobile-menu {
-            display: none;
-            position: fixed;
-            top: 64px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--bg);
-            z-index: 98;
-            padding: 16px 24px 40px;
-            overflow-y: auto;
-        }
-
-        .mobile-menu.open {
-            display: block;
-        }
-
-        .mobile-menu ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .mobile-menu li a {
-            display: block;
-            padding: 18px 0;
-            font-size: 1.1rem;
-            font-weight: 400;
-            color: var(--text);
-            text-decoration: none;
-            border-bottom: 1px solid var(--border-light);
-            transition: color 0.2s;
-        }
-
-        .mobile-menu li a:hover {
-            color: var(--accent);
-        }
-
-        .mobile-menu .btn-nav-mobile {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            margin-top: 24px;
-            padding: 14px 28px;
-            font-size: 0.95rem;
-            font-weight: 500;
-            background: var(--text);
-            color: var(--bg) !important;
-            border-radius: 100px;
-            border-bottom: none !important;
-        }
-
-        .mobile-menu-footer {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid var(--border-light);
-        }
-
-        .mobile-menu .theme-toggle-mobile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            width: 100%;
-            padding: 14px 0;
-            justify-content: flex-start;
-            border: none;
-            background: none;
-            cursor: pointer;
-            color: var(--text);
-            font-family: inherit;
-            font-size: 0.95rem;
-            font-weight: 400;
-        }
-
-        .mobile-menu .theme-toggle-mobile:hover {
-            color: var(--accent);
-        }
-
-        .mobile-menu .theme-toggle-mobile .theme-toggle-label {
-            color: var(--text-secondary);
-        }
-
-        .mobile-menu .theme-toggle-mobile:hover .theme-toggle-label {
-            color: var(--text);
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none !important;
-            }
-
-            .nav-toggle {
-                display: flex;
-                order: 1;
-            }
-
-            .theme-toggle {
-                order: 2;
-            }
-
-            .hero {
-                padding: 110px 0 72px;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stack-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .stack-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .cmd-row {
-                grid-template-columns: 1fr;
-                gap: 4px;
-            }
-
-            .comparison-table {
-                overflow-x: auto;
-            }
-
-            .footer-content {
-                flex-direction: column;
-                gap: 20px;
-                text-align: center;
-            }
-
-            .install-cmd {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+        .hero-brand .brand-mark { color: var(--ink); }
+        .hero-brand .brand-mark .sig { fill: var(--signal); }
 
-            .install-cmd code {
-                font-size: 0.72rem;
-            }
+        @media (max-width: 960px) {
+            .nav-links { display: none !important; }
         }
     </style>
 </head>
 
 <body>
+    <div class="atmosphere" aria-hidden="true"></div>
 
     <!-- Navigation -->
     <nav id="nav">
@@ -2276,7 +716,7 @@
                     <circle fill="currentColor" cx="22.1579" cy="16.5888" r="0.75" />
                     <circle fill="currentColor" cx="25.5497" cy="16.5888" r="0.75" />
                 </svg>
-                <span>Cipi</span>
+                <span>Ci<span style="color:var(--signal)">pi</span></span>
             </a>
             <ul class="nav-links" id="navLinks">
                 <li><a href="#stack">Stack</a></li>
@@ -2360,323 +800,122 @@
         </div>
     </div>
 
+    
     <!-- Hero -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content fade-in">
-                <div class="hero-badge">
-                    <span class="dot"></span>
-                    v4.7.18 — MIT Licensed — 1.1k Stars
-                </div>
-                <h1>Easy Laravel <em>Deployments</em></h1>
-                <p>Laravel-first open-source CLI with AI and MCP integration — also static sites and generic PHP apps.
-                    One command installs a complete production stack.
-                    One command creates an isolated app with its own database, workers, SSL, and zero-downtime deploys.
-                </p>
-                <div class="hero-actions">
-                    <a href="docs/getting-started#installation" class="btn-primary">
-                        Get Started
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round">
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                            <polyline points="12 5 19 12 12 19" />
-                        </svg>
-                    </a>
-                    <a href="discovery" class="btn-secondary">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-                            <path
-                                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-                            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-                            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-                        </svg>
-                        Discovery
-                    </a>
-                </div>
-                <div class="install-block">
-                    <div class="install-label">Install on Ubuntu 24.04 or 26.04 VPS</div>
-                    <div class="install-cmd">
-                        <code><span class="prompt">$</span> wget -O - https://cipi.sh/setup.sh | bash</code>
-                        <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
-                    </div>
-                </div>
+    <header class="hero">
+        <div class="hero-copy">
+            <div class="hero-badge"><span class="dot"></span> v4.7.18 — MIT — 1.1k stars</div>
+            <div class="hero-brand" role="img" aria-label="Cipi">
+                <svg class="brand-mark" viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <text x="0" y="56" font-family="Space Grotesk, sans-serif" font-size="58" font-weight="700" letter-spacing="-0.04em">
+                        <tspan class="dim" fill="currentColor">Ci</tspan><tspan class="sig">pi</tspan>
+                    </text>
+                </svg>
+            </div>
+            <h1>Easy Laravel <em>deployments</em>.</h1>
+            <p>
+                Laravel-first open-source CLI with AI and MCP — also static sites and generic PHP.
+                One command installs the stack. One command creates an isolated app with database,
+                workers, SSL, and zero-downtime deploys.
+            </p>
+            <div class="hero-actions">
+                <a href="docs/getting-started#installation" class="btn btn-primary">Get started</a>
+                <a href="discovery" class="btn btn-secondary">Discovery</a>
             </div>
         </div>
-    </section>
 
-    <!-- Stack -->
-    <section class="stack-section" id="stack">
+        <div class="hero-visual" aria-label="Install command">
+            <div class="hero-visual-inner">
+                <div class="hero-visual-bar">
+                    <div class="bar-left"><i></i><span>cipi · setup</span></div>
+                    <button class="copy-btn" type="button" onclick="copyCmd(this)">Copy</button>
+                </div>
+                <pre><span class="t-dim"># Fresh Ubuntu 24.04 or 26.04 VPS</span>
+<span class="t-accent">$</span> wget -O - https://cipi.sh/setup.sh | bash
+
+<span class="t-dim"># Create an app</span>
+<span class="t-accent">$</span> cipi app create myapp --domain=myapp.com --php=8.5
+
+<span class="t-ok">OK</span>  Nginx · PHP-FPM · MariaDB · SSL · Deployer</pre>
+            </div>
+        </div>
+    </header>
+
+<!-- Stack -->
+    <section class="stack-section band" id="stack">
         <div class="container">
             <div class="fade-in">
-                <p class="section-label">What you get</p>
+                <p class="section-label section-kicker">What you get</p>
                 <h2 class="section-title">A single VPS becomes a multi-app<br>LEMP hosting platform</h2>
                 <p class="section-desc">Every app runs under its own Linux user. Isolated filesystem, PHP-FPM pool, and
                     database. One compromised app cannot touch the others.</p>
             </div>
-            <div class="stack-grid fade-in">
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <rect x="2" y="3" width="20" height="14" rx="2" />
-                        <line x1="8" y1="21" x2="16" y2="21" />
-                        <line x1="12" y1="17" x2="12" y2="21" />
-                    </svg>
-                    <h3>Nginx Reverse Proxy</h3>
-                    <p>Per-app virtual hosts with optimized configuration for Laravel applications.</p>
-                </div>
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <polyline points="16 18 22 12 16 6" />
-                        <polyline points="8 6 2 12 8 18" />
-                    </svg>
-                    <h3>Multi PHP & Composer</h3>
-                    <p>Selectable per app. Hot swap PHP versions from 8.3 to 8.5 and Composer 2.</p>
-                </div>
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <ellipse cx="12" cy="5" rx="9" ry="3" />
-                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                    </svg>
-                    <h3>MariaDB</h3>
-                    <p>Auto-tuned to your server's RAM. Dedicated database per app with isolated users.</p>
-                </div>
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2v4" />
-                        <path d="m16.2 7.8 2.9-2.9" />
-                        <path d="M18 12h4" />
-                        <path d="m16.2 16.2 2.9 2.9" />
-                        <path d="M12 18v4" />
-                        <path d="m4.9 19.1 2.9-2.9" />
-                        <path d="M2 12h4" />
-                        <path d="m4.9 4.9 2.9 2.9" />
-                    </svg>
-                    <h3>Supervisor Workers</h3>
-                    <p>Per-app queue workers with CLI management. Add, scale, and monitor queues.</p>
-                </div>
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path
-                            d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-                        <path
-                            d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-                        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-                        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-                    </svg>
-                    <h3>Deployer</h3>
-                    <p>Zero-downtime deployments with instant rollback. Keeps last 5 releases.</p>
-                </div>
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
-                    <h3>Let's Encrypt SSL</h3>
-                    <p>Automatic certificates via Certbot with SAN support for domain aliases.</p>
-                </div>
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <rect x="3" y="11" width="18" height="11" rx="2" />
-                        <path d="M7 11V7a5 5 0 0110 0v4" />
-                    </svg>
-                    <h3>Fail2ban + UFW</h3>
-                    <p>Progressive brute-force banning with recidive jail, firewall, and privilege escalation prevention
-                        out of the box. SSH, HTTP, HTTPS only.</p>
-                </div>
-                <div class="stack-item">
-                    <svg class="stack-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <h3>S3 Backups</h3>
-                    <p>Automated database and storage backups to Amazon S3 or compatible providers.</p>
-                </div>
+            
+            <div class="coverage-list fade-in">
+                <div class="coverage-row"><span class="n">01</span><span class="name">Nginx reverse proxy</span><span class="desc">Per-app virtual hosts optimized for Laravel.</span><span class="tag">Web</span></div>
+                <div class="coverage-row"><span class="n">02</span><span class="name">Multi PHP &amp; Composer</span><span class="desc">Selectable per app. Hot-swap PHP 8.3–8.5 and Composer 2.</span><span class="tag">Runtime</span></div>
+                <div class="coverage-row"><span class="n">03</span><span class="name">MariaDB</span><span class="desc">Auto-tuned to RAM. Dedicated database and user per app.</span><span class="tag">Data</span></div>
+                <div class="coverage-row"><span class="n">04</span><span class="name">Supervisor workers</span><span class="desc">Per-app queue workers with CLI management.</span><span class="tag">Queues</span></div>
+                <div class="coverage-row"><span class="n">05</span><span class="name">Deployer</span><span class="desc">Zero-downtime releases with instant rollback. Keeps last 5.</span><span class="tag">Deploy</span></div>
+                <div class="coverage-row"><span class="n">06</span><span class="name">Let's Encrypt SSL</span><span class="desc">Automatic certificates via Certbot with SAN for aliases.</span><span class="tag">TLS</span></div>
+                <div class="coverage-row"><span class="n">07</span><span class="name">Fail2ban + UFW</span><span class="desc">Brute-force banning, firewall, privilege escalation prevention.</span><span class="tag">Security</span></div>
+                <div class="coverage-row"><span class="n">08</span><span class="name">S3 backups</span><span class="desc">Automated DB and storage backups to S3-compatible storage.</span><span class="tag">Backup</span></div>
             </div>
         </div>
     </section>
 
-    <!-- For who -->
-    <section id="forwhom">
+<!-- For who -->
+    <section class="band" id="forwhom">
         <div class="container">
             <div class="fade-in">
-                <p class="section-label">Built for</p>
+                <p class="section-label section-kicker">Built for</p>
                 <h2 class="section-title">Who uses Cipi</h2>
                 <p class="section-desc">From solo developers to hosting providers — anyone who ships Laravel on a VPS.
                 </p>
             </div>
-            <div class="forwhom-grid fade-in">
-                <div class="forwhom-card">
-                    <div class="forwhom-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="16 18 22 12 16 6" />
-                            <polyline points="8 6 2 12 8 18" />
-                        </svg>
-                    </div>
-                    <span class="forwhom-label">Developers</span>
-                    <h3>Ship without the DevOps overhead</h3>
-                    <p>You write Laravel. Cipi handles the server. One command gives you a production-grade stack with
-                        isolation, SSL, queue workers, and zero-downtime deploys — no Nginx configs, no FPM tuning, no
-                        sleepless nights.</p>
-                </div>
-                <div class="forwhom-card">
-                    <div class="forwhom-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                        </svg>
-                    </div>
-                    <span class="forwhom-label">Agencies</span>
-                    <h3>One VPS, many clients — fully isolated</h3>
-                    <p>Run dozens of client projects on a single server. Each app has its own user, database, PHP
-                        version, and deploy key. A problem in one project never affects the others. Onboard a new client
-                        in minutes, not hours.</p>
-                </div>
-                <div class="forwhom-card">
-                    <div class="forwhom-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path
-                                d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-                            <path
-                                d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-                            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-                            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-                        </svg>
-                    </div>
-                    <span class="forwhom-label">Startups &amp; SaaS</span>
-                    <h3>Move fast without breaking production</h3>
-                    <p>Atomic deploys, instant rollbacks, webhook auto-deploy on every push. S3 backups so you can
-                        recover from anything. Grow from a single cheap VPS to a multi-server setup without changing
-                        your workflow.</p>
-                </div>
-                <div class="forwhom-card">
-                    <div class="forwhom-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="2" y="2" width="20" height="8" rx="2" />
-                            <rect x="2" y="14" width="20" height="8" rx="2" />
-                            <line x1="6" y1="6" x2="6.01" y2="6" />
-                            <line x1="6" y1="18" x2="6.01" y2="18" />
-                        </svg>
-                    </div>
-                    <span class="forwhom-label">Infrastructure &amp; Datacenters</span>
-                    <h3>Integrate the CLI into your automation pipelines</h3>
-                    <p>Every Cipi command is a plain shell call. Wire it into Ansible playbooks, provisioning scripts,
-                        or internal tooling to spin up isolated Laravel environments programmatically. Manage hundreds
-                        of apps without manual intervention — your datacenter, fully automated.</p>
-                </div>
+            
+            <div class="coverage-list fade-in">
+                <div class="coverage-row"><span class="n">01</span><span class="name">Developers</span><span class="desc">Ship without the DevOps overhead. One command gives you isolation, SSL, workers, and zero-downtime deploys.</span><span class="tag">Solo</span></div>
+                <div class="coverage-row"><span class="n">02</span><span class="name">Agencies</span><span class="desc">One VPS, many clients — each app isolated with its own user, database, PHP version, and deploy key.</span><span class="tag">Teams</span></div>
+                <div class="coverage-row"><span class="n">03</span><span class="name">Startups &amp; SaaS</span><span class="desc">Atomic deploys, instant rollbacks, webhook auto-deploy, S3 backups. Grow without changing workflow.</span><span class="tag">Product</span></div>
+                <div class="coverage-row"><span class="n">04</span><span class="name">Infrastructure</span><span class="desc">Every command is a plain shell call — wire into Ansible, provisioning scripts, or internal tooling.</span><span class="tag">Automation</span></div>
             </div>
         </div>
     </section>
 
-    <!-- Features -->
-    <section class="features-section" id="features">
+<!-- Features -->
+    <section class="features-section band" id="features">
         <div class="container">
             <div class="fade-in">
-                <p class="section-label">Features</p>
+                <p class="section-label section-kicker">Features</p>
                 <h2 class="section-title">Everything you need,<br>nothing you don't</h2>
                 <p class="section-desc">Built for Laravel developers who value security, simplicity, and control.
                     CLI-first and bloat-free — just SSH and the <code
                         style="font-family: var(--font-mono); font-size: 0.9em; background: rgba(0,0,0,0.06); padding: 2px 6px; border-radius: 4px;">cipi</code>
                     command — with an <strong>optional</strong> web panel the day you want one.</p>
             </div>
-            <div class="features-grid fade-in">
-                <div class="feature-card">
-                    <span class="feature-tag">Talks with agents</span>
-                    <h3>AI Agent Ready</h3>
-                    <p>Cipi includes a built-in MCP server. AI agents can deploy, roll back,
-                        back up, and manage your server through natural language — no SSH required. Works with Claude,
-                        VS Code, Cursor, and more...</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Optional web panel</span>
-                    <h3>Control Panel (GUI)</h3>
-                    <p>Prefer a browser? Install the optional web GUI with one command and manage one or many
-                        Cipi servers — apps, SSL, logs, databases — from a self-hosted dashboard.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Secure by design</span>
-                    <h3>Encryption &amp; GDPR</h3>
-                    <p>Vault — configs encrypted at rest with AES-256. Sync archives
-                        encrypted by default. GDPR-compliant log rotation. Full isolation per app:
-                        Linux user, PHP-FPM pool, database, SSH key.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Don't lose your data</span>
-                    <h3>S3 Automated Backups</h3>
-                    <p>Databases and storage to S3 or any compatible provider.<br>
-                        Full dumps and <code>shared/</code> directory, daily runs via cron.<br>
-                        Schedule it and forget it.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Portable</span>
-                    <h3>Sync Between Servers</h3>
-                    <p>Transfer apps between Cipi servers — migration, failover replication, disaster recovery. Move
-                        entire stacks or single apps. Encrypted archives protect credentials in transit.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">CI/CD Ready</span>
-                    <h3>Zero-Downtime Deploys</h3>
-                    <p>Deployer clones your repo, runs composer install, links storage, runs migrations, and swaps the
-                        symlink atomically. Instant rollback to any of the last 5 releases.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Just push</span>
-                    <h3>Webhook Auto-Deploy</h3>
-                    <p>Native integration with GitHub and GitLab — deploy keys and webhooks configured automatically.
-                        Or add any custom Git provider. HMAC signature verification for webhooks.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">CIPI LOVES PHP</span>
-                    <h3>A Perfect Laravel Environment</h3>
-                    <p>PHP 7.4 to 8.5 per app. MariaDB, Valkey, Supervisor, cron — everything Laravel needs. Switch
-                        anytime, zero downtime.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Integration</span>
-                    <h3>REST API</h3>
-                    <p>Manage apps, aliases, SSL, and deploys programmatically. Bearer tokens and granular
-                        permissions. OpenAPI spec available.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Remote</span>
-                    <h3>CLI Client</h3>
-                    <p>Manage your Cipi server from your local terminal. Apps, databases, SSL, deploys
-                        — all through the REST API. Cross-platform Go binary for Linux and macOS.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Billing</span>
-                    <h3>WHMCS Module</h3>
-                    <p>Automate hosting provisioning from WHMCS. Create and terminate Cipi apps directly from
-                        your billing panel. Laravel and custom app types supported.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Manage domains like a pro</span>
-                    <h3>Aliases &amp; SSL</h3>
-                    <p>Add multiple domains or subdomains to any app. Certbot provisions a single SAN certificate
-                        covering all domains. Auto-renew included.</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-tag">Ops friendly</span>
-                    <h3>DevOps Ready</h3>
-                    <p>Health endpoint for monitoring, real-time logs. Artisan and Tinker as the app user. Email alerts
-                        on backup or deploy failure.</p>
-                </div>
+            
+            <div class="coverage-list fade-in">
+                <div class="coverage-row"><span class="n">01</span><span class="name">AI agent ready</span><span class="desc">Built-in MCP server — deploy, roll back, back up via natural language in Cursor, VS Code, Claude.</span><span class="tag">Agents</span></div>
+                <div class="coverage-row"><span class="n">02</span><span class="name">Optional web GUI</span><span class="desc">Install a self-hosted panel when you want a browser dashboard. Skip it and stay pure CLI.</span><span class="tag">UI</span></div>
+                <div class="coverage-row"><span class="n">03</span><span class="name">Encryption &amp; GDPR</span><span class="desc">Vault AES-256 at rest, encrypted sync archives, log rotation, full per-app isolation.</span><span class="tag">Security</span></div>
+                <div class="coverage-row"><span class="n">04</span><span class="name">S3 automated backups</span><span class="desc">Databases and shared/ to S3 or compatible providers on a cron schedule.</span><span class="tag">Backup</span></div>
+                <div class="coverage-row"><span class="n">05</span><span class="name">Sync between servers</span><span class="desc">Migrate, replicate, or recover apps between Cipi servers with encrypted archives.</span><span class="tag">Ops</span></div>
+                <div class="coverage-row"><span class="n">06</span><span class="name">Zero-downtime deploys</span><span class="desc">Deployer clones, builds, migrates, and swaps the symlink atomically. Instant rollback.</span><span class="tag">CI/CD</span></div>
+                <div class="coverage-row"><span class="n">07</span><span class="name">Webhook auto-deploy</span><span class="desc">GitHub/GitLab deploy keys and webhooks configured automatically. HMAC verified.</span><span class="tag">Git</span></div>
+                <div class="coverage-row"><span class="n">08</span><span class="name">Laravel-ready stack</span><span class="desc">PHP 7.4–8.5 per app, MariaDB, Valkey, Supervisor, cron — everything Laravel needs.</span><span class="tag">PHP</span></div>
+                <div class="coverage-row"><span class="n">09</span><span class="name">REST API</span><span class="desc">Manage apps, aliases, SSL, and deploys with bearer tokens and granular abilities.</span><span class="tag">API</span></div>
+                <div class="coverage-row"><span class="n">10</span><span class="name">CLI client</span><span class="desc">Manage your server from your laptop — Go binary for Linux and macOS.</span><span class="tag">Remote</span></div>
+                <div class="coverage-row"><span class="n">11</span><span class="name">WHMCS module</span><span class="desc">Automate hosting provisioning from WHMCS — create and terminate apps from billing.</span><span class="tag">Billing</span></div>
+                <div class="coverage-row"><span class="n">12</span><span class="name">Aliases &amp; SSL</span><span class="desc">Multiple domains per app. One SAN certificate covering all of them. Auto-renew.</span><span class="tag">Domains</span></div>
             </div>
         </div>
     </section>
 
-    <!-- Sponsorship Banner -->
-    <section style="padding: 0; margin-bottom: 32px;">
+<!-- Sponsorship Banner -->
+    <section class="sponsor-band" style="padding: 0;">
         <div class="container">
-            <div class="docs-cta-banner fade-in" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--bg-card)) 0%, var(--bg-card) 60%);">
+            <div class="docs-cta-banner fade-in">
                 <div class="docs-cta-left">
                     <span class="docs-cta-label">Sponsorship</span>
                     <h3 class="docs-cta-title">Cipi is free — and stays free<br>thanks to its sponsors.</h3>
@@ -2699,16 +938,16 @@
 
     <!-- AI / MCP Section -->
     <section class="ai-section" id="ai-agents">
-        <div class="container" style="padding-top: 100px; padding-bottom: 100px;">
+        <div class="container" >
             <div class="ai-grid fade-in">
 
                 <!-- Left: copy -->
                 <div>
                     <span class="ai-label">AI-native</span>
                     <h2 class="ai-headline">From prompt<br>to <em>production.</em></h2>
-                    <p class="ai-desc">Cipi ships with a built-in <strong style="color:rgba(228,228,231,0.9)">MCP
+                    <p class="ai-desc">Cipi ships with a built-in <strong >MCP
                             server</strong> ready to use.
-                        Install the <code style="color:var(--code-accent)">cipi-agent</code> package, point your AI
+                        Install the <code style="color:var(--signal)">cipi-agent</code> package, point your AI
                         client to the endpoint,
                         and your assistant can deploy, rollback, read logs, and run Artisan commands — all over HTTPS,
                         no SSH required.</p>
@@ -2805,11 +1044,10 @@
     </section>
 
     <!-- Providers -->
-    <section
-        style="background: var(--bg-warm); border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);">
+    <section class="band compat-section">
         <div class="container">
             <div class="fade-in">
-                <p class="section-label">Compatibility</p>
+                <p class="section-label section-kicker">Compatibility</p>
                 <h2 class="section-title">Works on any Ubuntu VPS</h2>
                 <p class="section-desc">Ubuntu 24.04 or 26.04 LTS, root access, ports 22/80/443 open. That's all you
                     need.</p>
@@ -2830,20 +1068,20 @@
 
     <!-- API -->
     <section class="api-section" id="api">
-        <div class="container" style="padding-top: 100px; padding-bottom: 100px;">
+        <div class="container" >
             <div class="api-grid fade-in">
                 <div>
                     <span class="api-label">Optional</span>
                     <h2 class="api-headline">Convenient REST API<br>when you need it.</h2>
                     <p class="api-desc">Cipi stays CLI-first by default — but when you want to automate, integrate, or
                         let AI agents manage your server globally, enable the optional API layer with a single command.
-                        Use <strong style="color:var(--code-accent)">REST API</strong> to create and manage multiple
+                        Use <strong style="color:var(--signal)">REST API</strong> to create and manage multiple
                         applications across your infrastructure from a single endpoint. The
-                        <strong style="color:var(--code-accent)">CLI Client</strong> (<code style="color:var(--code-accent)">cipi-cli</code>)
+                        <strong style="color:var(--signal)">CLI Client</strong> (<code style="color:var(--signal)">cipi-cli</code>)
                         brings the full API to your local terminal — manage apps, databases, SSL, and deploys without SSH. A
-                        <strong style="color:var(--code-accent)">global MCP server</strong> is available to
+                        <strong style="color:var(--signal)">global MCP server</strong> is available to
                         let you create and manage your infrastructure through your AI agents, and an official
-                        <strong style="color:var(--code-accent)">WHMCS provisioning module</strong> lets billing panels
+                        <strong style="color:var(--signal)">WHMCS provisioning module</strong> lets billing panels
                         create and terminate apps automatically.
                     </p>
                     <a href="docs/advanced#cipi-api" class="api-cta">
@@ -2857,7 +1095,7 @@
                 </div>
                 <div class="api-visual fade-in">
                     <div class="api-visual-card">
-                        <svg class="api-visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg class="api-visual-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M8 7L4 12l4 5" />
                             <path d="M16 7l4 5-4 5" />
@@ -2867,7 +1105,7 @@
                         <span class="api-visual-sublabel">Apps · Aliases · Deploy · Status</span>
                     </div>
                     <div class="api-visual-card">
-                        <svg class="api-visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg class="api-visual-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                             <polyline points="14 2 14 8 20 8" />
@@ -2878,7 +1116,7 @@
                         <span class="api-visual-sublabel">Interactive docs</span>
                     </div>
                     <div class="api-visual-card">
-                        <svg class="api-visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg class="api-visual-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="3" y="11" width="18" height="11" rx="2" />
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -2887,7 +1125,7 @@
                         <span class="api-visual-sublabel">Granular permissions</span>
                     </div>
                     <div class="api-visual-card">
-                        <svg class="api-visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg class="api-visual-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="5" y="2" width="14" height="10" rx="2" />
                             <path d="M12 2v2" />
@@ -2903,7 +1141,7 @@
                         <span class="api-visual-sublabel">AI agents ready</span>
                     </div>
                     <div class="api-visual-card">
-                        <svg class="api-visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg class="api-visual-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="4 17 10 11 4 5" />
                             <line x1="12" y1="19" x2="20" y2="19" />
@@ -2912,7 +1150,7 @@
                         <span class="api-visual-sublabel">Remote management</span>
                     </div>
                     <div class="api-visual-card">
-                        <svg class="api-visual-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        <svg class="api-visual-icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <rect x="2" y="3" width="20" height="14" rx="2" />
                             <line x1="2" y1="9" x2="22" y2="9" />
@@ -2929,7 +1167,7 @@
 
     <!-- WHMCS -->
     <section class="whmcs-section" id="whmcs">
-        <div class="container" style="padding-top: 100px; padding-bottom: 100px;">
+        <div class="container" >
             <div class="whmcs-grid fade-in">
                 <div>
                     <span class="whmcs-label">Billing Integration</span>
@@ -3040,12 +1278,12 @@
 
     <!-- CLI Client -->
     <section class="cli-section" id="cli-client">
-        <div class="container" style="padding-top: 100px; padding-bottom: 100px;">
+        <div class="container" >
             <div class="cli-grid fade-in">
                 <div>
                     <span class="cli-label">Remote Management</span>
                     <h2 class="cli-headline">Your server,<br>from <em>any terminal</em>.</h2>
-                    <p class="cli-desc"><code style="color:var(--code-accent)">cipi-cli</code> is a standalone Go binary
+                    <p class="cli-desc"><code style="color:var(--signal)">cipi-cli</code> is a standalone Go binary
                         that talks to the Cipi REST API from your local machine. No SSH required &mdash; manage apps,
                         databases, SSL certificates, and deployments from any terminal. Available for Linux and macOS.</p>
                     <ul class="cli-features">
@@ -3141,7 +1379,7 @@
 
     <!-- Optional Web GUI -->
     <section class="cli-section" id="gui">
-        <div class="container" style="padding-top: 100px; padding-bottom: 100px;">
+        <div class="container" >
             <div class="cli-grid fade-in">
                 <div>
                     <span class="cli-label">Optional Web Panel</span>
@@ -3238,9 +1476,9 @@
     </section>
 
     <!-- CTA -->
-    <section class="cta-section" style="background: var(--bg-warm); border-top: 1px solid var(--border-light);">
+    <section class="cta-section">
         <div class="container fade-in">
-            <p class="section-label">Get Started</p>
+            <p class="section-label section-kicker">Get Started</p>
             <h2 class="section-title">Deploy your Laravel app <em
                     style="font-family: var(--font-display); font-style: normal; font-weight: 600; color: var(--accent);">today</em>
             </h2>
@@ -3248,7 +1486,7 @@
                 minutes.</p>
 
             <!-- Animated terminal -->
-            <div class="hero-terminal fade-in" id="heroTerminal" style="max-width: 680px; margin: 0 auto 40px;">
+            <div class="hero-terminal fade-in" id="heroTerminal" style="max-width: 720px; margin: 2rem auto;">
                 <div class="terminal-topbar">
                     <span class="terminal-dot red"></span>
                     <span class="terminal-dot yellow"></span>
@@ -3314,6 +1552,9 @@
             const html = document.documentElement;
             const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
             html.setAttribute('data-theme', next);
+            var tc = document.getElementById('themeColor');
+            if (tc) tc.content = (html.getAttribute('data-theme') === 'dark') ? '#A3E635' : '#65A30D';
+
             localStorage.setItem('cipi-theme', next);
             updateFavicon(next);
         }
@@ -3324,9 +1565,11 @@
             if (saved) {
                 document.documentElement.setAttribute('data-theme', saved);
                 updateFavicon(saved);
+                var tc=document.getElementById('themeColor'); if(tc) tc.content=(document.documentElement.getAttribute('data-theme')==='dark')?'#A3E635':'#65A30D';
             } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 updateFavicon('dark');
+                var tc=document.getElementById('themeColor'); if(tc) tc.content=(document.documentElement.getAttribute('data-theme')==='dark')?'#A3E635':'#65A30D';
             }
         })();
 

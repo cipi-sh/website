@@ -13,60 +13,20 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap"
         rel="stylesheet">
+    <meta name="theme-color" content="#65A30D" id="themeColor">
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/site.css">
+
     <style>
-        :root {
-            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-display: 'Space Grotesk', 'Inter', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-            --radius: 14px;
-            --radius-sm: 8px;
-        }
+        /* tokens from /css/tokens.css */
 
-        [data-theme="light"] {
-            --bg: #FFFFFF;
-            --bg-warm: #F4F5F7;
-            --bg-card: #FFFFFF;
-            --text: #0A0A0A;
-            --text-secondary: #52525B;
-            --text-muted: #9CA3AF;
-            --accent: #65A30D;
-            --accent-light: #84CC16;
-            --border: #E5E7EB;
-            --border-light: #EFF1F3;
-            --code-bg: #0E1116;
-            --code-text: #E4E4E7;
-            --code-accent: #84CC16;
-            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-            --shadow-md: 0 6px 24px rgba(15, 23, 42, 0.07);
-            --shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.10);
-            --nav-bg: rgba(255, 255, 255, 0.82);
-            --tag-bg: rgba(101, 163, 13, 0.08);
-        }
+        
 
-        [data-theme="dark"] {
-            --bg: #0A0A0B;
-            --bg-warm: #141417;
-            --bg-card: #161619;
-            --text: #F4F4F5;
-            --text-secondary: #A1A1AA;
-            --text-muted: #6B6B72;
-            --accent: #A3E635;
-            --accent-light: #BEF264;
-            --border: #26262B;
-            --border-light: #1C1C20;
-            --code-bg: #08080A;
-            --code-text: #E4E4E7;
-            --code-accent: #A3E635;
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-            --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.3);
-            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
-            --nav-bg: rgba(10, 10, 11, 0.82);
-            --tag-bg: rgba(163, 230, 53, 0.1);
-        }
+        
 
         *,
         *::before,
@@ -155,7 +115,7 @@
             background: var(--text);
             color: var(--bg);
             padding: 8px 20px;
-            border-radius: 100px;
+            border-radius: 0;
             font-weight: 500;
             font-size: 0.875rem;
             text-decoration: none;
@@ -170,7 +130,7 @@
         .theme-toggle {
             background: none;
             border: 1px solid var(--border);
-            border-radius: 100px;
+            border-radius: 0;
             width: 36px;
             height: 36px;
             cursor: pointer;
@@ -261,7 +221,7 @@
 
         .error-terminal {
             background: var(--code-bg);
-            border-radius: var(--radius);
+            border-radius: 0;
             padding: 24px 28px;
             text-align: left;
             margin-bottom: 40px;
@@ -297,7 +257,7 @@
             background: var(--text);
             color: var(--bg);
             padding: 12px 28px;
-            border-radius: 100px;
+            border-radius: 0;
             font-family: var(--font-body);
             font-weight: 500;
             font-size: 0.9rem;
@@ -317,7 +277,7 @@
             background: transparent;
             color: var(--text);
             padding: 12px 28px;
-            border-radius: 100px;
+            border-radius: 0;
             border: 1px solid var(--border);
             font-family: var(--font-body);
             font-weight: 500;
@@ -403,6 +363,7 @@
 </head>
 
 <body>
+    <div class="atmosphere" aria-hidden="true"></div>
 
     <nav>
         <div class="container">
@@ -429,7 +390,7 @@
                     <circle fill="currentColor" cx="22.1579" cy="16.5888" r="0.75" />
                     <circle fill="currentColor" cx="25.5497" cy="16.5888" r="0.75" />
                 </svg>
-                <span>Cipi</span>
+                <span>Ci<span style="color:var(--signal)">pi</span></span>
             </a>
             <div class="nav-right">
                 <a href="/" class="btn-nav">Home</a>
@@ -513,6 +474,9 @@
             const html = document.documentElement;
             const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
             html.setAttribute('data-theme', next);
+            var tc = document.getElementById('themeColor');
+            if (tc) tc.content = (html.getAttribute('data-theme') === 'dark') ? '#A3E635' : '#65A30D';
+
             localStorage.setItem('cipi-theme', next);
             updateFavicon(next);
         }
@@ -522,9 +486,11 @@
             if (saved) {
                 document.documentElement.setAttribute('data-theme', saved);
                 updateFavicon(saved);
+                var tc=document.getElementById('themeColor'); if(tc) tc.content=(document.documentElement.getAttribute('data-theme')==='dark')?'#A3E635':'#65A30D';
             } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 updateFavicon('dark');
+                var tc=document.getElementById('themeColor'); if(tc) tc.content=(document.documentElement.getAttribute('data-theme')==='dark')?'#A3E635':'#65A30D';
             }
         })();
     </script>
