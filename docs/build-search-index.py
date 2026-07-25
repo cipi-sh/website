@@ -20,6 +20,7 @@ PAGE_TITLES = {
     "deploy": "Deploy & CI/CD",
     "infrastructure": "Infrastructure",
     "cli-client": "CLI Client",
+    "gui": "Control Panel (GUI)",
     "advanced": "Advanced",
     "about": "About Cipi",
 }

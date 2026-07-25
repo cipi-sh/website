@@ -219,6 +219,7 @@
                 <a href="cli-client#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
                 <a href="cli-client#cli-update" class="sidebar-link"><code>update</code></a>
+                <a href="cli-client#cli-completion" class="sidebar-link"><code>completion</code></a>
                 <a href="cli-client#cli-global-flags" class="sidebar-link">global flags</a>
                 <a href="cli-client#cli-requirements" class="sidebar-link">requirements</a>
             </div>
@@ -314,7 +315,7 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli version
-<span class="c">cipi-cli v1.0.1 (linux/amd64)</span></pre>
+<span class="c">cipi-cli v1.1.1 (linux/amd64)</span></pre>
                 </div>
             </div>
 
@@ -325,27 +326,28 @@ sudo make install</pre>
             <div class="doc-section" id="cli-configure">
                 <p class="doc-section-label">CLI Client</p>
                 <h2>Configuration</h2>
-                <p>Before using <code>cipi-cli</code>, connect it to your Cipi API server. Each profile maps to one
-                    server — use separate profiles for production, staging, or any other environment. You need the API
-                    endpoint URL and a Sanctum token created with <code>cipi api token create</code> on your server.</p>
+                <p>A <strong>profile</strong> is a named connection to one Cipi server (API endpoint + token). Use as
+                    many profiles as you have servers — for example <code>prod</code>, <code>staging</code>, or
+                    <code>client-a</code>. You need the API endpoint URL and a Sanctum token created with
+                    <code>cipi api token create</code> on each server.</p>
 
                 <p>Credentials are stored per profile in <code>~/.cipi/config.json</code> with permissions
-                    <code>0600</code>. If you omit <code>--profile</code>, the profile name defaults to
-                    <code>default</code>.</p>
+                    <code>0600</code>. If you omit the name, the profile defaults to <code>default</code>.</p>
 
                 <h3>Interactive setup</h3>
+                <p>Add a server with <code>configure</code> or the equivalent <code>profiles add</code>:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli configure --profile prod
 <span class="c">Cipi API endpoint: https://api.example.com</span>
 <span class="c">API token: 1|yourtoken...</span>
-<span class="s">Profile "prod" saved to ~/.cipi/config.json</span>
+<span class="s">Server profile "prod" saved → ~/.cipi/config.json</span>
 
-<span class="p">$</span> cipi-cli configure --profile staging
+<span class="p">$</span> cipi-cli profiles add staging
 <span class="c">Cipi API endpoint: https://staging-api.example.com</span>
 <span class="c">API token: 1|stagingtoken...</span>
-<span class="s">Profile "staging" saved to ~/.cipi/config.json</span></pre>
+<span class="s">Server profile "staging" saved → ~/.cipi/config.json</span></pre>
                 </div>
 
                 <h3>Non-interactive setup</h3>
@@ -353,7 +355,10 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli configure --profile prod \
-    --endpoint https://api.example.com --token "1|yourtoken..."</pre>
+    --endpoint https://api.example.com --token "1|yourtoken..."
+
+<span class="p">$</span> cipi-cli profiles add staging \
+    --endpoint https://staging.example.com --token "1|yourtoken..."</pre>
                 </div>
 
                 <h3>Show configuration</h3>
@@ -366,7 +371,7 @@ sudo make install</pre>
 <span class="c">Token:     1|a8Kz...4f2a</span>
 
 <span class="p">$</span> cipi-cli profiles show
-<span class="c"># Shows all configured profiles</span></pre>
+<span class="c"># Shows all configured server profiles</span></pre>
                 </div>
             </div>
 
@@ -377,8 +382,10 @@ sudo make install</pre>
             <div class="doc-section" id="cli-profiles">
                 <p class="doc-section-label">CLI Client</p>
                 <h2><code>profiles</code></h2>
-                <p>Manage multiple server connections from a single <code>cipi-cli</code> installation. Prefix any
-                    command with a profile name to target that server, or set a default profile to omit the prefix.</p>
+                <p>Manage multiple server connections from a single <code>cipi-cli</code> installation. One profile
+                    equals one server. Prefix any command with a profile name to target that server, or set a default
+                    with <code>profiles use</code> to omit the prefix. The aliases <code>servers</code> /
+                    <code>server</code> work the same as <code>profiles</code>.</p>
 
                 <h3>Targeting a server</h3>
                 <div class="code-block">
@@ -390,15 +397,18 @@ sudo make install</pre>
 <span class="p">$</span> cipi-cli prod ssl install myapp</pre>
                 </div>
 
-                <p>With a default profile set, you can run commands without the prefix:</p>
+                <p>With a default server set, you can run commands without the prefix:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi-cli profiles default prod
+                    <pre><span class="p">$</span> cipi-cli profiles use prod
 <span class="s">Default profile set to "prod"</span>
 
 <span class="p">$</span> cipi-cli apps list
-<span class="c"># Uses the prod profile</span></pre>
+<span class="c"># Uses the prod profile</span>
+
+<span class="p">$</span> cipi-cli staging apps list
+<span class="c"># Explicit prefix still targets staging</span></pre>
                 </div>
 
                 <table class="cmd-table">
@@ -411,26 +421,33 @@ sudo make install</pre>
                     <tbody>
                         <tr>
                             <td>cipi-cli profiles</td>
-                            <td>List configured profiles</td>
+                            <td>List configured servers (alias: <code>cipi-cli servers</code>)</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli profiles add [name] [flags]</td>
+                            <td>Add or update a server profile (same as <code>configure --profile</code>)</td>
                         </tr>
                         <tr>
                             <td>cipi-cli profiles list</td>
-                            <td>List configured profiles</td>
+                            <td>List configured servers</td>
                         </tr>
                         <tr>
                             <td>cipi-cli profiles show [profile]</td>
-                            <td>Show one profile, or all if omitted</td>
+                            <td>Show one server profile, or all if omitted</td>
                         </tr>
                         <tr>
-                            <td>cipi-cli profiles default &lt;profile&gt;</td>
-                            <td>Set the default profile</td>
+                            <td>cipi-cli profiles use &lt;profile&gt;</td>
+                            <td>Set the default server (alias: <code>profiles default</code>)</td>
                         </tr>
                         <tr>
                             <td>cipi-cli profiles delete &lt;profile&gt; [-y]</td>
-                            <td>Delete a profile</td>
+                            <td>Delete a server profile</td>
                         </tr>
                     </tbody>
                 </table>
+
+                <p><code>profiles add</code> accepts the same flags as <code>configure</code>:
+                    <code>--endpoint</code> and <code>--token</code>.</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -439,9 +456,11 @@ sudo make install</pre>
                         <line x1="12" y1="16" x2="12" y2="12" />
                         <line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
-                    <span>The same profile subcommands are also available under
-                        <code>cipi-cli configure list</code>, <code>configure show</code>,
-                        <code>configure default</code>, and <code>configure delete</code>.</span>
+                    <span>Aliases: <code>servers</code> / <code>server</code> → <code>profiles</code>;
+                        <code>profiles use</code> → <code>profiles default</code>. The same management commands are
+                        also available under <code>cipi-cli configure list</code>, <code>configure show</code>,
+                        <code>configure default</code>, and <code>configure delete</code> — prefer
+                        <code>profiles</code>.</span>
                 </div>
             </div>
 
@@ -910,12 +929,73 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli update
-<span class="s">Downloading cipi-cli v1.0.1...</span>
-<span class="s">Checksum verified. Updated to v1.0.1.</span>
+<span class="s">Downloading cipi-cli v1.1.1...</span>
+<span class="s">Checksum verified. Updated to v1.1.1.</span>
 
 <span class="c"># If installed in a system path, use sudo</span>
 <span class="p">$</span> sudo cipi-cli update</pre>
                 </div>
+            </div>
+
+            <hr class="doc-divider">
+
+            <!-- ── Shell completion ── -->
+
+            <div class="doc-section" id="cli-completion">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>completion</code></h2>
+                <p>Install shell autocompletion for <code>cipi-cli</code>. The recommended path is
+                    <code>completion install</code>, which detects your shell, writes the completion script, and hooks
+                    it into your rc file (idempotent).</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli completion install</td>
+                            <td>Auto-detect shell and install completion</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli completion install --shell zsh</td>
+                            <td>Install for a specific shell (<code>zsh</code>, <code>bash</code>, or
+                                <code>fish</code>)</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli completion zsh</td>
+                            <td>Print the zsh completion script to stdout</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli completion bash</td>
+                            <td>Print the bash completion script to stdout</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli completion fish</td>
+                            <td>Print the fish completion script to stdout</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli completion install
+<span class="c">Installing zsh completion...</span>
+<span class="s">Completion installed → ~/.cipi/completions/cipi-cli.zsh</span>
+<span class="c">Hooked into ~/.zshrc</span>
+
+<span class="c"># Or pin a shell explicitly</span>
+<span class="p">$</span> cipi-cli completion install --shell bash</pre>
+                </div>
+
+                <p>For zsh and bash, the script is written under <code>~/.cipi/completions/</code> and a source line is
+                    appended to your shell rc file. For fish, the script goes to
+                    <code>~/.config/fish/completions/</code> (auto-loaded). Reload the shell afterwards, then try
+                    <code>cipi-cli &lt;TAB&gt;</code>.</p>
             </div>
 
             <hr class="doc-divider">
