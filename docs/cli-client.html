@@ -217,6 +217,7 @@
                 <a href="cli-client#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="cli-client#cli-aliases" class="sidebar-link"><code>aliases</code></a>
                 <a href="cli-client#cli-db" class="sidebar-link"><code>db</code></a>
+                <a href="cli-client#cli-status" class="sidebar-link"><code>status</code></a>
                 <a href="cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
                 <a href="cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="cli-client#cli-completion" class="sidebar-link"><code>completion</code></a>
@@ -315,7 +316,7 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli version
-<span class="c">cipi-cli v1.1.1 (linux/amd64)</span></pre>
+<span class="c">cipi-cli v1.0.8 (linux/amd64)</span></pre>
                 </div>
             </div>
 
@@ -332,29 +333,35 @@ sudo make install</pre>
                     <code>cipi api token create</code> on each server.</p>
 
                 <p>Credentials are stored per profile in <code>~/.cipi/config.json</code> with permissions
-                    <code>0600</code>. If you omit the name, the profile defaults to <code>default</code>.</p>
+                    <code>0600</code>. Always pass a profile name — if you omit it, the CLI prompts for one instead of
+                    silently writing to <code>default</code>.</p>
 
                 <h3>Interactive setup</h3>
-                <p>Add a server with <code>configure</code> or the equivalent <code>profiles add</code>:</p>
+                <p>Recommended: store the token with <code>api token add</code>. Equivalent helpers are
+                    <code>configure --profile</code> and <code>profiles add</code>:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi-cli configure --profile prod
+                    <pre><span class="p">$</span> cipi-cli api token add prod
 <span class="c">Cipi API endpoint: https://api.example.com</span>
 <span class="c">API token: 1|yourtoken...</span>
 <span class="s">Server profile "prod" saved → ~/.cipi/config.json</span>
 
-<span class="p">$</span> cipi-cli profiles add staging
+<span class="p">$</span> cipi-cli api token add staging
 <span class="c">Cipi API endpoint: https://staging-api.example.com</span>
 <span class="c">API token: 1|stagingtoken...</span>
-<span class="s">Server profile "staging" saved → ~/.cipi/config.json</span></pre>
+<span class="s">Server profile "staging" saved → ~/.cipi/config.json</span>
+
+<span class="c"># Same flow via configure / profiles add</span>
+<span class="p">$</span> cipi-cli configure --profile prod
+<span class="p">$</span> cipi-cli profiles add staging</pre>
                 </div>
 
                 <h3>Non-interactive setup</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi-cli configure --profile prod \
+                    <pre><span class="p">$</span> cipi-cli api token add prod \
     --endpoint https://api.example.com --token "1|yourtoken..."
 
 <span class="p">$</span> cipi-cli profiles add staging \
@@ -420,6 +427,10 @@ sudo make install</pre>
                     </thead>
                     <tbody>
                         <tr>
+                            <td>cipi-cli api token add [profile]</td>
+                            <td>Add or update API endpoint + token for a named server profile</td>
+                        </tr>
+                        <tr>
                             <td>cipi-cli profiles</td>
                             <td>List configured servers (alias: <code>cipi-cli servers</code>)</td>
                         </tr>
@@ -446,8 +457,9 @@ sudo make install</pre>
                     </tbody>
                 </table>
 
-                <p><code>profiles add</code> accepts the same flags as <code>configure</code>:
-                    <code>--endpoint</code> and <code>--token</code>.</p>
+                <p><code>api token add</code>, <code>profiles add</code>, and <code>configure</code> accept the same
+                    flags: <code>--endpoint</code> and <code>--token</code> (plus <code>--profile</code> when the name
+                    is not positional).</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -460,7 +472,7 @@ sudo make install</pre>
                         <code>profiles use</code> → <code>profiles default</code>. The same management commands are
                         also available under <code>cipi-cli configure list</code>, <code>configure show</code>,
                         <code>configure default</code>, and <code>configure delete</code> — prefer
-                        <code>profiles</code>.</span>
+                        <code>profiles</code> or <code>api token add</code> for storing credentials.</span>
                 </div>
             </div>
 
@@ -857,6 +869,82 @@ sudo make install</pre>
 
             <hr class="doc-divider">
 
+            <!-- ── Status ── -->
+
+            <div class="doc-section" id="cli-status">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>status</code></h2>
+                <p>Read the same host snapshot as <a href="infrastructure#cli-cipi"><code>cipi status</code></a> on
+                    the server — via <code>GET /api/status</code>. Bare <code>status</code> shows a global overview
+                    (one row per configured server). Pass a profile name (or use a profile prefix) for full details.</p>
+
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>cipi-cli status</td>
+                            <td>Global overview — one row per server</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli status &lt;profile&gt;</td>
+                            <td>Full details for one server</td>
+                        </tr>
+                        <tr>
+                            <td>cipi-cli &lt;profile&gt; status</td>
+                            <td>Same detail view, via profile prefix</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Global columns: <code>NAME</code>, <code>IP</code>, <code>CPU</code>, <code>RAM</code>,
+                    <code>HDD</code>, <code>APPS</code>, <code>SVC</code>, <code>CIPI</code>. The default profile is
+                    marked with <code>*</code>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli status
+<span class="c">  NAME      IP             CPU   RAM           HDD          APPS  SVC     CIPI</span>
+<span class="c">  prod*     203.0.113.10   12%   48% (3840M)   42G/80G 53%  3     8/8 ok  4.6.3</span>
+<span class="c">  staging   203.0.113.20   4%    31% (2048M)   18G/40G 45%  1     8/8 ok  4.6.3</span>
+
+<span class="c">  * default profile</span>
+<span class="c">  Detail: cipi-cli status &lt;name&gt;</span>
+
+<span class="p">$</span> cipi-cli status prod
+<span class="c">Server status — prod</span>
+<span class="c">  Endpoint   https://api.example.com</span>
+<span class="c">  Hostname   prod-01</span>
+<span class="c">  IP         203.0.113.10</span>
+<span class="c">  OS         Ubuntu 24.04</span>
+<span class="c">  Uptime     12 days</span>
+<span class="c">  Cipi       4.6.3</span>
+<span class="c">  CPU        12%</span>
+<span class="c">  RAM        3840/8192 MB (48%)</span>
+<span class="c">  HDD        42G/80G (53%)</span>
+<span class="c">  Apps       3</span></pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>Requires the API token ability <code>status-view</code> and
+                        <code>GET /api/status</code> on the server (API <strong>1.11.6+</strong>). Create or rotate the
+                        token with <code>cipi api token create</code> and include <code>status-view</code>.</span>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
             <!-- ── Jobs ── -->
 
             <div class="doc-section" id="cli-jobs">
@@ -929,8 +1017,8 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli update
-<span class="s">Downloading cipi-cli v1.1.1...</span>
-<span class="s">Checksum verified. Updated to v1.1.1.</span>
+<span class="s">Downloading cipi-cli v1.0.8...</span>
+<span class="s">Checksum verified. Updated to v1.0.8.</span>
 
 <span class="c"># If installed in a system path, use sudo</span>
 <span class="p">$</span> sudo cipi-cli update</pre>
@@ -1092,6 +1180,11 @@ sudo make install</pre>
                             <td>App logs (<code>apps logs</code>)</td>
                             <td>—</td>
                             <td>1.11.9</td>
+                        </tr>
+                        <tr>
+                            <td>Server status (<code>status</code>)</td>
+                            <td>—</td>
+                            <td><code>GET /api/status</code> + <code>status-view</code> (1.11.6+)</td>
                         </tr>
                         <tr>
                             <td>Global domain map (<code>domains</code>)</td>
