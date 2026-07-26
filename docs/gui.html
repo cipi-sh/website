@@ -598,30 +598,58 @@ cipi gui remove --force</pre>
             link.addEventListener('click', () => { if (window.innerWidth < 900) closeSidebar(); });
         });
 
-        const sections = document.querySelectorAll('.doc-section[id]');
-        const sidebarLinks = document.querySelectorAll('.sidebar-link');
+        // Scrollspy — scoped to the current chapter so duplicate hashes
+        // (e.g. #cli-deploy on deploy vs cli-client) highlight the right link.
+        // Scroll-based so short sections and the page bottom stay in sync.
+        (function () {
+            const sections = Array.from(document.querySelectorAll('.doc-section[id]'));
+            const page = location.pathname.split('/').pop().replace(/\.html$/, '') || 'index';
+            const chapterGroup = document.querySelector('.sidebar-group[data-chapter="' + page + '"]');
+            if (chapterGroup) chapterGroup.classList.add('current-chapter');
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    sidebarLinks.forEach(l => l.classList.remove('active'));
-                    const active = document.querySelector(`.sidebar-link[href$="#${entry.target.id}"]`);
-                    if (active) {
-                        active.classList.add('active');
-                        active.scrollIntoView({ block: 'nearest' });
-                    }
+            const sidebarLinks = chapterGroup
+                ? Array.from(chapterGroup.querySelectorAll('.sidebar-link'))
+                : Array.from(document.querySelectorAll('.sidebar-link'));
+
+            let currentId = '';
+            function setActive(id) {
+                if (!id || id === currentId) return;
+                currentId = id;
+                sidebarLinks.forEach(function (l) { l.classList.remove('active'); });
+                const active = sidebarLinks.find(function (l) {
+                    const href = l.getAttribute('href') || '';
+                    return href === page + '#' + id || href.endsWith('#' + id);
+                });
+                if (active) {
+                    active.classList.add('active');
+                    active.scrollIntoView({ block: 'nearest' });
                 }
-            });
-        }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+                document.querySelectorAll('.docs-toc-list a').forEach(function (l) {
+                    l.classList.toggle('active', l.dataset.target === id);
+                });
+            }
 
-        sections.forEach(s => observer.observe(s));
+            function update() {
+                if (!sections.length) return;
+                const marker = window.scrollY + Math.min(120, window.innerHeight * 0.2);
+                let id = sections[0].id;
+                for (let i = 0; i < sections.length; i++) {
+                    const top = sections[i].getBoundingClientRect().top + window.scrollY;
+                    if (top <= marker) id = sections[i].id;
+                    else break;
+                }
+                const doc = document.documentElement;
+                if (window.innerHeight + window.scrollY >= doc.scrollHeight - 4) {
+                    id = sections[sections.length - 1].id;
+                }
+                setActive(id);
+            }
 
-        // Highlight current chapter in sidebar
-        (function() {
-            const page = location.pathname.split('/').pop().replace('.html', '') || 'index';
-            document.querySelectorAll('.sidebar-group').forEach(g => {
-                if (g.dataset.chapter === page) g.classList.add('current-chapter');
-            });
+            window.addEventListener('scroll', update, { passive: true });
+            window.addEventListener('resize', update);
+            // Expose for TOC init (built later in this page)
+            window.__docsScrollspyUpdate = update;
+            update();
         })();
 
         // ── Reading progress bar ──
@@ -672,16 +700,9 @@ cipi gui remove --force</pre>
             inner.appendChild(list);
             aside.appendChild(inner);
             layout.appendChild(aside);
-            const tocObs = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        list.querySelectorAll('a').forEach(l => l.classList.remove('active'));
-                        const a = list.querySelector('a[data-target="' + entry.target.id + '"]');
-                        if (a) a.classList.add('active');
-                    }
-                });
-            }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
-            secs.forEach(s => tocObs.observe(s));
+            if (typeof window.__docsScrollspyUpdate === 'function') {
+                window.__docsScrollspyUpdate();
+            }
         })();
 
         // ── Full-text docs search ──
