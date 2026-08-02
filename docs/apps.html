@@ -195,6 +195,7 @@
                 <a href="infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
+                <a href="infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
                 <a href="infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
@@ -276,9 +277,10 @@
                 <h2><code>cipi app create</code></h2>
                 <p><code>cipi app create</code> supports two app types: <strong>Laravel</strong> (default) and
                     <strong>Custom</strong> (<code>--custom</code>). Laravel apps get a fully isolated environment:
-                    Linux user, PHP-FPM pool, Nginx vhost, MariaDB database, Supervisor worker, crontab entry,
-                    Deployer zero-downtime releases, SSH deploy key, and auto-compiled <code>.env</code>. Custom apps
-                    are simpler — see <a href="apps#cli-app-custom">custom apps</a> for details.
+                    Linux user, PHP-FPM pool, Nginx vhost, database (MariaDB by default; optional PostgreSQL since
+                    <strong>v4.8.0</strong>), Supervisor worker, crontab entry, Deployer zero-downtime releases, SSH
+                    deploy key, and auto-compiled <code>.env</code>. Custom apps are simpler — see
+                    <a href="apps#cli-app-custom">custom apps</a> for details.
                 </p>
 
                 <h3>Laravel app (default)</h3>
@@ -297,7 +299,11 @@
     --domain=myapp.com \
     --repository=git@github.com:you/myapp.git \
     --branch=main \
-    --php=8.5</pre>
+    --php=8.5
+
+<span class="c"># optional PostgreSQL (v4.8.0+, after cipi db install pgsql)</span>
+<span class="p">$</span> cipi app create --user=myapp --domain=myapp.com \
+    --repository=git@github.com:you/myapp.git --engine=pgsql</pre>
                 </div>
 
                 <div class="options-list">
@@ -312,6 +318,11 @@
                     <div class="option-item"><code>--php</code><span>PHP version for this app (e.g. <code>8.5</code>).
                             Defaults to PHP 8.5. Must be an installed version — only <code>8.3</code>, <code>8.4</code>
                             and <code>8.5</code> are accepted since v4.5.4 (Deployer 8 requires PHP &ge; 8.3).</span>
+                    </div>
+                    <div class="option-item"><code>--engine</code><span>Database engine:
+                            <code>mariadb</code> (default) or <code>pgsql</code> (since v4.8.0; requires
+                            <code>cipi db install pgsql</code>). Interactive create prompts when PostgreSQL is
+                            installed. Writes matching <code>.env</code> / connection URL.</span>
                     </div>
                 </div>
 
@@ -439,9 +450,9 @@
                         </tr>
                         <tr>
                             <td>cipi app reset-db-password &lt;app&gt;</td>
-                            <td>Regenerate the app's MariaDB password and automatically update the
-                                <code>DB_PASSWORD</code> value in the app's <code>.env</code> file. Exits with error for
-                                custom apps (no database).
+                            <td>Regenerate the app's database password (MariaDB or PostgreSQL per app
+                                <code>engine</code>) and automatically update <code>DB_PASSWORD</code> in the app's
+                                <code>.env</code>. Exits with error for custom apps (no database).
                             </td>
                         </tr>
                         <tr>
@@ -644,7 +655,8 @@
                         </tr>
                         <tr>
                             <td>DB_CONNECTION</td>
-                            <td>Always <code>mysql</code> (MariaDB is drop-in compatible)</td>
+                            <td><code>mysql</code> for MariaDB (drop-in compatible), or <code>pgsql</code> when the app
+                                engine is PostgreSQL (v4.8.0+)</td>
                             <td>Cipi</td>
                         </tr>
                         <tr>
@@ -654,7 +666,7 @@
                         </tr>
                         <tr>
                             <td>CACHE_STORE</td>
-                            <td><code>database</code> — uses the app's MariaDB</td>
+                            <td><code>database</code> — uses the app's database</td>
                             <td>Cipi</td>
                         </tr>
                         <tr>
@@ -693,7 +705,8 @@
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
                     <div><strong>Do not change DB credentials manually.</strong> If you need to regenerate the database
-                        password use <code>cipi db password myapp</code> — it updates both MariaDB and the
+                        password use <code>cipi db password myapp</code> (or
+                        <code>cipi app reset-db-password myapp</code>) — it updates both the engine and the
                         <code>.env</code> atomically. Editing them by hand risks leaving the two out of sync.
                     </div>
                 </div>

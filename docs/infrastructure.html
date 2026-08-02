@@ -194,6 +194,7 @@
                 <a href="infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
+                <a href="infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
                 <a href="infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
@@ -343,26 +344,45 @@
 
             <div class="doc-section" id="cli-db">
                 <h2><code>cipi db</code></h2>
-                <p>Cipi creates a dedicated MariaDB database for each <strong>Laravel</strong> app automatically during
-                    <code>app create</code>. Custom apps do not get a database — use <code>cipi db create
-                    --name=&lt;app&gt;</code> if you need one (e.g. for WordPress or another CMS). After database
-                    setup, a ready-to-use <code>mariadb+ssh://</code> connection URL is displayed,
-                    combining SSH credentials, server IP, and database information in a single copyable string for
+                <p>Cipi creates a dedicated database for each <strong>Laravel</strong> app automatically during
+                    <code>app create</code>. <strong>MariaDB</strong> (port <code>3306</code>) is the native default;
+                    since <strong>v4.8.0</strong> you can also install optional <strong>PostgreSQL</strong> (port
+                    <code>5432</code>) and choose an engine per database or app. Custom apps do not get a database —
+                    use <code>cipi db create --name=&lt;app&gt;</code> if you need one (e.g. for WordPress or another
+                    CMS). After setup, a ready-to-use connection URL is displayed (MariaDB:
+                    <code>mariadb+ssh://</code>), combining SSH credentials, server IP, and database information for
                     GUI clients like TablePlus, DBeaver, or Sequel Pro.
-                    You can also manage additional standalone databases.
                 </p>
 
+                <h3>Engines (v4.8.0+)</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi db create                     <span class="c"># interactive</span>
-<span class="p">$</span> cipi db create --name=analytics    <span class="c"># non-interactive</span>
-<span class="p">$</span> cipi db list                       <span class="c"># list all databases with sizes</span>
-<span class="p">$</span> cipi db backup myapp               <span class="c"># dump to /var/log/cipi/backups/</span>
-<span class="p">$</span> cipi db restore myapp backup.sql.gz
-<span class="p">$</span> cipi db password myapp             <span class="c"># regenerate database password</span>
-<span class="p">$</span> cipi db delete analytics</pre>
+                    <pre><span class="p">$</span> cipi db install pgsql              <span class="c"># install optional PostgreSQL</span>
+<span class="p">$</span> cipi db uninstall pgsql|mariadb    <span class="c"># remove a non-default engine (destroys data)</span>
+<span class="p">$</span> cipi db default mariadb|pgsql      <span class="c"># server-wide default when --engine is omitted</span>
+<span class="p">$</span> cipi db engines                    <span class="c"># installed engines, ports, and default</span></pre>
                 </div>
+
+                <h3>Database lifecycle</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi db create                              <span class="c"># interactive</span>
+<span class="p">$</span> cipi db create --name=analytics             <span class="c"># non-interactive (default engine)</span>
+<span class="p">$</span> cipi db create --name=analytics --engine=pgsql
+<span class="p">$</span> cipi db list [--engine=mariadb|pgsql]       <span class="c"># list databases with sizes</span>
+<span class="p">$</span> cipi db backup myapp [--engine=…]
+<span class="p">$</span> cipi db restore myapp backup.sql.gz [--engine=…]
+<span class="p">$</span> cipi db password myapp [--engine=…]         <span class="c"># regenerate password</span>
+<span class="p">$</span> cipi db delete analytics [--engine=…]</pre>
+                </div>
+                <p>Laravel apps store the chosen engine in app metadata; backup, sync, and
+                    <code>cipi app reset-db-password</code> follow it. Use
+                    <code>cipi app create --engine=pgsql</code> (or the interactive prompt) to provision a Laravel app
+                    on PostgreSQL — <code>.env</code> and the connection URL match the engine. Root password reset:
+                    <code>cipi reset db-password [--engine=]</code>.
+                </p>
             </div>
 
 
@@ -371,7 +391,8 @@
                 <h2><code>cipi alias</code></h2>
                 <p>Add multiple domains or subdomains to any app. After adding aliases, run
                     <code>cipi ssl install</code> to provision or renew the certificate with SAN coverage for all
-                    domains.
+                    domains. Since <strong>v4.8.0</strong>, <code>cipi alias add|remove</code> regenerates the vhost
+                    and re-applies SSL with <code>certbot install --redirect</code> so HTTPS is not dropped.
                 </p>
 
                 <div class="code-block">
@@ -382,6 +403,28 @@
 <span class="p">$</span> cipi alias list myapp
 <span class="p">$</span> cipi alias remove myapp myapp.it</pre>
                 </div>
+                <p>For www ↔ apex canonical redirects, prefer <a href="infrastructure#cli-www"><code>cipi www</code></a>
+                    instead of managing the counterpart host by hand.</p>
+            </div>
+
+            <div class="doc-section" id="cli-www">
+                <h2><code>cipi www</code></h2>
+                <p>Available since <strong>v4.8.0</strong>. Manage www/apex aliases and canonical 301 redirects for an
+                    app. State lives in <code>apps.json</code> (<code>www_redirect</code>); Nginx emits a dedicated
+                    redirect server block (ACME path kept public) that survives vhost regeneration. SSL is re-applied
+                    via <code>certbot install --redirect</code>.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi www add myapp              <span class="c"># add counterpart host (www ↔ apex)</span>
+<span class="p">$</span> cipi www force-to-root myapp    <span class="c"># 301 www.domain → domain</span>
+<span class="p">$</span> cipi www force-from-root myapp  <span class="c"># 301 domain → www.domain</span>
+<span class="p">$</span> cipi www clear myapp            <span class="c"># clear redirect state</span>
+<span class="p">$</span> cipi www status myapp           <span class="c"># inspect redirect state</span></pre>
+                </div>
+                <p><code>force-to-root</code> / <code>force-from-root</code> auto-add the missing alias when needed.</p>
             </div>
 
             <div class="doc-section" id="cli-domains">
@@ -475,9 +518,16 @@
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi ssl install myapp   <span class="c"># provision / renew — includes all aliases (SAN)</span>
+<span class="p">$</span> cipi ssl force myapp     <span class="c"># re-apply HTTP→HTTPS redirect (no new issuance)</span>
 <span class="p">$</span> cipi ssl renew            <span class="c"># force renewal of all certificates</span>
 <span class="p">$</span> cipi ssl status           <span class="c"># show all certs with expiry dates</span></pre>
                 </div>
+
+                <p>Since <strong>v4.8.0</strong>, <code>cipi ssl force &lt;app&gt;</code> re-applies the HTTP → HTTPS
+                    redirect for an app that already has a Let's Encrypt certificate — without issuing a new one.
+                    <code>cipi ssl install</code> also sets <code>force_https</code> in <code>apps.json</code>
+                    automatically.
+                </p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -488,6 +538,8 @@
                     </svg>
                     <div>After adding domain aliases with <code>cipi alias add</code>, always run
                         <code>cipi ssl install</code> again to provision a new SAN certificate covering all domains.
+                        If HTTPS redirect was lost after a vhost change, use <code>cipi ssl force</code> instead of
+                        re-issuing.
                     </div>
                 </div>
             </div>
@@ -845,7 +897,9 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi service stop supervisor         <span class="c"># asks for confirmation</span></pre>
                 </div>
 
-                <p>Supported service names: <code>nginx</code>, <code>mariadb</code>, <code>valkey-server</code>,
+                <p>Supported service names: <code>nginx</code>, <code>mariadb</code>, <code>postgresql</code>
+                    (aliases: <code>pgsql</code>, <code>postgres</code> — when installed via
+                    <code>cipi db install pgsql</code>), <code>valkey-server</code>,
                     <code>supervisor</code>, <code>fail2ban</code>, <code>php&lt;ver&gt;-fpm</code> (e.g.
                     <code>php8.5-fpm</code>). The keyword
                     <code>php</code> targets all installed PHP-FPM versions at once. For the cache backend,
@@ -932,9 +986,9 @@ myapp@server:~$ crontab -e</pre>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi reset root-password     <span class="c"># regenerate the root Linux user SSH password</span>
-<span class="p">$</span> cipi reset db-password       <span class="c"># regenerate the MariaDB root password</span>
-<span class="p">$</span> cipi reset valkey-password  <span class="c"># regenerate the Valkey password and restart the service</span></pre>
+                    <pre><span class="p">$</span> cipi reset root-password              <span class="c"># regenerate the root Linux user SSH password</span>
+<span class="p">$</span> cipi reset db-password [--engine=…]   <span class="c"># regenerate root password (default or chosen engine)</span>
+<span class="p">$</span> cipi reset valkey-password           <span class="c"># regenerate the Valkey password and restart the service</span></pre>
                 </div>
 
                 <div class="callout warning">

@@ -197,6 +197,7 @@
                 <a href="infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
+                <a href="infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
                 <a href="infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
@@ -390,32 +391,25 @@
                                 <div>The full v4 changelog is available on <a
                                         href="https://github.com/cipi-sh/cipi/releases" target="_blank"
                                         rel="noopener">GitHub Releases</a>.
-                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.7.22"
-                                        target="_blank" rel="noopener">4.7.22</a> —
-                                    <code>cipi smtp</code> Permission denied / AppArmor: msmtp cannot use
-                                    <code>/etc/cipi/.msmtprc</code> (setgid + AppArmor deny on
-                                    <code>/etc/cipi/*</code>), cannot run <code>passwordeval</code> helpers, and cannot
-                                    write custom log paths under <code>/var/log</code> — send now uses only system
-                                    <code>/etc/msmtprc</code> (<code>root:msmtp</code> <code>640</code>) with an
-                                    embedded password (no <code>-C</code>, no <code>passwordeval</code>, no
-                                    <code>logfile</code>); legacy <code>/etc/cipi/.msmtprc</code> is removed;
-                                    configure/test show real msmtp errors and check host reachability
-                                    (migration <strong>4.7.22</strong>).
-                                    <strong>4.7.20&ndash;4.7.21</strong> — related <code>cipi smtp</code> fixes
-                                    (password heredoc quoting, cleartext <code>.msmtprc</code> / mode
-                                    <code>0600</code>, clearing msmtp setgid).
-                                    <strong>4.7.19</strong> —
-                                    <code>cipi deploy</code> password prompt /
-                                    <code>Permission denied (publickey,password)</code>: new apps under umask
-                                    <code>002</code> got <code>~/.ssh</code> as <code>775</code> (group-writable);
-                                    OpenSSH StrictModes refused pubkey auth, so Deployer fell through to a password
-                                    prompt — <code>cipi app create</code> now forces <code>chmod 700 ~/.ssh</code>;
-                                    <code>cipi app delete</code> no longer leaves orphan Linux users / homes / SSH keys
-                                    (<code>userdel -r</code> could fail silently when processes held the UID; delete
-                                    now kills leftovers, falls back to <code>rm -rf /home/&lt;app&gt;</code>, and
-                                    <code>purge_orphan_app_users</code> sweeps Cipi-looking homes not in
-                                    <code>apps.json</code>; migration <strong>4.7.19</strong> / <code>cipi self-update</code>
-                                    repairs modes and purges orphans.
+                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.8.0"
+                                        target="_blank" rel="noopener">4.8.0</a> —
+                                    <strong>multi-engine databases</strong> (MariaDB on <code>3306</code> + optional
+                                    PostgreSQL on <code>5432</code>): <code>cipi db install pgsql</code> /
+                                    <code>uninstall</code>, <code>cipi db default</code>, <code>cipi db engines</code>,
+                                    and <code>--engine=mariadb|pgsql</code> on create/list/delete/backup/restore/password;
+                                    <code>cipi app create --engine=pgsql</code> (interactive prompt for Laravel apps);
+                                    <code>cipi www</code> for www/apex aliases and canonical 301 redirects
+                                    (<code>add</code>, <code>force-to-root</code>, <code>force-from-root</code>,
+                                    <code>clear</code>, <code>status</code>); <code>cipi ssl force</code> re-applies
+                                    HTTP→HTTPS redirect without re-issuing; <code>cipi alias add|remove</code> re-applies
+                                    SSL via <code>certbot install --redirect</code> so HTTPS is not dropped
+                                    (migration <strong>4.8.0</strong>).
+                                    <strong>4.7.23</strong> — <code>cipi help</code> is a short index by area; full
+                                    lists live in <code>cipi help &lt;topic&gt;</code> or <code>cipi help all</code>.
+                                    <strong>4.7.20&ndash;4.7.22</strong> — <code>cipi smtp</code> AppArmor/setgid fixes
+                                    (system <code>/etc/msmtprc</code> only; legacy <code>/etc/cipi/.msmtprc</code>
+                                    removed). <strong>4.7.19</strong> — deploy SSH <code>~/.ssh</code> mode
+                                    <code>700</code>; <code>cipi app delete</code> purges orphan users/homes.
                                     <strong>4.7.15&ndash;4.7.18</strong> — Panel API and
                                     <code>cipi db list</code> on Ubuntu 25.10+ / 26.04: sudo-rs-compatible
                                     <code>/etc/sudoers.d/cipi-api</code> (<code>cipi db restore *</code>),
@@ -495,7 +489,7 @@
                         </div>
                     </div>
 
-                    <div class="timeline-item timeline-item--current">
+                    <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-body">
                             <span class="timeline-version">v4.7</span>
@@ -511,6 +505,25 @@
                                 visual layer, not a new control plane. Install it if you want it; skip it and Cipi is
                                 exactly the pure CLI it was in v4. The default install still ships no web surface at
                                 all. See the <a href="gui">Control Panel</a> docs.</p>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item timeline-item--current">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-body">
+                            <span class="timeline-version">v4.8</span>
+                            <span class="timeline-date">August 2026</span>
+                            <h3 class="timeline-title">Multi-engine databases &amp; www redirects</h3>
+                            <p>v4.8 keeps MariaDB as the native default while adding <strong>optional
+                                    PostgreSQL</strong> as a first-class engine — install with
+                                <code>cipi db install pgsql</code>, pick per app with
+                                <code>--engine=pgsql</code>, and manage both through the same
+                                <code>cipi db</code> surface. Canonical <strong>www ↔ apex</strong> redirects land as
+                                <code>cipi www</code>, and <code>cipi ssl force</code> restores HTTP→HTTPS redirects
+                                without re-issuing certificates. Alias changes no longer drop HTTPS. See
+                                <a href="infrastructure#cli-db">cipi db</a>,
+                                <a href="infrastructure#cli-www">cipi www</a>, and
+                                <a href="infrastructure#cli-ssl">cipi ssl</a>.</p>
                         </div>
                     </div>
 
@@ -597,8 +610,9 @@
                     Even if an app is compromised, PHP cannot access the filesystem outside its own home.</p>
 
                 <h3>Database isolation</h3>
-                <p>Each app has its own MariaDB database and user with <code>GRANT ALL</code> restricted to that
-                    database only. A compromised app cannot read or write to another app's database.</p>
+                <p>Each app has its own database and user (MariaDB by default; optional PostgreSQL since v4.8.0)
+                    with privileges restricted to that database only. A compromised app cannot read or write to
+                    another app's database.</p>
 
                 <h3>Per-app SSH deploy keys</h3>
                 <p>Each app gets its own ed25519 SSH key pair. A compromised deploy key only affects one repository —
@@ -768,10 +782,14 @@
 
             <div class="doc-section" id="why-mariadb">
                 <h2>Why MariaDB?</h2>
-                <p>Cipi uses MariaDB instead of MySQL for several reasons:</p>
+                <p>MariaDB is the <strong>default</strong> database engine on every Cipi server (port
+                    <code>3306</code>). Since <strong>v4.8.0</strong> you can also install optional
+                    <strong>PostgreSQL</strong> (<code>cipi db install pgsql</code>, port <code>5432</code>) and pick
+                    an engine per app or database — see <a href="infrastructure#cli-db">cipi db</a>. MariaDB remains
+                    the right default for most Laravel apps:</p>
                 <ul>
-                    <li><strong>Drop-in replacement</strong> — Laravel doesn't notice the difference. Same PDO driver,
-                        same SQL syntax, same migration files.</li>
+                    <li><strong>Drop-in MySQL replacement</strong> — Laravel's <code>mysql</code> driver, same SQL
+                        syntax, same migration files.</li>
                     <li><strong>Better performance</strong> — more advanced query optimizer and native thread pool in
                         the community edition.</li>
                     <li><strong>Clean licensing</strong> — pure GPL, no Oracle involvement.</li>
