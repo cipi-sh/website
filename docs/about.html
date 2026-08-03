@@ -263,6 +263,7 @@
                 <a href="about#security-model" class="sidebar-link">security model</a>
                 <a href="about#why-not-local" class="sidebar-link">why not local?</a>
                 <a href="about#why-mariadb" class="sidebar-link">why MariaDB?</a>
+                <a href="about#why-postgresql" class="sidebar-link">why PostgreSQL?</a>
                 <a href="about#why-valkey" class="sidebar-link">why Valkey?</a>
                 <a href="about#why-laravel" class="sidebar-link">why Laravel?</a>
                 <a href="about#why-cipi" class="sidebar-link">why "Ci-Pi"?</a>
@@ -391,8 +392,13 @@
                                 <div>The full v4 changelog is available on <a
                                         href="https://github.com/cipi-sh/cipi/releases" target="_blank"
                                         rel="noopener">GitHub Releases</a>.
-                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.8.0"
-                                        target="_blank" rel="noopener">4.8.0</a> —
+                                    Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/4.8.1"
+                                        target="_blank" rel="noopener">4.8.1</a> —
+                                    <strong><code>cipi self-update</code></strong> no longer stuck on Migration
+                                    <strong>4.7.16</strong> (<code>sed</code> delimiter clash with
+                                    <code>|| true</code>); upgrades from versions below 4.7.16 (e.g.
+                                    4.7.14 → 4.8.x) complete again.
+                                    <strong>4.8.0</strong> —
                                     <strong>multi-engine databases</strong> (MariaDB on <code>3306</code> + optional
                                     PostgreSQL on <code>5432</code>): <code>cipi db install pgsql</code> /
                                     <code>uninstall</code>, <code>cipi db default</code>, <code>cipi db engines</code>,
@@ -785,19 +791,136 @@
                 <p>MariaDB is the <strong>default</strong> database engine on every Cipi server (port
                     <code>3306</code>). Since <strong>v4.8.0</strong> you can also install optional
                     <strong>PostgreSQL</strong> (<code>cipi db install pgsql</code>, port <code>5432</code>) and pick
-                    an engine per app or database — see <a href="infrastructure#cli-db">cipi db</a>. MariaDB remains
-                    the right default for most Laravel apps:</p>
+                    an engine per app or database — see <a href="infrastructure#cli-db">cipi db</a> and
+                    <a href="about#why-postgresql">Why PostgreSQL?</a>. MariaDB remains the right default for most
+                    Laravel apps: familiar MySQL-compatible SQL, strong out-of-the-box performance, and a license model
+                    that stays simple for self-hosted production.</p>
+
+                <h3>Performance that matters in production</h3>
+                <p>MariaDB is built for high-concurrency web workloads — exactly the pattern Laravel apps generate
+                    (many short queries, connection churn from PHP-FPM, mixed reads and writes).</p>
                 <ul>
-                    <li><strong>Drop-in MySQL replacement</strong> — Laravel's <code>mysql</code> driver, same SQL
-                        syntax, same migration files.</li>
-                    <li><strong>Better performance</strong> — more advanced query optimizer and native thread pool in
-                        the community edition.</li>
-                    <li><strong>Clean licensing</strong> — pure GPL, no Oracle involvement.</li>
-                    <li><strong>Native on Ubuntu</strong> — installs from the default Ubuntu repositories without
-                        external PPAs.</li>
-                    <li><strong>Auto-tuned</strong> — Cipi configures <code>innodb_buffer_pool_size</code> based on your
-                        server's RAM (256M for 1 GB RAM, up to 4 GB for 16 GB+ servers).</li>
+                    <li><strong>Advanced query optimizer</strong> — better join planning and cost-based decisions than
+                        classic MySQL for typical application queries, which often means fewer full scans and lower
+                        latency under load.</li>
+                    <li><strong>Native thread pool</strong> — available in the community edition, so the server handles
+                        many concurrent connections more efficiently than a one-thread-per-connection model when PHP-FPM
+                        spikes.</li>
+                    <li><strong>InnoDB tuned for your VPS</strong> — Cipi sets
+                        <code>innodb_buffer_pool_size</code> from server RAM (256M on 1 GB hosts, up to 4 GB on 16 GB+
+                        machines), so hot data stays in memory without starving Nginx or PHP.</li>
+                    <li><strong>Lean default for Laravel</strong> — most apps need a fast relational store, not exotic
+                        extensions. MariaDB delivers that with low operational overhead on a single Ubuntu box.</li>
                 </ul>
+
+                <h3>Fewer licensing headaches</h3>
+                <p>Choosing MariaDB avoids the ambiguity that surrounds Oracle MySQL in commercial and redistribution
+                    scenarios — especially when you ship products, host client apps, or run infra for a company.</p>
+                <ul>
+                    <li><strong>Pure GPL community server</strong> — MariaDB Server is GPL; there is no dual-license
+                        enterprise fork of the core engine that you must navigate just to stay compliant.</li>
+                    <li><strong>No Oracle MySQL CLA / dual-license maze</strong> — you are not depending on Oracle's
+                        MySQL product line, trademark policy, or commercial editions for features that “should” be
+                        free.</li>
+                    <li><strong>Predictable for SaaS and agencies</strong> — self-hosting MariaDB on your VPS keeps
+                        database licensing simple: you run open-source software on hardware you control, without MySQL
+                        Enterprise feature gates or surprise license reviews.</li>
+                    <li><strong>Aligned with Cipi's MIT philosophy</strong> — open stack, no vendor lock-in, no
+                        paid database SKU required for production performance features like the thread pool.</li>
+                </ul>
+
+                <h3>MySQL compatibility without the baggage</h3>
+                <ul>
+                    <li><strong>Drop-in for Laravel</strong> — use the <code>mysql</code> driver, the same
+                        <code>DB_*</code> env keys, and the same migration files. Eloquent, queues, and most packages
+                        just work.</li>
+                    <li><strong>Familiar tooling</strong> — TablePlus, DBeaver, Sequel Ace, and
+                        <code>mariadb</code>/<code>mysql</code> CLI clients connect the same way; Cipi still exposes a
+                        ready <code>mariadb+ssh://</code> URL after install.</li>
+                    <li><strong>Native on Ubuntu</strong> — installs from MariaDB.org / Ubuntu packaging without inventing
+                        a custom database stack; Cipi wires users, backups, and vault credentials on top.</li>
+                    <li><strong>Battle-tested for the LAMP/LEMP world</strong> — decades of MySQL-compatible
+                        applications, docs, and hiring familiarity — with an engine that stays community-first.</li>
+                </ul>
+            </div>
+
+
+
+            <div class="doc-section" id="why-postgresql">
+                <h2>Why PostgreSQL?</h2>
+                <p>Since <strong>v4.8.0</strong>, PostgreSQL is a <strong>first-class optional engine</strong> on Cipi
+                    (port <code>5432</code>). Install it with <code>cipi db install pgsql</code>, then create apps or
+                    databases with <code>--engine=pgsql</code> — see <a href="infrastructure#cli-db">cipi db</a>. Keep
+                    MariaDB as the default for classic Laravel MySQL workloads, or choose Postgres when you need richer
+                    SQL, stronger concurrency guarantees, or a stack that grows toward analytics and AI.</p>
+
+                <h3>Functionality beyond “just tables”</h3>
+                <ul>
+                    <li><strong>Rich SQL and data types</strong> — JSON/JSONB, arrays, ranges, UUID, full-text search,
+                        and expressive constraints (CHECK, exclusion, deferred FKs) that map cleanly to complex domain
+                        models.</li>
+                    <li><strong>Powerful indexing</strong> — B-tree, GIN, GiST, BRIN, partial and expression indexes —
+                        so you can index JSON paths, search documents, or speed up time-series-style queries without a
+                        second datastore.</li>
+                    <li><strong>Extensions ecosystem</strong> — <code>pgcrypto</code>, <code>uuid-ossp</code>,
+                        <code>pg_trgm</code>, PostGIS, and many others turn Postgres into a platform, not only a SQL
+                        file.</li>
+                    <li><strong>First-class Laravel support</strong> — native <code>pgsql</code> driver, migrations,
+                        Eloquent, and a huge ecosystem of packages that assume Postgres features when you need them.
+                    </li>
+                </ul>
+
+                <h3>Scalability and concurrency</h3>
+                <ul>
+                    <li><strong>MVCC done right</strong> — readers do not block writers; long-running reports and busy
+                        write traffic coexist more gracefully than on lock-heavy setups.</li>
+                    <li><strong>Reliable under mixed load</strong> — strong consistency, transactional DDL in many
+                        cases, and a planner that holds up as schemas and query shapes get more sophisticated.</li>
+                    <li><strong>Room to grow on one VPS — then beyond</strong> — excellent vertical scale for a
+                        single-node Cipi server; when you outgrow the box, the same engine is what managed Postgres,
+                        replicas, and logical replication ecosystems are built around.</li>
+                    <li><strong>Operational clarity</strong> — mature monitoring views (<code>pg_stat_*</code>),
+                        explain plans, and tooling that senior teams already know how to tune.</li>
+                </ul>
+
+                <h3>Compatibility and portability</h3>
+                <ul>
+                    <li><strong>Industry standard</strong> — Postgres is the default answer for many SaaS backends,
+                        analytics pipelines, and cloud “managed database” offerings. Skills and runbooks transfer.
+                    </li>
+                    <li><strong>Standards-leaning SQL</strong> — closer to ANSI SQL than MySQL dialects, which reduces
+                        surprise when you share queries across tools, ORMs, and warehouses.</li>
+                    <li><strong>Works with the wider data stack</strong> — BI tools, ORMs, ETL, and CDC systems almost
+                        always speak Postgres; your Cipi-hosted DB is not a dead end.</li>
+                    <li><strong>Side-by-side with MariaDB on Cipi</strong> — both engines can run on the same server
+                        (3306 + 5432). Pick per app: WordPress-style or classic Laravel MySQL on MariaDB; product,
+                        multi-tenant, or JSON-heavy apps on Postgres.</li>
+                </ul>
+
+                <h3>Ready for AI and modern data workloads</h3>
+                <ul>
+                    <li><strong>Vectors and embeddings</strong> — with extensions such as
+                        <code>pgvector</code>, you can store embeddings next to relational data for semantic search,
+                        RAG, and recommendation features without bolting on a separate vector database on day one.</li>
+                    <li><strong>JSONB as a flexible document layer</strong> — keep structured columns for invariants and
+                        JSONB for evolving AI metadata, model outputs, or tool payloads — queryable and indexable.</li>
+                    <li><strong>Full-text + similarity building blocks</strong> — combine FTS, trigram similarity, and
+                        vectors for hybrid retrieval (keyword + semantic) inside one transactional system.</li>
+                    <li><strong>Analytics-friendly</strong> — window functions, CTEs, materialized views, and robust
+                        aggregation make Postgres a solid home for product metrics and feature stores before you need a
+                        warehouse.</li>
+                </ul>
+
+                <h3>When to choose PostgreSQL on Cipi</h3>
+                <ul>
+                    <li>You need advanced constraints, JSONB, or Postgres-specific extensions</li>
+                    <li>You care about concurrent writers, complex reporting, or stricter SQL semantics</li>
+                    <li>You are building AI features (embeddings, hybrid search) or expect to</li>
+                    <li>Your team or upstream packages already standardize on <code>pgsql</code></li>
+                </ul>
+                <p>MariaDB stays the zero-friction default. PostgreSQL is there when the product needs a more capable
+                    relational engine — still managed through the same <code>cipi db</code> workflow for create, list,
+                    backup, restore, and password rotation.</p>
             </div>
 
 
