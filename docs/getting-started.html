@@ -165,8 +165,12 @@
             <div class="sidebar-group" data-chapter="apps">
                 <a href="apps" class="sidebar-group-label">apps</a>
                 <a href="apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
+                <a href="apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
                 <a href="apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
+                <a href="apps#cli-app-clone" class="sidebar-link"><code>app clone</code></a>
+                <a href="apps#cli-app-limits" class="sidebar-link"><code>app limits</code></a>
                 <a href="apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
                 <a href="apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
@@ -199,7 +203,9 @@
                 <a href="infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
-                <a href="infrastructure#cli-workers" class="sidebar-link"><code>worker</code></a>
+                <a href="infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
+                <a href="infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
+                <a href="infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
                 <a href="infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="infrastructure#cli-services" class="sidebar-link"><code>service</code></a>
@@ -435,12 +441,15 @@ root@server:~# su - myapp</pre>
                     when applicable, and PHP version. Laravel apps always require a repository; for
                     <strong>custom</strong>
                     apps you can leave the repository empty to host the site via SFTP only — see
-                    <a href="apps#cli-app-custom">custom apps</a>.
+                    <a href="apps#cli-app-custom">custom apps</a>. Since <strong>v5.0</strong>, Laravel apps can use
+                    classic PHP-FPM or <strong>Laravel Octane (FrankenPHP)</strong> with
+                    <code>--octane</code> — see <a href="apps#cli-app-octane">Laravel Octane</a>.
                 </p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi app create</pre>
+                    <pre><span class="p">$</span> cipi app create
+<span class="p">$</span> cipi app create --octane   <span class="c"># Laravel Octane (FrankenPHP)</span></pre>
                 </div>
 
                 <p>Or pass all flags directly to skip interactive mode:</p>
@@ -544,7 +553,14 @@ root@server:~# su - myapp</pre>
                         </tr>
                         <tr>
                             <td><strong>PHP-FPM</strong></td>
-                            <td>PHP runtime (8.3–8.5; ondrej/php, packages.sury.org, or Ubuntu main per release)</td>
+                            <td>Default PHP runtime per app (8.3–8.5; ondrej/php, packages.sury.org, or Ubuntu main per
+                                release)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Laravel Octane</strong></td>
+                            <td>Optional FrankenPHP HTTP server per Laravel app (since <strong>v5.0</strong>) —
+                                <code>cipi app create --octane</code>; FPM and Octane apps coexist on the same server
+                            </td>
                         </tr>
                         <tr>
                             <td><strong>MariaDB</strong></td>
@@ -557,7 +573,7 @@ root@server:~# su - myapp</pre>
                         </tr>
                         <tr>
                             <td><strong>Supervisor</strong></td>
-                            <td>Process manager for Laravel queue workers</td>
+                            <td>Process manager for Laravel queue workers, Octane, Horizon, and Reverb</td>
                         </tr>
                         <tr>
                             <td><strong>Deployer</strong></td>
@@ -618,7 +634,8 @@ root@server:~# su - myapp</pre>
     └── deploy.log</pre></div>
 
                 <p>In addition to the home directory, Cipi creates these system files:</p>
-                <div class="tree-block"><pre>PHP-FPM pool: /etc/php/8.5/fpm/pool.d/<span class="tree-accent">myapp</span>.conf <span class="tree-comment">(user=myapp)</span>
+                <div class="tree-block"><pre>PHP-FPM pool: /etc/php/8.5/fpm/pool.d/<span class="tree-accent">myapp</span>.conf <span class="tree-comment">(user=myapp; omitted for Octane apps)</span>
+Octane (v5+): Supervisor <span class="tree-accent">myapp</span>-octane + Nginx proxy_pass → 127.0.0.1:81xx
 Nginx vhost:  /etc/nginx/sites-available/<span class="tree-accent">myapp</span>
 Supervisor:   /etc/supervisor/conf.d/<span class="tree-accent">myapp</span>.conf
 Crontab:      * * * * * php artisan schedule:run

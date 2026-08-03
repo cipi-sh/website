@@ -165,8 +165,12 @@
             <div class="sidebar-group" data-chapter="apps">
                 <a href="apps" class="sidebar-group-label">apps</a>
                 <a href="apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
+                <a href="apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
                 <a href="apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
+                <a href="apps#cli-app-clone" class="sidebar-link"><code>app clone</code></a>
+                <a href="apps#cli-app-limits" class="sidebar-link"><code>app limits</code></a>
                 <a href="apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="apps#cli-basicauth" class="sidebar-link"><code>basicauth</code></a>
                 <a href="apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
@@ -200,7 +204,9 @@
                 <a href="infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
-                <a href="infrastructure#cli-workers" class="sidebar-link"><code>worker</code></a>
+                <a href="infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
+                <a href="infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
+                <a href="infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
                 <a href="infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="infrastructure#cli-services" class="sidebar-link"><code>service</code></a>
@@ -278,18 +284,29 @@
                 <h2><code>cipi app create</code></h2>
                 <p><code>cipi app create</code> supports two app types: <strong>Laravel</strong> (default) and
                     <strong>Custom</strong> (<code>--custom</code>). Laravel apps get a fully isolated environment:
-                    Linux user, PHP-FPM pool, Nginx vhost, database (MariaDB by default; optional PostgreSQL since
+                    Linux user, PHP-FPM pool <em>or</em> <strong>Laravel Octane (FrankenPHP)</strong> since
+                    <strong>v5.0</strong>, Nginx vhost, database (MariaDB by default; optional PostgreSQL since
                     <strong>v4.8.0</strong>), Supervisor worker, crontab entry, Deployer zero-downtime releases, SSH
                     deploy key, and auto-compiled <code>.env</code>. Custom apps are simpler — see
                     <a href="apps#cli-app-custom">custom apps</a> for details.
                 </p>
 
-                <h3>Laravel app (default)</h3>
+                <h3>Laravel app (default — PHP-FPM)</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi app create</pre>
                 </div>
+
+                <h3>Laravel Octane (FrankenPHP)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app create --octane
+<span class="p">$</span> cipi app create --octane=frankenphp   <span class="c"># explicit (same as --octane)</span></pre>
+                </div>
+                <p>See <a href="apps#cli-app-octane">Laravel Octane</a> for requirements, convert, and how the vhost
+                    differs from FPM.</p>
 
                 <h3>Non-interactive (flags)</h3>
                 <div class="code-block">
@@ -301,6 +318,10 @@
     --repository=git@github.com:you/myapp.git \
     --branch=main \
     --php=8.5
+
+<span class="c"># Laravel Octane (FrankenPHP) — v5.0+</span>
+<span class="p">$</span> cipi app create --user=myapp --domain=myapp.com \
+    --repository=git@github.com:you/myapp.git --octane
 
 <span class="c"># optional PostgreSQL (v4.8.0+, after cipi db install pgsql)</span>
 <span class="p">$</span> cipi app create --user=myapp --domain=myapp.com \
@@ -319,6 +340,11 @@
                     <div class="option-item"><code>--php</code><span>PHP version for this app (e.g. <code>8.5</code>).
                             Defaults to PHP 8.5. Must be an installed version — only <code>8.3</code>, <code>8.4</code>
                             and <code>8.5</code> are accepted since v4.5.4 (Deployer 8 requires PHP &ge; 8.3).</span>
+                    </div>
+                    <div class="option-item"><code>--octane</code> / <code>--octane=frankenphp</code><span>Serve HTTP
+                            via <strong>Laravel Octane (FrankenPHP)</strong> instead of PHP-FPM (since
+                            <strong>v5.0</strong>). Laravel apps only — rejected with <code>--custom</code>. See
+                            <a href="apps#cli-app-octane">Laravel Octane</a>.</span>
                     </div>
                     <div class="option-item"><code>--engine</code><span>Database engine:
                             <code>mariadb</code> (default) or <code>pgsql</code> (since v4.8.0; requires
@@ -339,6 +365,63 @@
                         <a href="deploy#git-auto-setup">Git auto-setup</a> for setup instructions and
                         fallback options when auto-configuration is not available.
                     </div>
+                </div>
+            </div>
+
+            <div class="doc-section" id="cli-app-octane">
+                <p class="doc-section-label">Apps</p>
+                <h2>Laravel Octane (FrankenPHP)</h2>
+                <p>Since <strong>v5.0</strong>, Laravel apps can serve HTTP via
+                    <strong>Laravel Octane</strong> with the <strong>FrankenPHP</strong> server instead of a per-app
+                    PHP-FPM pool. Octane and classic FPM apps run side by side on the same Cipi server.
+                </p>
+
+                <h3>What Cipi configures</h3>
+                <ul>
+                    <li>Allocates a localhost port in <code>8100–8999</code> and stores <code>octane</code> /
+                        <code>octane_port</code> in <code>apps.json</code></li>
+                    <li>Nginx vhost uses <code>proxy_pass</code> to Octane and serves static files from
+                        <code>current/public</code> — <strong>no per-app FPM pool</strong></li>
+                    <li>Supervisor program <code>${app}-octane</code> alongside queue workers</li>
+                    <li>Deployer template <code>laravel-octane.php</code> restarts / reloads Octane on deploy</li>
+                    <li><code>.env</code>: <code>OCTANE_SERVER=frankenphp</code>, <code>OCTANE_HTTPS=true</code></li>
+                </ul>
+
+                <h3>App requirements</h3>
+                <p>Your Laravel repository must include <code>laravel/octane</code> and run
+                    <code>php artisan octane:install --server=frankenphp</code>. Octane starts after the first
+                    successful deploy.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># create an Octane app</span>
+<span class="p">$</span> cipi app create --user=myapp --domain=myapp.com \
+    --repository=git@github.com:you/myapp.git --octane
+
+<span class="c"># convert an existing FPM app → Octane (or the reverse)</span>
+<span class="p">$</span> cipi app convert myapp --to=octane
+<span class="p">$</span> cipi app convert myapp --to=fpm
+
+<span class="c"># tune Octane workers (also see app limits)</span>
+<span class="p">$</span> cipi app limits myapp --octane-workers=4</pre>
+                </div>
+
+                <p><code>cipi app convert --to=octane|fpm</code> rewrites the pool / vhost / Supervisor / Deployer
+                    template / <code>.env</code>, and re-applies SSL when a certificate is already present.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Octane tip:</strong> keep long-running queue work on
+                        <a href="infrastructure#cli-workers"><code>cipi worker</code></a> or
+                        <a href="infrastructure#cli-workers">Horizon</a> — Octane handles HTTP only. Pair with
+                        <a href="#cli-app-reverb">Reverb</a> for WebSockets.</div>
                 </div>
             </div>
 
@@ -440,6 +523,18 @@
                             </td>
                         </tr>
                         <tr>
+                            <td>cipi app edit &lt;app&gt; --node-build='npm ci &amp;&amp; npm run build'</td>
+                            <td>Run a Node build after Composer vendors on every deploy (since
+                                <strong>v5.0</strong>). Deployer executes
+                                <code>.deployer/node-build.sh</code> (fail-closed; command is validated). Clear with
+                                <code>--no-node-build</code></td>
+                        </tr>
+                        <tr>
+                            <td>cipi app convert &lt;app&gt; --to=octane|fpm</td>
+                            <td>Convert between PHP-FPM and <strong>Laravel Octane</strong> (since
+                                <strong>v5.0</strong>). See <a href="#cli-app-octane">Laravel Octane</a></td>
+                        </tr>
+                        <tr>
                             <td>cipi app env &lt;app&gt;</td>
                             <td>Open the app's <code>.env</code> file in nano as the app user. Exits with error for
                                 custom apps (no .env).</td>
@@ -473,6 +568,68 @@
             </div>
 
 
+
+            <div class="doc-section" id="cli-app-reverb">
+                <h2><code>cipi app reverb</code></h2>
+                <p>Since <strong>v5.0</strong>, enable <strong>Laravel Reverb</strong> for first-party WebSockets on a
+                    Laravel app. Cipi allocates a localhost port in <code>9000–9099</code>, adds Supervisor program
+                    <code>${app}-reverb</code>, proxies Nginx <code>/app</code> to that port, and writes
+                    <code>REVERB_*</code> in <code>.env</code>.
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app reverb enable myapp
+<span class="p">$</span> cipi app reverb status myapp
+<span class="p">$</span> cipi app reverb disable myapp</pre>
+                </div>
+            </div>
+
+            <div class="doc-section" id="cli-app-clone">
+                <h2><code>cipi app clone</code></h2>
+                <p>Since <strong>v5.0</strong>, clone an existing Laravel app into a new staging (or review) app with
+                    its own domain. Sets <code>cloned_from</code> in <code>apps.json</code>; does <strong>not</strong>
+                    copy webhook or git IDs.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com
+<span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com --name=myapp-stg --branch=develop --with-db
+<span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com --no-db</pre>
+                </div>
+                <div class="options-list">
+                    <div class="option-item"><code>--domain</code><span>Required. Primary domain for the new app.</span>
+                    </div>
+                    <div class="option-item"><code>--name</code><span>Optional Linux username for the clone.</span>
+                    </div>
+                    <div class="option-item"><code>--branch</code><span>Deploy branch for the clone (defaults to the
+                            source app's branch).</span></div>
+                    <div class="option-item"><code>--with-db</code> / <code>--no-db</code><span>Create a fresh database
+                            for the clone, or skip DB provisioning.</span></div>
+                </div>
+            </div>
+
+            <div class="doc-section" id="cli-app-limits">
+                <h2><code>cipi app limits</code></h2>
+                <p>Since <strong>v5.0</strong>, set per-app resource limits with hard caps enforced by Cipi.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app limits myapp --fpm-max-children=20 --memory-limit=256M
+<span class="p">$</span> cipi app limits myapp --octane-workers=4 --worker-procs=3
+<span class="p">$</span> cipi app limits myapp   <span class="c"># show current limits</span></pre>
+                </div>
+                <div class="options-list">
+                    <div class="option-item"><code>--fpm-max-children</code><span>PHP-FPM <code>pm.max_children</code>
+                            for FPM apps.</span></div>
+                    <div class="option-item"><code>--memory-limit</code><span>PHP <code>memory_limit</code>.</span>
+                    </div>
+                    <div class="option-item"><code>--octane-workers</code><span>Octane worker count for
+                            FrankenPHP apps.</span></div>
+                    <div class="option-item"><code>--worker-procs</code><span>Supervisor queue worker process
+                            count.</span></div>
+                </div>
+            </div>
 
             <div class="doc-section" id="cli-app-suspend">
                 <h2><code>app suspend</code> / <code>app unsuspend</code></h2>

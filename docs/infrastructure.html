@@ -165,8 +165,12 @@
             <div class="sidebar-group" data-chapter="apps">
                 <a href="apps" class="sidebar-group-label">apps</a>
                 <a href="apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
+                <a href="apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
                 <a href="apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
+                <a href="apps#cli-app-clone" class="sidebar-link"><code>app clone</code></a>
+                <a href="apps#cli-app-limits" class="sidebar-link"><code>app limits</code></a>
                 <a href="apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
                 <a href="apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
@@ -199,7 +203,9 @@
                 <a href="infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
-                <a href="infrastructure#cli-workers" class="sidebar-link"><code>worker</code></a>
+                <a href="infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
+                <a href="infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
+                <a href="infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
                 <a href="infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="infrastructure#cli-services" class="sidebar-link"><code>service</code></a>
@@ -521,13 +527,24 @@
                     <pre><span class="p">$</span> cipi ssl install myapp   <span class="c"># provision / renew — includes all aliases (SAN)</span>
 <span class="p">$</span> cipi ssl force myapp     <span class="c"># re-apply HTTP→HTTPS redirect (no new issuance)</span>
 <span class="p">$</span> cipi ssl renew            <span class="c"># force renewal of all certificates</span>
-<span class="p">$</span> cipi ssl status           <span class="c"># show all certs with expiry dates</span></pre>
+<span class="p">$</span> cipi ssl status           <span class="c"># show all certs with expiry dates</span>
+
+<span class="c"># DNS-01 via Cloudflare (v5.0+) — wildcard certs</span>
+<span class="p">$</span> cipi ssl dns set --provider=cloudflare --token=YOUR_CF_TOKEN
+<span class="p">$</span> cipi ssl install myapp --dns=cloudflare
+<span class="p">$</span> cipi ssl install myapp --dns=cloudflare --wildcard</pre>
                 </div>
 
                 <p>Since <strong>v4.8.0</strong>, <code>cipi ssl force &lt;app&gt;</code> re-applies the HTTP → HTTPS
                     redirect for an app that already has a Let's Encrypt certificate — without issuing a new one.
                     <code>cipi ssl install</code> also sets <code>force_https</code> in <code>apps.json</code>
                     automatically.
+                </p>
+
+                <p>Since <strong>v5.0</strong>, optional <strong>DNS-01</strong> challenges via Cloudflare replace the
+                    default HTTP-01 flow when you need wildcard certificates or cannot expose port 80. Configure once
+                    with <code>cipi ssl dns set</code>, then pass <code>--dns=cloudflare</code> (and optionally
+                    <code>--wildcard</code>) to <code>cipi ssl install</code>.
                 </p>
 
                 <div class="callout info">
@@ -760,8 +777,23 @@ myapp@server:~$ crontab -e</pre>
 
 
 
+            <div class="doc-section" id="cli-schedule">
+                <h2><code>cipi schedule</code></h2>
+                <p>Since <strong>v5.0</strong>, manage the Laravel scheduler crontab entry that runs
+                    <code>schedule:run</code> (the crontab itself already existed; it is now toggleable and tracked in
+                    <code>apps.json</code>).
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi schedule on myapp
+<span class="p">$</span> cipi schedule off myapp
+<span class="p">$</span> cipi schedule status myapp</pre>
+                </div>
+            </div>
+
             <div class="doc-section" id="cli-workers">
-                <h2><code>cipi worker</code></h2>
+                <h2><code>cipi worker</code> &amp; Laravel Horizon</h2>
                 <p>Every app gets a default Supervisor worker for the <code>default</code> queue. You can add additional
                     queues with custom process counts and timeouts.</p>
 
@@ -774,8 +806,17 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi worker edit myapp --queue=default --processes=3
 <span class="p">$</span> cipi worker remove myapp emails
 <span class="p">$</span> cipi worker restart myapp   <span class="c"># restart all workers for the app</span>
-<span class="p">$</span> cipi worker stop myapp      <span class="c"># stop all workers for the app (used during deploys)</span></pre>
+<span class="p">$</span> cipi worker stop myapp      <span class="c"># stop all workers for the app (used during deploys)</span>
+
+<span class="c"># Laravel Horizon (v5.0+) — mutually exclusive with queue:work workers</span>
+<span class="p">$</span> cipi worker horizon enable myapp
+<span class="p">$</span> cipi worker horizon status myapp
+<span class="p">$</span> cipi worker horizon disable myapp</pre>
                 </div>
+
+                <p>With <strong>Horizon</strong> enabled, deploy runs <code>horizon:terminate</code> and restarts
+                    workers via <code>cipi-worker</code>. You cannot run classic <code>queue:work</code> workers and
+                    Horizon on the same app at once.</p>
 
                 <table class="cmd-table">
                     <thead>
@@ -824,7 +865,20 @@ myapp@server:~$ crontab -e</pre>
                     helper above.</p>
             </div>
 
-
+            <div class="doc-section" id="cli-health">
+                <h2><code>cipi health</code></h2>
+                <p>Since <strong>v5.0</strong>, configure HTTP healthchecks per app. A cron runs every 5 minutes; after
+                    3 consecutive failures Cipi notifies via the <code>health_fail</code> trigger (SMTP when
+                    configured).</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi health set myapp --url=https://myapp.com/up --expect=200
+<span class="p">$</span> cipi health check myapp
+<span class="p">$</span> cipi health list
+<span class="p">$</span> cipi health unset myapp</pre>
+                </div>
+            </div>
 
             <div class="doc-section" id="cli-firewall">
                 <h2><code>cipi firewall</code></h2>
