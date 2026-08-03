@@ -307,10 +307,21 @@
 
                 <h3>What you can do from the panel</h3>
                 <ul>
-                    <li>Manage apps — create, edit, suspend/unsuspend, and delete Laravel and custom apps.</li>
-                    <li>Issue and renew <strong>SSL</strong> certificates.</li>
-                    <li>Browse application and server <strong>logs</strong>.</li>
-                    <li>Run <strong>database</strong> operations.</li>
+                    <li>Manage <strong>apps</strong> — create, edit, deploy, suspend/unsuspend, and delete Laravel and
+                        custom apps; manage aliases, WWW/apex redirects, SSL (install + force HTTPS), and HTTP basic
+                        auth.</li>
+                    <li>Create Laravel apps with optional <strong>Laravel Octane (FrankenPHP)</strong> (API
+                        <strong>1.13+</strong> / Cipi <strong>5.0+</strong>); list and detail views show FPM vs
+                        Octane.</li>
+                    <li>Pick a database <strong>engine</strong> at app create (<code>mariadb</code> or
+                        <code>pgsql</code>) and manage multi-engine databases (API <strong>1.12+</strong> / Cipi
+                        <strong>4.8+</strong>).</li>
+                    <li>Browse application and server <strong>logs</strong> with type filter, pagination, and
+                        auto-refresh.</li>
+                    <li>Watch <strong>async jobs</strong> in an interactive overlay (spinner + terminal output while
+                        polling <code>GET /api/jobs/{id}</code>).</li>
+                    <li>Live <strong>dashboard</strong> — CPU, memory, disk, services, and app count via
+                        <code>GET /api/status</code>.</li>
                     <li>Register and switch between <strong>multiple servers</strong> from one login.</li>
                 </ul>
             </div>
@@ -340,7 +351,10 @@
                         you manage or a small dedicated box.</li>
                     <li>A domain (or subdomain) pointed at that server, e.g. <code>panel.example.com</code>.</li>
                     <li><code>cipi api</code> enabled on every server you want to control, each with a full-ability
-                        token.</li>
+                        token (include <code>www-manage</code> and <code>status-view</code>). For Octane create and
+                        FPM/Octane indicators, managed servers need API <strong>1.13+</strong> and Cipi
+                        <strong>5.0+</strong>. For multi-engine MariaDB/PostgreSQL and www redirects, API
+                        <strong>1.12+</strong> and Cipi <strong>4.8+</strong>.</li>
                 </ul>
                 <p>PHP, the FPM pool, the Nginx vhost and the scheduler are all provisioned for you by the installer —
                     you do not set up a Laravel environment by hand.</p>
@@ -532,6 +546,57 @@ cipi gui remove --force</pre>
                     and polls their status. Tear the panel down and rebuild it elsewhere without touching a single
                     managed server.</p>
 
+                <h3>API coverage</h3>
+                <p>The GUI consumes the full Cipi API OpenAPI surface. Keep the panel and each managed server's
+                    <code>cipi/api</code> package current (<code>cipi gui update</code> /
+                    <code>cipi api update</code>) so create forms and list fields match the server.</p>
+                <table class="cmd-table">
+                    <thead>
+                        <tr>
+                            <th>Area</th>
+                            <th>Coverage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Server</td>
+                            <td><code>GET /api/status</code></td>
+                        </tr>
+                        <tr>
+                            <td>Apps</td>
+                            <td>CRUD, basic auth, logs; create accepts <code>engine</code> (mariadb/pgsql) and
+                                <code>octane</code> (FrankenPHP, API <strong>1.13+</strong>); list/show expose
+                                <code>octane</code> / <code>octane_port</code></td>
+                        </tr>
+                        <tr>
+                            <td>Aliases</td>
+                            <td>List, add, remove</td>
+                        </tr>
+                        <tr>
+                            <td>WWW</td>
+                            <td>Status, add counterpart, force-to-root / force-from-root, clear
+                                (<code>www-manage</code>; API <strong>1.12+</strong>)</td>
+                        </tr>
+                        <tr>
+                            <td>Deploy</td>
+                            <td>Deploy, rollback, unlock</td>
+                        </tr>
+                        <tr>
+                            <td>SSL</td>
+                            <td>Install Let's Encrypt, force HTTPS redirect</td>
+                        </tr>
+                        <tr>
+                            <td>Databases</td>
+                            <td>Engines + list (sync); create/delete/backup/restore/password with optional
+                                <code>engine</code> (async; API <strong>1.12+</strong>)</td>
+                        </tr>
+                        <tr>
+                            <td>Jobs</td>
+                            <td>Poll status and CLI output</td>
+                        </tr>
+                    </tbody>
+                </table>
+
                 <div class="callout info">
                     <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -541,7 +606,8 @@ cipi gui remove --force</pre>
                     </svg>
                     <span>Prefer the terminal? See the <a href="cli-client">CLI client</a> for the same API-driven
                         management from your shell, or the <a href="advanced#cipi-api"><code>cipi api</code></a> and
-                        <a href="advanced#whmcs">WHMCS module</a> for automation.</span>
+                        <a href="advanced#whmcs">WHMCS module</a> for automation. Package source:
+                        <a href="https://github.com/cipi-sh/gui" target="_blank" rel="noopener">cipi-sh/gui</a>.</span>
                 </div>
             </div>
 

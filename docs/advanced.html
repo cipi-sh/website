@@ -288,12 +288,12 @@
                 <p>Cipi can optionally enable a REST API layer on the server via <code>cipi api
                     &lt;domain&gt;</code>. It is powered by the Laravel package
                     <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener"><code>cipi/api</code></a>
-                    (current release <strong>1.11.11</strong>), which exposes:
+                    (current release <strong>1.13.0</strong>), which exposes:
                 </p>
                 <ul>
-                    <li><strong>REST API</strong> — apps, aliases, deploy, SSL, databases, app logs, server status
-                        (<code>/api/*</code>)</li>
-                    <li><strong>MCP server</strong> — 29 tools at <code>/mcp</code> (Streamable HTTP)</li>
+                    <li><strong>REST API</strong> — apps (including Octane create), aliases, www redirects, deploy, SSL,
+                        multi-engine databases, app logs, server status (<code>/api/*</code>)</li>
+                    <li><strong>MCP server</strong> — 36 tools at <code>/mcp</code> (Streamable HTTP)</li>
                     <li><strong>Swagger UI</strong> — interactive reference at <code>/docs</code></li>
                 </ul>
                 <p>Requires <strong>PHP 8.2+</strong> and <strong>Laravel 12+</strong> on the panel host. This is
@@ -377,6 +377,8 @@
                     <li><code>aliases-view</code> — read aliases</li>
                     <li><code>aliases-create</code> — add aliases</li>
                     <li><code>aliases-delete</code> — remove aliases</li>
+                    <li><code>www-manage</code> — www/apex counterpart and redirects (API <strong>1.12.0+</strong> /
+                        Cipi <strong>4.8+</strong>)</li>
                     <li><code>dbs-view</code> — list databases</li>
                     <li><code>dbs-create</code> — create databases</li>
                     <li><code>dbs-delete</code> — delete databases</li>
@@ -393,9 +395,11 @@
 
                 <h3>REST endpoints</h3>
                 <p>All endpoints require the <code>Authorization: Bearer &lt;token&gt;</code> header. Write operations
-                    (create, edit, delete, deploy, rollback, unlock, SSL, alias, database) are asynchronous: they return
+                    (create, edit, delete, deploy, rollback, unlock, SSL, alias, www, database) are asynchronous: they
+                    return
                     <code>202 Accepted</code> with a <code>job_id</code> to poll via <code>GET /api/jobs/{id}</code>.
-                    Read-only endpoints such as <code>GET /api/dbs</code>, <code>GET /api/status</code>, and
+                    Read-only endpoints such as <code>GET /api/dbs</code>, <code>GET /api/dbs/engines</code>,
+                    <code>GET /api/status</code>, <code>GET /api/apps/{name}/www</code>, and
                     <code>GET /api/apps/{name}/logs</code> (API <strong>1.11.9+</strong>) are synchronous.
                     <code>POST /api/apps</code> accepts optional <code>custom</code> (boolean) and
                     <code>docroot</code> (string) parameters for creating
@@ -404,9 +408,14 @@
                     <strong>optional</strong> for custom apps: omit it (or send empty) to provision an SFTP-only site
                     aligned with Cipi <strong>v4.5.1+</strong>. When no repository is set, <code>branch</code> is
                     omitted.
-                    The MCP tool <code>AppCreate</code> follows the same rules. Update the API package to
-                    <strong>1.6.1+</strong> on the server (<code>cipi api update</code> / <code>cipi api upgrade</code>)
-                    so validation and OpenAPI match this behavior.
+                    Since API <strong>1.12.0+</strong> / Cipi <strong>4.8+</strong>, Laravel app create also accepts
+                    optional <code>engine</code> (<code>mariadb</code> or <code>pgsql</code>) to pick the database
+                    engine. Since API <strong>1.13.0+</strong> / Cipi <strong>5.0+</strong>, Laravel app create accepts
+                    optional <code>octane</code> (<code>true</code> or <code>"frankenphp"</code>) to provision
+                    <a href="apps#cli-app-octane">Laravel Octane (FrankenPHP)</a>; <code>octane</code> is rejected when
+                    <code>custom</code> is set. The MCP tool <code>AppCreate</code> follows the same rules. Keep the API
+                    package current with <code>cipi api update</code> / <code>cipi api upgrade</code> so validation and
+                    OpenAPI match this behavior.
                 </p>
                 <p><code>POST /api/apps/{name}/suspend</code> takes an app offline by swapping its Nginx vhost for a
                     generic <strong>HTTP 503</strong> maintenance page (HTTPS included) without deleting it, while
@@ -422,22 +431,43 @@
                     and Cipi <strong>4.6.2+</strong>. The MCP tool <code>AppEdit</code> accepts the same
                     <code>domain</code> parameter.</p>
                 <p><code>GET /api/apps</code> and <code>GET /api/apps/{name}</code> expose boolean
-                    <code>suspended</code> and <code>basic_auth</code> flags per app (from <code>apps.json</code>).</p>
+                    <code>suspended</code> and <code>basic_auth</code> flags per app (from <code>apps.json</code>).
+                    Since API <strong>1.12.0+</strong> they also expose <code>engine</code>,
+                    <code>www_redirect</code>, and <code>force_https</code> from <code>apps-public.json</code> /
+                    apps metadata. Since API <strong>1.13.0+</strong> they expose <code>octane</code> and
+                    <code>octane_port</code> for Octane apps.</p>
                 <p>HTTP Basic Auth endpoints under <code>/api/apps/{name}/basicauth/*</code> wrap
                     <code>cipi basicauth</code> synchronously — they do not return a <code>job_id</code>. Enable accepts
                     optional <code>user</code> and <code>password</code> (auto-generated when omitted; returned once in
                     the response). Requires the <code>apps-basicauth</code> ability and API package
                     <strong>1.10.0+</strong>. This is distinct from Composer <code>auth.json</code> management — see
                     <a href="apps#cli-basicauth"><code>cipi basicauth</code></a>.</p>
+                <p>WWW / apex endpoints under <code>/api/apps/{name}/www/*</code> wrap
+                    <a href="infrastructure#cli-www"><code>cipi www</code></a> (API <strong>1.12.0+</strong> / Cipi
+                    <strong>4.8+</strong>). <code>GET …/www</code> is synchronous and returns
+                    <code>primary</code>, <code>apex</code>, <code>www</code>, and <code>redirect</code>.
+                    <code>POST …/www/add</code>, <code>…/force-to-root</code>, <code>…/force-from-root</code>, and
+                    <code>…/clear</code> are async jobs. Requires the <code>www-manage</code> ability. MCP tools:
+                    <code>WwwStatus</code>, <code>WwwAdd</code>, <code>WwwForceToRoot</code>,
+                    <code>WwwForceFromRoot</code>, <code>WwwClear</code>.</p>
+                <p><code>POST /api/apps/{name}/ssl/force</code> re-applies the HTTP → HTTPS redirect without issuing a
+                    new certificate (<code>cipi ssl force</code>). Requires <code>ssl-manage</code> and API
+                    <strong>1.12.0+</strong>. MCP tool: <code>SslForce</code>.</p>
                 <p><code>GET /api/dbs</code> lists databases synchronously by running
-                    <code>sudo cipi db list</code> on the host (same as the server CLI). Other
-                    <code>/api/dbs/*</code> write operations are asynchronous jobs. Database commands require Cipi
-                    <strong>4.4.17+</strong> on the server (<code>cipi db …</code> entries in the API sudoers
-                    whitelist).</p>
+                    <code>sudo cipi db list</code> on the host (same as the server CLI). Optional query
+                    <code>engine=mariadb|pgsql</code> filters by engine (API <strong>1.12.0+</strong> /
+                    Cipi <strong>4.8+</strong>). <code>GET /api/dbs/engines</code> lists installed engines and the
+                    server default (sync; MCP <code>DbEngines</code>). Other <code>/api/dbs/*</code> write operations
+                    are asynchronous jobs and accept optional <code>engine</code> on create, delete, backup, restore,
+                    and password. Database commands require Cipi <strong>4.4.17+</strong> on the server
+                    (<code>cipi db …</code> entries in the API sudoers whitelist); multi-engine support needs Cipi
+                    <strong>4.8+</strong>.</p>
                 <p><code>GET /api/status</code> returns the same structured JSON as <code>cipi status</code> (system,
                     resources, services, PHP pools, app count). Since API <strong>1.11.8+</strong> the endpoint prefers
                     <code>sudo cipi status</code> on the host and falls back to direct host reads when sudo is
-                    unavailable. Requires the <code>status-view</code> ability (API <strong>1.11.6+</strong>). The MCP
+                    unavailable. Since API <strong>1.12.1+</strong> the host-read fallback includes
+                    <code>postgresql</code> when the systemd unit is installed (matching Cipi 4.8+). Requires the
+                    <code>status-view</code> ability (API <strong>1.11.6+</strong>). The MCP
                     tool <code>ServerStatus</code> returns the same payload and requires only
                     <code>mcp-access</code>. From your laptop, use
                     <a href="cli-client#cli-status"><code>cipi-cli status</code></a> for a global overview across all
@@ -535,6 +565,36 @@
                             <td>ssl-manage</td>
                         </tr>
                         <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/ssl/force</code></td>
+                            <td>ssl-manage</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/apps/{name}/www</code></td>
+                            <td>www-manage</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/www/add</code></td>
+                            <td>www-manage</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/www/force-to-root</code></td>
+                            <td>www-manage</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/www/force-from-root</code></td>
+                            <td>www-manage</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/apps/{name}/www/clear</code></td>
+                            <td>www-manage</td>
+                        </tr>
+                        <tr>
                             <td>GET</td>
                             <td><code>/api/apps/{name}/basicauth</code></td>
                             <td>apps-basicauth</td>
@@ -548,6 +608,11 @@
                             <td>POST</td>
                             <td><code>/api/apps/{name}/basicauth/disable</code></td>
                             <td>apps-basicauth</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/dbs/engines</code></td>
+                            <td>dbs-view</td>
                         </tr>
                         <tr>
                             <td>GET</td>
@@ -627,6 +692,27 @@
   -H <span class="s">"Accept: application/json"</span></pre>
                 </div>
 
+                <p><strong>Create a Laravel Octane app</strong> (async, API <strong>1.13.0+</strong> / Cipi
+                    <strong>5.0+</strong>; requires <code>apps-create</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Accept: application/json"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{
+    "domain": "shop.example.com",
+    "repository": "git@github.com:you/shop.git",
+    "branch": "main",
+    "octane": true,
+    "engine": "mariadb"
+  }'</span></pre>
+                </div>
+                <p>Send <code>"octane": "frankenphp"</code> for the same effect. Omit <code>octane</code> for classic
+                    PHP-FPM. Use <code>"engine": "pgsql"</code> when PostgreSQL is installed (API
+                    <strong>1.12.0+</strong> / Cipi <strong>4.8+</strong>).</p>
+
                 <p><strong>Deploy an app</strong> (async, <code>202</code> + <code>job_id</code>):</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -657,14 +743,18 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                 <ul>
                     <li><code>GET /api/dbs</code> — runs <code>sudo cipi db list</code> (sync). Requires Cipi
                         <strong>4.4.17+</strong> (migration adds <code>cipi db …</code> to sudoers). Without it:
-                        <code>sudo: a terminal is required</code>.</li>
+                        <code>sudo: a terminal is required</code>. Multi-engine list/engines need Cipi
+                        <strong>4.8+</strong> / API <strong>1.12.0+</strong>.</li>
                     <li><code>GET /api/status</code> / MCP <code>ServerStatus</code> — prefer
-                        <code>sudo cipi status</code> (API <strong>1.11.8+</strong>); host-read fallback when sudo fails.
+                        <code>sudo cipi status</code> (API <strong>1.11.8+</strong>); host-read fallback when sudo fails
+                        (includes <code>postgresql</code> since API <strong>1.12.1+</strong>).
                     </li>
                     <li>MCP <code>ServiceList</code> — <code>sudo cipi service list</code></li>
                     <li>MCP <code>AppArtisan</code> — <code>sudo cipi app artisan &lt;app&gt; …</code></li>
-                    <li>Async jobs — <code>cipi app</code>, <code>deploy</code>, <code>alias</code>, <code>ssl</code>,
-                        <code>db create|delete|backup|restore|password</code>, etc.</li>
+                    <li>Async jobs — <code>cipi app</code> (including <code>--octane</code> /
+                        <code>--engine</code>), <code>deploy</code>, <code>alias</code>, <code>www</code>,
+                        <code>ssl</code> / <code>ssl force</code>,
+                        <code>db create|delete|backup|restore|password|engines</code>, etc.</li>
                 </ul>
                 <p>After <code>cipi self-update</code>, run <code>cipi api fix-permissions</code> if
                     <code>/docs</code> or <code>/mcp</code> return HTTP 500 (see troubleshooting above).</p>
@@ -672,23 +762,27 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                 <h3>Swagger / OpenAPI</h3>
                 <p>Interactive documentation is available at <code>/docs</code> (Swagger UI). The OpenAPI spec is
                     generated from <code>public/api-docs/openapi.json</code> and covers apps (including suspend,
-                    unsuspend, domain rename, basic auth, and paginated logs), aliases, deploy, SSL, databases, server
-                    status, job polling with structured <code>result</code> types, and MCP tool schemas. Current API
-                    package version: <strong>1.11.11</strong>.</p>
+                    unsuspend, domain rename, basic auth, paginated logs, www redirects, Octane create, and
+                    multi-engine <code>engine</code>), aliases, deploy, SSL (install + force HTTPS), databases
+                    (engines list + optional <code>engine</code> on mutations), server status, job polling with
+                    structured <code>result</code> types, and MCP tool schemas. Current API package version:
+                    <strong>1.13.0</strong>.</p>
 
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
                     Streamable HTTP. Since API package <strong>1.11.1+</strong>, a token with the
                     <code>mcp-access</code> ability is sufficient for <strong>all</strong> MCP tools — per-endpoint REST
-                    abilities (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>, etc.)
-                    are not checked on <code>/mcp</code>. The server exposes <strong>29 tools</strong> for app, alias,
-                    database, deploy, SSL, HTTP Basic Auth, job polling, logs, Artisan, and server monitoring. Write
-                    operations that dispatch async jobs return a <code>job_id</code> — poll with <code>JobShow</code>
+                    abilities (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>,
+                    <code>www-manage</code>, etc.) are not checked on <code>/mcp</code>. The server exposes
+                    <strong>36 tools</strong> for app, alias, www, database, deploy, SSL, HTTP Basic Auth, job polling,
+                    logs, Artisan, and server monitoring. Write operations that dispatch async jobs return a
+                    <code>job_id</code> — poll with <code>JobShow</code>
                     (API <strong>1.11.0+</strong>). Basic auth actions and read-only tools run synchronously.
                 </p>
                 <ul>
                     <li><strong>Applications:</strong> <code>AppList</code>, <code>AppShow</code>,
-                        <code>AppCreate</code>, <code>AppEdit</code>, <code>AppSuspend</code>,
+                        <code>AppCreate</code> (optional <code>engine</code>, <code>octane</code>),
+                        <code>AppEdit</code>, <code>AppSuspend</code>,
                         <code>AppUnsuspend</code>, <code>AppDelete</code>,
                         <code>AppDeploy</code>, <code>AppDeployRollback</code>, <code>AppDeployUnlock</code>,
                         <code>AppArtisan</code> (Laravel apps only; rejects custom apps and
@@ -700,11 +794,17 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                     <li><strong>Aliases:</strong> <code>AliasList</code>, <code>AliasAdd</code>,
                         <code>AliasRemove</code>
                     </li>
-                    <li><strong>Databases:</strong> <code>DbList</code>, <code>DbCreate</code>,
-                        <code>DbDelete</code>, <code>DbBackup</code>, <code>DbRestore</code>,
-                        <code>DbPassword</code>
+                    <li><strong>WWW / apex:</strong> <code>WwwStatus</code>, <code>WwwAdd</code>,
+                        <code>WwwForceToRoot</code>, <code>WwwForceFromRoot</code>, <code>WwwClear</code>
+                        (API <strong>1.12.0+</strong>)
                     </li>
-                    <li><strong>SSL:</strong> <code>SslInstall</code></li>
+                    <li><strong>Databases:</strong> <code>DbEngines</code>, <code>DbList</code>,
+                        <code>DbCreate</code>, <code>DbDelete</code>, <code>DbBackup</code>,
+                        <code>DbRestore</code>, <code>DbPassword</code> (optional <code>engine</code> on
+                        list/mutations; API <strong>1.12.0+</strong>)
+                    </li>
+                    <li><strong>SSL:</strong> <code>SslInstall</code>, <code>SslForce</code>
+                        (API <strong>1.12.0+</strong>)</li>
                     <li><strong>Jobs &amp; logs:</strong> <code>JobShow</code> (poll async job status, parsed
                         <code>result</code>, and CLI output), <code>AppLogs</code> (recent app logs by type:
                         <code>all</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>,
