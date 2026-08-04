@@ -261,9 +261,9 @@
                     </svg> <span>Ci<span style="color:var(--signal)">pi</span></span> </a> <span class="nav-badge">Guide</span>
             </div>
             <div class="nav-right">
-                <a href="/it/" class="nav-link">Home</a> <a href="/it/guide/" class="nav-link">Guide</a> <a href="/it/docs/" class="nav-link">Docs</a>
+                <a href="/it/" class="nav-link">Home</a> <a href="/it/docs/" class="nav-link">Docs</a>
                 
-                <!-- i18n:switch --><div class="lang-switch" aria-label="Language"><a href="/en/guides/spec-driven-development-ai-laravel" hreflang="en" lang="en" title="English" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">EN</a><span class="lang-sep" aria-hidden="true">/</span><a class="active" href="/it/guide/sviluppo-spec-driven-ai-laravel" hreflang="it" lang="it" title="Italiano" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">IT</a></div><!-- /i18n:switch -->
+                <!-- i18n:switch --><details class="lang-switch"><summary aria-label="Language">IT</summary><div class="lang-menu"><a href="/en/guides/spec-driven-development-ai-laravel" hreflang="en" lang="en" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">English</a><a class="active" href="/it/guide/sviluppo-spec-driven-ai-laravel" hreflang="it" lang="it" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">Italiano</a></div></details><!-- /i18n:switch -->
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambia tema">
                     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
@@ -301,12 +301,12 @@
             <strong>In questa guida</strong>
             <ol>
                 <li><a href="#shift">Da autocomplete ad agent</a></li>
-                <li><a href="#specs">Spec invece di vibe</a></li>
-                <li><a href="#mcp">MCP: lo standard che ha reso utili gli agent</a></li>
-                <li><a href="#guardrails">Guardrail che funzionano davvero</a></li>
-                <li><a href="#workflow">Un loop concreto spec-to-production</a></li>
-                <li><a href="#hype">Cosa dura vs cosa è hype</a></li>
-                <li><a href="#faq">FAQ</a></li>
+                    <li><a href="#specs">Spec invece di vibe</a></li>
+                    <li><a href="#mcp">MCP: lo standard che ha reso utili gli agent</a></li>
+                    <li><a href="#guardrails">Guardrail che funzionano davvero</a></li>
+                    <li><a href="#workflow">Un loop concreto spec-to-production</a></li>
+                    <li><a href="#hype">Cosa dura vs cosa è hype</a></li>
+                    <li><a href="#faq">FAQ</a></li>
             </ol>
         </div>
 
@@ -317,9 +317,9 @@
         <p>Il "vibe coding" — promptare un agent feature per feature con l'intento che vive nella cronologia chat — produce codice che funziona oggi e non è manutenibile tra sei mesi, perché <strong>il perché evapora</strong> quando la chat si chiude. Lo sviluppo spec-driven inverte tutto:</p>
         <ul>
             <li><strong>Le spec sono artifact nel repository</strong>, versionate accanto al codice che descrivono — non prompt persi in una sidebar.</li>
-            <li><strong>I criteri di accettazione vengono prima</strong> e si traducono direttamente in test Pest: la spec definisce "fatto" prima che l'agent scriva una riga.</li>
-            <li><strong>Gli agent implementano rispetto alla spec,</strong> gli umani revisionano rispetto alla spec, e il drift diventa visibile invece che silenzioso.</li>
-            <li><strong>La spec sopravvive alla sessione.</strong> Sei mesi dopo, un nuovo developer — o un nuovo agent — legge intento, vincoli e decisioni in un solo posto.</li>
+                    <li><strong>I criteri di accettazione vengono prima</strong> e si traducono direttamente in test Pest: la spec definisce "fatto" prima che l'agent scriva una riga.</li>
+                    <li><strong>Gli agent implementano rispetto alla spec,</strong> gli umani revisionano rispetto alla spec, e il drift diventa visibile invece che silenzioso.</li>
+                    <li><strong>La spec sopravvive alla sessione.</strong> Sei mesi dopo, un nuovo developer — o un nuovo agent — legge intento, vincoli e decisioni in un solo posto.</li>
         </ul>
         <p>Nel mondo Laravel, <a class="inline" href="https://larapilot.web.ap.it" target="_blank">Larapilot</a> impacchetta tutto come workflow prodotto spec-driven che vive dentro il tuo progetto Laravel — spec, decisioni e artifact di delivery nel repo, dove agent e umani li trovano entrambi. Per l'argomento più profondo sul perché il contesto-nel-repo è ciò che mantiene un prodotto vivo oltre l'anno uno, vale la pena leggere il saggio di Andrea Pollastri <a class="inline" href="https://web.ap.it/blog/building-a-saas-that-survives-its-second-year" target="_blank">"Building a SaaS That Survives Its Second Year"</a>.</p>
 
@@ -327,27 +327,27 @@
         <p>Il <strong>Model Context Protocol</strong> è l'USB-C del tooling AI: un protocollo aperto attraverso cui gli agent scoprono e chiamano tool — database, browser, issue tracker, server — invece di fare screen-scraping o plugin su misura. Per un team Laravel, i server MCP interessanti sono quelli che toccano la pipeline di delivery:</p>
         <ul>
             <li><strong>Il tuo framework:</strong> introspezione di route, schema e job così l'agent smette di indovinare.</li>
-            <li><strong>La tua infrastruttura:</strong> qui diventa concreto — <a class="inline" href="/it/">Cipi</a> include un <strong>dual MCP server</strong> (globale e per-app), così un IDE o agent compatibile MCP può creare app, triggerare deploy, gestire SSL e database sul tuo VPS tramite un'API strutturata e con permessi invece di SSH grezzo. Il <a class="inline" href="/it/docs/agent">package Cipi Agent</a> aggiunge un endpoint MCP in-app sul lato Laravel.</li>
-            <li><strong>I tuoi quality gate:</strong> agent che possono eseguire la suite di test e leggere i risultati CI chiudono il proprio feedback loop.</li>
+                    <li><strong>La tua infrastruttura:</strong> qui diventa concreto — <a class="inline" href="/it/">Cipi</a> include un <strong>dual MCP server</strong> (globale e per-app), così un IDE o agent compatibile MCP può creare app, triggerare deploy, gestire SSL e database sul tuo VPS tramite un'API strutturata e con permessi invece di SSH grezzo. Il <a class="inline" href="/it/docs/agent">package Cipi Agent</a> aggiunge un endpoint MCP in-app sul lato Laravel.</li>
+                    <li><strong>I tuoi quality gate:</strong> agent che possono eseguire la suite di test e leggere i risultati CI chiudono il proprio feedback loop.</li>
         </ul>
 
         <h2 id="guardrails">Guardrail che funzionano davvero</h2>
         <ul>
             <li><strong>I test sono il contratto.</strong> Gli agent spediscono più velocemente di quanto gli umani possano revisionare riga per riga; i test di accettazione derivati dalla spec sono ciò che "corretto" significa.</li>
-            <li><strong>CI è l'arbitro.</strong> Pint, Larastan, Pest e composer audit girano su ogni PR dell'agent, senza eccezioni — la stessa <a class="inline" href="/it/guide/ci-cd-workflow-git-laravel">pipeline</a> degli umani.</li>
-            <li><strong>Least privilege per gli agent.</strong> Token API con scope, server MCP con allow-list esplicite di tool e nessun segreto di produzione nell'ambiente dell'agent. Un agent che deploya tramite MCP/API di Cipi può deployare — e nient'altro.</li>
-            <li><strong>Review umana per il diff sensibile:</strong> auth, pagamenti, migrazioni e tutto ciò che tocca PII passa sempre sotto occhi umani.</li>
-            <li><strong>Il rollback resta a un comando di distanza</strong> — deploy con pattern releases e snapshot pre-deploy fanno sì che un errore dell'agent sia un incident, non una catastrofe.</li>
+                    <li><strong>CI è l'arbitro.</strong> Pint, Larastan, Pest e composer audit girano su ogni PR dell'agent, senza eccezioni — la stessa <a class="inline" href="/it/guide/ci-cd-workflow-git-laravel">pipeline</a> degli umani.</li>
+                    <li><strong>Least privilege per gli agent.</strong> Token API con scope, server MCP con allow-list esplicite di tool e nessun segreto di produzione nell'ambiente dell'agent. Un agent che deploya tramite MCP/API di Cipi può deployare — e nient'altro.</li>
+                    <li><strong>Review umana per il diff sensibile:</strong> auth, pagamenti, migrazioni e tutto ciò che tocca PII passa sempre sotto occhi umani.</li>
+                    <li><strong>Il rollback resta a un comando di distanza</strong> — deploy con pattern releases e snapshot pre-deploy fanno sì che un errore dell'agent sia un incident, non una catastrofe.</li>
         </ul>
 
         <h2 id="workflow">Un loop concreto spec-to-production</h2>
         <ol>
             <li><strong>Scrivi la spec</strong> (problema, vincoli, criteri di accettazione) come artifact nel repo — Larapilot le dà struttura.</li>
-            <li><strong>L'agent implementa</strong> su un branch di breve durata, usando tool MCP per introspezione dell'app ed esecuzione test in locale.</li>
-            <li><strong>CI esegue il gate completo</strong> — style, analisi statica, test, audit di sicurezza.</li>
-            <li><strong>Un umano revisiona rispetto alla spec,</strong> non rispetto ai vibe.</li>
-            <li><strong>Merge su main triggera il webhook di deploy</strong> (zero-downtime via Cipi), i health check confermano, le eccezioni sono osservate nei primi minuti (<a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> se self-hosti).</li>
-            <li><strong>La spec viene aggiornata</strong> con ciò che è stato deciso davvero — chiudendo il loop di contesto per la prossima sessione, umana o agent.</li>
+                    <li><strong>L'agent implementa</strong> su un branch di breve durata, usando tool MCP per introspezione dell'app ed esecuzione test in locale.</li>
+                    <li><strong>CI esegue il gate completo</strong> — style, analisi statica, test, audit di sicurezza.</li>
+                    <li><strong>Un umano revisiona rispetto alla spec,</strong> non rispetto ai vibe.</li>
+                    <li><strong>Merge su main triggera il webhook di deploy</strong> (zero-downtime via Cipi), i health check confermano, le eccezioni sono osservate nei primi minuti (<a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> se self-hosti).</li>
+                    <li><strong>La spec viene aggiornata</strong> con ciò che è stato deciso davvero — chiudendo il loop di contesto per la prossima sessione, umana o agent.</li>
         </ol>
 
         <h2 id="hype">Cosa dura vs cosa è hype</h2>
@@ -395,35 +395,35 @@
                     <p>CLI open source gratuita per il deploy Laravel su VPS Ubuntu — Octane, Horizon, Reverb e deploy Git zero-downtime.</p>
                     <ul class="footer-brand-links">
                         <li><a href="/it/docs/primi-passi">Primi passi</a></li>
-                        <li><a href="/it/docs/">Docs</a></li>
-                        <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
+                    <li><a href="/it/docs/">Docs</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
                     </ul>
                 </div>
                 <nav class="footer-col footer-col--compare" aria-label="Confronta Cipi con le alternative">
                     <strong>Confronta Cipi</strong>
                     <ul>
                         <li><a href="/it/alternativa-a-laravel-forge">alternativa a Laravel Forge</a></li>
-                        <li><a href="/it/alternativa-a-laravel-cloud">alternativa a Laravel Cloud</a></li>
-                        <li><a href="/it/alternativa-a-ploi">alternativa a Ploi</a></li>
-                        <li><a href="/it/alternativa-a-coolify">alternativa a Coolify</a></li>
-                        <li><a href="/it/alternativa-a-runcloud">alternativa a RunCloud</a></li>
-                        <li><a href="/it/alternativa-a-cloudpanel">alternativa a CloudPanel</a></li>
-                        <li><a href="/it/alternativa-a-cpanel">alternativa a cPanel</a></li>
-                        <li><a href="/it/alternativa-a-plesk">alternativa a Plesk</a></li>
-                        <li><a href="/it/migliori-alternative-a-laravel-forge">Migliori alternative a Forge 2026</a></li>
-                        <li><a href="/it/alternative">Tutti i confronti</a></li>
+                    <li><a href="/it/alternativa-a-laravel-cloud">alternativa a Laravel Cloud</a></li>
+                    <li><a href="/it/alternativa-a-ploi">alternativa a Ploi</a></li>
+                    <li><a href="/it/alternativa-a-coolify">alternativa a Coolify</a></li>
+                    <li><a href="/it/alternativa-a-runcloud">alternativa a RunCloud</a></li>
+                    <li><a href="/it/alternativa-a-cloudpanel">alternativa a CloudPanel</a></li>
+                    <li><a href="/it/alternativa-a-cpanel">alternativa a cPanel</a></li>
+                    <li><a href="/it/alternativa-a-plesk">alternativa a Plesk</a></li>
+                    <li><a href="/it/migliori-alternative-a-laravel-forge">Migliori alternative a Forge 2026</a></li>
+                    <li><a href="/it/alternative">Tutti i confronti</a></li>
                     </ul>
                 </nav>
                 <nav class="footer-col" aria-label="Guide Laravel gratuite">
                     <strong>Guide gratuite</strong>
                     <ul>
                         <li><a href="/it/guide/deploy-laravel-su-ubuntu-vps">Deploy Laravel su Ubuntu</a></li>
-                        <li><a href="/it/guide/checklist-sicurezza-laravel">Checklist sicurezza Laravel</a></li>
-                        <li><a href="/it/guide/ci-cd-workflow-git-laravel">CI/CD per Laravel</a></li>
-                        <li><a href="/it/guide/ecosistema-laravel-2026">Ecosistema Laravel 2026</a></li>
-                        <li><a href="/it/guide/sviluppo-spec-driven-ai-laravel">Sviluppo AI spec-driven</a></li>
-                        <li><a href="/it/guide/stack-developer-self-hosted-2026">Stack dev self-hosted</a></li>
-                        <li><a href="/it/guide/">Tutte le guide</a></li>
+                    <li><a href="/it/guide/checklist-sicurezza-laravel">Checklist sicurezza Laravel</a></li>
+                    <li><a href="/it/guide/ci-cd-workflow-git-laravel">CI/CD per Laravel</a></li>
+                    <li><a href="/it/guide/ecosistema-laravel-2026">Ecosistema Laravel 2026</a></li>
+                    <li><a href="/it/guide/sviluppo-spec-driven-ai-laravel">Sviluppo AI spec-driven</a></li>
+                    <li><a href="/it/guide/stack-developer-self-hosted-2026">Stack dev self-hosted</a></li>
+                    <li><a href="/it/guide/">Tutte le guide</a></li>
                     </ul>
                 </nav>
             </div>
@@ -433,7 +433,6 @@
                 </div>
                 <ul class="footer-links">
                     <li><a href="https://conn.web.ap.it" target="_blank" rel="noopener">SSH Connection Manager</a></li>
-                    <li><a href="/it/novita">Novità</a></li>
                     <li><a href="/it/discovery">Discovery</a></li>
                 </ul>
             </div>

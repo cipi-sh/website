@@ -265,9 +265,8 @@
             </div>
             <div class="nav-right">
                 <a href="/en/" class="nav-link">Home</a>
-                <a href="/en/guides/" class="nav-link">Guides</a>
                 <a href="/en/docs/" class="nav-link">Docs</a>
-                <!-- i18n:switch --><div class="lang-switch" aria-label="Language"><a class="active" href="/en/guides/deploy-laravel-ubuntu-vps" hreflang="en" lang="en" title="English" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">EN</a><span class="lang-sep" aria-hidden="true">/</span><a href="/it/guide/deploy-laravel-su-ubuntu-vps" hreflang="it" lang="it" title="Italiano" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">IT</a></div><!-- /i18n:switch -->
+                <!-- i18n:switch --><details class="lang-switch"><summary aria-label="Language">EN</summary><div class="lang-menu"><a class="active" href="/en/guides/deploy-laravel-ubuntu-vps" hreflang="en" lang="en" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">English</a><a href="/it/guide/deploy-laravel-su-ubuntu-vps" hreflang="it" lang="it" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">Italiano</a></div></details><!-- /i18n:switch -->
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
                     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
@@ -312,12 +311,12 @@
             <strong>In this guide</strong>
             <ol>
                 <li><a href="#why-vps">Why a VPS (and when not)</a></li>
-                <li><a href="#stack">The production stack, explained</a></li>
-                <li><a href="#manual">The manual setup, step by step</a></li>
-                <li><a href="#one-command">The one-command alternative</a></li>
-                <li><a href="#operations">Post-deploy operations that matter</a></li>
-                <li><a href="#mistakes">Common mistakes to avoid</a></li>
-                <li><a href="#faq">FAQ</a></li>
+                    <li><a href="#stack">The production stack, explained</a></li>
+                    <li><a href="#manual">The manual setup, step by step</a></li>
+                    <li><a href="#one-command">The one-command alternative</a></li>
+                    <li><a href="#operations">Post-deploy operations that matter</a></li>
+                    <li><a href="#mistakes">Common mistakes to avoid</a></li>
+                    <li><a href="#faq">FAQ</a></li>
             </ol>
         </div>
 
@@ -329,9 +328,9 @@
         <ul>
             <li><strong>Sizing:</strong> 1 vCPU / 2 GB RAM is a comfortable starting point for a production app with a
                 database, queue worker and cache on the same box. Add swap on anything under 4 GB.</li>
-            <li><strong>Ubuntu version:</strong> use a current LTS — Ubuntu 24.04 or 26.04. Skip interim releases for
+                    <li><strong>Ubuntu version:</strong> use a current LTS — Ubuntu 24.04 or 26.04. Skip interim releases for
                 production.</li>
-            <li><strong>When not to use a VPS:</strong> if nobody on the team can respond to a server alert, a managed
+                    <li><strong>When not to use a VPS:</strong> if nobody on the team can respond to a server alert, a managed
                 platform like <a class="inline" href="/en/alternative-to-laravel-cloud">Laravel Cloud</a> is the safer
                 trade — you pay to make operations someone else's problem.</li>
         </ul>
@@ -362,31 +361,31 @@
         <ol>
             <li><strong>Create a sudo user and lock down SSH.</strong> <code>adduser deploy</code>, install your public
                 key, then disable root login and password auth in <code>/etc/ssh/sshd_config</code>.</li>
-            <li><strong>Enable the firewall.</strong> <code>ufw allow OpenSSH http https</code> then
+                    <li><strong>Enable the firewall.</strong> <code>ufw allow OpenSSH http https</code> then
                 <code>ufw enable</code>. Install Fail2ban for SSH brute-force protection.</li>
-            <li><strong>Install Nginx.</strong> <code>apt install nginx</code>.</li>
-            <li><strong>Install PHP.</strong> Add a maintained PHP repository, then install
+                    <li><strong>Install Nginx.</strong> <code>apt install nginx</code>.</li>
+                    <li><strong>Install PHP.</strong> Add a maintained PHP repository, then install
                 <code>php8.x-fpm</code> with the extensions Laravel needs: mbstring, xml, curl, zip, intl, mysql (or
                 pgsql), redis, gd, opcache.</li>
-            <li><strong>Tune PHP for production.</strong> Enable opcache, set sane <code>memory_limit</code> and
+                    <li><strong>Tune PHP for production.</strong> Enable opcache, set sane <code>memory_limit</code> and
                 <code>upload_max_filesize</code>, turn <code>expose_php</code> off.</li>
-            <li><strong>Install Composer</strong> globally.</li>
-            <li><strong>Install MariaDB</strong>, run <code>mariadb-secure-installation</code>, create a database and
+                    <li><strong>Install Composer</strong> globally.</li>
+                    <li><strong>Install MariaDB</strong>, run <code>mariadb-secure-installation</code>, create a database and
                 a dedicated user per app — never reuse root.</li>
-            <li><strong>Install Valkey</strong> (or Redis) for cache, sessions and queues.</li>
-            <li><strong>Write the Nginx server block.</strong> Document root points at
+                    <li><strong>Install Valkey</strong> (or Redis) for cache, sessions and queues.</li>
+                    <li><strong>Write the Nginx server block.</strong> Document root points at
                 <code>current/public</code>, <code>try_files</code> falls back to <code>index.php</code>, FastCGI
                 passes to the app's PHP-FPM socket.</li>
-            <li><strong>Ship the code.</strong> Clone into a <code>releases/</code> directory,
+                    <li><strong>Ship the code.</strong> Clone into a <code>releases/</code> directory,
                 <code>composer install --no-dev --optimize-autoloader</code>, copy <code>.env</code>, run
                 <code>php artisan key:generate</code>, <code>storage:link</code>, and fix permissions so only
                 <code>storage/</code> and <code>bootstrap/cache/</code> are writable.</li>
-            <li><strong>Migrate and cache.</strong> <code>php artisan migrate --force</code> then
+                    <li><strong>Migrate and cache.</strong> <code>php artisan migrate --force</code> then
                 <code>config:cache</code>, <code>route:cache</code>, <code>view:cache</code>.</li>
-            <li><strong>Configure Supervisor</strong> to run <code>php artisan queue:work</code> (or Horizon) and
+                    <li><strong>Configure Supervisor</strong> to run <code>php artisan queue:work</code> (or Horizon) and
                 restart it on every deploy.</li>
-            <li><strong>Add the scheduler cron:</strong> <code>* * * * * php artisan schedule:run</code>.</li>
-            <li><strong>Issue TLS certificates</strong> with Certbot and force HTTPS.</li>
+                    <li><strong>Add the scheduler cron:</strong> <code>* * * * * php artisan schedule:run</code>.</li>
+                    <li><strong>Issue TLS certificates</strong> with Certbot and force HTTPS.</li>
         </ol>
         <p>Now multiply by every app you host, and again by every server — and keep PHP, Nginx and the OS patched
             forever. It's all doable; it's just undifferentiated work.</p>
@@ -416,16 +415,16 @@
                 target works — including <a class="inline" href="https://johnny.web.ap.it" target="_blank">Johnny</a>,
                 an open-source S3-compatible object storage you can run on a second VPS for genuinely independent
                 off-site copies. Do a restore drill quarterly: an untested backup is a hope, not a plan.</li>
-            <li><strong>Exception tracking from day one.</strong> Production errors need to reach you before users
+                    <li><strong>Exception tracking from day one.</strong> Production errors need to reach you before users
                 do. <a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> is a self-hosted
                 exception tracker that keeps error data on your own infrastructure — a good fit if you chose a VPS
                 for data ownership in the first place.</li>
-            <li><strong>Health checks and logs.</strong> Cipi 5 ships app health checks, and
+                    <li><strong>Health checks and logs.</strong> Cipi 5 ships app health checks, and
                 <code>cipi app logs</code> tails Laravel, Nginx and deploy logs without SSH gymnastics.</li>
-            <li><strong>Patching discipline.</strong> Unattended OS security updates plus a deliberate PHP upgrade
+                    <li><strong>Patching discipline.</strong> Unattended OS security updates plus a deliberate PHP upgrade
                 path (<code>cipi php upgrade</code> manages PHP security patches with a weekly check) beat "we'll
                 update when we remember".</li>
-            <li><strong>Tame your SSH sprawl.</strong> Once you run more than two servers, connection details rot in
+                    <li><strong>Tame your SSH sprawl.</strong> Once you run more than two servers, connection details rot in
                 your shell history. <a class="inline" href="https://conn.web.ap.it" target="_blank">Conn</a> is a tiny
                 Bash tool that manages servers as named aliases — pairs nicely with a fleet of Cipi machines.</li>
         </ul>
@@ -434,15 +433,15 @@
         <ul>
             <li><strong>Deploying as root.</strong> One compromised app owns the whole box. Use per-app users — this
                 is why Cipi isolates every app under its own system user.</li>
-            <li><strong>APP_DEBUG=true in production.</strong> Debug pages leak env vars, credentials and paths. It's
+                    <li><strong>APP_DEBUG=true in production.</strong> Debug pages leak env vars, credentials and paths. It's
                 the single most common self-inflicted Laravel breach.</li>
-            <li><strong>Committing <code>.env</code></strong> or leaving <code>.git/</code> web-accessible.</li>
-            <li><strong>777 permissions</strong> "to make the error go away". Only <code>storage/</code> and
+                    <li><strong>Committing <code>.env</code></strong> or leaving <code>.git/</code> web-accessible.</li>
+                    <li><strong>777 permissions</strong> "to make the error go away". Only <code>storage/</code> and
                 <code>bootstrap/cache/</code> need to be writable by the runtime user.</li>
-            <li><strong>No queue worker.</strong> Mail and jobs silently pile up in the queue table forever.</li>
-            <li><strong>Skipping opcache</strong> — free 2–3x throughput lost.</li>
-            <li><strong>No swap on small instances</strong> — Composer and asset builds OOM-kill at the worst time.</li>
-            <li><strong>Untested SSL renewals.</strong> Certificates auto-renew until the day they don't; monitor
+                    <li><strong>No queue worker.</strong> Mail and jobs silently pile up in the queue table forever.</li>
+                    <li><strong>Skipping opcache</strong> — free 2–3x throughput lost.</li>
+                    <li><strong>No swap on small instances</strong> — Composer and asset builds OOM-kill at the worst time.</li>
+                    <li><strong>Untested SSL renewals.</strong> Certificates auto-renew until the day they don't; monitor
                 expiry.</li>
         </ul>
 
@@ -485,35 +484,35 @@
                     <p>Free open-source Laravel deploy CLI for Ubuntu VPS — Octane, Horizon, Reverb and zero-downtime Git deploys.</p>
                     <ul class="footer-brand-links">
                         <li><a href="/en/docs/getting-started">Get started</a></li>
-                        <li><a href="/en/docs/">Docs</a></li>
-                        <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
+                    <li><a href="/en/docs/">Docs</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
                     </ul>
                 </div>
                 <nav class="footer-col footer-col--compare" aria-label="Compare Cipi with alternatives">
                     <strong>Compare Cipi</strong>
                     <ul>
                         <li><a href="/en/alternative-to-laravel-forge">Laravel Forge alternative</a></li>
-                        <li><a href="/en/alternative-to-laravel-cloud">Laravel Cloud alternative</a></li>
-                        <li><a href="/en/alternative-to-ploi">Ploi alternative</a></li>
-                        <li><a href="/en/alternative-to-coolify">Coolify alternative</a></li>
-                        <li><a href="/en/alternative-to-runcloud">RunCloud alternative</a></li>
-                        <li><a href="/en/alternative-to-cloudpanel">CloudPanel alternative</a></li>
-                        <li><a href="/en/alternative-to-cpanel">cPanel alternative</a></li>
-                        <li><a href="/en/alternative-to-plesk">Plesk alternative</a></li>
-                        <li><a href="/en/best-laravel-forge-alternatives">Best Forge alternatives 2026</a></li>
-                        <li><a href="/en/alternatives">All comparisons</a></li>
+                    <li><a href="/en/alternative-to-laravel-cloud">Laravel Cloud alternative</a></li>
+                    <li><a href="/en/alternative-to-ploi">Ploi alternative</a></li>
+                    <li><a href="/en/alternative-to-coolify">Coolify alternative</a></li>
+                    <li><a href="/en/alternative-to-runcloud">RunCloud alternative</a></li>
+                    <li><a href="/en/alternative-to-cloudpanel">CloudPanel alternative</a></li>
+                    <li><a href="/en/alternative-to-cpanel">cPanel alternative</a></li>
+                    <li><a href="/en/alternative-to-plesk">Plesk alternative</a></li>
+                    <li><a href="/en/best-laravel-forge-alternatives">Best Forge alternatives 2026</a></li>
+                    <li><a href="/en/alternatives">All comparisons</a></li>
                     </ul>
                 </nav>
                 <nav class="footer-col" aria-label="Free Laravel guides">
                     <strong>Free guides</strong>
                     <ul>
                         <li><a href="/en/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on Ubuntu</a></li>
-                        <li><a href="/en/guides/laravel-security-checklist">Laravel security checklist</a></li>
-                        <li><a href="/en/guides/laravel-ci-cd-git-workflow">CI/CD for Laravel</a></li>
-                        <li><a href="/en/guides/laravel-ecosystem-2026">Laravel ecosystem 2026</a></li>
-                        <li><a href="/en/guides/spec-driven-development-ai-laravel">Spec-driven AI development</a></li>
-                        <li><a href="/en/guides/laravel-developer-stack-2026">Self-hosted dev stack</a></li>
-                        <li><a href="/en/guides/">All guides</a></li>
+                    <li><a href="/en/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/en/guides/laravel-ci-cd-git-workflow">CI/CD for Laravel</a></li>
+                    <li><a href="/en/guides/laravel-ecosystem-2026">Laravel ecosystem 2026</a></li>
+                    <li><a href="/en/guides/spec-driven-development-ai-laravel">Spec-driven AI development</a></li>
+                    <li><a href="/en/guides/laravel-developer-stack-2026">Self-hosted dev stack</a></li>
+                    <li><a href="/en/guides/">All guides</a></li>
                     </ul>
                 </nav>
             </div>
@@ -524,7 +523,6 @@
                 </div>
                 <ul class="footer-links">
                     <li><a href="https://conn.web.ap.it" target="_blank" rel="noopener">SSH Connection Manager</a></li>
-                    <li><a href="/en/whats-new">What's new</a></li>
                     <li><a href="/en/discovery">Discovery</a></li>
                 </ul>
             </div>

@@ -265,9 +265,8 @@
             </div>
             <div class="nav-right">
                 <a href="/en/" class="nav-link">Home</a>
-                <a href="/en/guides/" class="nav-link">Guides</a>
                 <a href="/en/docs/" class="nav-link">Docs</a>
-                <!-- i18n:switch --><div class="lang-switch" aria-label="Language"><a class="active" href="/en/guides/laravel-security-checklist" hreflang="en" lang="en" title="English" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">EN</a><span class="lang-sep" aria-hidden="true">/</span><a href="/it/guide/checklist-sicurezza-laravel" hreflang="it" lang="it" title="Italiano" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">IT</a></div><!-- /i18n:switch -->
+                <!-- i18n:switch --><details class="lang-switch"><summary aria-label="Language">EN</summary><div class="lang-menu"><a class="active" href="/en/guides/laravel-security-checklist" hreflang="en" lang="en" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">English</a><a href="/it/guide/checklist-sicurezza-laravel" hreflang="it" lang="it" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">Italiano</a></div></details><!-- /i18n:switch -->
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
                     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
@@ -312,12 +311,12 @@
             <strong>In this guide</strong>
             <ol>
                 <li><a href="#threat-model">What actually gets Laravel apps hacked</a></li>
-                <li><a href="#server">Server hardening checklist</a></li>
-                <li><a href="#app">Application hardening checklist</a></li>
-                <li><a href="#deps">Dependencies & supply chain</a></li>
-                <li><a href="#secrets">Secrets & data protection</a></li>
-                <li><a href="#monitor">Detection, monitoring & response</a></li>
-                <li><a href="#faq">FAQ</a></li>
+                    <li><a href="#server">Server hardening checklist</a></li>
+                    <li><a href="#app">Application hardening checklist</a></li>
+                    <li><a href="#deps">Dependencies & supply chain</a></li>
+                    <li><a href="#secrets">Secrets & data protection</a></li>
+                    <li><a href="#monitor">Detection, monitoring & response</a></li>
+                    <li><a href="#faq">FAQ</a></li>
             </ol>
         </div>
 
@@ -326,14 +325,14 @@
         <ol>
             <li><strong>Exposed debug output.</strong> <code>APP_DEBUG=true</code> in production leaks environment
                 variables, database credentials and file paths to anyone who triggers an error.</li>
-            <li><strong>Readable <code>.env</code> or <code>.git/</code>.</strong> Misconfigured document roots that
+                    <li><strong>Readable <code>.env</code> or <code>.git/</code>.</strong> Misconfigured document roots that
                 serve dotfiles hand over your APP_KEY and credentials.</li>
-            <li><strong>Unpatched PHP, framework or packages</strong> with known CVEs.</li>
-            <li><strong>Weak SSH:</strong> password auth, root login enabled, no brute-force protection.</li>
-            <li><strong>Unsafe file uploads</strong> that allow executable content into web-served paths.</li>
-            <li><strong>Injection in the escape hatches:</strong> raw SQL without bindings, unescaped
+                    <li><strong>Unpatched PHP, framework or packages</strong> with known CVEs.</li>
+                    <li><strong>Weak SSH:</strong> password auth, root login enabled, no brute-force protection.</li>
+                    <li><strong>Unsafe file uploads</strong> that allow executable content into web-served paths.</li>
+                    <li><strong>Injection in the escape hatches:</strong> raw SQL without bindings, unescaped
                 <code>{!! !!}</code> Blade output.</li>
-            <li><strong>Admin panels without MFA</strong> and without rate limiting.</li>
+                    <li><strong>Admin panels without MFA</strong> and without rate limiting.</li>
         </ol>
         <p>Boring beats clever: if you close these seven doors, you're ahead of the vast majority of production PHP
             deployments.</p>
@@ -344,41 +343,41 @@
                 dedicated admin user. Add Fail2ban to ban repeated failures. (A fresh
                 <a class="inline" href="/en/">Cipi</a> install applies exactly this by default: root login disabled,
                 key-only admin access, Fail2ban and UFW enabled.)</li>
-            <li><strong>Firewall default-deny.</strong> Only 22, 80 and 443 should answer. Databases and Valkey/Redis
+                    <li><strong>Firewall default-deny.</strong> Only 22, 80 and 443 should answer. Databases and Valkey/Redis
                 listen on localhost — verify with <code>ss -tlnp</code>.</li>
-            <li><strong>TLS everywhere, forced.</strong> Free Let's Encrypt certificates, HTTP redirected to HTTPS
+                    <li><strong>TLS everywhere, forced.</strong> Free Let's Encrypt certificates, HTTP redirected to HTTPS
                 (<code>cipi ssl install</code> then <code>cipi ssl force</code>), HSTS enabled.</li>
-            <li><strong>Patch on a schedule, not on memory.</strong> Unattended security updates for the OS; a
+                    <li><strong>Patch on a schedule, not on memory.</strong> Unattended security updates for the OS; a
                 deliberate mechanism for PHP (Cipi runs a weekly PHP security-patch check — <code>cipi php
                 upgrade</code>).</li>
-            <li><strong>Reduce fingerprinting:</strong> <code>expose_php = Off</code>, <code>server_tokens off</code>.</li>
-            <li><strong>Isolate apps from each other.</strong> Per-app system users and PHP-FPM pools limit the blast
+                    <li><strong>Reduce fingerprinting:</strong> <code>expose_php = Off</code>, <code>server_tokens off</code>.</li>
+                    <li><strong>Isolate apps from each other.</strong> Per-app system users and PHP-FPM pools limit the blast
                 radius when one app is compromised — Cipi provisions this isolation per app automatically.</li>
-            <li><strong>Remove the leftovers:</strong> phpinfo files, Adminer, stale subdomains pointing at old
+                    <li><strong>Remove the leftovers:</strong> phpinfo files, Adminer, stale subdomains pointing at old
                 boxes.</li>
         </ul>
 
         <h2 id="app">Application hardening checklist</h2>
         <ul>
             <li><code>APP_ENV=production</code>, <code>APP_DEBUG=false</code> — non-negotiable.</li>
-            <li><strong>Force HTTPS at the app level</strong> too (trusted proxies + forced scheme) so signed URLs and
+                    <li><strong>Force HTTPS at the app level</strong> too (trusted proxies + forced scheme) so signed URLs and
                 cookies behave.</li>
-            <li><strong>Validate everything with Form Requests;</strong> never trust client input, including headers
+                    <li><strong>Validate everything with Form Requests;</strong> never trust client input, including headers
                 and file names.</li>
-            <li><strong>Mass-assignment guards:</strong> explicit <code>$fillable</code> on every model.</li>
-            <li><strong>Authorize with policies</strong> on every route that touches someone else's data; add
+                    <li><strong>Mass-assignment guards:</strong> explicit <code>$fillable</code> on every model.</li>
+                    <li><strong>Authorize with policies</strong> on every route that touches someone else's data; add
                 <code>Route::can()</code> / middleware, not ad-hoc ifs.</li>
-            <li><strong>Rate limit</strong> login, registration, password reset and public APIs with Laravel's
+                    <li><strong>Rate limit</strong> login, registration, password reset and public APIs with Laravel's
                 RateLimiter.</li>
-            <li><strong>Session & cookie flags:</strong> <code>secure</code>, <code>http_only</code>,
+                    <li><strong>Session & cookie flags:</strong> <code>secure</code>, <code>http_only</code>,
                 <code>same_site</code> configured in <code>config/session.php</code>.</li>
-            <li><strong>Stay inside Eloquent bindings.</strong> If you must use <code>whereRaw</code>, pass bindings —
+                    <li><strong>Stay inside Eloquent bindings.</strong> If you must use <code>whereRaw</code>, pass bindings —
                 never interpolate input into SQL strings.</li>
-            <li><strong>Escape by default.</strong> Treat <code>{!! !!}</code> as a code smell requiring justification
+                    <li><strong>Escape by default.</strong> Treat <code>{!! !!}</code> as a code smell requiring justification
                 and sanitization.</li>
-            <li><strong>File uploads:</strong> validate MIME type and size, store outside <code>public/</code> with
+                    <li><strong>File uploads:</strong> validate MIME type and size, store outside <code>public/</code> with
                 random names, serve via signed URLs or a controller.</li>
-            <li><strong>Security headers:</strong> X-Frame-Options, X-Content-Type-Options, Referrer-Policy and a CSP
+                    <li><strong>Security headers:</strong> X-Frame-Options, X-Content-Type-Options, Referrer-Policy and a CSP
                 appropriate to your frontend.</li>
         </ul>
 
@@ -387,16 +386,16 @@
         <ul>
             <li><strong>Commit lockfiles</strong> (<code>composer.lock</code>, <code>package-lock.json</code>) so
                 production runs exactly what you tested.</li>
-            <li><strong>Run <code>composer audit</code> in CI</strong> on every pull request — it fails the build when
+                    <li><strong>Run <code>composer audit</code> in CI</strong> on every pull request — it fails the build when
                 a dependency has a known advisory. (Wiring this into a pipeline takes five minutes — see our
                 <a class="inline" href="/en/guides/laravel-ci-cd-git-workflow">CI/CD guide</a>.)</li>
-            <li><strong>Automate update PRs</strong> with Renovate or Dependabot; small weekly bumps beat quarterly
+                    <li><strong>Automate update PRs</strong> with Renovate or Dependabot; small weekly bumps beat quarterly
                 mega-upgrades.</li>
-            <li><strong>Scan for Laravel-specific misconfigurations.</strong>
+                    <li><strong>Scan for Laravel-specific misconfigurations.</strong>
                 <a class="inline" href="https://checkpoint.web.ap.it" target="_blank">Checkpoint</a> is an open-source
                 Laravel security scanner you can add to your toolchain to catch framework-level mistakes before they
                 ship.</li>
-            <li><strong>Scan from the outside too.</strong> A platform like
+                    <li><strong>Scan from the outside too.</strong> A platform like
                 <a class="inline" href="https://hackly.web.ap.it" target="_blank">Hackly</a> runs recurring
                 vulnerability scans against your public surface — the attacker's view of your stack, on a schedule.</li>
         </ul>
@@ -405,15 +404,15 @@
         <ul>
             <li><strong><code>.env</code> never enters Git.</strong> Distribute secrets through your deploy tooling,
                 not the repository.</li>
-            <li><strong>Least-privilege database users:</strong> one user per app, no <code>GRANT ALL</code> on
+                    <li><strong>Least-privilege database users:</strong> one user per app, no <code>GRANT ALL</code> on
                 <code>*.*</code>. (Cipi creates a dedicated database and user per app.)</li>
-            <li><strong>Encrypt infrastructure config at rest.</strong> Cipi stores its server and app configuration
+                    <li><strong>Encrypt infrastructure config at rest.</strong> Cipi stores its server and app configuration
                 encrypted with AES-256 on your VPS — infrastructure metadata never leaves the machine.</li>
-            <li><strong>Scope API tokens</strong> (Sanctum abilities) and rotate credentials when people leave.</li>
-            <li><strong>Anonymize production data before sharing.</strong> Never hand production dumps to staging or
+                    <li><strong>Scope API tokens</strong> (Sanctum abilities) and rotate credentials when people leave.</li>
+                    <li><strong>Anonymize production data before sharing.</strong> Never hand production dumps to staging or
                 external devs raw; the <a class="inline" href="/en/docs/agent">Cipi Agent</a> Laravel package includes a
                 database anonymizer for exactly this workflow.</li>
-            <li><strong>Encrypted, off-site backups</strong> — and test the restore path (see the
+                    <li><strong>Encrypted, off-site backups</strong> — and test the restore path (see the
                 <a class="inline" href="/en/guides/deploy-laravel-ubuntu-vps">deployment guide</a> for the backup
                 setup).</li>
         </ul>
@@ -423,10 +422,10 @@
             <li><strong>Centralize exceptions.</strong> A spike in 500s is often the first sign of probing.
                 <a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> gives you a self-hosted
                 exception tracker, so error payloads (which often contain user data) stay on your infrastructure.</li>
-            <li><strong>Health checks + uptime alerts.</strong> Cipi 5 ships app health checks; pair them with an
+                    <li><strong>Health checks + uptime alerts.</strong> Cipi 5 ships app health checks; pair them with an
                 external uptime monitor for the outside view.</li>
-            <li><strong>Watch auth logs.</strong> Fail2ban reports and <code>lastb</code> tell you who's knocking.</li>
-            <li><strong>Have a response plan before you need it:</strong> isolate the box, rotate every secret
+                    <li><strong>Watch auth logs.</strong> Fail2ban reports and <code>lastb</code> tell you who's knocking.</li>
+                    <li><strong>Have a response plan before you need it:</strong> isolate the box, rotate every secret
                 (including APP_KEY implications for encrypted data), restore from a known-good snapshot
                 (<code>cipi backup run</code> covers scheduled snapshots; Cipi 5 adds pre-deploy database snapshots),
                 identify the entry point, then write the post-mortem. Never patch-and-pray on a live compromised
@@ -472,35 +471,35 @@
                     <p>Free open-source Laravel deploy CLI for Ubuntu VPS — Octane, Horizon, Reverb and zero-downtime Git deploys.</p>
                     <ul class="footer-brand-links">
                         <li><a href="/en/docs/getting-started">Get started</a></li>
-                        <li><a href="/en/docs/">Docs</a></li>
-                        <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
+                    <li><a href="/en/docs/">Docs</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
                     </ul>
                 </div>
                 <nav class="footer-col footer-col--compare" aria-label="Compare Cipi with alternatives">
                     <strong>Compare Cipi</strong>
                     <ul>
                         <li><a href="/en/alternative-to-laravel-forge">Laravel Forge alternative</a></li>
-                        <li><a href="/en/alternative-to-laravel-cloud">Laravel Cloud alternative</a></li>
-                        <li><a href="/en/alternative-to-ploi">Ploi alternative</a></li>
-                        <li><a href="/en/alternative-to-coolify">Coolify alternative</a></li>
-                        <li><a href="/en/alternative-to-runcloud">RunCloud alternative</a></li>
-                        <li><a href="/en/alternative-to-cloudpanel">CloudPanel alternative</a></li>
-                        <li><a href="/en/alternative-to-cpanel">cPanel alternative</a></li>
-                        <li><a href="/en/alternative-to-plesk">Plesk alternative</a></li>
-                        <li><a href="/en/best-laravel-forge-alternatives">Best Forge alternatives 2026</a></li>
-                        <li><a href="/en/alternatives">All comparisons</a></li>
+                    <li><a href="/en/alternative-to-laravel-cloud">Laravel Cloud alternative</a></li>
+                    <li><a href="/en/alternative-to-ploi">Ploi alternative</a></li>
+                    <li><a href="/en/alternative-to-coolify">Coolify alternative</a></li>
+                    <li><a href="/en/alternative-to-runcloud">RunCloud alternative</a></li>
+                    <li><a href="/en/alternative-to-cloudpanel">CloudPanel alternative</a></li>
+                    <li><a href="/en/alternative-to-cpanel">cPanel alternative</a></li>
+                    <li><a href="/en/alternative-to-plesk">Plesk alternative</a></li>
+                    <li><a href="/en/best-laravel-forge-alternatives">Best Forge alternatives 2026</a></li>
+                    <li><a href="/en/alternatives">All comparisons</a></li>
                     </ul>
                 </nav>
                 <nav class="footer-col" aria-label="Free Laravel guides">
                     <strong>Free guides</strong>
                     <ul>
                         <li><a href="/en/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on Ubuntu</a></li>
-                        <li><a href="/en/guides/laravel-security-checklist">Laravel security checklist</a></li>
-                        <li><a href="/en/guides/laravel-ci-cd-git-workflow">CI/CD for Laravel</a></li>
-                        <li><a href="/en/guides/laravel-ecosystem-2026">Laravel ecosystem 2026</a></li>
-                        <li><a href="/en/guides/spec-driven-development-ai-laravel">Spec-driven AI development</a></li>
-                        <li><a href="/en/guides/laravel-developer-stack-2026">Self-hosted dev stack</a></li>
-                        <li><a href="/en/guides/">All guides</a></li>
+                    <li><a href="/en/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/en/guides/laravel-ci-cd-git-workflow">CI/CD for Laravel</a></li>
+                    <li><a href="/en/guides/laravel-ecosystem-2026">Laravel ecosystem 2026</a></li>
+                    <li><a href="/en/guides/spec-driven-development-ai-laravel">Spec-driven AI development</a></li>
+                    <li><a href="/en/guides/laravel-developer-stack-2026">Self-hosted dev stack</a></li>
+                    <li><a href="/en/guides/">All guides</a></li>
                     </ul>
                 </nav>
             </div>
@@ -511,7 +510,6 @@
                 </div>
                 <ul class="footer-links">
                     <li><a href="https://conn.web.ap.it" target="_blank" rel="noopener">SSH Connection Manager</a></li>
-                    <li><a href="/en/whats-new">What's new</a></li>
                     <li><a href="/en/discovery">Discovery</a></li>
                 </ul>
             </div>

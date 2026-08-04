@@ -261,9 +261,9 @@
                     </svg> <span>Ci<span style="color:var(--signal)">pi</span></span> </a> <span class="nav-badge">Guide</span>
             </div>
             <div class="nav-right">
-                <a href="/it/" class="nav-link">Home</a> <a href="/it/guide/" class="nav-link">Guide</a> <a href="/it/docs/" class="nav-link">Docs</a>
+                <a href="/it/" class="nav-link">Home</a> <a href="/it/docs/" class="nav-link">Docs</a>
                 
-                <!-- i18n:switch --><div class="lang-switch" aria-label="Language"><a href="/en/guides/deploy-laravel-ubuntu-vps" hreflang="en" lang="en" title="English" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">EN</a><span class="lang-sep" aria-hidden="true">/</span><a class="active" href="/it/guide/deploy-laravel-su-ubuntu-vps" hreflang="it" lang="it" title="Italiano" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">IT</a></div><!-- /i18n:switch -->
+                <!-- i18n:switch --><details class="lang-switch"><summary aria-label="Language">IT</summary><div class="lang-menu"><a href="/en/guides/deploy-laravel-ubuntu-vps" hreflang="en" lang="en" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">English</a><a class="active" href="/it/guide/deploy-laravel-su-ubuntu-vps" hreflang="it" lang="it" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">Italiano</a></div></details><!-- /i18n:switch -->
                 <button class="theme-toggle" onclick="toggleTheme()" aria-label="Cambia tema">
                     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
@@ -301,12 +301,12 @@
             <strong>In questa guida</strong>
             <ol>
                 <li><a href="#why-vps">Perché un VPS (e quando no)</a></li>
-                <li><a href="#stack">Lo stack di produzione, spiegato</a></li>
-                <li><a href="#manual">Il setup manuale, passo per passo</a></li>
-                <li><a href="#one-command">L'alternativa con un solo comando</a></li>
-                <li><a href="#operations">Operazioni post-deploy che contano</a></li>
-                <li><a href="#mistakes">Errori comuni da evitare</a></li>
-                <li><a href="#faq">FAQ</a></li>
+                    <li><a href="#stack">Lo stack di produzione, spiegato</a></li>
+                    <li><a href="#manual">Il setup manuale, passo per passo</a></li>
+                    <li><a href="#one-command">L'alternativa con un solo comando</a></li>
+                    <li><a href="#operations">Operazioni post-deploy che contano</a></li>
+                    <li><a href="#mistakes">Errori comuni da evitare</a></li>
+                    <li><a href="#faq">FAQ</a></li>
             </ol>
         </div>
 
@@ -314,8 +314,8 @@
         <p>L'hosting condiviso non fa girare queue worker, WebSocket o Laravel Octane correttamente, e le piattaforme PaaS gestite fanno pagare la comodità con pricing a consumo. Un VPS da <strong>Hetzner, DigitalOcean, Vultr o Linode</strong> ti dà accesso root, fatturazione prevedibile e spazio sufficiente per hostare più app Laravel su una macchina.</p>
         <ul>
             <li><strong>Dimensionamento:</strong> 1 vCPU / 2 GB RAM è un punto di partenza comodo per un'app in produzione con database, queue worker e cache sulla stessa macchina. Aggiungi swap su qualsiasi cosa sotto i 4 GB.</li>
-            <li><strong>Versione Ubuntu:</strong> usa una LTS attuale — Ubuntu 24.04 o 26.04. Salta le release interim in produzione.</li>
-            <li><strong>Quando non usare un VPS:</strong> se nessuno nel team può rispondere a un alert del server, una piattaforma gestita come <a class="inline" href="/it/alternativa-a-laravel-cloud">Laravel Cloud</a> è lo scambio più sicuro — paghi per rendere le operations un problema di qualcun altro.</li>
+                    <li><strong>Versione Ubuntu:</strong> usa una LTS attuale — Ubuntu 24.04 o 26.04. Salta le release interim in produzione.</li>
+                    <li><strong>Quando non usare un VPS:</strong> se nessuno nel team può rispondere a un alert del server, una piattaforma gestita come <a class="inline" href="/it/alternativa-a-laravel-cloud">Laravel Cloud</a> è lo scambio più sicuro — paghi per rendere le operations un problema di qualcun altro.</li>
         </ul>
 
         <h2 id="stack">Lo stack di produzione, spiegato</h2>
@@ -341,19 +341,19 @@
         <p>Questa è la checklist onesta e integrale. Prevedi 2–4 ore la prima volta, e ricorda che possederai ognuna di queste scelte anche al momento dell'upgrade.</p>
         <ol>
             <li><strong>Crea un utente sudo e blinda SSH.</strong> <code>adduser deploy</code>, installa la tua chiave pubblica, poi disabilita login root e auth password in <code>/etc/ssh/sshd_config</code>.</li>
-            <li><strong>Abilita il firewall.</strong> <code>ufw allow OpenSSH http https</code> poi <code>ufw enable</code>. Installa Fail2ban per protezione brute-force SSH.</li>
-            <li><strong>Installa Nginx.</strong> <code>apt install nginx</code>.</li>
-            <li><strong>Installa PHP.</strong> Aggiungi un repository PHP mantenuto, poi installa <code>php8.x-fpm</code> con le estensioni che Laravel richiede: mbstring, xml, curl, zip, intl, mysql (o pgsql), redis, gd, opcache.</li>
-            <li><strong>Ottimizza PHP per produzione.</strong> Abilita opcache, imposta <code>memory_limit</code> e <code>upload_max_filesize</code> sensati, disattiva <code>expose_php</code>.</li>
-            <li><strong>Installa Composer</strong> globalmente.</li>
-            <li><strong>Installa MariaDB</strong>, esegui <code>mariadb-secure-installation</code>, crea un database e un utente dedicato per app — non riusare root.</li>
-            <li><strong>Installa Valkey</strong> (o Redis) per cache, sessioni e queue.</li>
-            <li><strong>Scrivi il server block Nginx.</strong> La document root punta a <code>current/public</code>, <code>try_files</code> fa fallback su <code>index.php</code>, FastCGI passa al socket PHP-FPM dell'app.</li>
-            <li><strong>Spedisci il codice.</strong> Clona in una directory <code>releases/</code>, <code>composer install --no-dev --optimize-autoloader</code>, copia <code>.env</code>, esegui <code>php artisan key:generate</code>, <code>storage:link</code> e correggi i permessi così solo <code>storage/</code> e <code>bootstrap/cache/</code> sono scrivibili.</li>
-            <li><strong>Migra e metti in cache.</strong> <code>php artisan migrate --force</code> poi <code>config:cache</code>, <code>route:cache</code>, <code>view:cache</code>.</li>
-            <li><strong>Configura Supervisor</strong> per eseguire <code>php artisan queue:work</code> (o Horizon) e riavviarlo a ogni deploy.</li>
-            <li><strong>Aggiungi il cron dello scheduler:</strong> <code>* * * * * php artisan schedule:run</code>.</li>
-            <li><strong>Emetti certificati TLS</strong> con Certbot e forza HTTPS.</li>
+                    <li><strong>Abilita il firewall.</strong> <code>ufw allow OpenSSH http https</code> poi <code>ufw enable</code>. Installa Fail2ban per protezione brute-force SSH.</li>
+                    <li><strong>Installa Nginx.</strong> <code>apt install nginx</code>.</li>
+                    <li><strong>Installa PHP.</strong> Aggiungi un repository PHP mantenuto, poi installa <code>php8.x-fpm</code> con le estensioni che Laravel richiede: mbstring, xml, curl, zip, intl, mysql (o pgsql), redis, gd, opcache.</li>
+                    <li><strong>Ottimizza PHP per produzione.</strong> Abilita opcache, imposta <code>memory_limit</code> e <code>upload_max_filesize</code> sensati, disattiva <code>expose_php</code>.</li>
+                    <li><strong>Installa Composer</strong> globalmente.</li>
+                    <li><strong>Installa MariaDB</strong>, esegui <code>mariadb-secure-installation</code>, crea un database e un utente dedicato per app — non riusare root.</li>
+                    <li><strong>Installa Valkey</strong> (o Redis) per cache, sessioni e queue.</li>
+                    <li><strong>Scrivi il server block Nginx.</strong> La document root punta a <code>current/public</code>, <code>try_files</code> fa fallback su <code>index.php</code>, FastCGI passa al socket PHP-FPM dell'app.</li>
+                    <li><strong>Spedisci il codice.</strong> Clona in una directory <code>releases/</code>, <code>composer install --no-dev --optimize-autoloader</code>, copia <code>.env</code>, esegui <code>php artisan key:generate</code>, <code>storage:link</code> e correggi i permessi così solo <code>storage/</code> e <code>bootstrap/cache/</code> sono scrivibili.</li>
+                    <li><strong>Migra e metti in cache.</strong> <code>php artisan migrate --force</code> poi <code>config:cache</code>, <code>route:cache</code>, <code>view:cache</code>.</li>
+                    <li><strong>Configura Supervisor</strong> per eseguire <code>php artisan queue:work</code> (o Horizon) e riavviarlo a ogni deploy.</li>
+                    <li><strong>Aggiungi il cron dello scheduler:</strong> <code>* * * * * php artisan schedule:run</code>.</li>
+                    <li><strong>Emetti certificati TLS</strong> con Certbot e forza HTTPS.</li>
         </ol>
         <p>Ora moltiplica per ogni app che hosti, e di nuovo per ogni server — e mantieni PHP, Nginx e l'OS patchati per sempre. Si può fare tutto; è solo lavoro indifferenziato.</p>
 
@@ -368,22 +368,22 @@
         <p>Arrivare a "funziona" è metà del lavoro. Queste abitudini separano un server che dura anni da uno che ti sorprende:</p>
         <ul>
             <li><strong>Backup che hai davvero ripristinato.</strong> Automatizza backup di database e storage su storage compatibile S3 (<code>cipi backup configure</code> gestisce schedule e retention). Qualsiasi target S3 va bene — incluso <a class="inline" href="https://johnny.web.ap.it" target="_blank">Johnny</a>, object storage compatibile S3 open source che puoi far girare su un secondo VPS per copie off-site davvero indipendenti. Fai un drill di restore trimestrale: un backup non testato è una speranza, non un piano.</li>
-            <li><strong>Exception tracking dal giorno uno.</strong> Gli errori in produzione devono raggiungerti prima degli utenti. <a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> è un exception tracker self-hosted che tiene i dati di errore sulla tua infrastruttura — adatto se hai scelto un VPS per la proprietà dei dati.</li>
-            <li><strong>Health check e log.</strong> Cipi 5 include health check per app, e <code>cipi app logs</code> segue log Laravel, Nginx e deploy senza acrobazie SSH.</li>
-            <li><strong>Disciplina di patching.</strong> Update di sicurezza OS unattended più un percorso di upgrade PHP deliberato (<code>cipi php upgrade</code> gestisce patch di sicurezza PHP con un controllo settimanale) battono "aggiorniamo quando ci ricordiamo".</li>
-            <li><strong>Domare lo sprawl SSH.</strong> Quando gestisci più di due server, i dettagli di connessione marciscono nella cronologia della shell. <a class="inline" href="https://conn.web.ap.it" target="_blank">Conn</a> è un piccolo tool Bash che gestisce i server come alias nominati — si abbina bene a una flotta di macchine Cipi.</li>
+                    <li><strong>Exception tracking dal giorno uno.</strong> Gli errori in produzione devono raggiungerti prima degli utenti. <a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> è un exception tracker self-hosted che tiene i dati di errore sulla tua infrastruttura — adatto se hai scelto un VPS per la proprietà dei dati.</li>
+                    <li><strong>Health check e log.</strong> Cipi 5 include health check per app, e <code>cipi app logs</code> segue log Laravel, Nginx e deploy senza acrobazie SSH.</li>
+                    <li><strong>Disciplina di patching.</strong> Update di sicurezza OS unattended più un percorso di upgrade PHP deliberato (<code>cipi php upgrade</code> gestisce patch di sicurezza PHP con un controllo settimanale) battono "aggiorniamo quando ci ricordiamo".</li>
+                    <li><strong>Domare lo sprawl SSH.</strong> Quando gestisci più di due server, i dettagli di connessione marciscono nella cronologia della shell. <a class="inline" href="https://conn.web.ap.it" target="_blank">Conn</a> è un piccolo tool Bash che gestisce i server come alias nominati — si abbina bene a una flotta di macchine Cipi.</li>
         </ul>
 
         <h2 id="mistakes">Errori comuni da evitare</h2>
         <ul>
             <li><strong>Deployare come root.</strong> Un'app compromessa possiede l'intera macchina. Usa utenti per app — ecco perché Cipi isola ogni app sotto il proprio utente di sistema.</li>
-            <li><strong>APP_DEBUG=true in produzione.</strong> Le pagine debug espongono variabili env, credenziali e percorsi. È la breach Laravel auto-inflitta più comune.</li>
-            <li><strong>Committare <code>.env</code></strong> o lasciare <code>.git/</code> accessibile via web.</li>
-            <li><strong>Permessi 777</strong> "per far sparire l'errore". Solo <code>storage/</code> e <code>bootstrap/cache/</code> devono essere scrivibili dall'utente runtime.</li>
-            <li><strong>Nessun queue worker.</strong> Mail e job si accumulano silenziosamente nella tabella queue per sempre.</li>
-            <li><strong>Saltare opcache</strong> — 2–3x throughput gratis persi.</li>
-            <li><strong>Nessuno swap su istanze piccole</strong> — Composer e build asset vengono OOM-killati nel momento peggiore.</li>
-            <li><strong>Rinnovi SSL non testati.</strong> I certificati si rinnovano automaticamente fino al giorno in cui no; monitora la scadenza.</li>
+                    <li><strong>APP_DEBUG=true in produzione.</strong> Le pagine debug espongono variabili env, credenziali e percorsi. È la breach Laravel auto-inflitta più comune.</li>
+                    <li><strong>Committare <code>.env</code></strong> o lasciare <code>.git/</code> accessibile via web.</li>
+                    <li><strong>Permessi 777</strong> "per far sparire l'errore". Solo <code>storage/</code> e <code>bootstrap/cache/</code> devono essere scrivibili dall'utente runtime.</li>
+                    <li><strong>Nessun queue worker.</strong> Mail e job si accumulano silenziosamente nella tabella queue per sempre.</li>
+                    <li><strong>Saltare opcache</strong> — 2–3x throughput gratis persi.</li>
+                    <li><strong>Nessuno swap su istanze piccole</strong> — Composer e build asset vengono OOM-killati nel momento peggiore.</li>
+                    <li><strong>Rinnovi SSL non testati.</strong> I certificati si rinnovano automaticamente fino al giorno in cui no; monitora la scadenza.</li>
         </ul>
 
         <div class="cta-box">
@@ -417,35 +417,35 @@
                     <p>CLI open source gratuita per il deploy Laravel su VPS Ubuntu — Octane, Horizon, Reverb e deploy Git zero-downtime.</p>
                     <ul class="footer-brand-links">
                         <li><a href="/it/docs/primi-passi">Primi passi</a></li>
-                        <li><a href="/it/docs/">Docs</a></li>
-                        <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
+                    <li><a href="/it/docs/">Docs</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
                     </ul>
                 </div>
                 <nav class="footer-col footer-col--compare" aria-label="Confronta Cipi con le alternative">
                     <strong>Confronta Cipi</strong>
                     <ul>
                         <li><a href="/it/alternativa-a-laravel-forge">alternativa a Laravel Forge</a></li>
-                        <li><a href="/it/alternativa-a-laravel-cloud">alternativa a Laravel Cloud</a></li>
-                        <li><a href="/it/alternativa-a-ploi">alternativa a Ploi</a></li>
-                        <li><a href="/it/alternativa-a-coolify">alternativa a Coolify</a></li>
-                        <li><a href="/it/alternativa-a-runcloud">alternativa a RunCloud</a></li>
-                        <li><a href="/it/alternativa-a-cloudpanel">alternativa a CloudPanel</a></li>
-                        <li><a href="/it/alternativa-a-cpanel">alternativa a cPanel</a></li>
-                        <li><a href="/it/alternativa-a-plesk">alternativa a Plesk</a></li>
-                        <li><a href="/it/migliori-alternative-a-laravel-forge">Migliori alternative a Forge 2026</a></li>
-                        <li><a href="/it/alternative">Tutti i confronti</a></li>
+                    <li><a href="/it/alternativa-a-laravel-cloud">alternativa a Laravel Cloud</a></li>
+                    <li><a href="/it/alternativa-a-ploi">alternativa a Ploi</a></li>
+                    <li><a href="/it/alternativa-a-coolify">alternativa a Coolify</a></li>
+                    <li><a href="/it/alternativa-a-runcloud">alternativa a RunCloud</a></li>
+                    <li><a href="/it/alternativa-a-cloudpanel">alternativa a CloudPanel</a></li>
+                    <li><a href="/it/alternativa-a-cpanel">alternativa a cPanel</a></li>
+                    <li><a href="/it/alternativa-a-plesk">alternativa a Plesk</a></li>
+                    <li><a href="/it/migliori-alternative-a-laravel-forge">Migliori alternative a Forge 2026</a></li>
+                    <li><a href="/it/alternative">Tutti i confronti</a></li>
                     </ul>
                 </nav>
                 <nav class="footer-col" aria-label="Guide Laravel gratuite">
                     <strong>Guide gratuite</strong>
                     <ul>
                         <li><a href="/it/guide/deploy-laravel-su-ubuntu-vps">Deploy Laravel su Ubuntu</a></li>
-                        <li><a href="/it/guide/checklist-sicurezza-laravel">Checklist sicurezza Laravel</a></li>
-                        <li><a href="/it/guide/ci-cd-workflow-git-laravel">CI/CD per Laravel</a></li>
-                        <li><a href="/it/guide/ecosistema-laravel-2026">Ecosistema Laravel 2026</a></li>
-                        <li><a href="/it/guide/sviluppo-spec-driven-ai-laravel">Sviluppo AI spec-driven</a></li>
-                        <li><a href="/it/guide/stack-developer-self-hosted-2026">Stack dev self-hosted</a></li>
-                        <li><a href="/it/guide/">Tutte le guide</a></li>
+                    <li><a href="/it/guide/checklist-sicurezza-laravel">Checklist sicurezza Laravel</a></li>
+                    <li><a href="/it/guide/ci-cd-workflow-git-laravel">CI/CD per Laravel</a></li>
+                    <li><a href="/it/guide/ecosistema-laravel-2026">Ecosistema Laravel 2026</a></li>
+                    <li><a href="/it/guide/sviluppo-spec-driven-ai-laravel">Sviluppo AI spec-driven</a></li>
+                    <li><a href="/it/guide/stack-developer-self-hosted-2026">Stack dev self-hosted</a></li>
+                    <li><a href="/it/guide/">Tutte le guide</a></li>
                     </ul>
                 </nav>
             </div>
@@ -455,7 +455,6 @@
                 </div>
                 <ul class="footer-links">
                     <li><a href="https://conn.web.ap.it" target="_blank" rel="noopener">SSH Connection Manager</a></li>
-                    <li><a href="/it/novita">Novità</a></li>
                     <li><a href="/it/discovery">Discovery</a></li>
                 </ul>
             </div>
