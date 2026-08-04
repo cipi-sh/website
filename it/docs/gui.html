@@ -383,67 +383,71 @@ cipi gui remove --force</pre>
                 <h2>Architettura</h2>
                 <p>Il pannello è un'applicazione <strong>Laravel 12</strong> standard distribuita come package <code>cipi/gui</code> dal proprio repository (<a href="https://github.com/cipi-sh/gui" target="_blank">cipi-sh/gui</a>) e installata via entry Composer VCS che traccia <code>dev-main</code>. Vive in <code>/opt/cipi/gui</code>, speculare a come il package <code>cipi-api</code> è bundled.</p>
 
-                <table class="cmd-table">
-                        <thead>
-                            <tr><th>Aspetto</th><th>Dettaglio</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>Framework</td><td>Laravel 12</td></tr>
-                            <tr><td>Package</td><td><code>cipi/gui</code> (GitHub <code>cipi-sh/gui</code>, Composer VCS <code>dev-main</code>)</td></tr>
-                            <tr><td>Percorso installazione</td><td><code>/opt/cipi/gui</code></td></tr>
-                            <tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr>
-                            <tr><td>Isolamento</td><td>PHP-FPM <code>open_basedir</code> limitato a <code>/opt/cipi/gui/</code></td></tr>
-                            <tr><td>Auth</td><td>Login session + 2FA TOTP opzionale</td></tr>
-                            <tr><td>Job</td><td>Nessun queue worker locale — i job async remoti sono interrogati tramite <code>cipi api</code> di ogni server gestito</td></tr>
-                        </tbody>
-                    </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                            <thead>
+                                                <tr><th>Aspetto</th><th>Dettaglio</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td>Framework</td><td>Laravel 12</td></tr>
+                                                <tr><td>Package</td><td><code>cipi/gui</code> (GitHub <code>cipi-sh/gui</code>, Composer VCS <code>dev-main</code>)</td></tr>
+                                                <tr><td>Percorso installazione</td><td><code>/opt/cipi/gui</code></td></tr>
+                                                <tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr>
+                                                <tr><td>Isolamento</td><td>PHP-FPM <code>open_basedir</code> limitato a <code>/opt/cipi/gui/</code></td></tr>
+                                                <tr><td>Auth</td><td>Login session + 2FA TOTP opzionale</td></tr>
+                                                <tr><td>Job</td><td>Nessun queue worker locale — i job async remoti sono interrogati tramite <code>cipi api</code> di ogni server gestito</td></tr>
+                                            </tbody>
+                                        </table>
+                </div>
 
                 <p>Poiché non tiene queue worker locali e non salva stato server proprio, il pannello resta stateless rispetto alla tua infrastruttura: si autentica all'API di ogni server, invia job e ne interroga lo stato. Smonta il pannello e ricostruiscilo altrove senza toccare un singolo server gestito.</p>
 
                 <h3>Copertura API</h3>
                 <p>La GUI consuma l'intera superficie OpenAPI della Cipi API. Tieni aggiornati il pannello e il package <code>cipi/api</code> di ogni server gestito (<code>cipi gui update</code> / <code>cipi api update</code>) così i form di creazione e i campi list corrispondono al server.</p>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Area</th>
-                            <th>Copertura</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Server</td>
-                            <td><code>GET /api/status</code></td>
-                        </tr>
-                        <tr>
-                            <td>App</td>
-                            <td>CRUD, basic auth, log; create accetta <code>engine</code> (mariadb/pgsql) e <code>octane</code> (FrankenPHP, API <strong>1.13+</strong>); list/show espongono <code>octane</code> / <code>octane_port</code></td>
-                        </tr>
-                        <tr>
-                            <td>Alias</td>
-                            <td>Elenca, aggiungi, rimuovi</td>
-                        </tr>
-                        <tr>
-                            <td>WWW</td>
-                            <td>Stato, aggiungi controparte, force-to-root / force-from-root, clear (<code>www-manage</code>; API <strong>1.12+</strong>)</td>
-                        </tr>
-                        <tr>
-                            <td>Deploy</td>
-                            <td>Deploy, rollback, unlock</td>
-                        </tr>
-                        <tr>
-                            <td>SSL</td>
-                            <td>Installa Let's Encrypt, forza redirect HTTPS</td>
-                        </tr>
-                        <tr>
-                            <td>Database</td>
-                            <td>Motori + list (sync); create/delete/backup/restore/password con <code>engine</code> opzionale (async; API <strong>1.12+</strong>)</td>
-                        </tr>
-                        <tr>
-                            <td>Job</td>
-                            <td>Interroga stato e output CLI</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Area</th>
+                                                <th>Copertura</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Server</td>
+                                                <td><code>GET /api/status</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>App</td>
+                                                <td>CRUD, basic auth, log; create accetta <code>engine</code> (mariadb/pgsql) e <code>octane</code> (FrankenPHP, API <strong>1.13+</strong>); list/show espongono <code>octane</code> / <code>octane_port</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Alias</td>
+                                                <td>Elenca, aggiungi, rimuovi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>WWW</td>
+                                                <td>Stato, aggiungi controparte, force-to-root / force-from-root, clear (<code>www-manage</code>; API <strong>1.12+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Deploy</td>
+                                                <td>Deploy, rollback, unlock</td>
+                                            </tr>
+                                            <tr>
+                                                <td>SSL</td>
+                                                <td>Installa Let's Encrypt, forza redirect HTTPS</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Database</td>
+                                                <td>Motori + list (sync); create/delete/backup/restore/password con <code>engine</code> opzionale (async; API <strong>1.12+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Job</td>
+                                                <td>Interroga stato e output CLI</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"

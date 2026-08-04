@@ -491,92 +491,94 @@
             <div class="doc-section" id="cli-app-manage">
                 <h2><code>app list</code> / <code>app show</code> / <code>app edit</code> / <code>app delete</code></h2>
 
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Command</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>cipi app list</td>
-                            <td>List all apps with domain, PHP version, and status (<code>(suspended)</code> when
-                                offline)</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app show &lt;app&gt;</td>
-                            <td>Full details: domain, PHP, deploy key, workers, webhook, suspend state. For custom apps:
-                                type "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a
-                                repository.
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>cipi app edit &lt;app&gt; --php=8.5</td>
-                            <td>Hot-swap PHP version. Updates FPM pool, Nginx socket, Supervisor, crontab, Deployer
-                                config, and <code>.env</code> — zero downtime</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app edit &lt;app&gt; --branch=develop</td>
-                            <td>Change the deploy branch</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app edit &lt;app&gt; --domain=new.example.com</td>
-                            <td>Rename the primary domain (since <strong>v4.6.2</strong>). Validates format and
-                                uniqueness, moves the old primary to aliases, regenerates the Nginx vhost, updates
-                                <code>APP_URL</code>, refreshes Git webhooks when auto-configured, and re-issues
-                                Let's Encrypt when a certificate already existed</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app edit &lt;app&gt; --repository=&lt;SSH-URL&gt;</td>
-                            <td>Attach or change the Git repository (e.g. enable deploy on a custom SFTP-only app
-                                created without <code>--repository</code>). Composable with <code>--branch</code>,
-                                <code>--php</code>, and <code>--domain</code>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>cipi app edit &lt;app&gt; --node-build='npm ci &amp;&amp; npm run build'</td>
-                            <td>Run a Node build after Composer vendors on every deploy (since
-                                <strong>v5.0</strong>). Deployer executes
-                                <code>.deployer/node-build.sh</code> (fail-closed; command is validated). Clear with
-                                <code>--no-node-build</code></td>
-                        </tr>
-                        <tr>
-                            <td>cipi app convert &lt;app&gt; --to=octane|fpm</td>
-                            <td>Convert between PHP-FPM and <strong>Laravel Octane</strong> (since
-                                <strong>v5.0</strong>). See <a href="#cli-app-octane">Laravel Octane</a></td>
-                        </tr>
-                        <tr>
-                            <td>cipi app env &lt;app&gt;</td>
-                            <td>Open the app's <code>.env</code> file in nano as the app user. Exits with error for
-                                custom apps (no .env).</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app reset-password &lt;app&gt;</td>
-                            <td>Regenerate the app's Linux user SSH password. The new password is displayed on
-                                screen — save it immediately</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app reset-db-password &lt;app&gt;</td>
-                            <td>Regenerate the app's database password (MariaDB or PostgreSQL per app
-                                <code>engine</code>) and automatically update <code>DB_PASSWORD</code> in the app's
-                                <code>.env</code>. Exits with error for custom apps (no database).
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>cipi app delete &lt;app&gt;</td>
-                            <td>Permanently remove the app, user, database (if Laravel), Nginx vhost, FPM pool, and
-                                Supervisor workers. For custom apps, skips database drop (none was created). Asks for
-                                confirmation.</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app delete &lt;app&gt; --force</td>
-                            <td>Same as delete but skips the confirmation prompt — for scripts, the panel API, and
-                                <code>cipi-cli</code>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Command</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>cipi app list</td>
+                                                <td>List all apps with domain, PHP version, and status (<code>(suspended)</code> when
+                                                    offline)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app show &lt;app&gt;</td>
+                                                <td>Full details: domain, PHP, deploy key, workers, webhook, suspend state. For custom apps:
+                                                    type "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a
+                                                    repository.
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --php=8.5</td>
+                                                <td>Hot-swap PHP version. Updates FPM pool, Nginx socket, Supervisor, crontab, Deployer
+                                                    config, and <code>.env</code> — zero downtime</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --branch=develop</td>
+                                                <td>Change the deploy branch</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --domain=new.example.com</td>
+                                                <td>Rename the primary domain (since <strong>v4.6.2</strong>). Validates format and
+                                                    uniqueness, moves the old primary to aliases, regenerates the Nginx vhost, updates
+                                                    <code>APP_URL</code>, refreshes Git webhooks when auto-configured, and re-issues
+                                                    Let's Encrypt when a certificate already existed</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --repository=&lt;SSH-URL&gt;</td>
+                                                <td>Attach or change the Git repository (e.g. enable deploy on a custom SFTP-only app
+                                                    created without <code>--repository</code>). Composable with <code>--branch</code>,
+                                                    <code>--php</code>, and <code>--domain</code>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --node-build='npm ci &amp;&amp; npm run build'</td>
+                                                <td>Run a Node build after Composer vendors on every deploy (since
+                                                    <strong>v5.0</strong>). Deployer executes
+                                                    <code>.deployer/node-build.sh</code> (fail-closed; command is validated). Clear with
+                                                    <code>--no-node-build</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app convert &lt;app&gt; --to=octane|fpm</td>
+                                                <td>Convert between PHP-FPM and <strong>Laravel Octane</strong> (since
+                                                    <strong>v5.0</strong>). See <a href="#cli-app-octane">Laravel Octane</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app env &lt;app&gt;</td>
+                                                <td>Open the app's <code>.env</code> file in nano as the app user. Exits with error for
+                                                    custom apps (no .env).</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app reset-password &lt;app&gt;</td>
+                                                <td>Regenerate the app's Linux user SSH password. The new password is displayed on
+                                                    screen — save it immediately</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app reset-db-password &lt;app&gt;</td>
+                                                <td>Regenerate the app's database password (MariaDB or PostgreSQL per app
+                                                    <code>engine</code>) and automatically update <code>DB_PASSWORD</code> in the app's
+                                                    <code>.env</code>. Exits with error for custom apps (no database).
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app delete &lt;app&gt;</td>
+                                                <td>Permanently remove the app, user, database (if Laravel), Nginx vhost, FPM pool, and
+                                                    Supervisor workers. For custom apps, skips database drop (none was created). Asks for
+                                                    confirmation.</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app delete &lt;app&gt; --force</td>
+                                                <td>Same as delete but skips the confirmation prompt — for scripts, the panel API, and
+                                                    <code>cipi-cli</code>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
             </div>
 
 
@@ -658,26 +660,28 @@
 <span class="p">$</span> cipi app unsuspend myapp    <span class="c"># restore normal vhost</span></pre>
                 </div>
 
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Command</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>cipi app suspend &lt;app&gt;</td>
-                            <td>Sets <code>suspended: true</code> in <code>apps.json</code>, rebuilds the vhost to
-                                return 503 for all requests. Idempotent if already suspended.</td>
-                        </tr>
-                        <tr>
-                            <td>cipi app unsuspend &lt;app&gt;</td>
-                            <td>Clears the flag, restores the normal Laravel/custom vhost, and reapplies SSL blocks.
-                                Idempotent if already online.</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Command</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>cipi app suspend &lt;app&gt;</td>
+                                                <td>Sets <code>suspended: true</code> in <code>apps.json</code>, rebuilds the vhost to
+                                                    return 503 for all requests. Idempotent if already suspended.</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app unsuspend &lt;app&gt;</td>
+                                                <td>Clears the flag, restores the normal Laravel/custom vhost, and reapplies SSL blocks.
+                                                    Idempotent if already online.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3>Behaviour</h3>
                 <ul>
@@ -719,29 +723,31 @@
                     username/password prompt. Useful for staging sites, internal tools, or apps that aren't ready for
                     public traffic yet.</p>
 
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Command</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>cipi basicauth enable &lt;app&gt; [--user=NAME] [--password=PASS]</td>
-                            <td>Turn on HTTP basic auth. Credentials are generated when omitted and shown once on
-                                screen — save them immediately</td>
-                        </tr>
-                        <tr>
-                            <td>cipi basicauth disable &lt;app&gt;</td>
-                            <td>Remove the prompt and clear stored credentials</td>
-                        </tr>
-                        <tr>
-                            <td>cipi basicauth status &lt;app&gt;</td>
-                            <td>Show whether basic auth is enabled and the configured user</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Command</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>cipi basicauth enable &lt;app&gt; [--user=NAME] [--password=PASS]</td>
+                                                <td>Turn on HTTP basic auth. Credentials are generated when omitted and shown once on
+                                                    screen — save them immediately</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi basicauth disable &lt;app&gt;</td>
+                                                <td>Remove the prompt and clear stored credentials</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi basicauth status &lt;app&gt;</td>
+                                                <td>Show whether basic auth is enabled and the configured user</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <p>Credentials are hashed with <code>openssl passwd -apr1</code> (no <code>apache2-utils</code> needed)
                     and stored in <code>/etc/nginx/cipi-basicauth/&lt;app&gt;.htpasswd</code>; the enabled state lives in
@@ -806,68 +812,70 @@
                 </div>
 
                 <h3>Key ENV variables set by Cipi</h3>
-                <table class="env-table">
-                    <thead>
-                        <tr>
-                            <th>Variable</th>
-                            <th>Description</th>
-                            <th>Set by</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>APP_KEY</td>
-                            <td>Laravel encryption key — generated once at app creation</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>APP_URL</td>
-                            <td>Updated automatically by <code>cipi ssl install</code></td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>DB_CONNECTION</td>
-                            <td><code>mysql</code> for MariaDB (drop-in compatible), or <code>pgsql</code> when the app
-                                engine is PostgreSQL (v4.8.0+)</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>DB_DATABASE / DB_USERNAME / DB_PASSWORD</td>
-                            <td>Auto-generated credentials for the app's isolated database</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CACHE_STORE</td>
-                            <td><code>database</code> — uses the app's database</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>SESSION_DRIVER</td>
-                            <td><code>database</code></td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>QUEUE_CONNECTION</td>
-                            <td><code>database</code></td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CIPI_WEBHOOK_TOKEN</td>
-                            <td>HMAC secret for cipi-agent webhook validation</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CIPI_APP_USER</td>
-                            <td>Linux username owning this app</td>
-                            <td>Cipi</td>
-                        </tr>
-                        <tr>
-                            <td>CIPI_MCP</td>
-                            <td>Enable or disable the built-in MCP server at <code>/cipi/mcp</code></td>
-                            <td>User (<code>true</code> by default)</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="env-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Variable</th>
+                                                <th>Description</th>
+                                                <th>Set by</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>APP_KEY</td>
+                                                <td>Laravel encryption key — generated once at app creation</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>APP_URL</td>
+                                                <td>Updated automatically by <code>cipi ssl install</code></td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DB_CONNECTION</td>
+                                                <td><code>mysql</code> for MariaDB (drop-in compatible), or <code>pgsql</code> when the app
+                                                    engine is PostgreSQL (v4.8.0+)</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DB_DATABASE / DB_USERNAME / DB_PASSWORD</td>
+                                                <td>Auto-generated credentials for the app's isolated database</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CACHE_STORE</td>
+                                                <td><code>database</code> — uses the app's database</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>SESSION_DRIVER</td>
+                                                <td><code>database</code></td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>QUEUE_CONNECTION</td>
+                                                <td><code>database</code></td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_WEBHOOK_TOKEN</td>
+                                                <td>HMAC secret for cipi-agent webhook validation</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_APP_USER</td>
+                                                <td>Linux username owning this app</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_MCP</td>
+                                                <td>Enable or disable the built-in MCP server at <code>/cipi/mcp</code></td>
+                                                <td>User (<code>true</code> by default)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <div class="callout warning">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"

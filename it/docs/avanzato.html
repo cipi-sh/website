@@ -282,182 +282,184 @@
                 <p><code>GET /api/dbs</code> elenca i database in modo sincrono eseguendo <code>sudo cipi db list</code> sull'host (come la CLI server). Query opzionale <code>engine=mariadb|pgsql</code> filtra per motore (API <strong>1.12.0+</strong> / Cipi <strong>4.8+</strong>). <code>GET /api/dbs/engines</code> elenca i motori installati e il default server (sync; MCP <code>DbEngines</code>). Le altre operazioni di scrittura <code>/api/dbs/*</code> sono job asincroni e accettano <code>engine</code> opzionale su create, delete, backup, restore e password. I comandi database richiedono Cipi <strong>4.4.17+</strong> sul server (voci <code>cipi db …</code> nella whitelist sudoers API); il supporto multi-engine richiede Cipi <strong>4.8+</strong>.</p>
                 <p><code>GET /api/status</code> restituisce lo stesso JSON strutturato di <code>cipi status</code> (sistema, risorse, servizi, pool PHP, conteggio app). Da API <strong>1.11.8+</strong> l'endpoint preferisce <code>sudo cipi status</code> sull'host e ricade su letture dirette host quando sudo non è disponibile. Da API <strong>1.12.1+</strong> il fallback host-read include <code>postgresql</code> quando l'unità systemd è installata (allineato a Cipi 4.8+). Richiede l'ability <code>status-view</code> (API <strong>1.11.6+</strong>). Il tool MCP <code>ServerStatus</code> restituisce lo stesso payload e richiede solo <code>mcp-access</code>. Dal tuo laptop, usa <a href="/it/docs/client-cli#cli-status"><code>cipi-cli status</code></a> per una panoramica globale su tutti i profili server configurati, o il dettaglio per un profilo.</p>
                 <p><code>GET /api/apps/{name}/logs</code> restituisce snapshot log sincroni e paginati per nginx, PHP-FPM, Laravel (se presente), worker e deploy — la controparte REST di <a href="/it/docs/app#cli-app-logs"><code>cipi app logs</code></a> e <a href="/it/docs/client-cli#cli-apps"><code>cipi-cli apps logs</code></a>. Parametri query: <code>type</code> (default <code>all</code>), <code>page</code> (default <code>1</code>, più recenti prima), <code>per_page</code> (default <code>50</code>, max <code>1000</code>). Richiede l'ability <code>apps-view</code> e il package API <strong>1.11.9+</strong>. Il testo dei log è redatto per secret comuni (stessa policy di MCP <code>AppLogs</code> da API <strong>1.11.5+</strong>).</p>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Metodo</th>
-                            <th>Endpoint</th>
-                            <th>Ability richiesta</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/apps</code></td>
-                            <td>apps-view</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/apps/{name}</code></td>
-                            <td>apps-view</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/apps/{name}/logs</code></td>
-                            <td>apps-view</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps</code></td>
-                            <td>apps-create</td>
-                        </tr>
-                        <tr>
-                            <td>PUT</td>
-                            <td><code>/api/apps/{name}</code></td>
-                            <td>apps-edit</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/suspend</code></td>
-                            <td>apps-suspend</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/unsuspend</code></td>
-                            <td>apps-suspend</td>
-                        </tr>
-                        <tr>
-                            <td>DELETE</td>
-                            <td><code>/api/apps/{name}</code></td>
-                            <td>apps-delete</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/apps/{name}/aliases</code></td>
-                            <td>aliases-view</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/aliases</code></td>
-                            <td>aliases-create</td>
-                        </tr>
-                        <tr>
-                            <td>DELETE</td>
-                            <td><code>/api/apps/{name}/aliases</code></td>
-                            <td>aliases-delete</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/deploy</code></td>
-                            <td>deploy-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/deploy/rollback</code></td>
-                            <td>deploy-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/deploy/unlock</code></td>
-                            <td>deploy-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/ssl</code></td>
-                            <td>ssl-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/ssl/force</code></td>
-                            <td>ssl-manage</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/apps/{name}/www</code></td>
-                            <td>www-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/www/add</code></td>
-                            <td>www-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/www/force-to-root</code></td>
-                            <td>www-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/www/force-from-root</code></td>
-                            <td>www-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/www/clear</code></td>
-                            <td>www-manage</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/apps/{name}/basicauth</code></td>
-                            <td>apps-basicauth</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/basicauth/enable</code></td>
-                            <td>apps-basicauth</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/apps/{name}/basicauth/disable</code></td>
-                            <td>apps-basicauth</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/dbs/engines</code></td>
-                            <td>dbs-view</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/dbs</code></td>
-                            <td>dbs-view</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/dbs</code></td>
-                            <td>dbs-create</td>
-                        </tr>
-                        <tr>
-                            <td>DELETE</td>
-                            <td><code>/api/dbs/{name}</code></td>
-                            <td>dbs-delete</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/dbs/{name}/backup</code></td>
-                            <td>dbs-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/dbs/{name}/restore</code></td>
-                            <td>dbs-manage</td>
-                        </tr>
-                        <tr>
-                            <td>POST</td>
-                            <td><code>/api/dbs/{name}/password</code></td>
-                            <td>dbs-manage</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/status</code></td>
-                            <td>status-view</td>
-                        </tr>
-                        <tr>
-                            <td>GET</td>
-                            <td><code>/api/jobs/{id}</code></td>
-                            <td>qualsiasi token autenticato</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Metodo</th>
+                                                <th>Endpoint</th>
+                                                <th>Ability richiesta</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps</code></td>
+                                                <td>apps-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}</code></td>
+                                                <td>apps-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/logs</code></td>
+                                                <td>apps-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps</code></td>
+                                                <td>apps-create</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT</td>
+                                                <td><code>/api/apps/{name}</code></td>
+                                                <td>apps-edit</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/suspend</code></td>
+                                                <td>apps-suspend</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/unsuspend</code></td>
+                                                <td>apps-suspend</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/apps/{name}</code></td>
+                                                <td>apps-delete</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/aliases</code></td>
+                                                <td>aliases-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/aliases</code></td>
+                                                <td>aliases-create</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/apps/{name}/aliases</code></td>
+                                                <td>aliases-delete</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/deploy</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/deploy/rollback</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/deploy/unlock</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/ssl</code></td>
+                                                <td>ssl-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/ssl/force</code></td>
+                                                <td>ssl-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/www</code></td>
+                                                <td>www-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/www/add</code></td>
+                                                <td>www-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/www/force-to-root</code></td>
+                                                <td>www-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/www/force-from-root</code></td>
+                                                <td>www-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/www/clear</code></td>
+                                                <td>www-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/basicauth</code></td>
+                                                <td>apps-basicauth</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/basicauth/enable</code></td>
+                                                <td>apps-basicauth</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/basicauth/disable</code></td>
+                                                <td>apps-basicauth</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/dbs/engines</code></td>
+                                                <td>dbs-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/dbs</code></td>
+                                                <td>dbs-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs</code></td>
+                                                <td>dbs-create</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/dbs/{name}</code></td>
+                                                <td>dbs-delete</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs/{name}/backup</code></td>
+                                                <td>dbs-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs/{name}/restore</code></td>
+                                                <td>dbs-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs/{name}/password</code></td>
+                                                <td>dbs-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/status</code></td>
+                                                <td>status-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/jobs/{id}</code></td>
+                                                <td>qualsiasi token autenticato</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3 id="cipi-api-curl">Esempi REST (curl)</h3>
                 <p>Imposta l'URL base API e il token (da <code>cipi api token create</code>):</p>
@@ -686,44 +688,46 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                     </li>
                     <li>Token Sanctum Bearer con le ability richieste:</li>
                 </ul>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Ability</th>
-                            <th>Richiesta per</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>apps-view</code></td>
-                            <td>Test Connection, App Info</td>
-                        </tr>
-                        <tr>
-                            <td><code>apps-create</code></td>
-                            <td>Create Account</td>
-                        </tr>
-                        <tr>
-                            <td><code>apps-edit</code></td>
-                            <td>Change Package</td>
-                        </tr>
-                        <tr>
-                            <td><code>apps-suspend</code></td>
-                            <td>Suspend / Unsuspend</td>
-                        </tr>
-                        <tr>
-                            <td><code>apps-delete</code></td>
-                            <td>Terminate Account</td>
-                        </tr>
-                        <tr>
-                            <td><code>deploy-manage</code></td>
-                            <td>Deploy, Rollback, Unlock</td>
-                        </tr>
-                        <tr>
-                            <td><code>ssl-manage</code></td>
-                            <td>Install SSL, Auto-SSL</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Ability</th>
+                                                <th>Richiesta per</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>apps-view</code></td>
+                                                <td>Test Connection, App Info</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>apps-create</code></td>
+                                                <td>Create Account</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>apps-edit</code></td>
+                                                <td>Change Package</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>apps-suspend</code></td>
+                                                <td>Suspend / Unsuspend</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>apps-delete</code></td>
+                                                <td>Terminate Account</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>deploy-manage</code></td>
+                                                <td>Deploy, Rollback, Unlock</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>ssl-manage</code></td>
+                                                <td>Install SSL, Auto-SSL</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3>Installazione</h3>
                 <ol>
@@ -746,192 +750,202 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                     </li>
                     <li>Crea un <strong>prodotto hosting</strong> collegato a questo server e configura <strong>Module Settings</strong>:</li>
                 </ol>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Impostazione</th>
-                            <th>Descrizione</th>
-                            <th>Default</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Versione PHP</td>
-                            <td>8.2 / 8.3 / 8.4 / 8.5</td>
-                            <td>8.5</td>
-                        </tr>
-                        <tr>
-                            <td>Tipo app</td>
-                            <td><code>laravel</code> o <code>custom</code></td>
-                            <td>laravel</td>
-                        </tr>
-                        <tr>
-                            <td>Repository Git (SSH)</td>
-                            <td>Obbligatorio per Laravel; opzionale per custom</td>
-                            <td>&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td>Branch Git</td>
-                            <td>Branch da deployare</td>
-                            <td>main</td>
-                        </tr>
-                        <tr>
-                            <td>SSL automatico</td>
-                            <td>Installa Let&rsquo;s Encrypt dopo la creazione</td>
-                            <td>No</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Impostazione</th>
+                                                <th>Descrizione</th>
+                                                <th>Default</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Versione PHP</td>
+                                                <td>8.2 / 8.3 / 8.4 / 8.5</td>
+                                                <td>8.5</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Tipo app</td>
+                                                <td><code>laravel</code> o <code>custom</code></td>
+                                                <td>laravel</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Repository Git (SSH)</td>
+                                                <td>Obbligatorio per Laravel; opzionale per custom</td>
+                                                <td>&mdash;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Branch Git</td>
+                                                <td>Branch da deployare</td>
+                                                <td>main</td>
+                                            </tr>
+                                            <tr>
+                                                <td>SSL automatico</td>
+                                                <td>Installa Let&rsquo;s Encrypt dopo la creazione</td>
+                                                <td>No</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3>Tipi di app</h3>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Tipo app</th>
-                            <th>Equivalente Cipi</th>
-                            <th>Stack</th>
-                            <th>Git / Deploy</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>laravel</strong> (default)</td>
-                            <td><code>cipi app create</code></td>
-                            <td>Utente Linux isolato, pool PHP-FPM, vhost Nginx, MariaDB, worker Supervisor, release Deployer</td>
-                            <td>URL repository SSH <strong>obbligatorio</strong>; branch dalle impostazioni</td>
-                        </tr>
-                        <tr>
-                            <td><strong>custom</strong></td>
-                            <td><code>cipi app create --custom</code></td>
-                            <td>Directory htdocs/, Nginx + PHP &mdash; ideale per siti statici, SPA, WordPress o app PHP generiche</td>
-                            <td><strong>Opzionale</strong>: lascia Repository Git vuoto per hosting solo SFTP, o imposta un repo per deploy Git</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo app</th>
+                                                <th>Equivalente Cipi</th>
+                                                <th>Stack</th>
+                                                <th>Git / Deploy</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>laravel</strong> (default)</td>
+                                                <td><code>cipi app create</code></td>
+                                                <td>Utente Linux isolato, pool PHP-FPM, vhost Nginx, MariaDB, worker Supervisor, release Deployer</td>
+                                                <td>URL repository SSH <strong>obbligatorio</strong>; branch dalle impostazioni</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>custom</strong></td>
+                                                <td><code>cipi app create --custom</code></td>
+                                                <td>Directory htdocs/, Nginx + PHP &mdash; ideale per siti statici, SPA, WordPress o app PHP generiche</td>
+                                                <td><strong>Opzionale</strong>: lascia Repository Git vuoto per hosting solo SFTP, o imposta un repo per deploy Git</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3>Ciclo di vita provisioning</h3>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Azione WHMCS</th>
-                            <th>Chiamata API</th>
-                            <th>Comportamento</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Test Connection</strong></td>
-                            <td><code>GET /api/apps</code></td>
-                            <td>Valida token e raggiungibilità API</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Create Account</strong></td>
-                            <td><code>POST /api/apps</code></td>
-                            <td>Provisiona un'app Cipi (Laravel o custom); attende job async; opzionalmente installa SSL
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><strong>Suspend</strong></td>
-                            <td><code>POST /api/apps/{name}/suspend</code></td>
-                            <td>Mette l'app offline (pagina manutenzione HTTP 503) senza eliminarla; attende job async</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Unsuspend</strong></td>
-                            <td><code>POST /api/apps/{name}/unsuspend</code></td>
-                            <td>Ripristina il vhost Nginx normale dell'app; attende job async</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Terminate Account</strong></td>
-                            <td><code>DELETE /api/apps/{name}</code></td>
-                            <td>Rimuove l'app; attende job async</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Change Package</strong></td>
-                            <td><code>PUT /api/apps/{name}</code></td>
-                            <td>Aggiorna versione PHP, repository Git o branch</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Azione WHMCS</th>
+                                                <th>Chiamata API</th>
+                                                <th>Comportamento</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Test Connection</strong></td>
+                                                <td><code>GET /api/apps</code></td>
+                                                <td>Valida token e raggiungibilità API</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Create Account</strong></td>
+                                                <td><code>POST /api/apps</code></td>
+                                                <td>Provisiona un'app Cipi (Laravel o custom); attende job async; opzionalmente installa SSL
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Suspend</strong></td>
+                                                <td><code>POST /api/apps/{name}/suspend</code></td>
+                                                <td>Mette l'app offline (pagina manutenzione HTTP 503) senza eliminarla; attende job async</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Unsuspend</strong></td>
+                                                <td><code>POST /api/apps/{name}/unsuspend</code></td>
+                                                <td>Ripristina il vhost Nginx normale dell'app; attende job async</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Terminate Account</strong></td>
+                                                <td><code>DELETE /api/apps/{name}</code></td>
+                                                <td>Rimuove l'app; attende job async</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Change Package</strong></td>
+                                                <td><code>PUT /api/apps/{name}</code></td>
+                                                <td>Aggiorna versione PHP, repository Git o branch</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
                 <p><strong>Suspend / Unsuspend</strong> richiedono <strong>Cipi 4.5.8+</strong> (endpoint suspend/unsuspend), il package API <strong>1.8.1+</strong> e un token con l'ability <code>apps-suspend</code>. Sospendere sostituisce il vhost dell'app con una pagina manutenzione HTTP 503 generica; riattivare lo ripristina.</p>
 
                 <h3>Pulsanti admin</h3>
                 <p>Dalla vista servizio admin WHMCS, gli operatori possono attivare azioni one-click:</p>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Pulsante</th>
-                            <th>Chiamata API</th>
-                            <th>Descrizione</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Install SSL</strong></td>
-                            <td><code>POST /api/apps/{name}/ssl</code></td>
-                            <td>Installa un certificato Let&rsquo;s Encrypt</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Deploy</strong></td>
-                            <td><code>POST /api/apps/{name}/deploy</code></td>
-                            <td>Attiva un deploy zero-downtime</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Rollback Deploy</strong></td>
-                            <td><code>POST /api/apps/{name}/deploy/rollback</code></td>
-                            <td>Torna alla release precedente</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Unlock Deploy</strong></td>
-                            <td><code>POST /api/apps/{name}/deploy/unlock</code></td>
-                            <td>Sblocca un deploy bloccato</td>
-                        </tr>
-                        <tr>
-                            <td><strong>App Info</strong></td>
-                            <td><code>GET /api/apps/{name}</code></td>
-                            <td>Recupera dettagli app correnti nel Module Log</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Pulsante</th>
+                                                <th>Chiamata API</th>
+                                                <th>Descrizione</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Install SSL</strong></td>
+                                                <td><code>POST /api/apps/{name}/ssl</code></td>
+                                                <td>Installa un certificato Let&rsquo;s Encrypt</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Deploy</strong></td>
+                                                <td><code>POST /api/apps/{name}/deploy</code></td>
+                                                <td>Attiva un deploy zero-downtime</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Rollback Deploy</strong></td>
+                                                <td><code>POST /api/apps/{name}/deploy/rollback</code></td>
+                                                <td>Torna alla release precedente</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Unlock Deploy</strong></td>
+                                                <td><code>POST /api/apps/{name}/deploy/unlock</code></td>
+                                                <td>Sblocca un deploy bloccato</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>App Info</strong></td>
+                                                <td><code>GET /api/apps/{name}</code></td>
+                                                <td>Recupera dettagli app correnti nel Module Log</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3>Auto-SSL alla creazione</h3>
                 <p>Abilita <strong>Auto SSL</strong> nelle impostazioni modulo prodotto per installare automaticamente un certificato Let&rsquo;s Encrypt subito dopo il provisioning. Se l'installazione SSL fallisce, l'app viene comunque creata con successo e un warning viene loggato.</p>
 
                 <h3>Client API completo</h3>
                 <p>Il <code>CipiApiClient</code> incluso copre l'intera superficie REST API Cipi. Anche se una funzionalità non è collegata a un hook WHMCS, puoi usare il client in hook o addon personalizzati:</p>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Area</th>
-                            <th>Metodi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>App</strong></td>
-                            <td>listApps, getApp, createApp, editApp, suspendApp, unsuspendApp, deleteApp</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Deploy</strong></td>
-                            <td>deployApp, rollbackDeploy, unlockDeploy</td>
-                        </tr>
-                        <tr>
-                            <td><strong>SSL</strong></td>
-                            <td>installSsl</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Alias</strong></td>
-                            <td>listAliases, addAlias, removeAlias</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Database</strong></td>
-                            <td>listDatabases, createDatabase, deleteDatabase, backupDatabase, restoreDatabase, resetDatabasePassword</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Job</strong></td>
-                            <td>getJob, waitForJob</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Area</th>
+                                                <th>Metodi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>App</strong></td>
+                                                <td>listApps, getApp, createApp, editApp, suspendApp, unsuspendApp, deleteApp</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Deploy</strong></td>
+                                                <td>deployApp, rollbackDeploy, unlockDeploy</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>SSL</strong></td>
+                                                <td>installSsl</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Alias</strong></td>
+                                                <td>listAliases, addAlias, removeAlias</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Database</strong></td>
+                                                <td>listDatabases, createDatabase, deleteDatabase, backupDatabase, restoreDatabase, resetDatabasePassword</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Job</strong></td>
+                                                <td>getJob, waitForJob</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3>Estendere il modulo</h3>
                 <div class="code-block">
@@ -1030,57 +1044,59 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                 </div>
 
                 <h4>Cosa va nell'archivio</h4>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>File</th>
-                            <th>Descrizione</th>
-                            <th>Incluso</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>env</code></td>
-                            <td>Il <code>.env</code> dell'app da <code>/home/&lt;app&gt;/shared/.env</code></td>
-                            <td>Sempre</td>
-                        </tr>
-                        <tr>
-                            <td><code>auth.json</code></td>
-                            <td>Credenziali auth Composer (se esistono)</td>
-                            <td>Sempre</td>
-                        </tr>
-                        <tr>
-                            <td><code>deploy.php</code></td>
-                            <td>Config Deployer</td>
-                            <td>Sempre</td>
-                        </tr>
-                        <tr>
-                            <td><code>ssh/*</code></td>
-                            <td>Deploy key, known_hosts, authorized_keys, config SSH</td>
-                            <td>Sempre</td>
-                        </tr>
-                        <tr>
-                            <td><code>supervisor.conf</code></td>
-                            <td>Config queue worker</td>
-                            <td>Sempre</td>
-                        </tr>
-                        <tr>
-                            <td><code>crontab</code></td>
-                            <td>Crontab dell'app (scheduler + trigger deploy)</td>
-                            <td>Sempre</td>
-                        </tr>
-                        <tr>
-                            <td><code>db.sql.gz</code></td>
-                            <td>Dump MariaDB gzippato (schema + dati + routine)</td>
-                            <td><code>--with-db</code></td>
-                        </tr>
-                        <tr>
-                            <td><code>storage.tar.gz</code></td>
-                            <td>Archivio di <code>/home/&lt;app&gt;/shared/storage/</code></td>
-                            <td><code>--with-storage</code></td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>File</th>
+                                                <th>Descrizione</th>
+                                                <th>Incluso</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>env</code></td>
+                                                <td>Il <code>.env</code> dell'app da <code>/home/&lt;app&gt;/shared/.env</code></td>
+                                                <td>Sempre</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>auth.json</code></td>
+                                                <td>Credenziali auth Composer (se esistono)</td>
+                                                <td>Sempre</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>deploy.php</code></td>
+                                                <td>Config Deployer</td>
+                                                <td>Sempre</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>ssh/*</code></td>
+                                                <td>Deploy key, known_hosts, authorized_keys, config SSH</td>
+                                                <td>Sempre</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>supervisor.conf</code></td>
+                                                <td>Config queue worker</td>
+                                                <td>Sempre</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>crontab</code></td>
+                                                <td>Crontab dell'app (scheduler + trigger deploy)</td>
+                                                <td>Sempre</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>db.sql.gz</code></td>
+                                                <td>Dump MariaDB gzippato (schema + dati + routine)</td>
+                                                <td><code>--with-db</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>storage.tar.gz</code></td>
+                                                <td>Archivio di <code>/home/&lt;app&gt;/shared/storage/</code></td>
+                                                <td><code>--with-storage</code></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
                 <p>Più config globali: <code>apps.json</code> (filtrato alle app selezionate), <code>databases.json</code>, <code>backup.json</code>, <code>api.json</code>.
                 </p>
 
@@ -1390,66 +1406,68 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 </div>
                 <p>Config: <code>/etc/cipi/notifications.json</code>. Esegui <code>cipi notifications list</code> sul server per lo stato on/off live. ID trigger per <code>cipi notifications enable|disable &lt;trigger&gt;</code>:</p>
 
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>ID trigger</th>
-                            <th>Categoria</th>
-                            <th>Evento</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><code>app_create</code></td><td>App</td><td>App creata</td></tr>
-                        <tr><td><code>app_edit</code></td><td>App</td><td>App modificata</td></tr>
-                        <tr><td><code>app_delete</code></td><td>App</td><td>App eliminata</td></tr>
-                        <tr><td><code>app_suspend</code></td><td>App</td><td>App sospesa</td></tr>
-                        <tr><td><code>app_unsuspend</code></td><td>App</td><td>App riattivata</td></tr>
-                        <tr><td><code>app_ssh_password_reset</code></td><td>App</td><td>Reset password SSH app</td></tr>
-                        <tr><td><code>app_db_password_reset</code></td><td>App</td><td>Reset password DB app</td></tr>
-                        <tr><td><code>alias_add</code></td><td>Domini</td><td>Alias aggiunto</td></tr>
-                        <tr><td><code>alias_remove</code></td><td>Domini</td><td>Alias rimosso</td></tr>
-                        <tr><td><code>auth_create</code></td><td>Auth</td><td>auth.json Composer creato</td></tr>
-                        <tr><td><code>auth_edit</code></td><td>Auth</td><td>auth.json Composer modificato</td></tr>
-                        <tr><td><code>auth_delete</code></td><td>Auth</td><td>auth.json Composer eliminato</td></tr>
-                        <tr><td><code>basicauth_enable</code></td><td>Basic auth</td><td>HTTP basic auth attivato</td></tr>
-                        <tr><td><code>basicauth_disable</code></td><td>Basic auth</td><td>HTTP basic auth disattivato</td></tr>
-                        <tr><td><code>deploy_success</code></td><td>Deploy</td><td>Deploy riuscito</td></tr>
-                        <tr><td><code>deploy_fail</code></td><td>Deploy</td><td>Deploy fallito</td></tr>
-                        <tr><td><code>deploy_rollback</code></td><td>Deploy</td><td>Rollback deploy</td></tr>
-                        <tr><td><code>ssl_install</code></td><td>SSL</td><td>Certificato SSL installato</td></tr>
-                        <tr><td><code>ssl_renew</code></td><td>SSL</td><td>Certificati SSL rinnovati</td></tr>
-                        <tr><td><code>php_install</code></td><td>PHP</td><td>Versione PHP installata</td></tr>
-                        <tr><td><code>php_switch</code></td><td>PHP</td><td>PHP di sistema cambiato</td></tr>
-                        <tr><td><code>php_remove</code></td><td>PHP</td><td>Versione PHP rimossa</td></tr>
-                        <tr><td><code>php_upgrade</code></td><td>PHP</td><td>Patch di sicurezza PHP applicate</td></tr>
-                        <tr><td><code>db_create</code></td><td>Database</td><td>Database creato</td></tr>
-                        <tr><td><code>db_delete</code></td><td>Database</td><td>Database eliminato</td></tr>
-                        <tr><td><code>worker_add</code></td><td>Worker</td><td>Worker aggiunto</td></tr>
-                        <tr><td><code>worker_remove</code></td><td>Worker</td><td>Worker rimosso</td></tr>
-                        <tr><td><code>ssh_key_add</code></td><td>Chiavi SSH</td><td>Chiave SSH aggiunta</td></tr>
-                        <tr><td><code>ssh_key_rename</code></td><td>Chiavi SSH</td><td>Chiave SSH rinominata</td></tr>
-                        <tr><td><code>ssh_key_remove</code></td><td>Chiavi SSH</td><td>Chiave SSH rimossa</td></tr>
-                        <tr><td><code>ssh_login</code></td><td>Sicurezza</td><td>Login SSH (utenti cipi/root/sudo)</td></tr>
-                        <tr><td><code>sudo</code></td><td>Sicurezza</td><td>Elevazione sudo</td></tr>
-                        <tr><td><code>su</code></td><td>Sicurezza</td><td>su a root da cipi</td></tr>
-                        <tr><td><code>backup_fail</code></td><td>Backup</td><td>Backup fallito</td></tr>
-                        <tr><td><code>cron_fail</code></td><td>Cron</td><td>Job cron fallito</td></tr>
-                        <tr><td><code>reset_root_password</code></td><td>Reset</td><td>Reset password SSH root</td></tr>
-                        <tr><td><code>reset_db_password</code></td><td>Reset</td><td>Reset password root MariaDB</td></tr>
-                        <tr><td><code>reset_valkey_password</code></td><td>Reset</td><td>Reset password Valkey</td></tr>
-                        <tr><td><code>api_configure</code></td><td>API</td><td>Panel API configurata</td></tr>
-                        <tr><td><code>api_update</code></td><td>API</td><td>Panel API aggiornata</td></tr>
-                        <tr><td><code>api_upgrade</code></td><td>API</td><td>Panel API aggiornata (upgrade)</td></tr>
-                        <tr><td><code>api_ssl</code></td><td>API</td><td>SSL Panel API installato</td></tr>
-                        <tr><td><code>git_configure</code></td><td>Git</td><td>Token provider Git configurato</td></tr>
-                        <tr><td><code>sync_export</code></td><td>Sync</td><td>App esportate</td></tr>
-                        <tr><td><code>sync_import</code></td><td>Sync</td><td>App importate</td></tr>
-                        <tr><td><code>sync_push</code></td><td>Sync</td><td>App inviate al remoto</td></tr>
-                        <tr><td><code>service_restart</code></td><td>Servizi</td><td>Servizio riavviato</td></tr>
-                        <tr><td><code>service_start</code></td><td>Servizi</td><td>Servizio avviato</td></tr>
-                        <tr><td><code>service_stop</code></td><td>Servizi</td><td>Servizio fermato</td></tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID trigger</th>
+                                                <th>Categoria</th>
+                                                <th>Evento</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td><code>app_create</code></td><td>App</td><td>App creata</td></tr>
+                                            <tr><td><code>app_edit</code></td><td>App</td><td>App modificata</td></tr>
+                                            <tr><td><code>app_delete</code></td><td>App</td><td>App eliminata</td></tr>
+                                            <tr><td><code>app_suspend</code></td><td>App</td><td>App sospesa</td></tr>
+                                            <tr><td><code>app_unsuspend</code></td><td>App</td><td>App riattivata</td></tr>
+                                            <tr><td><code>app_ssh_password_reset</code></td><td>App</td><td>Reset password SSH app</td></tr>
+                                            <tr><td><code>app_db_password_reset</code></td><td>App</td><td>Reset password DB app</td></tr>
+                                            <tr><td><code>alias_add</code></td><td>Domini</td><td>Alias aggiunto</td></tr>
+                                            <tr><td><code>alias_remove</code></td><td>Domini</td><td>Alias rimosso</td></tr>
+                                            <tr><td><code>auth_create</code></td><td>Auth</td><td>auth.json Composer creato</td></tr>
+                                            <tr><td><code>auth_edit</code></td><td>Auth</td><td>auth.json Composer modificato</td></tr>
+                                            <tr><td><code>auth_delete</code></td><td>Auth</td><td>auth.json Composer eliminato</td></tr>
+                                            <tr><td><code>basicauth_enable</code></td><td>Basic auth</td><td>HTTP basic auth attivato</td></tr>
+                                            <tr><td><code>basicauth_disable</code></td><td>Basic auth</td><td>HTTP basic auth disattivato</td></tr>
+                                            <tr><td><code>deploy_success</code></td><td>Deploy</td><td>Deploy riuscito</td></tr>
+                                            <tr><td><code>deploy_fail</code></td><td>Deploy</td><td>Deploy fallito</td></tr>
+                                            <tr><td><code>deploy_rollback</code></td><td>Deploy</td><td>Rollback deploy</td></tr>
+                                            <tr><td><code>ssl_install</code></td><td>SSL</td><td>Certificato SSL installato</td></tr>
+                                            <tr><td><code>ssl_renew</code></td><td>SSL</td><td>Certificati SSL rinnovati</td></tr>
+                                            <tr><td><code>php_install</code></td><td>PHP</td><td>Versione PHP installata</td></tr>
+                                            <tr><td><code>php_switch</code></td><td>PHP</td><td>PHP di sistema cambiato</td></tr>
+                                            <tr><td><code>php_remove</code></td><td>PHP</td><td>Versione PHP rimossa</td></tr>
+                                            <tr><td><code>php_upgrade</code></td><td>PHP</td><td>Patch di sicurezza PHP applicate</td></tr>
+                                            <tr><td><code>db_create</code></td><td>Database</td><td>Database creato</td></tr>
+                                            <tr><td><code>db_delete</code></td><td>Database</td><td>Database eliminato</td></tr>
+                                            <tr><td><code>worker_add</code></td><td>Worker</td><td>Worker aggiunto</td></tr>
+                                            <tr><td><code>worker_remove</code></td><td>Worker</td><td>Worker rimosso</td></tr>
+                                            <tr><td><code>ssh_key_add</code></td><td>Chiavi SSH</td><td>Chiave SSH aggiunta</td></tr>
+                                            <tr><td><code>ssh_key_rename</code></td><td>Chiavi SSH</td><td>Chiave SSH rinominata</td></tr>
+                                            <tr><td><code>ssh_key_remove</code></td><td>Chiavi SSH</td><td>Chiave SSH rimossa</td></tr>
+                                            <tr><td><code>ssh_login</code></td><td>Sicurezza</td><td>Login SSH (utenti cipi/root/sudo)</td></tr>
+                                            <tr><td><code>sudo</code></td><td>Sicurezza</td><td>Elevazione sudo</td></tr>
+                                            <tr><td><code>su</code></td><td>Sicurezza</td><td>su a root da cipi</td></tr>
+                                            <tr><td><code>backup_fail</code></td><td>Backup</td><td>Backup fallito</td></tr>
+                                            <tr><td><code>cron_fail</code></td><td>Cron</td><td>Job cron fallito</td></tr>
+                                            <tr><td><code>reset_root_password</code></td><td>Reset</td><td>Reset password SSH root</td></tr>
+                                            <tr><td><code>reset_db_password</code></td><td>Reset</td><td>Reset password root MariaDB</td></tr>
+                                            <tr><td><code>reset_valkey_password</code></td><td>Reset</td><td>Reset password Valkey</td></tr>
+                                            <tr><td><code>api_configure</code></td><td>API</td><td>Panel API configurata</td></tr>
+                                            <tr><td><code>api_update</code></td><td>API</td><td>Panel API aggiornata</td></tr>
+                                            <tr><td><code>api_upgrade</code></td><td>API</td><td>Panel API aggiornata (upgrade)</td></tr>
+                                            <tr><td><code>api_ssl</code></td><td>API</td><td>SSL Panel API installato</td></tr>
+                                            <tr><td><code>git_configure</code></td><td>Git</td><td>Token provider Git configurato</td></tr>
+                                            <tr><td><code>sync_export</code></td><td>Sync</td><td>App esportate</td></tr>
+                                            <tr><td><code>sync_import</code></td><td>Sync</td><td>App importate</td></tr>
+                                            <tr><td><code>sync_push</code></td><td>Sync</td><td>App inviate al remoto</td></tr>
+                                            <tr><td><code>service_restart</code></td><td>Servizi</td><td>Servizio riavviato</td></tr>
+                                            <tr><td><code>service_start</code></td><td>Servizi</td><td>Servizio avviato</td></tr>
+                                            <tr><td><code>service_stop</code></td><td>Servizi</td><td>Servizio fermato</td></tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <h3>Alert automatici</h3>
                 <p>Una volta configurato, Cipi invia notifiche email per:</p>
@@ -1498,32 +1516,34 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 <h2>Retention log (GDPR)</h2>
                 <p>Cipi applica policy automatiche di rotazione log progettate per soddisfare GDPR e requisiti generali di protezione dati. I log vengono ruotati ed eliminati automaticamente — nessuna pulizia manuale necessaria.</p>
 
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Categoria</th>
-                            <th>Log</th>
-                            <th>Retention</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Applicativi</td>
-                            <td>Laravel, PHP-FPM, worker, deploy, sistema</td>
-                            <td>12 mesi</td>
-                        </tr>
-                        <tr>
-                            <td>Sicurezza</td>
-                            <td>Fail2ban, firewall UFW, autenticazione, eventi Cipi (<code>events.log</code>)</td>
-                            <td>12 mesi</td>
-                        </tr>
-                        <tr>
-                            <td>HTTP / navigazione</td>
-                            <td>Log accesso ed errore Nginx</td>
-                            <td>90 giorni</td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Categoria</th>
+                                                <th>Log</th>
+                                                <th>Retention</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Applicativi</td>
+                                                <td>Laravel, PHP-FPM, worker, deploy, sistema</td>
+                                                <td>12 mesi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Sicurezza</td>
+                                                <td>Fail2ban, firewall UFW, autenticazione, eventi Cipi (<code>events.log</code>)</td>
+                                                <td>12 mesi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>HTTP / navigazione</td>
+                                                <td>Log accesso ed errore Nginx</td>
+                                                <td>90 giorni</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -1606,44 +1626,46 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 
                 <h3>Cron di manutenzione automatici</h3>
                 <p>Cipi programma diversi job a livello root durante l'installazione. I crontab a livello app (scheduler, trigger deploy) sono separati — vedi <a href="/it/docs/infrastruttura#cli-app-cron">Crontab utente</a>.</p>
-                <table class="cmd-table">
-                    <thead>
-                        <tr>
-                            <th>Schedule</th>
-                            <th>Job</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Giornaliero 02:00</td>
-                            <td><code>cipi backup run</code> — backup S3 per tutte le app</td>
-                        </tr>
-                        <tr>
-                            <td>Giornaliero 03:00</td>
-                            <td><code>cipi backup prune --weeks=4</code></td>
-                        </tr>
-                        <tr>
-                            <td>Domenica 03:30</td>
-                            <td><code>cipi php upgrade</code> — patch di sicurezza per tutte le versioni PHP installate (avvolto da <code>cipi-cron-notify</code>)</td>
-                        </tr>
-                        <tr>
-                            <td>Giornaliero 03:50</td>
-                            <td><code>cipi self-update</code> (avvolto da <code>cipi-cron-notify</code>)</td>
-                        </tr>
-                        <tr>
-                            <td>Domenica 04:10</td>
-                            <td><code>cipi ssl renew</code></td>
-                        </tr>
-                        <tr>
-                            <td>Giornaliero 04:15</td>
-                            <td>Manutenzione Panel API (<code>cipi-api-maintain</code> — prune job/metriche)</td>
-                        </tr>
-                        <tr>
-                            <td>Giornaliero 04:30</td>
-                            <td><code>cipi api update</code> — soft-update Laravel panel + <code>cipi/api</code></td>
-                        </tr>
-                    </tbody>
-                </table>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Schedule</th>
+                                                <th>Job</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Giornaliero 02:00</td>
+                                                <td><code>cipi backup run</code> — backup S3 per tutte le app</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Giornaliero 03:00</td>
+                                                <td><code>cipi backup prune --weeks=4</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Domenica 03:30</td>
+                                                <td><code>cipi php upgrade</code> — patch di sicurezza per tutte le versioni PHP installate (avvolto da <code>cipi-cron-notify</code>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Giornaliero 03:50</td>
+                                                <td><code>cipi self-update</code> (avvolto da <code>cipi-cron-notify</code>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Domenica 04:10</td>
+                                                <td><code>cipi ssl renew</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Giornaliero 04:15</td>
+                                                <td>Manutenzione Panel API (<code>cipi-api-maintain</code> — prune job/metriche)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Giornaliero 04:30</td>
+                                                <td><code>cipi api update</code> — soft-update Laravel panel + <code>cipi/api</code></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
             </div>
 
 
