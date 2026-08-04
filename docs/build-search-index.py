@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
-"""Regenerate docs/search-index.js from HTML doc sections."""
+"""Regenerate docs/search-index.js from HTML doc sections.
+
+Usage:
+  python3 docs/build-search-index.py           # legacy: docs/*.html -> docs/search-index.js
+  python3 docs/build-search-index.py en       # en/docs -> en/docs/search-index.js
+  python3 docs/build-search-index.py it       # it/docs -> it/docs/search-index.js
+"""
 
 from __future__ import annotations
 
+import argparse
 import glob
 import html
 import json
 import os
 import re
+import sys
 
-DOCS_DIR = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(DOCS_DIR, "search-index.js")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-PAGE_TITLES = {
+PAGE_TITLES_EN = {
     "index": "Docs",
     "getting-started": "Getting Started",
     "agent": "Cipi Agent",
@@ -25,6 +32,19 @@ PAGE_TITLES = {
     "about": "About Cipi",
 }
 
+PAGE_TITLES_IT = {
+    "index": "Docs",
+    "primi-passi": "Primi passi",
+    "agent": "Cipi Agent",
+    "app": "App",
+    "deploy": "Deploy e CI/CD",
+    "infrastruttura": "Infrastruttura",
+    "client-cli": "Client CLI",
+    "gui": "Pannello di controllo (GUI)",
+    "avanzato": "Avanzato",
+    "informazioni": "Informazioni su Cipi",
+}
+
 
 def strip_tags(s: str) -> str:
     s = re.sub(r"<script[^>]*>.*?</script>", " ", s, flags=re.DOTALL | re.IGNORECASE)
@@ -35,22 +55,22 @@ def strip_tags(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-def page_chapter(content: str, page: str) -> str:
+def page_chapter(content: str, page: str, titles: dict[str, str]) -> str:
     match = re.search(r'class="doc-section-label"[^>]*>([^<]+)', content)
     if match:
         return html.unescape(re.sub(r"\s+", " ", match.group(1)).strip())
-    return PAGE_TITLES.get(page, page.replace("-", " ").title())
+    return titles.get(page, page.replace("-", " ").title())
 
 
-def extract_entries() -> list[dict[str, str]]:
+def extract_entries(docs_dir: str, titles: dict[str, str]) -> list[dict[str, str]]:
     entries: list[dict[str, str]] = []
 
-    for filepath in sorted(glob.glob(os.path.join(DOCS_DIR, "*.html"))):
+    for filepath in sorted(glob.glob(os.path.join(docs_dir, "*.html"))):
         page = os.path.basename(filepath).replace(".html", "")
         with open(filepath, encoding="utf-8") as handle:
             content = handle.read()
 
-        chapter = page_chapter(content, page)
+        chapter = page_chapter(content, page, titles)
         main_match = re.search(
             r'<main class="docs-content"[^>]*>(.*)</main>', content, re.DOTALL
         )
@@ -64,8 +84,8 @@ def extract_entries() -> list[dict[str, str]]:
             body = parts[index + 1]
             body = re.split(r'<div class="(?:doc-section|page-nav)"', body)[0]
 
-            h2 = re.search(r"<h2[^>]*>(.*?)</h2>", body, re.DOTALL)
-            heading = strip_tags(h2.group(1)) if h2 else section_id
+            h = re.search(r"<h[12][^>]*>(.*?)</h[12]>", body, re.DOTALL)
+            heading = strip_tags(h.group(1)) if h else section_id
             text = strip_tags(body)
             blob = f"{chapter} {heading} {text}"
             if len(blob) > 4000:
@@ -86,12 +106,29 @@ def extract_entries() -> list[dict[str, str]]:
 
 
 def main() -> None:
-    entries = extract_entries()
-    with open(OUT, "w", encoding="utf-8") as handle:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("lang", nargs="?", choices=["en", "it"], default=None)
+    args = ap.parse_args()
+
+    if args.lang is None:
+        docs_dir = os.path.join(ROOT, "docs")
+        out = os.path.join(docs_dir, "search-index.js")
+        titles = PAGE_TITLES_EN
+    else:
+        docs_dir = os.path.join(ROOT, args.lang, "docs")
+        out = os.path.join(docs_dir, "search-index.js")
+        titles = PAGE_TITLES_IT if args.lang == "it" else PAGE_TITLES_EN
+
+    if not os.path.isdir(docs_dir):
+        sys.exit(f"docs dir missing: {docs_dir}")
+
+    entries = extract_entries(docs_dir, titles)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w", encoding="utf-8") as handle:
         handle.write("window.CIPI_DOCS = ")
         json.dump(entries, handle, ensure_ascii=False, separators=(",", ":"))
         handle.write(";\n")
-    print(f"Wrote {len(entries)} entries to {OUT}")
+    print(f"Wrote {len(entries)} entries to {out}")
 
 
 if __name__ == "__main__":
