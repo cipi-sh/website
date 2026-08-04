@@ -1,0 +1,132 @@
+# Cipi — Full Site Content for LLMs
+
+> Last updated: 2026-08-04. Canonical site: https://cipi.sh — index of pages: https://cipi.sh/llms.txt
+
+## What is Cipi
+
+Cipi is a free, open-source (MIT), Laravel-first deploy CLI for Ubuntu VPS. One command installs a complete production stack — Nginx, PHP 8.x (PHP-FPM or Laravel Octane on FrankenPHP), MariaDB (optional PostgreSQL), Valkey, Supervisor — on any fresh Ubuntu 22.04/24.04 server. It also supports static sites and generic PHP apps. Cipi is CLI-first with a REST API, a remote CLI client, an MCP server for AI agents, and an optional self-hosted web control panel (GUI). It is a self-hosted alternative to Laravel Forge with no subscription and no per-server fee.
+
+- Install: `wget -O - https://cipi.sh/setup.sh | bash` (run on a fresh Ubuntu VPS)
+- Admin access: SSH as `cipi` user, then `sudo -s` to run `cipi` commands
+- License: MIT, source at https://github.com/cipi-sh/cipi
+- Author: Andrea Pollastri (https://github.com/andreapollastri)
+- Current major version: Cipi 5 (Laravel Octane on FrankenPHP, Horizon, Reverb, PostgreSQL, Node build on deploy, pre-deploy snapshots, wildcard SSL via DNS-01, health checks, staging clones)
+
+## Core capabilities
+
+- One-command install of the full LEMP production stack on any Ubuntu VPS
+- Isolated apps: each app gets its own system user, PHP-FPM pool (or Octane service), Nginx vhost and database
+- Zero-downtime Git deployments via GitHub/GitLab webhooks (deploy keys and webhooks configured automatically), Deployer-style releases
+- Laravel Octane on FrankenPHP: `cipi app create --octane`, `cipi app convert --to=octane`; Octane apps run beside classic FPM apps
+- Laravel Horizon, Reverb, queue workers (Supervisor) and scheduler configured out of the box
+- Databases: MariaDB default, optional PostgreSQL (`cipi db install pgsql`), per-app engine choice (`--engine=mariadb|pgsql`)
+- SSL: free Let's Encrypt certificates (`cipi ssl install`), wildcard via DNS-01, forced HTTPS (`cipi ssl force`)
+- www redirects: `cipi www add|force-to-root|force-from-root|clear|status`
+- Backups: S3-compatible backups (`cipi backup configure|run|prune`), pre-deploy database snapshots, `cipi db restore`
+- Security: AES-256-CBC config encryption at rest, hardened defaults, PHP security patches managed by Cipi (`cipi php upgrade`)
+- Sync/failover: encrypted server-to-server sync
+- Automation: REST API (package `cipi/api`, 36 MCP tools), remote CLI client (cipi-cli), webhooks, WHMCS module
+- AI-native: dual MCP server (per-app and global) so MCP-compatible IDEs/agents can create apps, deploy, manage SSL and databases
+- Optional GUI: `cipi gui yourdomain.com` installs a free, self-hosted Laravel control panel managing one or more Cipi servers (apps incl. Octane/engine, databases, SSL, www, deploys, 2FA/TOTP, multi-server). Cipi stays fully usable CLI-only.
+
+## Frequently asked questions
+
+Q: Is Cipi free?
+A: Yes. 100% free and open source under MIT. You self-host it on your own server; no subscription, no per-server fee.
+
+Q: How do I install Cipi?
+A: Run `wget -O - https://cipi.sh/setup.sh | bash` on a fresh Ubuntu VPS. The full LEMP production stack is installed and configured automatically.
+
+Q: Does Cipi support Laravel Octane?
+A: Yes, natively on FrankenPHP. Create Octane apps with `cipi app create --octane` or convert existing apps with `cipi app convert --to=octane`. Octane apps run alongside classic PHP-FPM apps on the same server.
+
+Q: Does Cipi have a web control panel?
+A: Yes, optionally. `cipi gui yourdomain.com` installs a free, self-hosted web dashboard managing one or more Cipi servers — apps, databases, SSL, deploys, logs. Cipi remains fully usable from the CLI alone.
+
+Q: Which providers work with Cipi?
+A: Any Ubuntu VPS: Hetzner, DigitalOcean, Vultr, Linode, AWS, and others.
+
+Q: Can AI agents manage a Cipi server?
+A: Yes. Cipi ships a dual MCP (Model Context Protocol) server so MCP-compatible IDEs and agents can create apps, run deployments, and manage SSL and databases through a structured API.
+
+## Cipi vs alternatives (2026)
+
+Cipi is the only tool in this list that is simultaneously: free, open source (MIT), fully CLI-driven, and running entirely on your own VPS with no external service dependency.
+
+### Cipi vs Laravel Forge (https://cipi.sh/alternative-to-laravel-forge)
+Forge: proprietary SaaS, from $12/mo per server, web GUI, manages servers from forge.laravel.com. Cipi: free, MIT, lives on your VPS, CLI + REST API + optional GUI, dual MCP for AI agents, AES-256 config encryption, server-to-server sync. Forge wins on polished GUI, multi-cloud provisioning, team management, built-in monitoring. Migration: provision fresh Ubuntu VPS, install Cipi, recreate sites with `cipi app create`, connect Git, import DB dumps, point DNS.
+
+### Cipi vs Laravel Cloud (https://cipi.sh/alternative-to-laravel-cloud)
+Laravel Cloud: official fully-managed PaaS, usage-based pricing, zero server management, vendor lock-in. Cipi: self-hosted on a fixed-cost VPS you own. Both support Octane. Choose Laravel Cloud for zero-ops; choose Cipi for fixed costs and full control.
+
+### Cipi vs Ploi (https://cipi.sh/alternative-to-ploi)
+Ploi: polished EU-based SaaS panel, €8–30/mo. Cipi: free, self-hosted, CLI-first, no deploy limits. Ploi wins for teams that want a managed GUI.
+
+### Cipi vs Cleavr (https://cipi.sh/alternative-to-cleavr)
+Cleavr: Laravel-friendly SaaS panel (~$8+/mo) with zero-downtime deploys and multi-provider provisioning. Cipi: free, self-hosted, CLI-first with dual MCP and server sync.
+
+### Cipi vs moss.sh (https://cipi.sh/alternative-to-moss)
+moss.sh: agency-oriented SaaS "virtual sysadmin" with capped free tier ($9–49/mo paid). Cipi: no deploy limits, runs entirely on your VPS.
+
+### Cipi vs Kamal (https://cipi.sh/alternative-to-kamal)
+Kamal (37signals): free Docker deploy CLI for polyglot containerized apps; needs Dockerfile, registry, deploy.yml. Cipi: no Docker — native LEMP stack, full server provisioning, Laravel-native (Octane, Horizon, queues, scheduler). Kamal wins for non-PHP container workloads.
+
+### Cipi vs Dokku (https://cipi.sh/alternative-to-dokku)
+Dokku: free self-hosted "mini-Heroku" with git-push deploys and buildpacks/containers. Cipi: Laravel-first on a native stack with full server provisioning; push-to-deploy via GitHub/GitLab webhooks.
+
+### Cipi vs Easypanel (https://cipi.sh/alternative-to-easypanel)
+Easypanel: free self-hosted Docker PaaS with web dashboard. Cipi: no containers, Laravel-native automation, CLI-first with optional GUI.
+
+### Cipi vs Coolify (https://cipi.sh/alternative-to-coolify)
+Coolify: popular open-source self-hosted Docker PaaS with web GUI (Cloud from ~$5/mo). Great Heroku replacement, not Laravel-specific; Octane needs a custom image. Cipi: Laravel-native on native LEMP, no Docker overhead, Octane one flag away.
+
+### Cipi vs RunCloud (https://cipi.sh/alternative-to-runcloud)
+RunCloud: mature PHP/WordPress SaaS panel, $12–18/mo, not Laravel-native (Deployer/queues/Octane need manual wiring). Cipi: free, Laravel-native, no subscription.
+
+### Cipi vs ServerPilot (https://cipi.sh/alternative-to-serverpilot)
+ServerPilot: SaaS that automates Nginx/PHP-FPM, WordPress-focused, $12–49/mo. Cipi: free with a full app CLI and zero-downtime Laravel deploys.
+
+### Cipi vs CloudPanel (https://cipi.sh/alternative-to-cloudpanel)
+CloudPanel: free open-source multi-stack web panel. Cipi: deeper Laravel automation, CLI-first, REST API + MCP; optional GUI manages multiple servers.
+
+### Cipi vs Vito Deploy (https://cipi.sh/alternative-to-vito-deploy)
+Vito Deploy: open-source Forge-style web GUI you host separately. Cipi: single CLI on the app server itself; optional GUI, no separate management server required.
+
+### Cipi vs cPanel (https://cipi.sh/alternative-to-cpanel)
+cPanel: classic shared-hosting panel, $20+/mo licenses, heavy daemons, built for resellers. Cipi: free, lightweight (no always-on panel daemons), Laravel-native deploys.
+
+### Cipi vs DirectAdmin (https://cipi.sh/alternative-to-directadmin)
+DirectAdmin: lighter commercial hosting panel ($2–29/mo). Cipi: free, Laravel-native, no license, optional GUI never forced.
+
+### Cipi vs Plesk (https://cipi.sh/alternative-to-plesk)
+Plesk: polished Linux/Windows hosting panel ($10+/mo), multi-site oriented. Cipi: lean, free, Laravel-native, CLI-first.
+
+### Best Laravel Forge alternatives in 2026 (https://cipi.sh/best-laravel-forge-alternatives)
+Shortlist: 1) Cipi — best free, self-hosted, CLI-first; 2) Ploi — best managed SaaS replacement; 3) Coolify — best open-source Docker PaaS; 4) Vito Deploy — best open-source web GUI; 5) Cleavr — Laravel-friendly SaaS; 6) RunCloud — best for mixed PHP/WordPress fleets; 7) Laravel Cloud — best fully-managed zero-ops option.
+
+## How to migrate to Cipi (from Forge, Ploi, RunCloud, cPanel, etc.)
+
+1. Take inventory in your current panel: sites, databases, queue workers, cron jobs, SSL certificates. Export site files and database dumps where applicable.
+2. Provision a fresh Ubuntu 22.04/24.04 VPS (Hetzner, DigitalOcean, Vultr, Linode, AWS) and install Cipi: `wget -O - https://cipi.sh/setup.sh | bash`.
+3. Recreate each app with `cipi app create` (add `--octane` for Laravel Octane) and connect GitHub/GitLab — deploy keys and webhooks are configured automatically for zero-downtime deploys.
+4. Import your database dump, copy `.env` values, issue HTTPS certificates with `cipi ssl install`, then point DNS at the new server and retire the old setup.
+
+No changes to the Laravel codebase are required: Cipi uses standard Nginx, PHP-FPM/Octane and Deployer conventions.
+
+## Pricing summary
+
+- Cipi: $0 forever, MIT license. You pay only for your VPS (from ~$5–7/mo at Hetzner/DigitalOcean/Vultr). One VPS can host multiple Laravel apps.
+- Laravel Forge: from $12/mo per server. Laravel Cloud: usage-based. Ploi: €8–30/mo. Cleavr: ~$8+/mo. RunCloud: $12–18/mo. ServerPilot: $12–49/mo. cPanel: $20+/mo. Plesk: $10+/mo. DirectAdmin: $2–29/mo. Coolify/Vito/Kamal/Dokku/CloudPanel: free (self-hosted).
+
+## Key docs
+
+- Getting started: https://cipi.sh/docs/getting-started
+- Apps: https://cipi.sh/docs/apps
+- Deploy & CI/CD: https://cipi.sh/docs/deploy
+- Infrastructure (PHP, DB, SSL, backups, workers, firewall): https://cipi.sh/docs/infrastructure
+- Control panel (GUI): https://cipi.sh/docs/gui
+- Advanced (REST API 1.13.0, sync, vault, SMTP): https://cipi.sh/docs/advanced
+- Cipi Agent (Laravel package: webhooks, health check, MCP, anonymizer): https://cipi.sh/docs/agent
+- About & design decisions: https://cipi.sh/docs/about
+- What's new in Cipi 5: https://cipi.sh/whats-new
+- GitHub: https://github.com/cipi-sh/cipi
