@@ -1,14 +1,72 @@
-# Host/protocol canonicalization: https://cipi.sh (see functions/_middleware.js).
-# Cloudflare Pages _redirects only support path-based rules, not www/http.
-#
-# Language + legacy page redirects (/, /docs/*, /guides/*, /alternatives, *.html, …)
-# are handled in functions/_middleware.js so they can honour Accept-Language and
-# the cipi-lang cookie. /en uses English slugs; /it uses Italian slugs
-# (slug map lives in functions/_middleware.js).
+# Host/protocol canonicalization + language trees are handled by
+# netlify/edge-functions/i18n.js (Accept-Language + cipi-lang cookie).
+# Static fallbacks below cover crawlers if the edge function is unavailable.
+# /en uses English slugs; /it uses Italian slugs.
 
 # Redirect installer URLs to GitHub raw (avoids 500 when hosting can't serve .sh)
 /setup.sh  https://raw.githubusercontent.com/cipi-sh/cipi/refs/heads/latest/setup.sh  302
 
-# Retired sponsorship pages → language home (middleware then picks /en or /it)
+# Retired sponsorship pages → language home (edge function then picks /en or /it)
 /sponsorship    /  301
 /sponsorship/*  /  301
+
+# Pretty-URL duplicates
+/en/index.html  /en/  301
+/it/index.html  /it/  301
+/index.html     /     301
+
+# Legacy bare English paths → /en/… (301 — stable for Google index)
+/docs                         /en/docs/  301
+/docs/                        /en/docs/  301
+/docs/getting-started         /en/docs/getting-started  301
+/docs/getting-started.html    /en/docs/getting-started  301
+/docs/agent                   /en/docs/agent  301
+/docs/agent.html              /en/docs/agent  301
+/docs/apps                    /en/docs/apps  301
+/docs/apps.html               /en/docs/apps  301
+/docs/deploy                  /en/docs/deploy  301
+/docs/deploy.html             /en/docs/deploy  301
+/docs/infrastructure          /en/docs/infrastructure  301
+/docs/infrastructure.html     /en/docs/infrastructure  301
+/docs/cli-client              /en/docs/cli-client  301
+/docs/cli-client.html         /en/docs/cli-client  301
+/docs/gui                     /en/docs/gui  301
+/docs/gui.html                /en/docs/gui  301
+/docs/advanced                /en/docs/advanced  301
+/docs/advanced.html           /en/docs/advanced  301
+/docs/about                   /en/docs/about  301
+/docs/about.html              /en/docs/about  301
+
+/guides                       /en/guides/  301
+/guides/                      /en/guides/  301
+/guides/deploy-laravel-ubuntu-vps              /en/guides/deploy-laravel-ubuntu-vps  301
+/guides/laravel-security-checklist             /en/guides/laravel-security-checklist  301
+/guides/laravel-ecosystem-2026                 /en/guides/laravel-ecosystem-2026  301
+/guides/laravel-ci-cd-git-workflow             /en/guides/laravel-ci-cd-git-workflow  301
+/guides/spec-driven-development-ai-laravel     /en/guides/spec-driven-development-ai-laravel  301
+/guides/laravel-developer-stack-2026           /en/guides/laravel-developer-stack-2026  301
+
+/alternatives                      /en/alternatives  301
+/alternatives.html                 /en/alternatives  301
+/best-laravel-forge-alternatives   /en/best-laravel-forge-alternatives  301
+/discovery                         /en/discovery  301
+/discovery.html                    /en/discovery  301
+/whats-new                         /en/whats-new  301
+/whats-new.html                    /en/whats-new  301
+
+/alternative-to-cleavr           /en/alternative-to-cleavr  301
+/alternative-to-cloudpanel       /en/alternative-to-cloudpanel  301
+/alternative-to-coolify          /en/alternative-to-coolify  301
+/alternative-to-cpanel           /en/alternative-to-cpanel  301
+/alternative-to-directadmin      /en/alternative-to-directadmin  301
+/alternative-to-dokku            /en/alternative-to-dokku  301
+/alternative-to-easypanel        /en/alternative-to-easypanel  301
+/alternative-to-kamal            /en/alternative-to-kamal  301
+/alternative-to-laravel-cloud    /en/alternative-to-laravel-cloud  301
+/alternative-to-laravel-forge    /en/alternative-to-laravel-forge  301
+/alternative-to-moss             /en/alternative-to-moss  301
+/alternative-to-plesk            /en/alternative-to-plesk  301
+/alternative-to-ploi             /en/alternative-to-ploi  301
+/alternative-to-runcloud         /en/alternative-to-runcloud  301
+/alternative-to-serverpilot      /en/alternative-to-serverpilot  301
+/alternative-to-vito-deploy      /en/alternative-to-vito-deploy  301
