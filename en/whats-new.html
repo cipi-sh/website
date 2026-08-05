@@ -80,14 +80,37 @@
            ═══════════════════════════════════════════════════════════ */
 
         :root {
+            --wrap: 1240px;
+        }
+
+        [data-theme="light"] {
             --stage: #0a0b0f;
             --stage-2: #11141a;
             --stage-line: rgba(255, 255, 255, 0.11);
             --stage-text: #e9edf3;
             --stage-mute: #8d97a8;
+            --stage-grid: rgba(163, 230, 53, 0.055);
+            --stage-glow-a: rgba(163, 230, 53, 0.17);
+            --stage-glow-b: rgba(101, 163, 13, 0.14);
+            --stage-nav: rgba(255, 255, 255, 0.72);
+            --stage-nav-muted: rgba(255, 255, 255, 0.66);
             --lime: #a3e635;
             --lime-deep: #65a30d;
-            --wrap: 1240px;
+        }
+
+        [data-theme="dark"] {
+            --stage: var(--paper);
+            --stage-2: var(--surface);
+            --stage-line: var(--line);
+            --stage-text: var(--ink);
+            --stage-mute: var(--muted);
+            --stage-grid: var(--grid-line);
+            --stage-glow-a: var(--atmosphere-signal);
+            --stage-glow-b: var(--atmosphere-ink);
+            --stage-nav: var(--muted);
+            --stage-nav-muted: var(--muted);
+            --lime: var(--signal);
+            --lime-deep: var(--signal-deep);
         }
 
         *,
@@ -111,6 +134,7 @@
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
+            transition: background 0.25s, color 0.25s;
         }
 
         ::selection {
@@ -179,7 +203,7 @@
             align-items: center;
             gap: 10px;
             text-decoration: none;
-            color: #fff;
+            color: var(--stage-text);
             transition: color 0.3s;
         }
 
@@ -241,7 +265,7 @@
             font-size: 0.88rem;
             font-weight: 500;
             text-decoration: none;
-            color: rgba(255, 255, 255, 0.72);
+            color: var(--stage-nav);
             transition: color 0.2s;
         }
 
@@ -267,7 +291,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255, 255, 255, 0.66);
+            color: var(--stage-nav-muted);
             transition: color 0.2s;
         }
 
@@ -357,6 +381,7 @@
             min-height: 100vh;
             display: flex;
             align-items: center;
+            transition: background 0.25s, color 0.25s;
         }
 
         .stage::before {
@@ -364,8 +389,8 @@
             position: absolute;
             inset: 0;
             background-image:
-                linear-gradient(rgba(163, 230, 53, 0.055) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(163, 230, 53, 0.055) 1px, transparent 1px);
+                linear-gradient(var(--stage-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--stage-grid) 1px, transparent 1px);
             background-size: 62px 62px;
             mask-image: radial-gradient(ellipse 90% 80% at 22% 45%, #000 0%, transparent 78%);
             -webkit-mask-image: radial-gradient(ellipse 90% 80% at 22% 45%, #000 0%, transparent 78%);
@@ -377,8 +402,8 @@
             position: absolute;
             inset: 0;
             background:
-                radial-gradient(ellipse 55% 70% at 8% 15%, rgba(163, 230, 53, 0.17) 0%, transparent 62%),
-                radial-gradient(ellipse 60% 60% at 95% 90%, rgba(101, 163, 13, 0.14) 0%, transparent 65%);
+                radial-gradient(ellipse 55% 70% at 8% 15%, var(--stage-glow-a) 0%, transparent 62%),
+                radial-gradient(ellipse 60% 60% at 95% 90%, var(--stage-glow-b) 0%, transparent 65%);
             pointer-events: none;
         }
 
@@ -498,6 +523,10 @@
             transform: translateY(-2px);
         }
 
+        [data-theme="dark"] .btn-wire {
+            border-color: var(--line);
+        }
+
         .btn-lime svg,
         .btn-wire svg {
             width: 15px;
@@ -578,6 +607,19 @@
             line-height: 1.95;
             color: #cdd5e0;
             overflow-x: auto;
+        }
+
+        [data-theme="dark"] .term {
+            background: var(--surface);
+            box-shadow: none;
+        }
+
+        [data-theme="dark"] .term-body {
+            color: var(--code-text);
+        }
+
+        [data-theme="dark"] .term-dots i {
+            background: var(--line);
         }
 
         .tl {
@@ -839,6 +881,11 @@
             border-color: var(--lime);
         }
 
+        [data-theme="dark"] .tile.dark {
+            background: var(--terminal);
+            border-color: var(--line);
+        }
+
         .tile.dark .badge {
             display: inline-block;
             font-family: var(--mono);
@@ -948,6 +995,7 @@
             color: var(--stage-text);
             position: relative;
             overflow: hidden;
+            transition: background 0.25s, color 0.25s;
         }
 
         .sheet::before {
@@ -1405,12 +1453,9 @@
                 <span class="ver-pill">v5</span>
             </a>
             <nav class="topnav">
-                <a href="/en/" class="hide-sm">Home</a>
-                <a href="/en/discovery" class="hide-sm">Discovery</a>
-                <a href="/en/docs/" class="hide-sm">Docs</a>
                 <div class="nav-actions">
                     <!-- i18n:switch --><details class="lang-switch" ontoggle="if(this.open){const s=this;const c=e=>{if(!s.contains(e.target)){s.removeAttribute('open');document.removeEventListener('pointerdown',c)}};setTimeout(()=>document.addEventListener('pointerdown',c),0)}"><summary aria-label="Language">EN</summary><div class="lang-menu"><a class="active" href="/en/whats-new" hreflang="en" lang="en" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">English</a><a href="/it/novita" hreflang="it" lang="it" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">Italiano</a></div></details><!-- /i18n:switch -->
-                    <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+                    <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
                     <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
                         stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
@@ -1435,7 +1480,6 @@
                     GitHub
                 </a>
                 </div>
-                <a href="#upgrade" class="nav-cta">Upgrade</a>
             </nav>
         </div>
     </header>
@@ -1936,17 +1980,21 @@
     <script>
         // ── Theme (inherits the site-wide preference) ──
         function updateFavicon(t) { document.getElementById('favicon').href = `/favicon-${t === 'dark' ? 'dark' : 'light'}.png` }
+        function applyTheme(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            localStorage.setItem('cipi-theme', t);
+            updateFavicon(t);
+            const tc = document.getElementById('themeColor');
+            if (tc) tc.content = t === 'dark' ? '#0c0d10' : '#0a0b0f';
+        }
         function toggleTheme() {
             const h = document.documentElement;
-            const n = h.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-            h.setAttribute('data-theme', n);
-            localStorage.setItem('cipi-theme', n);
-            updateFavicon(n);
+            applyTheme(h.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
         }
         (function () {
             const s = localStorage.getItem('cipi-theme');
-            if (s) { document.documentElement.setAttribute('data-theme', s); updateFavicon(s) }
-            else if (window.matchMedia('(prefers-color-scheme:dark)').matches) { document.documentElement.setAttribute('data-theme', 'dark'); updateFavicon('dark') }
+            if (s) applyTheme(s);
+            else if (window.matchMedia('(prefers-color-scheme:dark)').matches) applyTheme('dark');
         })();
 
         // ── Copy ──
