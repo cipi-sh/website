@@ -201,6 +201,7 @@
                 <a href="/en/docs/deploy#ci-webhook" class="sidebar-link">webhook (agent)</a>
                 <a href="/en/docs/deploy#ci-pipeline-ssh" class="sidebar-link">pipeline SSH deploy</a>
                 <a href="/en/docs/deploy#deploy-notifications" class="sidebar-link">deploy notifications</a>
+                <a href="/en/docs/deploy#predeploy-snapshot" class="sidebar-link">pre-deploy snapshots</a>
                 <a href="/en/docs/deploy#safe-deploy" class="sidebar-link">safe deploy w/ backup</a>
                 <a href="/en/docs/deploy#preview-environments" class="sidebar-link">preview environments</a>
             </div>
@@ -345,10 +346,9 @@
 <span class="p">$</span> cipi deploy myapp --trust-host=git.mycompany.com:2222  <span class="c"># trust on non-standard port (also writes ~/.ssh/config)</span></pre>
                 </div>
 
-                <p>Since <strong>v5.0</strong>, opt-in <strong>pre-deploy DB snapshots</strong> dump under
-                    <code>/var/log/cipi/backups/</code> when <code>predeploy_snapshot</code> is enabled or you pass
-                    <code>--snapshot</code> / <code>--snapshot-required</code>. Code rollback does
-                    <strong>not</strong> auto-restore the database. Octane apps use the
+                <p>Since <strong>v5.0</strong>, opt-in <strong>pre-deploy DB snapshots</strong> are available via
+                    <code>--snapshot</code> / <code>--snapshot-required</code> or a permanent app setting — see
+                    <a href="#predeploy-snapshot">Pre-deploy DB snapshots</a>. Octane apps use the
                     <code>laravel-octane.php</code> Deployer template (reload/restart Octane on deploy); enable Node
                     builds with <code>cipi app edit &lt;app&gt; --node-build='…'</code>.
                 </p>
@@ -363,6 +363,59 @@
                     <div>If a deploy is interrupted (e.g. by a network error), Deployer may leave a lock file behind.
                         Use <code>cipi deploy myapp --unlock</code> to remove it before re-deploying.</div>
                 </div>
+            </div>
+
+
+
+            <div class="doc-section" id="predeploy-snapshot">
+                <h2>Pre-deploy DB snapshots</h2>
+                <p>Since <strong>v5.0</strong>, <code>cipi deploy &lt;app&gt;</code> can dump the database
+                    <em>before</em> the release pipeline runs. Snapshots land under
+                    <code>/var/log/cipi/backups/</code> — the same path used by
+                    <a href="/en/docs/infrastructure#cli-db"><code>cipi db backup</code></a>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi deploy shop --snapshot            <span class="c"># dump first; warn and continue on failure</span>
+<span class="p">$</span> cipi deploy shop --snapshot-required   <span class="c"># dump first; abort deploy if snapshot fails</span></pre>
+                </div>
+
+                <h3>What happens</h3>
+                <ol>
+                    <li>Before Deployer starts, Cipi takes a DB dump into <code>/var/log/cipi/backups/</code>.</li>
+                    <li>With <code>--snapshot-required</code>, a failed dump (or a missing DB engine) <strong>blocks</strong> the deploy.</li>
+                    <li>With <code>--snapshot</code> alone, a failed dump prints a warning and the deploy <strong>continues</strong>.</li>
+                </ol>
+
+                <div class="options-list">
+                    <div class="option-item"><code>--snapshot</code><span>Opt-in dump before deploy; warn and continue if the snapshot cannot be taken.</span></div>
+                    <div class="option-item"><code>--snapshot-required</code><span>Same dump, but fail the deploy when the snapshot (or engine) is unavailable.</span></div>
+                </div>
+
+                <h3>Enable on every deploy</h3>
+                <p>Turn it on permanently for an app so every deploy (CLI, webhook, or pipeline) takes a snapshot first:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app edit shop --predeploy-snapshot</pre>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><code>cipi deploy --rollback</code> restores the previous <strong>code</strong> release only.
+                        It does <strong>not</strong> restore the database. If you need the pre-deploy dump back, use
+                        <a href="/en/docs/infrastructure#cli-db"><code>cipi db restore</code></a>.</div>
+                </div>
+
+                <p>For pipeline workflows that also archive <code>shared/</code> to S3 before release, see
+                    <a href="#safe-deploy">Safe deploy — backup before release</a>.</p>
             </div>
 
 
@@ -1565,6 +1618,9 @@ deploy:
 
             <div class="doc-section" id="safe-deploy">
                 <h2>Safe deploy — backup before release</h2>
+                <p>For a built-in dump right before Deployer runs (no pipeline stage required), use
+                    <a href="#predeploy-snapshot"><code>--snapshot</code> / <code>--snapshot-required</code></a>
+                    or enable <code>cipi app edit &lt;app&gt; --predeploy-snapshot</code>.</p>
                 <p><strong>Pipeline use case:</strong> a webhook deploy cannot run a backup step before releasing code —
                     the push event fires deploy immediately. In a <a href="#ci-pipeline-ssh">CI/CD pipeline</a>, add a
                     dedicated <code>backup</code> stage that must succeed before <code>deploy</code> starts. A
