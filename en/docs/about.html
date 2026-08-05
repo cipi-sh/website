@@ -188,6 +188,7 @@
                 <a href="/en/docs/apps#cli-app-limits" class="sidebar-link"><code>app limits</code></a>
                 <a href="/en/docs/apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="/en/docs/apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
+                <a href="/en/docs/apps#cli-app-run" class="sidebar-link"><code>app run</code></a>
                 <a href="/en/docs/apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
                 <a href="/en/docs/apps#cli-app-artisan" class="sidebar-link"><code>app artisan / tinker</code></a>
                 <a href="/en/docs/apps#cli-app-ssh" class="sidebar-link">SSH as app user</a>
@@ -196,6 +197,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/en/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/en/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/en/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/en/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
                 <a href="/en/docs/deploy#git-providers" class="sidebar-link">Git providers</a>
                 <a href="/en/docs/deploy#git-auto-setup" class="sidebar-link">Git auto-setup</a>
@@ -480,8 +482,10 @@
                                     to aliases, refreshes Nginx, <code>APP_URL</code>, webhooks, and Let's Encrypt when
                                     applicable).                                     The panel API package (<a href="https://github.com/cipi-sh/api"
                                         target="_blank" rel="noopener">cipi/api</a>) is at
-                                    <strong>1.13.0</strong>: optional Laravel Octane on app create
-                                    (<code>octane</code> / <code>octane_port</code>), multi-engine databases and www
+                                    <strong>1.14.0</strong>: app <code>.env</code> / Composer <code>auth.json</code> /
+                                    Artisan / whitelisted <code>app run</code> / structured deploy-config (requires
+                                    Cipi <strong>5.0.3+</strong>), optional Laravel Octane on app create
+                                    (<code>octane</code> / <code>octane_port</code>, 1.13+), multi-engine databases and www
                                     redirects (1.12+), <code>GET /api/status</code>, MCP tools for job polling
                                     (<code>JobShow</code>), app and panel logs, Artisan, and server monitoring
                                     (<code>ServerStatus</code>, <code>ServiceList</code>), plus
@@ -566,15 +570,18 @@
                                 same server — create with <code>cipi app create --octane</code>, convert any existing
                                 Laravel app with <code>cipi app convert --to=octane|fpm</code>, and let Nginx
                                 <code>proxy_pass</code> to a Supervisor-managed Octane process while static assets stay
-                                on disk. The panel API (<a href="https://github.com/cipi-sh/api/releases/tag/1.13"
-                                    target="_blank" rel="noopener">1.13</a>) and
-                                <a href="/en/docs/gui">web GUI</a> expose the same Octane create option over REST. First-class
+                                on disk. The panel API (<a href="https://github.com/cipi-sh/api/releases/tag/1.14"
+                                    target="_blank" rel="noopener">1.14</a>) and
+                                <a href="/en/docs/gui">web GUI</a> expose Octane create plus non-interactive
+                                <code>.env</code> / <code>auth.json</code> / Artisan / app-run / deploy-config (Cipi
+                                <strong>5.0.3+</strong>). First-class
                                 <strong>Laravel Horizon</strong>
                                 (<code>cipi worker horizon</code>, <strong>Laravel Reverb</strong>
                                 <code>cipi app reverb</code>, scheduler CLI, Node builds on deploy, app cloning for
                                 staging, pre-deploy DB snapshots, per-app resource limits, Cloudflare DNS-01 / wildcard
                                 SSL, and HTTP healthchecks round out the release. See
                                 <a href="/en/docs/apps#cli-app-octane">Laravel Octane</a>,
+                                <a href="/en/docs/apps#cli-app-run">app run</a>,
                                 <a href="/en/docs/infrastructure#cli-workers">workers / Horizon</a>, and
                                 <a href="/en/docs/infrastructure#cli-ssl">SSL DNS-01</a>.</p>
                             <div class="callout info" style="margin-top:16px;">
@@ -584,18 +591,20 @@
                                     <line x1="12" y1="8" x2="12" y2="12" />
                                     <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
-                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.0.2"
-                                        target="_blank" rel="noopener">5.0.2</a> —
-                                    skip <code>horizon:terminate</code> / <code>octane:reload</code> unless
-                                    Horizon / Octane are installed (avoids exception digests on apps without
-                                    those packages; migration regenerates <code>deploy.php</code>).
-                                    <strong>5.0.1</strong> — first-deploy guard for
-                                    <code>horizon:terminate</code> when no <code>current</code> symlink exists
-                                    yet. <strong>5.0.0</strong> — Laravel Octane (FrankenPHP),
-                                    <code>cipi app convert</code>, Reverb, Horizon, schedule CLI,
-                                    <code>--node-build</code>, <code>cipi app clone</code>, pre-deploy snapshots,
-                                    resource limits, Cloudflare DNS-01 SSL, and HTTP healthchecks.
-                                    Full changelog:
+                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.0.5"
+                                        target="_blank" rel="noopener">5.0.5</a> —
+                                    robust remount for read-only root when enabling HTTP Basic Auth
+                                    (<code>cipi basicauth</code> / vault writes (<code>mount -n</code> +
+                                    <code>findmnt</code>). <strong>5.0.4</strong> — fix
+                                    <code>cipi app run</code> (<code>/usr/bin/env: '--'</code>) and remount-ro vault
+                                    writes. <strong>5.0.3</strong> — non-interactive <code>.env</code> /
+                                    <code>auth.json</code>, whitelisted <code>cipi app run</code>, structured
+                                    <code>deploy-config</code>, panel API sudoers. Panel API
+                                    <a href="https://github.com/cipi-sh/api/releases/tag/1.14" target="_blank"
+                                        rel="noopener">1.14</a> and the <a href="/en/docs/gui">web GUI</a> expose the
+                                    same surfaces. <strong>5.0.2</strong> — skip
+                                    <code>horizon:terminate</code> / <code>octane:reload</code> unless packages are
+                                    installed. Full changelog:
                                     <a href="https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md"
                                         target="_blank" rel="noopener">CHANGELOG.md</a>.
                                 </div>

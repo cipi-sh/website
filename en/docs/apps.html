@@ -186,6 +186,7 @@
                 <a href="/en/docs/apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="/en/docs/apps#cli-basicauth" class="sidebar-link"><code>basicauth</code></a>
                 <a href="/en/docs/apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
+                <a href="/en/docs/apps#cli-app-run" class="sidebar-link"><code>app run</code></a>
                 <a href="/en/docs/apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
                 <a href="/en/docs/apps#cli-app-artisan" class="sidebar-link"><code>app artisan / tinker</code></a>
                 <a href="/en/docs/apps#cli-app-ssh" class="sidebar-link">SSH as app user</a>
@@ -194,6 +195,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/en/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/en/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/en/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/en/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
                 <a href="/en/docs/deploy#git-providers" class="sidebar-link">Git providers</a>
                 <a href="/en/docs/deploy#git-auto-setup" class="sidebar-link">Git auto-setup</a>
@@ -556,9 +558,22 @@
                                                     <strong>v5.0</strong>). See <a href="#cli-app-octane">Laravel Octane</a></td>
                                             </tr>
                                             <tr>
-                                                <td>cipi app env &lt;app&gt;</td>
-                                                <td>Open the app's <code>.env</code> file in nano as the app user. Exits with error for
-                                                    custom apps (no .env).</td>
+                                                <td>cipi app env &lt;app&gt; [--show|--get|--set|--unset]</td>
+                                                <td>Open the app's <code>.env</code> in nano, or manage keys
+                                                    non-interactively since <strong>v5.0.3</strong>
+                                                    (<code>--show</code>/<code>--get</code>/<code>--set</code>/<code>--unset</code>,
+                                                    optional <code>--json</code>). Exits with error for custom apps
+                                                    (no .env).</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app run &lt;app&gt; &lt;cmd&gt; [args…]</td>
+                                                <td>Whitelisted non-interactive command as the app user (since
+                                                    <strong>v5.0.3</strong>). See <a href="#cli-app-run"><code>app run</code></a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app deploy-config &lt;app&gt;</td>
+                                                <td>Structured Deployer recipe options (since <strong>v5.0.3</strong>).
+                                                    See <a href="/en/docs/deploy#cli-deploy-config">deploy-config</a></td>
                                             </tr>
                                             <tr>
                                                 <td>cipi app reset-password &lt;app&gt;</td>
@@ -806,6 +821,21 @@
                     <pre><span class="p">$</span> cipi worker restart myapp</pre>
                 </div>
 
+                <h3>Non-interactive flags (v5.0.3+)</h3>
+                <p>Since <strong>v5.0.3</strong>, scripts, the panel API, and the web GUI can manage
+                    <code>.env</code> without opening an editor:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app env myapp --show
+<span class="p">$</span> cipi app env myapp --show --json
+<span class="p">$</span> cipi app env myapp --get=APP_URL
+<span class="p">$</span> cipi app env myapp --set=APP_DEBUG=false
+<span class="p">$</span> cipi app env myapp --unset=LEGACY_KEY</pre>
+                </div>
+                <p>REST: <code>GET|PUT /api/apps/{name}/env</code> (ability <code>apps-env</code>, API
+                    <strong>1.14+</strong>). MCP: <code>AppEnvShow</code>, <code>AppEnvUpdate</code>.</p>
+
                 <h3>Edit directly via SSH</h3>
                 <p>You can also edit the file directly over SSH as root or as the app user:</p>
                 <div class="code-block">
@@ -914,6 +944,43 @@ MAIL_HOST=smtp.mailgun.org</pre>
             </div>
 
 
+
+            <div class="doc-section" id="cli-app-run">
+                <h2><code>cipi app run</code></h2>
+                <p>Since <strong>v5.0.3</strong>, run a <strong>whitelisted non-interactive</strong> command as the app
+                    user — useful from the CLI, panel API, and web GUI “App commands”. Editors, pagers, shells, and
+                    REPLs are blocked (<code>nano</code>, <code>vim</code>, <code>less</code>, <code>bash</code>,
+                    <code>tinker</code>, …). Interactive flags (e.g. <code>tail -f</code>, <code>php -a</code>) are
+                    rejected.
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app run myapp composer install --no-dev
+<span class="p">$</span> cipi app run myapp npm ci
+<span class="p">$</span> cipi app run myapp ls -la shared
+<span class="p">$</span> cipi app run --commands          <span class="c"># list allowed binaries</span>
+<span class="p">$</span> cipi app run --commands --json</pre>
+                </div>
+                <p>Allowed binaries include <code>composer</code>, <code>npm</code>/<code>npx</code>/<code>yarn</code>/<code>pnpm</code>,
+                    <code>ls</code>/<code>ll</code>, <code>cat</code>/<code>head</code>/<code>tail</code>, filesystem
+                    helpers, archives, <code>git</code>, <code>php</code>, <code>node</code>, and <code>find</code>.
+                    REST: <code>POST /api/apps/{name}/run</code> (async job, ability <code>apps-run</code>) and
+                    <code>GET /api/run-commands</code> (API <strong>1.14+</strong>). MCP:
+                    <code>AppRun</code>, <code>AppRunCommands</code>.
+                </p>
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>v5.0.4+</strong> fixed <code>/usr/bin/env: '--': No such file or directory</code> —
+                        every whitelisted command (including GUI App commands) failed before that patch. Run
+                        <code>cipi self-update</code>.</div>
+                </div>
+            </div>
 
             <div class="doc-section" id="cli-app-logs">
                 <h2><code>cipi app logs</code></h2>

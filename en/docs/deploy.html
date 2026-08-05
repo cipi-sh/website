@@ -185,6 +185,7 @@
                 <a href="/en/docs/apps#cli-app-limits" class="sidebar-link"><code>app limits</code></a>
                 <a href="/en/docs/apps#cli-app-suspend" class="sidebar-link"><code>app suspend</code></a>
                 <a href="/en/docs/apps#cli-app-env" class="sidebar-link"><code>app env</code></a>
+                <a href="/en/docs/apps#cli-app-run" class="sidebar-link"><code>app run</code></a>
                 <a href="/en/docs/apps#cli-app-logs" class="sidebar-link"><code>app logs</code></a>
                 <a href="/en/docs/apps#cli-app-artisan" class="sidebar-link"><code>app artisan / tinker</code></a>
                 <a href="/en/docs/apps#cli-app-ssh" class="sidebar-link">SSH as app user</a>
@@ -193,6 +194,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/en/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/en/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/en/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/en/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
                 <a href="/en/docs/deploy#git-providers" class="sidebar-link">Git providers</a>
                 <a href="/en/docs/deploy#git-auto-setup" class="sidebar-link">Git auto-setup</a>
@@ -420,6 +422,28 @@
 
 
 
+            <div class="doc-section" id="cli-deploy-config">
+                <h2><code>cipi app deploy-config</code></h2>
+                <p>Since <strong>v5.0.3</strong>, manage durable Deployer recipe options stored in
+                    <code>apps.json</code> and applied by regenerating <code>deploy.php</code> from the template —
+                    a safe alternative to editing free-form PHP.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi app deploy-config myapp
+<span class="p">$</span> cipi app deploy-config myapp --keep-releases=5
+<span class="p">$</span> cipi app deploy-config myapp --migrate --optimize --storage-link
+<span class="p">$</span> cipi app deploy-config myapp --no-migrate --no-optimize
+<span class="p">$</span> cipi app deploy-config myapp --queue-restart --horizon-terminate
+<span class="p">$</span> cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
+<span class="p">$</span> cipi app deploy-config myapp --node-build='npm ci &amp;&amp; npm run build'
+<span class="p">$</span> cipi app deploy-config myapp --predeploy-snapshot</pre>
+                </div>
+                <p>REST: <code>GET|PUT /api/apps/{name}/deploy-config</code> (ability
+                    <code>apps-deploy-config</code>, API <strong>1.14+</strong> / Cipi <strong>5.0.3+</strong>).
+                    MCP: <code>AppDeployConfigShow</code>, <code>AppDeployConfigUpdate</code>.</p>
+            </div>
+
             <div class="doc-section" id="cli-auth">
                 <h2><code>auth.json</code></h2>
                 <p>Manage the <code>auth.json</code> file for an app. This file lives at
@@ -434,8 +458,18 @@
                     <pre><span class="p">$</span> cipi auth create myapp   <span class="c"># create auth.json with initial { "users": [] } structure</span>
 <span class="p">$</span> cipi auth edit myapp     <span class="c"># open in $EDITOR (fallback: nano), validate JSON on close</span>
 <span class="p">$</span> cipi auth show myapp     <span class="c"># print contents formatted with jq</span>
-<span class="p">$</span> cipi auth delete myapp   <span class="c"># delete file (asks for confirmation)</span></pre>
+<span class="p">$</span> cipi auth delete myapp   <span class="c"># delete file (asks for confirmation)</span>
+
+<span class="c"># Non-interactive (v5.0.3+) — API / scripts / GUI</span>
+<span class="p">$</span> cipi auth create myapp --force
+<span class="p">$</span> cipi auth edit myapp --file=/tmp/auth.json
+<span class="p">$</span> cipi auth show myapp --json
+<span class="p">$</span> cipi auth delete myapp --force</pre>
                 </div>
+                <p>REST: <code>GET|POST|PUT|DELETE /api/apps/{name}/auth</code> (ability <code>apps-auth</code>, API
+                    <strong>1.14+</strong>) — Composer/structured JSON, distinct from HTTP Basic Auth.
+                    MCP: <code>AppAuthJsonShow</code>, <code>AppAuthJsonCreate</code>,
+                    <code>AppAuthJsonUpdate</code>, <code>AppAuthJsonDelete</code>.</p>
 
                 <h3>Command details</h3>
                                 <div class="table-scroll">
