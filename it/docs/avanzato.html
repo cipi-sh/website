@@ -196,11 +196,12 @@
             <div class="doc-section" id="cipi-api">
                 <p class="doc-section-label">Avanzato</p>
                 <h1><code>cipi api</code></h1>
-                <p>Cipi può abilitare opzionalmente un layer REST API sul server tramite <code>cipi api &lt;domain&gt;</code>. È alimentato dal package Laravel <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener"><code>cipi/api</code></a> (release corrente <strong>1.14.0</strong>), che espone:
+                <p>Cipi può abilitare opzionalmente un layer REST API sul server tramite <code>cipi api &lt;domain&gt;</code>. È alimentato dal package Laravel <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener"><code>cipi/api</code></a> (release corrente <strong>1.20</strong>), che espone:
                 </p>
                 <ul>
                     <li><strong>REST API</strong> — app (inclusa creazione Octane, <code>.env</code>, <code>auth.json</code>, Artisan, <code>app run</code> in whitelist, deploy-config), alias, redirect www, deploy, SSL, database multi-engine, log app, stato server (<code>/api/*</code>)</li>
-                    <li><strong>Server MCP</strong> — 46 tool su <code>/mcp</code> (Streamable HTTP)</li>
+                    <li><strong>Server MCP</strong> — oltre 50 tool su <code>/mcp</code> (Streamable HTTP)</li>
+                    <li><strong>Server cockpit</strong> — installazione/switch PHP, chiavi SSH, servizi, SMTP, healthcheck, IP whitelist (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>)</li>
                     <li><strong>Swagger UI</strong> — riferimento interattivo su <code>/docs</code></li>
                 </ul>
                 <p>Richiede <strong>PHP 8.2+</strong> e <strong>Laravel 12+</strong> sull'host del pannello. Si tratta di automazione a <strong>livello server</strong> — distinta dal package per-app <a href="/it/docs/agent">Cipi Agent</a> (<code>cipi/agent</code> su ogni app Laravel).</p>
@@ -236,14 +237,14 @@
                 </div>
 
                 <h3>Risoluzione problemi Panel API</h3>
-                <p>Dopo <code>cipi self-update</code>, file di proprietà root sotto <code>/opt/cipi/api</code> possono impedire a PHP-FPM (<code>www-data</code>) di scrivere log o il database job SQLite — il browser mostra un <strong>HTTP 500</strong> su <code>/docs</code> o <code>/mcp</code>. Cipi normalmente ripara la proprietà automaticamente durante self-update; se i problemi persistono:</p>
+                <p>Dopo <code>cipi self-update</code>, file di proprietà root sotto <code>/opt/cipi/api</code> o <code>/opt/cipi/gui</code> possono impedire a PHP-FPM (<code>www-data</code>) di scrivere log o il database job SQLite — il browser mostra un <strong>HTTP 500</strong> su <code>/docs</code> o <code>/mcp</code>. Cipi normalmente ripara la proprietà automaticamente durante self-update (migration <strong>5.0.13+</strong> reclama ownership API/GUI); se i problemi persistono:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
                     <pre><span class="p">$</span> cipi api fix-permissions   <span class="c"># chown storage, database, bootstrap/cache, .env → www-data</span>
 <span class="p">$</span> cipi api status              <span class="c"># confirm Laravel version, queue worker, pending jobs</span></pre>
                 </div>
-                <p><code>cipi api status</code> stampa le versioni installate di Laravel e del package <code>cipi/api</code>, se <code>cipi-queue.service</code> è attivo, job asincroni in sospeso nel database SQLite del pannello e statistiche pool PHP-FPM per il vhost API (inclusi slow request quando configurati).</p>
+                <p><code>cipi api status</code> stampa le versioni installate di Laravel e del package <code>cipi/api</code>, se <code>cipi-queue.service</code> è attivo, job asincroni in sospeso nel database SQLite del pannello e statistiche pool PHP-FPM per il vhost API (inclusi slow request quando configurati). <code>cipi api update</code> aggiorna in soft il package panel API da Packagist (da <strong>5.0.15</strong>; la migration rimuove voci repo VCS obsolete). <code>cipi api upgrade</code> esegue un rebuild completo con rollback in <code>/opt/cipi/api.old</code>. Da <strong>5.0.14&ndash;5.0.16</strong>, self-update usa tarball GitHub temporizzati e install dist Packagist al posto di clone Composer VCS bloccanti per i package API e GUI.</p>
                 <p>Da <strong>v4.7.18</strong> (migration <strong>4.7.15&ndash;4.7.18</strong>), i fallimenti Panel API su Ubuntu 25.10+ / 26.04 sono risolti end-to-end: sudo-rs rifiuta wildcard <code>cipi db restore * *</code> (l'intero file sudoers veniva ignorato — <em>I'm afraid I can't do that</em>), quindi la whitelist usa solo <code>*</code> finale; il sourcing di <code>common.sh</code> non interrompe più comandi read-only quando <code>/etc/cipi</code> è rimontato read-only; <code>open_basedir</code> dell'API include <code>/usr/local/bin/</code> per helper log; e <code>cipi db list</code> mostra database vuoti e segnala errori vault/MariaDB. Esegui <code>cipi self-update</code> per applicare.</p>
 
                 <h3>Creazione token e permessi granulari</h3>
@@ -259,6 +260,18 @@
                     <li><code>apps-artisan</code> — eseguire Artisan come job async (API <strong>1.14.0+</strong>)</li>
                     <li><code>apps-run</code> — <code>app run</code> non interattivo in whitelist (API <strong>1.14.0+</strong>)</li>
                     <li><code>apps-deploy-config</code> — opzioni strutturate ricetta Deployer (API <strong>1.14.0+</strong>)</li>
+                    <li><code>php-view</code> — elencare versioni PHP installate (API <strong>1.15.0+</strong>)</li>
+                    <li><code>php-manage</code> — installare/rimuovere PHP, impostare default di sistema (API <strong>1.15.0+</strong> / <strong>1.17.0+</strong> per <code>PUT /api/php/default</code>)</li>
+                    <li><code>ssh-view</code> — elencare chiavi SSH sull'utente <code>cipi</code> (API <strong>1.15.0+</strong>)</li>
+                    <li><code>ssh-manage</code> — aggiungere/rimuovere/rinominare chiavi SSH (API <strong>1.15.0+</strong>)</li>
+                    <li><code>services-view</code> — elencare servizi di sistema (API <strong>1.15.0+</strong>)</li>
+                    <li><code>services-manage</code> — riavviare servizi (API <strong>1.15.0+</strong>)</li>
+                    <li><code>smtp-view</code> — leggere impostazioni notifiche SMTP (password mai restituita; API <strong>1.15.0+</strong>)</li>
+                    <li><code>smtp-manage</code> — configurare, abilitare, disabilitare, testare, eliminare SMTP (API <strong>1.15.0+</strong>)</li>
+                    <li><code>health-view</code> — elencare healthcheck (API <strong>1.15.0+</strong>)</li>
+                    <li><code>health-manage</code> — impostare, rimuovere ed eseguire healthcheck per app (API <strong>1.15.0+</strong>)</li>
+                    <li><code>ip-whitelist-view</code> — leggere allowlist IP panel API / MCP (API <strong>1.15.0+</strong>)</li>
+                    <li><code>ip-whitelist-manage</code> — modificare voci IP allowlist (API <strong>1.15.0+</strong>)</li>
                     <li><code>apps-delete</code> — eliminare app</li>
                     <li><code>deploy-manage</code> — deploy, rollback, unlock</li>
                     <li><code>ssl-manage</code> — installare e gestire certificati SSL</li>
@@ -276,15 +289,23 @@
                 <p>Da Cipi <strong>4.6.3</strong> / API <strong>1.11.7+</strong>, <code>cipi api token create</code> legge la lista canonica delle ability dal package panel API (stesse voci di <code>php artisan cipi:token-abilities</code> sul server). La migration <strong>4.6.3</strong> aggiorna retroattivamente i server esistenti con la lista aggiornata (inclusi <code>status-view</code>, <code>apps-suspend</code> e <code>apps-basicauth</code>).</p>
 
                 <h3>Endpoint REST</h3>
-                <p>Tutti gli endpoint richiedono l'header <code>Authorization: Bearer &lt;token&gt;</code>. Le operazioni di scrittura (create, edit, delete, deploy, rollback, unlock, SSL, alias, www, database) sono asincrone: restituiscono <code>202 Accepted</code> con un <code>job_id</code> da interrogare via <code>GET /api/jobs/{id}</code>. Gli endpoint read-only come <code>GET /api/dbs</code>, <code>GET /api/dbs/engines</code>, <code>GET /api/status</code>, <code>GET /api/apps/{name}/www</code> e <code>GET /api/apps/{name}/logs</code> (API <strong>1.11.9+</strong>) sono sincroni. <code>POST /api/apps</code> accetta parametri opzionali <code>custom</code> (boolean) e <code>docroot</code> (string) per creare <a href="/it/docs/app#cli-app-custom">app personalizzate</a> con deploy classico. Il campo <code>repository</code> è <strong>obbligatorio</strong> per app Laravel e <strong>opzionale</strong> per app custom: omettilo (o invia vuoto) per provisionare un sito solo SFTP allineato a Cipi <strong>v4.5.1+</strong>. Quando non c'è repository, <code>branch</code> viene omesso. Da API <strong>1.12.0+</strong> / Cipi <strong>4.8+</strong>, la creazione app Laravel accetta anche <code>engine</code> opzionale (<code>mariadb</code> o <code>pgsql</code>) per scegliere il motore database. Da API <strong>1.13.0+</strong> / Cipi <strong>5.0+</strong>, la creazione app Laravel accetta <code>octane</code> opzionale (<code>true</code> o <code>"frankenphp"</code>) per provisionare <a href="/it/docs/app#cli-app-octane">Laravel Octane (FrankenPHP)</a>; <code>octane</code> viene rifiutato quando <code>custom</code> è impostato. Il tool MCP <code>AppCreate</code> segue le stesse regole. Mantieni il package API aggiornato con <code>cipi api update</code> / <code>cipi api upgrade</code> così validazione e OpenAPI corrispondono a questo comportamento.
+                <p>Tutti gli endpoint richiedono l'header <code>Authorization: Bearer &lt;token&gt;</code>. Le operazioni di scrittura (create, edit, delete, deploy, rollback, unlock, SSL, alias, www, database) sono asincrone: restituiscono <code>202 Accepted</code> con un <code>job_id</code> da interrogare via <code>GET /api/jobs/{id}</code>. Gli endpoint read-only come <code>GET /api/dbs</code>, <code>GET /api/dbs/engines</code>, <code>GET /api/status</code>, <code>GET /api/apps/{name}/www</code>, <code>GET /api/apps/{name}/logs</code> (API <strong>1.11.9+</strong>), <code>GET /api/php</code>, <code>GET /api/ssh/keys</code>, <code>GET /api/services</code>, <code>GET /api/smtp</code>, <code>GET /api/health</code>, <code>GET /api/ip-whitelist</code> (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>) sono sincroni. <code>POST /api/apps</code> accetta parametri opzionali <code>custom</code> (boolean) e <code>docroot</code> (string) per creare <a href="/it/docs/app#cli-app-custom">app personalizzate</a> con deploy classico. Il campo <code>repository</code> è <strong>obbligatorio</strong> per app Laravel e <strong>opzionale</strong> per app custom: omettilo (o invia vuoto) per provisionare un sito solo SFTP allineato a Cipi <strong>v4.5.1+</strong>. Quando non c'è repository, <code>branch</code> viene omesso. Da API <strong>1.12.0+</strong> / Cipi <strong>4.8+</strong>, la creazione app Laravel accetta anche <code>engine</code> opzionale (<code>mariadb</code> o <code>pgsql</code>) per scegliere il motore database. Da API <strong>1.13.0+</strong> / Cipi <strong>5.0+</strong>, la creazione app Laravel accetta <code>octane</code> opzionale (<code>true</code> o <code>"frankenphp"</code>) per provisionare <a href="/it/docs/app#cli-app-octane">Laravel Octane (FrankenPHP)</a>; <code>octane</code> viene rifiutato quando <code>custom</code> è impostato. Il tool MCP <code>AppCreate</code> segue le stesse regole. Mantieni il package API aggiornato con <code>cipi api update</code> / <code>cipi api upgrade</code> così validazione e OpenAPI corrispondono a questo comportamento.
                 </p>
                 <p><code>POST /api/apps/{name}/suspend</code> mette un'app offline sostituendo il vhost Nginx con una pagina di manutenzione generica <strong>HTTP 503</strong> (HTTPS incluso) senza eliminarla, mentre <code>POST /api/apps/{name}/unsuspend</code> ripristina il vhost normale. Entrambi richiedono l'ability <code>apps-suspend</code> e restituiscono <code>409</code> se l'app è già nello stato target. Il flag <code>suspended</code> sopravvive alla rigenerazione vhost ed è esposto su <code>GET /api/apps</code> e <code>GET /api/apps/{name}</code>. Questi endpoint richiedono il package API <strong>1.8.1+</strong> e Cipi <strong>4.5.8+</strong> sul server.</p>
-                <p><code>PUT /api/apps/{name}</code> accetta un campo <code>domain</code> opzionale per rinominare il dominio primario dell'app. L'API valida il formato in modo sincrono e restituisce <code>409</code> se il dominio è già usato da un'altra app (gli alias dell'app corrente sono consentiti, quindi promuovere un alias a primario funziona). Richiede il package API <strong>1.9.0+</strong> e Cipi <strong>4.6.2+</strong>. Il tool MCP <code>AppEdit</code> accetta lo stesso parametro <code>domain</code>.</p>
+                <p><code>PUT /api/apps/{name}</code> accetta un campo <code>domain</code> opzionale per rinominare il dominio primario dell'app. Da API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>, l'endpoint inoltra solo i campi che differiscono dall'app corrente (evita ricreazione no-op di webhook o deploy key quando PHP o branch sono invariati). PHP deve essere installato sull'host (422 altrimenti). L'API valida il formato in modo sincrono e restituisce <code>409</code> se il dominio è già usato da un'altra app (gli alias dell'app corrente sono consentiti, quindi promuovere un alias a primario funziona). Richiede il package API <strong>1.9.0+</strong> e Cipi <strong>4.6.2+</strong>. Il tool MCP <code>AppEdit</code> accetta lo stesso parametro <code>domain</code>.</p>
                 <p><code>GET /api/apps</code> e <code>GET /api/apps/{name}</code> espongono i flag booleani <code>suspended</code> e <code>basic_auth</code> per app (da <code>apps.json</code>). Da API <strong>1.12.0+</strong> espongono anche <code>engine</code>, <code>www_redirect</code> e <code>force_https</code> da <code>apps-public.json</code> / metadata app. Da API <strong>1.13.0+</strong> espongono <code>octane</code> e <code>octane_port</code> per app Octane.</p>
                 <p>Gli endpoint HTTP Basic Auth sotto <code>/api/apps/{name}/basicauth/*</code> avvolgono <code>cipi basicauth</code> in modo sincrono — non restituiscono un <code>job_id</code>. Enable accetta <code>user</code> e <code>password</code> opzionali (generati automaticamente se omessi; restituiti una volta nella risposta). Richiede l'ability <code>apps-basicauth</code> e il package API <strong>1.10.0+</strong>. Questo è distinto dalla gestione <code>auth.json</code> di Composer — vedi <a href="/it/docs/app#cli-basicauth"><code>cipi basicauth</code></a>.</p>
                 <p>Gli endpoint WWW / apex sotto <code>/api/apps/{name}/www/*</code> avvolgono <a href="/it/docs/infrastruttura#cli-www"><code>cipi www</code></a> (API <strong>1.12.0+</strong> / Cipi <strong>4.8+</strong>). <code>GET …/www</code> è sincrono e restituisce <code>primary</code>, <code>apex</code>, <code>www</code> e <code>redirect</code>. <code>POST …/www/add</code>, <code>…/force-to-root</code>, <code>…/force-from-root</code> e <code>…/clear</code> sono job asincroni. Richiede l'ability <code>www-manage</code>. Tool MCP: <code>WwwStatus</code>, <code>WwwAdd</code>, <code>WwwForceToRoot</code>, <code>WwwForceFromRoot</code>, <code>WwwClear</code>.</p>
                 <p><code>POST /api/apps/{name}/ssl/force</code> riapplica il redirect HTTP → HTTPS senza emettere un nuovo certificato (<code>cipi ssl force</code>). Richiede <code>ssl-manage</code> e API <strong>1.12.0+</strong>. Tool MCP: <code>SslForce</code>.</p>
                 <p><code>GET /api/dbs</code> elenca i database in modo sincrono eseguendo <code>sudo cipi db list</code> sull'host (come la CLI server). Query opzionale <code>engine=mariadb|pgsql</code> filtra per motore (API <strong>1.12.0+</strong> / Cipi <strong>4.8+</strong>). <code>GET /api/dbs/engines</code> elenca i motori installati e il default server (sync; MCP <code>DbEngines</code>). Le altre operazioni di scrittura <code>/api/dbs/*</code> sono job asincroni e accettano <code>engine</code> opzionale su create, delete, backup, restore e password. I comandi database richiedono Cipi <strong>4.4.17+</strong> sul server (voci <code>cipi db …</code> nella whitelist sudoers API); il supporto multi-engine richiede Cipi <strong>4.8+</strong>.</p>
+                <p><code>POST /api/apps/{name}/webhook/recreate</code> ricrea il webhook deploy GitHub/GitLab; body opzionale <code>{ "rotate_secret": true }</code> ruota anche <code>CIPI_WEBHOOK_TOKEN</code> in <code>apps.json</code> e <code>shared/.env</code>. Job async (<code>app-webhook-recreate</code>; ability <code>apps-edit</code>; CLI <code>cipi app webhook recreate [--rotate-secret]</code>; API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>). MCP: <code>AppWebhookRecreate</code>.</p>
+                <p><strong>Gestione PHP</strong> (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>): <code>GET /api/php</code> elenca le versioni installate (sync; ability <code>php-view</code>). <code>POST /api/php/install</code> e <code>DELETE /api/php/{version}</code> installano o rimuovono una versione (async; <code>php-manage</code>). Da API <strong>1.17.0+</strong>, <code>PUT /api/php/default</code> imposta il PHP predefinito di sistema in modo sincrono (body <code>{ "version": "8.5" }</code>; avvolge <code>cipi php switch</code>; restituisce il payload aggiornato di <code>GET /api/php</code>). Le versioni installabili sono <strong>8.3, 8.4, 8.5</strong>. MCP: <code>PhpList</code>.</p>
+                <p><strong>Motori DB</strong> — <code>POST /api/dbs/engines/install</code> e <code>PUT /api/dbs/engines/default</code> (ability <code>dbs-manage</code>; API <strong>1.15.0+</strong>).</p>
+                <p><strong>Chiavi SSH</strong> — <code>GET|POST /api/ssh/keys</code>, <code>DELETE /api/ssh/keys/{n}</code> (ability <code>ssh-view</code> / <code>ssh-manage</code>; API <strong>1.15.0+</strong>).</p>
+                <p><strong>Servizi</strong> — <code>GET /api/services</code>, <code>POST /api/services/{name}/restart</code> (ability <code>services-view</code> / <code>services-manage</code>; API <strong>1.15.0+</strong>).</p>
+                <p><strong>SMTP</strong> — <code>GET|PUT|DELETE /api/smtp</code>, <code>POST /api/smtp/enable|disable|test</code> (ability <code>smtp-view</code> / <code>smtp-manage</code>; password mai restituita su GET; API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong> <code>cipi smtp configure --host=…</code> non interattivo).</p>
+                <p><strong>Healthcheck</strong> — <code>GET /api/health</code>, <code>GET|PUT|DELETE /api/apps/{name}/health</code>, <code>POST /api/apps/{name}/health/check</code> (ability <code>health-view</code> / <code>health-manage</code>; API <strong>1.15.0+</strong>).</p>
+                <p><strong>IP whitelist</strong> — middleware <code>cipi.ip</code> su <code>api/*</code> e <code>/mcp</code> legge <code>/etc/cipi/api-ip-whitelist</code> (file assente o <code>*</code> = consenti tutti). I client rifiutati ricevono <code>403</code> <code>{ "error": "IP not allowed", "ip": "…" }</code>. REST: <code>GET /api/ip-whitelist</code>, <code>PUT /api/ip-whitelist</code> (<code>entries</code>, <code>ensure_client_ip</code> opzionale), <code>POST /api/ip-whitelist</code> (<code>ip</code>), <code>DELETE /api/ip-whitelist</code> (<code>ip</code>), <code>POST /api/ip-whitelist/allow-all</code> (ability <code>ip-whitelist-view</code> / <code>ip-whitelist-manage</code>; CLI <code>cipi api ip-whitelist</code>; API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>). MCP: <code>IpWhitelistShow</code>.</p>
                 <p><code>GET /api/status</code> restituisce lo stesso JSON strutturato di <code>cipi status</code> (sistema, risorse, servizi, pool PHP, conteggio app). Da API <strong>1.11.8+</strong> l'endpoint preferisce <code>sudo cipi status</code> sull'host e ricade su letture dirette host quando sudo non è disponibile. Da API <strong>1.12.1+</strong> il fallback host-read include <code>postgresql</code> quando l'unità systemd è installata (allineato a Cipi 4.8+). Richiede l'ability <code>status-view</code> (API <strong>1.11.6+</strong>). Il tool MCP <code>ServerStatus</code> restituisce lo stesso payload e richiede solo <code>mcp-access</code>. Dal tuo laptop, usa <a href="/it/docs/client-cli#cli-status"><code>cipi-cli status</code></a> per una panoramica globale su tutti i profili server configurati, o il dettaglio per un profilo.</p>
                 <p><code>GET /api/apps/{name}/logs</code> restituisce snapshot log sincroni e paginati per nginx, PHP-FPM, Laravel (se presente), worker e deploy — la controparte REST di <a href="/it/docs/app#cli-app-logs"><code>cipi app logs</code></a> e <a href="/it/docs/client-cli#cli-apps"><code>cipi-cli apps logs</code></a>. Parametri query: <code>type</code> (default <code>all</code>), <code>page</code> (default <code>1</code>, più recenti prima), <code>per_page</code> (default <code>50</code>, max <code>1000</code>). Richiede l'ability <code>apps-view</code> e il package API <strong>1.11.9+</strong>. Il testo dei log è redatto per secret comuni (stessa policy di MCP <code>AppLogs</code> da API <strong>1.11.5+</strong>).</p>
                                 <div class="table-scroll">
@@ -462,6 +483,111 @@
                                                 <td><code>/api/jobs/{id}</code></td>
                                                 <td>qualsiasi token autenticato</td>
                                             </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/webhook/recreate</code></td>
+                                                <td>apps-edit</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/php</code></td>
+                                                <td>php-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/php/install</code></td>
+                                                <td>php-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT</td>
+                                                <td><code>/api/php/default</code></td>
+                                                <td>php-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/php/{version}</code></td>
+                                                <td>php-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs/engines/install</code></td>
+                                                <td>dbs-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT</td>
+                                                <td><code>/api/dbs/engines/default</code></td>
+                                                <td>dbs-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/ssh/keys</code></td>
+                                                <td>ssh-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/ssh/keys</code></td>
+                                                <td>ssh-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/ssh/keys/{n}</code></td>
+                                                <td>ssh-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/services</code></td>
+                                                <td>services-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/services/{name}/restart</code></td>
+                                                <td>services-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/smtp</code></td>
+                                                <td>smtp-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT</td>
+                                                <td><code>/api/smtp</code></td>
+                                                <td>smtp-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/smtp/enable|disable|test</code></td>
+                                                <td>smtp-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/smtp</code></td>
+                                                <td>smtp-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/health</code></td>
+                                                <td>health-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET|PUT|DELETE</td>
+                                                <td><code>/api/apps/{name}/health</code></td>
+                                                <td>health-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/health/check</code></td>
+                                                <td>health-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/ip-whitelist</code></td>
+                                                <td>ip-whitelist-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT|POST|DELETE</td>
+                                                <td><code>/api/ip-whitelist</code> (+ <code>/allow-all</code>)</td>
+                                                <td>ip-whitelist-manage</td>
+                                            </tr>
                                         </tbody>
                                     </table>
                 </div>
@@ -580,19 +706,35 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                     </li>
                     <li>MCP <code>ServiceList</code> — <code>sudo cipi service list</code></li>
                     <li>MCP <code>AppArtisan</code> — <code>sudo cipi app artisan &lt;app&gt; …</code></li>
+                    <li>Da Cipi <strong>5.0.6+</strong> / API <strong>1.15+</strong>: <code>php list|install|remove|switch</code>, <code>ssh list|add|remove</code>, <code>service list|restart</code>, <code>status</code>, <code>db install|default|engines</code>, <code>app webhook recreate</code>, <code>smtp status|configure|enable|disable|test|delete</code>, <code>api ip-whitelist</code> (+ argomenti) nella whitelist sudoers (migration <strong>5.0.6</strong> crea il file IP whitelist predefinito e rigenera <code>/etc/sudoers.d/cipi-api</code> su <code>cipi self-update</code>).</li>
                     <li>Da Cipi <strong>5.0.3+</strong> / API <strong>1.14+</strong>: <code>app env</code>, <code>app artisan</code>, <code>app run</code>, <code>auth create|edit|show|delete</code> e deploy-config nella whitelist sudoers (la migration rigenera <code>/etc/sudoers.d/cipi-api</code> su <code>cipi self-update</code>).</li>
                     <li>Job asincroni — <code>cipi app</code> (inclusi <code>--octane</code> / <code>--engine</code>), <code>deploy</code>, <code>alias</code>, <code>www</code>, <code>ssl</code> / <code>ssl force</code>, <code>db create|delete|backup|restore|password|engines</code>, ecc.</li>
                 </ul>
                 <p>Dopo <code>cipi self-update</code>, esegui <code>cipi api fix-permissions</code> se <code>/docs</code> o <code>/mcp</code> restituiscono HTTP 500 (vedi risoluzione problemi sopra).</p>
 
+                <h3 id="cipi-api-ip-whitelist">IP whitelist (CLI)</h3>
+                <p>Da Cipi <strong>5.0.6+</strong>, restringi i client panel API e MCP per IP sorgente. Il file predefinito <code>/etc/cipi/api-ip-whitelist</code> è <code>*</code> (consenti tutti). Un indirizzo IPv4/IPv6 o CIDR per riga (o <code>--ips=</code> separati da virgola).</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
+                    <pre><span class="p">$</span> cipi api ip-whitelist show
+<span class="p">$</span> cipi api ip-whitelist add 203.0.113.10
+<span class="p">$</span> cipi api ip-whitelist set --ips=203.0.113.0/24,2001:db8::/32
+<span class="p">$</span> cipi api ip-whitelist allow-all
+<span class="p">$</span> cipi api ip-whitelist show --json</pre>
+                </div>
+                <p>Gli equivalenti REST sono sotto <code>/api/ip-whitelist</code> (API <strong>1.15.0+</strong>). <code>PUT</code> aggiunge automaticamente l'IP del chiamante quando si restringe la lista, salvo <code>ensure_client_ip: false</code>.</p>
+
                 <h3>Swagger / OpenAPI</h3>
-                <p>La documentazione interattiva è disponibile su <code>/docs</code> (Swagger UI). La spec OpenAPI è generata da <code>public/api-docs/openapi.json</code> e copre app (inclusi suspend, unsuspend, rename dominio, basic auth, <code>.env</code>, <code>auth.json</code> Composer, job Artisan / app-run, deploy-config, log paginati, redirect www, creazione Octane e <code>engine</code> multi-engine), alias, deploy, SSL (install + force HTTPS), database (lista engine + <code>engine</code> opzionale sulle mutation), stato server, polling job con tipi <code>result</code> strutturati e schemi tool MCP. Versione package API corrente: <strong>1.14.0</strong>.</p>
+                <p>La documentazione interattiva è disponibile su <code>/docs</code> (Swagger UI). La spec OpenAPI è generata da <code>public/api-docs/openapi.json</code> e copre app (inclusi suspend, unsuspend, rename dominio, basic auth, <code>.env</code>, <code>auth.json</code> Composer, job Artisan / app-run, deploy-config, log paginati, redirect www, creazione Octane e <code>engine</code> multi-engine), alias, deploy, SSL (install + force HTTPS), database (lista engine + <code>engine</code> opzionale sulle mutation), stato server, polling job con tipi <code>result</code> strutturati e schemi tool MCP. Versione package API corrente: <strong>1.20</strong>.</p>
 
                 <h3>Server MCP</h3>
-                <p>Un server <strong>MCP</strong> (Model Context Protocol) è esposto su <code>/mcp</code> via Streamable HTTP. Da package API <strong>1.11.1+</strong>, un token con l'ability <code>mcp-access</code> è sufficiente per <strong>tutti</strong> i tool MCP — le ability REST per-endpoint (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>, <code>www-manage</code>, ecc.) non vengono verificate su <code>/mcp</code>. Il server espone <strong>46 tool</strong> per app, alias, www, database, deploy, SSL, HTTP Basic Auth, <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, polling job, log, Artisan e monitoraggio server. Le operazioni di scrittura che dispatchano job async restituiscono un <code>job_id</code> — interroga con <code>JobShow</code> (API <strong>1.11.0+</strong>). Azioni basic auth e tool read-only girano in modo sincrono.
+                <p>Un server <strong>MCP</strong> (Model Context Protocol) è esposto su <code>/mcp</code> via Streamable HTTP. Da package API <strong>1.11.1+</strong>, un token con l'ability <code>mcp-access</code> è sufficiente per <strong>tutti</strong> i tool MCP — le ability REST per-endpoint (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>, <code>www-manage</code>, ecc.) non vengono verificate su <code>/mcp</code>. Il server espone <strong>oltre 50 tool</strong> per app, alias, www, database, deploy, SSL, HTTP Basic Auth, gestione server (PHP, SSH, servizi, SMTP, health, IP whitelist), <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, polling job, log, Artisan e monitoraggio server. Le operazioni di scrittura che dispatchano job async restituiscono un <code>job_id</code> — interroga con <code>JobShow</code> (API <strong>1.11.0+</strong>). Azioni basic auth e tool read-only girano in modo sincrono.
                 </p>
                 <ul>
-                    <li><strong>Applicazioni:</strong> <code>AppList</code>, <code>AppShow</code>, <code>AppCreate</code> (<code>engine</code>, <code>octane</code> opzionali), <code>AppEdit</code>, <code>AppSuspend</code>, <code>AppUnsuspend</code>, <code>AppDelete</code>, <code>AppDeploy</code>, <code>AppDeployRollback</code>, <code>AppDeployUnlock</code>, <code>AppArtisan</code> (solo app Laravel; rifiuta app custom e <code>tinker</code>), <code>AppEnvShow</code>, <code>AppEnvUpdate</code>, <code>AppAuthJson*</code>, <code>AppRun</code>, <code>AppRunCommands</code>, <code>AppDeployConfigShow</code>, <code>AppDeployConfigUpdate</code> (API <strong>1.14.0+</strong> / Cipi <strong>5.0.3+</strong>)
+                    <li><strong>Applicazioni:</strong> <code>AppList</code>, <code>AppShow</code>, <code>AppCreate</code> (<code>engine</code>, <code>octane</code> opzionali), <code>AppEdit</code>, <code>AppSuspend</code>, <code>AppUnsuspend</code>, <code>AppDelete</code>, <code>AppDeploy</code>, <code>AppDeployRollback</code>, <code>AppDeployUnlock</code>, <code>AppArtisan</code> (solo app Laravel; rifiuta app custom e <code>tinker</code>), <code>AppEnvShow</code>, <code>AppEnvUpdate</code>, <code>AppAuthJson*</code>, <code>AppRun</code>, <code>AppRunCommands</code>, <code>AppDeployConfigShow</code>, <code>AppDeployConfigUpdate</code>, <code>AppWebhookRecreate</code> (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>; il tooling app precedente richiede API <strong>1.14.0+</strong> / Cipi <strong>5.0.3+</strong>)
+                    </li>
+                    <li><strong>Gestione server:</strong> <code>PhpList</code>, <code>IpWhitelistShow</code> (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>)
                     </li>
                     <li><strong>HTTP Basic Auth:</strong> <code>AppBasicAuthStatus</code>, <code>AppBasicAuthEnable</code>, <code>AppBasicAuthDisable</code>
                     </li>
@@ -1231,7 +1373,7 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
 
 <span class="c">Cipi Sync Archive</span>
 <span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
-<span class="c">  Cipi           v5.0.5</span>
+<span class="c">  Cipi           v5.0.16</span>
 <span class="c">  Exported       2026-03-06T15:00:00Z</span>
 <span class="c">  Source         aws01 (3.120.xx.xx)</span>
 <span class="c">  Database       true</span>
@@ -1427,7 +1569,13 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 <span class="p">$</span> cipi smtp test            <span class="c"># send a verification email</span>
 <span class="p">$</span> cipi smtp enable          <span class="c"># enable notifications</span>
 <span class="p">$</span> cipi smtp disable         <span class="c"># disable without losing settings</span>
-<span class="p">$</span> cipi smtp delete          <span class="c"># remove SMTP configuration entirely</span></pre>
+<span class="p">$</span> cipi smtp delete          <span class="c"># remove SMTP configuration entirely</span>
+
+<span class="c"># Non interattivo (v5.0.6+) — panel API, script, automazione</span>
+<span class="p">$</span> cipi smtp configure --host=smtp.example.com --port=587 --user=… --password=… \
+    --from=alerts@example.com --to=ops@example.com --tls=on
+<span class="p">$</span> cipi smtp status --json
+<span class="p">$</span> cipi smtp delete --force</pre>
                 </div>
 
                 <h3>Trigger di notifica granulari</h3>
@@ -1657,8 +1805,10 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <li>Aggiorna il file versione</li>
                 </ol>
 
-                <p>Gli script di migrazione vivono in <code>lib/migrations/</code> e sono nominati per versione (es. <code>4.1.0.sh</code>). Aggiornando dalla v4.0.0 alla v4.2.0, Cipi esegue automaticamente <code>4.1.0.sh</code> e <code>4.2.0.sh</code> in ordine. Le tue app, database e configurazioni non vengono mai toccati.
+                <p>Gli script di migrazione vivono in <code>lib/migrations/</code> e sono nominati per versione (es. <code>4.1.0.sh</code>, <code>5.0.16.sh</code>). Aggiornando dalla v4.0.0 alla v4.2.0, Cipi esegue automaticamente <code>4.1.0.sh</code> e <code>4.2.0.sh</code> in ordine. Le tue app, database e configurazioni non vengono mai toccati.
                 </p>
+
+                <p>Le migration recenti <strong>5.0.x</strong> migliorano l'affidabilità senza modificare i dati delle app: <strong>5.0.6</strong> — file IP whitelist predefinito e sudoers API rigenerati; <strong>5.0.9</strong> — <code>cipi php switch</code> in sudoers per <code>PUT /api/php/default</code>; <strong>5.0.13</strong> — reclaim ownership API/GUI dopo l'update; <strong>5.0.14&ndash;5.0.16</strong> — update package pannello GitHub/Packagist temporizzati (niente più <code>cipi self-update</code> bloccato su clone Composer VCS API/GUI). Esegui <code>cipi self-update</code> per raggiungere <strong>5.0.16</strong>.</p>
 
                 <p>Ad esempio, la <strong>migrazione 4.5.5</strong> applica retroattivamente alle app esistenti il nuovo alias shell <code>ll='ls -al'</code>: aggiunge l'alias al <code>~/.bashrc</code> di ogni app una volta (solo se mancante, preservando ownership), così le app create prima della 4.5.5 lo ottengono al prossimo <code>cipi self-update</code>.</p>
 
