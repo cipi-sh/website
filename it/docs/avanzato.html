@@ -244,7 +244,7 @@
                     <pre><span class="p">$</span> cipi api fix-permissions   <span class="c"># chown storage, database, bootstrap/cache, .env → www-data</span>
 <span class="p">$</span> cipi api status              <span class="c"># confirm Laravel version, queue worker, pending jobs</span></pre>
                 </div>
-                <p><code>cipi api status</code> stampa le versioni installate di Laravel e del package <code>cipi/api</code>, se <code>cipi-queue.service</code> è attivo, job asincroni in sospeso nel database SQLite del pannello e statistiche pool PHP-FPM per il vhost API (inclusi slow request quando configurati). <code>cipi api update</code> aggiorna in soft il package panel API da Packagist (da <strong>5.0.15</strong>; la migration rimuove voci repo VCS obsolete). <code>cipi api upgrade</code> esegue un rebuild completo con rollback in <code>/opt/cipi/api.old</code>. Da <strong>5.0.14&ndash;5.0.16</strong>, self-update usa tarball GitHub temporizzati e install dist Packagist al posto di clone Composer VCS bloccanti per i package API e GUI.</p>
+                <p><code>cipi api status</code> stampa le versioni installate di Laravel e del package <code>cipi/api</code>, se <code>cipi-queue.service</code> è attivo, job asincroni in sospeso nel database SQLite del pannello e statistiche pool PHP-FPM per il vhost API (inclusi slow request quando configurati). <code>cipi api update</code> aggiorna in soft il package panel API da Packagist (da <strong>5.0.15</strong>; la migration rimuove voci repo VCS obsolete). <code>cipi api upgrade</code> esegue un rebuild completo con rollback in <code>/opt/cipi/api.old</code>. Da <strong>5.0.14&ndash;5.0.17</strong>, self-update usa tarball GitHub temporizzati e install dist Packagist al posto di clone Composer VCS bloccanti per i package API e GUI.</p>
                 <p>Da <strong>v4.7.18</strong> (migration <strong>4.7.15&ndash;4.7.18</strong>), i fallimenti Panel API su Ubuntu 25.10+ / 26.04 sono risolti end-to-end: sudo-rs rifiuta wildcard <code>cipi db restore * *</code> (l'intero file sudoers veniva ignorato — <em>I'm afraid I can't do that</em>), quindi la whitelist usa solo <code>*</code> finale; il sourcing di <code>common.sh</code> non interrompe più comandi read-only quando <code>/etc/cipi</code> è rimontato read-only; <code>open_basedir</code> dell'API include <code>/usr/local/bin/</code> per helper log; e <code>cipi db list</code> mostra database vuoti e segnala errori vault/MariaDB. Esegui <code>cipi self-update</code> per applicare.</p>
 
                 <h3>Creazione token e permessi granulari</h3>
@@ -1373,7 +1373,7 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
 
 <span class="c">Cipi Sync Archive</span>
 <span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
-<span class="c">  Cipi           v5.0.16</span>
+<span class="c">  Cipi           v5.0.17</span>
 <span class="c">  Exported       2026-03-06T15:00:00Z</span>
 <span class="c">  Source         aws01 (3.120.xx.xx)</span>
 <span class="c">  Database       true</span>
@@ -1805,10 +1805,10 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <li>Aggiorna il file versione</li>
                 </ol>
 
-                <p>Gli script di migrazione vivono in <code>lib/migrations/</code> e sono nominati per versione (es. <code>4.1.0.sh</code>, <code>5.0.16.sh</code>). Aggiornando dalla v4.0.0 alla v4.2.0, Cipi esegue automaticamente <code>4.1.0.sh</code> e <code>4.2.0.sh</code> in ordine. Le tue app, database e configurazioni non vengono mai toccati.
+                <p>Gli script di migrazione vivono in <code>lib/migrations/</code> e sono nominati per versione (es. <code>4.1.0.sh</code>, <code>5.0.17.sh</code>). Aggiornando dalla v4.0.0 alla v4.2.0, Cipi esegue automaticamente <code>4.1.0.sh</code> e <code>4.2.0.sh</code> in ordine. Le tue app, database e configurazioni non vengono mai toccati.
                 </p>
 
-                <p>Le migration recenti <strong>5.0.x</strong> migliorano l'affidabilità senza modificare i dati delle app: <strong>5.0.6</strong> — file IP whitelist predefinito e sudoers API rigenerati; <strong>5.0.9</strong> — <code>cipi php switch</code> in sudoers per <code>PUT /api/php/default</code>; <strong>5.0.13</strong> — reclaim ownership API/GUI dopo l'update; <strong>5.0.14&ndash;5.0.16</strong> — update package pannello GitHub/Packagist temporizzati (niente più <code>cipi self-update</code> bloccato su clone Composer VCS API/GUI). Esegui <code>cipi self-update</code> per raggiungere <strong>5.0.16</strong>.</p>
+                <p>Le migration recenti <strong>5.0.x</strong> migliorano l'affidabilità senza modificare i dati delle app: <strong>5.0.6</strong> — file IP whitelist predefinito e sudoers API rigenerati; <strong>5.0.9</strong> — <code>cipi php switch</code> in sudoers per <code>PUT /api/php/default</code>; <strong>5.0.13</strong> — reclaim ownership API/GUI dopo l'update; <strong>5.0.14&ndash;5.0.17</strong> — update package pannello GitHub/Packagist temporizzati (niente più <code>cipi self-update</code> bloccato su clone Composer VCS API/GUI). Esegui <code>cipi self-update</code> per raggiungere <strong>5.0.17</strong>.</p>
 
                 <p>Ad esempio, la <strong>migrazione 4.5.5</strong> applica retroattivamente alle app esistenti il nuovo alias shell <code>ll='ls -al'</code>: aggiunge l'alias al <code>~/.bashrc</code> di ogni app una volta (solo se mancante, preservando ownership), così le app create prima della 4.5.5 lo ottengono al prossimo <code>cipi self-update</code>.</p>
 
