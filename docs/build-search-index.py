@@ -107,7 +107,7 @@ def extract_entries(docs_dir: str, titles: dict[str, str]) -> list[dict[str, str
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("lang", nargs="?", choices=["en", "it"], default=None)
+    ap.add_argument("lang", nargs="?", choices=["en", "it", "de", "fr", "es", "pt"], default=None)
     args = ap.parse_args()
 
     if args.lang is None:

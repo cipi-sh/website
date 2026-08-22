@@ -1,76 +1,24 @@
 #!/usr/bin/env python3
-"""Generate sitemap.xml from en/it HTML pages + hreflang slug map."""
+"""Generate sitemap.xml from multilingual HTML pages + hreflang slug map."""
 from __future__ import annotations
 
+import sys
 from datetime import date
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-BASE = "https://cipi.sh"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from i18n_lib import (  # noqa: E402
+    BASE,
+    LANG_CODES,
+    LANGUAGES,
+    ROOT,
+    SLUGS_IT,
+    abs_href,
+    file_to_en_canon,
+    localize_canon,
+)
+
 TODAY = date.today().isoformat()
-
-# English canon → Italian path (must match netlify/edge-functions/i18n.js)
-SLUGS_IT = {
-    "/": "/",
-    "/whats-new": "/novita",
-    "/discovery": "/discovery",
-    "/alternatives": "/alternative",
-    "/best-laravel-forge-alternatives": "/migliori-alternative-a-laravel-forge",
-    "/alternative-to-cleavr": "/alternativa-a-cleavr",
-    "/alternative-to-cloudpanel": "/alternativa-a-cloudpanel",
-    "/alternative-to-coolify": "/alternativa-a-coolify",
-    "/alternative-to-cpanel": "/alternativa-a-cpanel",
-    "/alternative-to-directadmin": "/alternativa-a-directadmin",
-    "/alternative-to-dokku": "/alternativa-a-dokku",
-    "/alternative-to-easypanel": "/alternativa-a-easypanel",
-    "/alternative-to-kamal": "/alternativa-a-kamal",
-    "/alternative-to-laravel-cloud": "/alternativa-a-laravel-cloud",
-    "/alternative-to-laravel-forge": "/alternativa-a-laravel-forge",
-    "/alternative-to-moss": "/alternativa-a-moss",
-    "/alternative-to-plesk": "/alternativa-a-plesk",
-    "/alternative-to-ploi": "/alternativa-a-ploi",
-    "/alternative-to-runcloud": "/alternativa-a-runcloud",
-    "/alternative-to-serverpilot": "/alternativa-a-serverpilot",
-    "/alternative-to-vito-deploy": "/alternativa-a-vito-deploy",
-    "/docs/": "/docs/",
-    "/docs/getting-started": "/docs/primi-passi",
-    "/docs/agent": "/docs/agent",
-    "/docs/apps": "/docs/app",
-    "/docs/deploy": "/docs/deploy",
-    "/docs/infrastructure": "/docs/infrastruttura",
-    "/docs/cli-client": "/docs/client-cli",
-    "/docs/gui": "/docs/gui",
-    "/docs/advanced": "/docs/avanzato",
-    "/docs/about": "/docs/informazioni",
-    "/guides/": "/guide/",
-    "/guides/deploy-laravel-ubuntu-vps": "/guide/deploy-laravel-su-ubuntu-vps",
-    "/guides/laravel-security-checklist": "/guide/checklist-sicurezza-laravel",
-    "/guides/laravel-ecosystem-2026": "/guide/ecosistema-laravel-2026",
-    "/guides/laravel-ci-cd-git-workflow": "/guide/ci-cd-workflow-git-laravel",
-    "/guides/spec-driven-development-ai-laravel": "/guide/sviluppo-spec-driven-ai-laravel",
-    "/guides/laravel-developer-stack-2026": "/guide/stack-developer-self-hosted-2026",
-}
-
-
-def file_to_canon(path: Path) -> str | None:
-    rel = path.relative_to(ROOT).as_posix()
-    if rel.endswith("404.html") or rel == "index.html":
-        return None
-    if not (rel.startswith("en/") or rel.startswith("it/")):
-        return None
-    lang, rest = rel.split("/", 1)
-    if rest.endswith("/index.html"):
-        bare = "/" + rest[: -len("index.html")]
-    elif rest == "index.html":
-        bare = "/"
-    else:
-        bare = "/" + rest[: -len(".html")]
-    if lang == "en":
-        return bare
-    for en, it in SLUGS_IT.items():
-        if it == bare:
-            return en
-    return bare
 
 
 def priority_for(canon: str) -> tuple[str, str]:
@@ -87,21 +35,17 @@ def priority_for(canon: str) -> tuple[str, str]:
     return "0.8", "monthly"
 
 
-def href(lang: str, canon: str) -> str:
-    if canon == "/":
-        return f"{BASE}/" if lang == "en" else f"{BASE}/{lang}/"
-    return f"{BASE}/{lang}{canon}"
-
-
-def url_entry(loc: str, en_canon: str, it_canon: str, priority: str, freq: str, image: bool = False) -> str:
-    en_href = href("en", en_canon)
-    it_href = href("it", it_canon)
+def url_entry(en_canon: str, priority: str, freq: str, image: bool = False) -> str:
     lines = [
         "  <url>",
-        f"    <loc>{loc}</loc>",
-        f'    <xhtml:link rel="alternate" hreflang="en" href="{en_href}"/>',
-        f'    <xhtml:link rel="alternate" hreflang="it" href="{it_href}"/>',
-        f'    <xhtml:link rel="alternate" hreflang="x-default" href="{en_href}"/>',
+        f"    <loc>{abs_href('en', en_canon)}</loc>",
+    ]
+    for code, _, _ in LANGUAGES:
+        lines.append(
+            f'    <xhtml:link rel="alternate" hreflang="{code}" href="{abs_href(code, en_canon)}"/>'
+        )
+    lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{abs_href("en", en_canon)}"/>')
+    lines += [
         f"    <lastmod>{TODAY}</lastmod>",
         f"    <changefreq>{freq}</changefreq>",
         f"    <priority>{priority}</priority>",
@@ -120,8 +64,8 @@ def url_entry(loc: str, en_canon: str, it_canon: str, priority: str, freq: str, 
 def main() -> None:
     canons: set[str] = set()
     for path in sorted(ROOT.rglob("*.html")):
-        c = file_to_canon(path)
-        if c is not None:
+        c = file_to_en_canon(path)
+        if c is not None and c != "/404":
             canons.add(c)
 
     canons.update(SLUGS_IT.keys())
@@ -141,17 +85,15 @@ def main() -> None:
     ]
 
     for canon in ordered:
-        it = SLUGS_IT.get(canon, canon)
         pri, freq = priority_for(canon)
-        chunks.append(url_entry(href("en", canon), canon, it, pri, freq, image=(canon == "/")))
-        chunks.append(url_entry(href("it", it), canon, it, pri, freq, image=False))
+        chunks.append(url_entry(canon, pri, freq, image=(canon == "/")))
 
     chunks.append("</urlset>")
     chunks.append("")
 
     out = ROOT / "sitemap.xml"
     out.write_text("\n".join(chunks), encoding="utf-8")
-    print(f"Wrote {out} ({len(ordered) * 2} URLs, homepage first)")
+    print(f"Wrote {out} ({len(ordered)} URL groups × {len(LANG_CODES)} hreflang)")
 
 
 if __name__ == "__main__":
