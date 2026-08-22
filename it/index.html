@@ -1171,20 +1171,18 @@
                     <circle fill="currentColor" cx="25.5497" cy="16.5888" r="0.75" />
                 </svg> <span>Ci<span style="color:var(--signal)">pi</span></span> </a>
             <ul class="nav-links" id="navLinks">
-                <li>
-                    <details class="nav-dd" ontoggle="if(this.open){document.querySelectorAll('.nav-dd[open]').forEach(d=>{if(d!==this)d.removeAttribute('open')});const s=this;const c=e=>{if(!s.contains(e.target)){s.removeAttribute('open');document.removeEventListener('pointerdown',c)}};setTimeout(()=>document.addEventListener('pointerdown',c),0)}">
-                        <summary>Prodotto</summary>
-                        <div class="nav-dd-menu">
-                            <a href="#stack">Stack</a>
-                            <a href="#forwhom">Pensato per</a>
-                            <a href="#features">Funzionalità</a>
-                            <a href="#ai-agents">AI</a>
-                            <a href="#api">API</a>
-                            <a href="#whmcs">WHMCS</a>
-                            <a href="#cli-client">CLI</a>
-                            <a href="#gui">GUI</a>
-                        </div>
-                    </details>
+                <li class="nav-dd">
+                    <button type="button" class="nav-dd-btn" aria-expanded="false" aria-haspopup="true">Prodotto</button>
+                    <div class="nav-dd-menu">
+                        <a href="#stack">Stack</a>
+                        <a href="#forwhom">Pensato per</a>
+                        <a href="#features">Funzionalità</a>
+                        <a href="#ai-agents">AI</a>
+                        <a href="#api">API</a>
+                        <a href="#whmcs">WHMCS</a>
+                        <a href="#cli-client">CLI</a>
+                        <a href="#gui">GUI</a>
+                    </div>
                 </li>
                 <li><a href="/it/guide/">Guide</a></li>
                 <li><a href="/it/alternative">Confronti</a></li>
@@ -1236,21 +1234,14 @@
     <!-- Mobile menu overlay (outside nav to avoid backdrop-filter stacking context) -->
     <div class="mobile-menu" id="mobileMenu">
         <ul>
-            <li>
-                <details class="nav-dd">
-                    <summary>Prodotto</summary>
-                    <div class="nav-dd-menu">
-                        <a href="#stack">Stack</a>
-                        <a href="#forwhom">Pensato per</a>
-                        <a href="#features">Funzionalità</a>
-                        <a href="#ai-agents">AI</a>
-                        <a href="#api">API</a>
-                        <a href="#whmcs">WHMCS</a>
-                        <a href="#cli-client">CLI</a>
-                        <a href="#gui">GUI</a>
-                    </div>
-                </details>
-            </li>
+            <li><a href="#stack">Stack</a></li>
+            <li><a href="#forwhom">Pensato per</a></li>
+            <li><a href="#features">Funzionalità</a></li>
+            <li><a href="#ai-agents">AI</a></li>
+            <li><a href="#api">API</a></li>
+            <li><a href="#whmcs">WHMCS</a></li>
+            <li><a href="#cli-client">CLI</a></li>
+            <li><a href="#gui">GUI</a></li>
             <li><a href="/it/guide/">Guide</a></li>
             <li><a href="/it/alternative">Confronti</a></li>
             <li><a href="/it/docs/">Docs</a></li>
@@ -2002,6 +1993,38 @@
                 navToggle.classList.remove('active');
                 mobileMenu.classList.remove('open');
                 document.body.style.overflow = '';
+            });
+        });
+
+        document.querySelectorAll('.nav-links .nav-dd').forEach(function (dd) {
+            var btn = dd.querySelector('.nav-dd-btn');
+            var menu = dd.querySelector('.nav-dd-menu');
+            if (!btn || !menu) return;
+            function close() {
+                dd.classList.remove('is-open');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+            function open() {
+                document.querySelectorAll('.nav-links .nav-dd.is-open').forEach(function (other) {
+                    if (other !== dd) {
+                        other.classList.remove('is-open');
+                        var b = other.querySelector('.nav-dd-btn');
+                        if (b) b.setAttribute('aria-expanded', 'false');
+                    }
+                });
+                dd.classList.add('is-open');
+                btn.setAttribute('aria-expanded', 'true');
+            }
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                dd.classList.contains('is-open') ? close() : open();
+            });
+            menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
+            document.addEventListener('pointerdown', function (e) {
+                if (!dd.contains(e.target)) close();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') close();
             });
         });
         function copyCmd(btn) {
