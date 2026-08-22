@@ -89,7 +89,7 @@ def priority_for(canon: str) -> tuple[str, str]:
 
 def href(lang: str, canon: str) -> str:
     if canon == "/":
-        return f"{BASE}/{lang}/"
+        return f"{BASE}/" if lang == "en" else f"{BASE}/{lang}/"
     return f"{BASE}/{lang}{canon}"
 
 
