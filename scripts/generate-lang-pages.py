@@ -14,13 +14,14 @@ from deep_translator import GoogleTranslator
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from i18n_lib import (  # noqa: E402
     ROOT,
-    SLUGS_EN,
     build_alternates,
     build_og_locales,
     build_switch,
     file_to_en_canon,
     lang_href,
     localize_canon,
+    localized_html_path,
+    to_en_canon,
 )
 
 TARGET_LANGS = ["de", "fr", "es", "pt"]
@@ -280,7 +281,7 @@ def rewrite_links(soup: BeautifulSoup, lang: str) -> None:
             if rest == "/":
                 tag[attr] = lang_href(lang, "/")
             else:
-                en_canon = SLUGS_EN.get(rest, rest) if m.group(1) == "it" else rest
+                en_canon = to_en_canon(rest)
                 tag[attr] = lang_href(lang, localize_canon(en_canon, lang))
 
 
@@ -341,14 +342,14 @@ def main() -> None:
         lookup = Lookup(lang, cache)
         for src, html in zip(sources, all_html):
             rel = src.relative_to(ROOT / "en")
-            dst = ROOT / lang / rel
-            dst.parent.mkdir(parents=True, exist_ok=True)
             en_canon = file_to_en_canon(src)
             assert en_canon is not None
+            dst = localized_html_path(en_canon, lang)
+            dst.parent.mkdir(parents=True, exist_ok=True)
             if dst.exists() and dst.stat().st_size > 1000:
-                print(f"  skip {rel} (exists)")
+                print(f"  skip {rel} → {dst.relative_to(ROOT)} (exists)")
                 continue
-            print(f"  write {rel}")
+            print(f"  write {dst.relative_to(ROOT)}")
             translated = apply_translations(html, lang, lookup)
             translated = post_process(translated, lang, en_canon)
             dst.write_text(translated, encoding="utf-8")

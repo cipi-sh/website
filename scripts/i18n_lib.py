@@ -27,7 +27,66 @@ OG_LOCALES = {
     "pt": "pt_PT",
 }
 
-# English canon → Italian path (must match netlify/edge-functions/i18n.js)
+# English canon → localized path per language (must match netlify/edge-functions/i18n.js)
+_GUIDE_SLUGS = {
+    "/guides/deploy-laravel-ubuntu-vps": {
+        "de": "/guides/laravel-auf-ubuntu-vps-deployen",
+        "fr": "/guides/deployer-laravel-sur-vps-ubuntu",
+        "es": "/guides/desplegar-laravel-en-vps-ubuntu",
+        "pt": "/guides/deploy-laravel-em-vps-ubuntu",
+        "it": "/guide/deploy-laravel-su-ubuntu-vps",
+    },
+    "/guides/laravel-security-checklist": {
+        "de": "/guides/laravel-sicherheitscheckliste",
+        "fr": "/guides/checklist-securite-laravel",
+        "es": "/guides/checklist-seguridad-laravel",
+        "pt": "/guides/checklist-seguranca-laravel",
+        "it": "/guide/checklist-sicurezza-laravel",
+    },
+    "/guides/laravel-ecosystem-2026": {
+        "de": "/guides/laravel-oekosystem-2026",
+        "fr": "/guides/ecosysteme-laravel-2026",
+        "es": "/guides/ecosistema-laravel-2026",
+        "pt": "/guides/ecossistema-laravel-2026",
+        "it": "/guide/ecosistema-laravel-2026",
+    },
+    "/guides/laravel-ci-cd-git-workflow": {
+        "de": "/guides/ci-cd-git-workflow-fuer-laravel",
+        "fr": "/guides/ci-cd-et-workflow-git-laravel",
+        "es": "/guides/ci-cd-flujo-git-laravel",
+        "pt": "/guides/ci-cd-e-workflow-git-laravel",
+        "it": "/guide/ci-cd-workflow-git-laravel",
+    },
+    "/guides/spec-driven-development-ai-laravel": {
+        "de": "/guides/spezifikationsgetriebene-ki-entwicklung-laravel",
+        "fr": "/guides/developpement-spec-driven-ia-laravel",
+        "es": "/guides/desarrollo-spec-driven-ia-laravel",
+        "pt": "/guides/desenvolvimento-spec-driven-ia-laravel",
+        "it": "/guide/sviluppo-spec-driven-ai-laravel",
+    },
+    "/guides/laravel-developer-stack-2026": {
+        "de": "/guides/self-hosted-entwickler-stack-2026",
+        "fr": "/guides/stack-developpeur-self-hosted-2026",
+        "es": "/guides/stack-desarrollador-self-hosted-2026",
+        "pt": "/guides/stack-desenvolvedor-self-hosted-2026",
+        "it": "/guide/stack-developer-self-hosted-2026",
+    },
+        "/guides/backup-vps-s3": {
+            "de": "/guides/vps-backup-auf-s3",
+            "fr": "/guides/sauvegarde-vps-vers-s3",
+            "es": "/guides/copias-seguridad-vps-s3",
+            "pt": "/guides/backup-vps-para-s3",
+            "it": "/guide/backup-vps-s3-con-cipi",
+        },
+        "/guides/deploy-wordpress-custom-app": {
+            "de": "/guides/wordpress-als-custom-app-deployen",
+            "fr": "/guides/deployer-wordpress-app-personnalisee",
+            "es": "/guides/desplegar-wordpress-app-personalizada",
+            "pt": "/guides/deploy-wordpress-app-personalizado",
+            "it": "/guide/deploy-wordpress-app-custom-github",
+        },
+    }
+
 SLUGS_IT = {
     "/": "/",
     "/404": "/404",
@@ -62,24 +121,56 @@ SLUGS_IT = {
     "/docs/advanced": "/docs/avanzato",
     "/docs/about": "/docs/informazioni",
     "/guides/": "/guide/",
-    "/guides/deploy-laravel-ubuntu-vps": "/guide/deploy-laravel-su-ubuntu-vps",
-    "/guides/laravel-security-checklist": "/guide/checklist-sicurezza-laravel",
-    "/guides/laravel-ecosystem-2026": "/guide/ecosistema-laravel-2026",
-    "/guides/laravel-ci-cd-git-workflow": "/guide/ci-cd-workflow-git-laravel",
-    "/guides/spec-driven-development-ai-laravel": "/guide/sviluppo-spec-driven-ai-laravel",
-    "/guides/laravel-developer-stack-2026": "/guide/stack-developer-self-hosted-2026",
-    "/guides/deploy-wordpress-custom-app": "/guide/deploy-wordpress-app-custom-github",
 }
+
+for _en, _langs in _GUIDE_SLUGS.items():
+    SLUGS_IT[_en] = _langs["it"]
+
+SLUGS_BY_LANG: dict[str, dict[str, str]] = {"it": SLUGS_IT}
+for _lang in ("de", "fr", "es", "pt"):
+    SLUGS_BY_LANG[_lang] = {en: langs[_lang] for en, langs in _GUIDE_SLUGS.items()}
+
+# Localized path → English canon (identity mappings omitted)
+SLUGS_TO_EN: dict[str, str] = {}
+# Localized path → language that owns it
+SLUG_LANG: dict[str, str] = {}
+for _lang, _mapping in SLUGS_BY_LANG.items():
+    for _en, _loc in _mapping.items():
+        if _loc != _en:
+            SLUGS_TO_EN[_loc] = _en
+            SLUG_LANG[_loc] = _lang
 
 SLUGS_EN = {it: en for en, it in SLUGS_IT.items()}
 
 
+def to_en_canon(bare: str) -> str:
+    if bare == "/guide":
+        bare = "/guide/"
+    if bare in SLUGS_TO_EN:
+        return SLUGS_TO_EN[bare]
+    if bare in SLUGS_EN:
+        return SLUGS_EN[bare]
+    if bare == "/guide/":
+        return "/guides/"
+    if bare.startswith("/guide/"):
+        return SLUGS_TO_EN.get(bare, "/guides/" + bare[len("/guide/"):])
+    return bare
+
+
 def localize_canon(en_canon: str, lang: str) -> str:
+    en = to_en_canon(en_canon)
     if lang == "en":
-        return en_canon
-    if lang == "it":
-        return SLUGS_IT.get(en_canon, en_canon)
-    return en_canon
+        return en
+    return SLUGS_BY_LANG.get(lang, {}).get(en, en)
+
+
+def localized_html_path(en_canon: str, lang: str) -> Path:
+    loc = localize_canon(en_canon, lang)
+    if loc == "/":
+        return ROOT / "index.html" if lang == "en" else ROOT / lang / "index.html"
+    if loc.endswith("/"):
+        return ROOT / lang / loc.strip("/") / "index.html"
+    return ROOT / lang / f"{loc.lstrip('/')}.html"
 
 
 def lang_href(lang: str, localized_canon: str) -> str:
@@ -110,9 +201,7 @@ def file_to_en_canon(path: Path) -> str | None:
         bare = "/" + rest[: -len(".html")]
     if lang == "en":
         return bare
-    if lang == "it":
-        return SLUGS_EN.get(bare, bare)
-    return bare
+    return to_en_canon(bare)
 
 
 def detect_page_lang(path: Path) -> str | None:
