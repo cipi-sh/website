@@ -92,6 +92,9 @@ assertRedirect('/guide/deploy-laravel-su-ubuntu-vps', '/it/guide/deploy-laravel-
 assertRedirect('/guide/backup-vps-s3-con-cipi', '/it/guide/backup-vps-s3-con-cipi');
 assertRedirect('/it/guides/backup-vps-s3', '/it/guide/backup-vps-s3-con-cipi');
 assertRedirect('/en/guide/backup-vps-s3-con-cipi', '/en/guides/backup-vps-s3');
+assertRedirect('/guide/deploy-wordpress-app-custom-github', '/it/guide/deploy-wordpress-app-custom-github');
+assertRedirect('/it/guides/deploy-wordpress-custom-app', '/it/guide/deploy-wordpress-app-custom-github');
+assertRedirect('/en/guide/deploy-wordpress-app-custom-github', '/en/guides/deploy-wordpress-custom-app');
 assertRedirect('/docs/primi-passi', '/it/docs/primi-passi');
 
 // Unknown paths: real 404, not redirect-to-/en/404
@@ -144,16 +147,25 @@ assert('localize it getting-started', localizeCanon('/docs/getting-started', 'it
 assert('localize de getting-started stays EN slug', localizeCanon('/docs/getting-started', 'de') === '/docs/getting-started');
 assert('localize de deploy guide', localizeCanon('/guides/deploy-laravel-ubuntu-vps', 'de') === '/guides/laravel-auf-ubuntu-vps-deployen');
 assert('localize fr backup guide', localizeCanon('/guides/backup-vps-s3', 'fr') === '/guides/sauvegarde-vps-vers-s3');
+assert('localize de wordpress guide', localizeCanon('/guides/deploy-wordpress-custom-app', 'de') === '/guides/wordpress-als-custom-app-deployen');
 assert('localize es security guide', localizeCanon('/guides/laravel-security-checklist', 'es') === '/guides/checklist-seguridad-laravel');
 assert('localize pt ecosystem guide', localizeCanon('/guides/laravel-ecosystem-2026', 'pt') === '/guides/ecossistema-laravel-2026');
 
 // In-tree English slugs 301 to localized guide slugs
 assertRedirect('/de/guides/deploy-laravel-ubuntu-vps', '/de/guides/laravel-auf-ubuntu-vps-deployen');
 assertRedirect('/fr/guides/backup-vps-s3', '/fr/guides/sauvegarde-vps-vers-s3');
+assertRedirect('/de/guides/deploy-wordpress-custom-app', '/de/guides/wordpress-als-custom-app-deployen');
+assertRedirect('/fr/guides/deploy-wordpress-custom-app', '/fr/guides/deployer-wordpress-app-personnalisee');
+assertRedirect('/es/guides/deploy-wordpress-custom-app', '/es/guides/desplegar-wordpress-app-personalizada');
+assertRedirect('/pt/guides/deploy-wordpress-custom-app', '/pt/guides/deploy-wordpress-app-personalizado');
 assertRedirect('/es/guides/laravel-security-checklist', '/es/guides/checklist-seguridad-laravel');
 assertRedirect('/pt/guides/laravel-ecosystem-2026', '/pt/guides/ecossistema-laravel-2026');
 assertPass('/de/guides/laravel-auf-ubuntu-vps-deployen');
 assertPass('/fr/guides/sauvegarde-vps-vers-s3');
+assertPass('/de/guides/wordpress-als-custom-app-deployen');
+assertPass('/fr/guides/deployer-wordpress-app-personnalisee');
+assertPass('/es/guides/desplegar-wordpress-app-personalizada');
+assertPass('/pt/guides/deploy-wordpress-app-personalizado');
 assertPass('/es/guides/checklist-seguridad-laravel');
 assertPass('/pt/guides/ecossistema-laravel-2026');
 
@@ -162,6 +174,10 @@ assertRedirect('/guides/laravel-auf-ubuntu-vps-deployen', '/de/guides/laravel-au
 assertRedirect('/guides/sauvegarde-vps-vers-s3', '/fr/guides/sauvegarde-vps-vers-s3');
 assertRedirect('/guides/copias-seguridad-vps-s3', '/es/guides/copias-seguridad-vps-s3');
 assertRedirect('/guides/backup-vps-para-s3', '/pt/guides/backup-vps-para-s3');
+assertRedirect('/guides/wordpress-als-custom-app-deployen', '/de/guides/wordpress-als-custom-app-deployen');
+assertRedirect('/guides/deployer-wordpress-app-personnalisee', '/fr/guides/deployer-wordpress-app-personnalisee');
+assertRedirect('/guides/desplegar-wordpress-app-personalizada', '/es/guides/desplegar-wordpress-app-personalizada');
+assertRedirect('/guides/deploy-wordpress-app-personalizado', '/pt/guides/deploy-wordpress-app-personalizado');
 assert('languageForBarePath DE guide slug', languageForBarePath('/guides/laravel-auf-ubuntu-vps-deployen') === 'de');
 
 // Generated pages must not leak machine-translation placeholders

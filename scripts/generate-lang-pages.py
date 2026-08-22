@@ -37,6 +37,7 @@ PROTECTED = re.compile(
     r"\b(Cipi|cipi\.sh|Laravel|Forge|Ploi|Kamal|Coolify|Cleavr|RunCloud|"
     r"ServerPilot|CloudPanel|DirectAdmin|cPanel|Dokku|Easypanel|Moss|Vito|"
     r"FrankenPHP|Octane|Horizon|Reverb|Valkey|MariaDB|PostgreSQL|Nginx|"
+    r"WordPress|Bedrock|"
     r"Supervisor|GitHub|GitLab|Ubuntu|Let's Encrypt|SSL|TLS|VPS|CLI|MCP|"
     r"API|GUI|CI/CD|DevOps|JSON|YAML|HTTP|HTTPS|DNS|S3|AES|PHP|LEMP|HTML|CSS|"
     r"JavaScript|Python|Docker|Redis|MySQL|npm|composer|artisan|sudo|apt|"

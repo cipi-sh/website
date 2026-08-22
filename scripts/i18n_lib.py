@@ -71,14 +71,21 @@ _GUIDE_SLUGS = {
         "pt": "/guides/stack-desenvolvedor-self-hosted-2026",
         "it": "/guide/stack-developer-self-hosted-2026",
     },
-    "/guides/backup-vps-s3": {
-        "de": "/guides/vps-backup-auf-s3",
-        "fr": "/guides/sauvegarde-vps-vers-s3",
-        "es": "/guides/copias-seguridad-vps-s3",
-        "pt": "/guides/backup-vps-para-s3",
-        "it": "/guide/backup-vps-s3-con-cipi",
-    },
-}
+        "/guides/backup-vps-s3": {
+            "de": "/guides/vps-backup-auf-s3",
+            "fr": "/guides/sauvegarde-vps-vers-s3",
+            "es": "/guides/copias-seguridad-vps-s3",
+            "pt": "/guides/backup-vps-para-s3",
+            "it": "/guide/backup-vps-s3-con-cipi",
+        },
+        "/guides/deploy-wordpress-custom-app": {
+            "de": "/guides/wordpress-als-custom-app-deployen",
+            "fr": "/guides/deployer-wordpress-app-personnalisee",
+            "es": "/guides/desplegar-wordpress-app-personalizada",
+            "pt": "/guides/deploy-wordpress-app-personalizado",
+            "it": "/guide/deploy-wordpress-app-custom-github",
+        },
+    }
 
 SLUGS_IT = {
     "/": "/",
