@@ -92,6 +92,13 @@ _GUIDE_SLUGS = {
             "pt": "/guides/usar-cipi-agent-no-laravel",
             "it": "/guide/usare-cipi-agent-in-laravel",
         },
+        "/guides/cipi-gui-and-api": {
+            "de": "/guides/gui-panel-und-api",
+            "fr": "/guides/panneau-ui-et-api",
+            "es": "/guides/panel-ui-y-api",
+            "pt": "/guides/painel-ui-e-api",
+            "it": "/guide/pannello-ui-e-api-cipi",
+        },
     }
 
 SLUGS_IT = {

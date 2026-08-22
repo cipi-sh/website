@@ -98,6 +98,9 @@ assertRedirect('/en/guide/deploy-wordpress-app-custom-github', '/en/guides/deplo
 assertRedirect('/guide/usare-cipi-agent-in-laravel', '/it/guide/usare-cipi-agent-in-laravel');
 assertRedirect('/it/guides/cipi-agent-laravel-mcp', '/it/guide/usare-cipi-agent-in-laravel');
 assertRedirect('/en/guide/usare-cipi-agent-in-laravel', '/en/guides/cipi-agent-laravel-mcp');
+assertRedirect('/guide/pannello-ui-e-api-cipi', '/it/guide/pannello-ui-e-api-cipi');
+assertRedirect('/it/guides/cipi-gui-and-api', '/it/guide/pannello-ui-e-api-cipi');
+assertRedirect('/en/guide/pannello-ui-e-api-cipi', '/en/guides/cipi-gui-and-api');
 assertRedirect('/docs/primi-passi', '/it/docs/primi-passi');
 
 // Unknown paths: real 404, not redirect-to-/en/404
@@ -158,6 +161,11 @@ assert('localize de agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp'
 assert('localize fr agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'fr') === '/guides/utiliser-cipi-agent-laravel');
 assert('localize es agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'es') === '/guides/usar-cipi-agent-en-laravel');
 assert('localize pt agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'pt') === '/guides/usar-cipi-agent-no-laravel');
+assert('localize it gui api guide', localizeCanon('/guides/cipi-gui-and-api', 'it') === '/guide/pannello-ui-e-api-cipi');
+assert('localize de gui api guide', localizeCanon('/guides/cipi-gui-and-api', 'de') === '/guides/gui-panel-und-api');
+assert('localize fr gui api guide', localizeCanon('/guides/cipi-gui-and-api', 'fr') === '/guides/panneau-ui-et-api');
+assert('localize es gui api guide', localizeCanon('/guides/cipi-gui-and-api', 'es') === '/guides/panel-ui-y-api');
+assert('localize pt gui api guide', localizeCanon('/guides/cipi-gui-and-api', 'pt') === '/guides/painel-ui-e-api');
 
 // In-tree English slugs 301 to localized guide slugs
 assertRedirect('/de/guides/deploy-laravel-ubuntu-vps', '/de/guides/laravel-auf-ubuntu-vps-deployen');
@@ -166,6 +174,10 @@ assertRedirect('/de/guides/deploy-wordpress-custom-app', '/de/guides/wordpress-a
 assertRedirect('/fr/guides/deploy-wordpress-custom-app', '/fr/guides/deployer-wordpress-app-personnalisee');
 assertRedirect('/es/guides/deploy-wordpress-custom-app', '/es/guides/desplegar-wordpress-app-personalizada');
 assertRedirect('/pt/guides/deploy-wordpress-custom-app', '/pt/guides/deploy-wordpress-app-personalizado');
+assertRedirect('/de/guides/cipi-gui-and-api', '/de/guides/gui-panel-und-api');
+assertRedirect('/fr/guides/cipi-gui-and-api', '/fr/guides/panneau-ui-et-api');
+assertRedirect('/es/guides/cipi-gui-and-api', '/es/guides/panel-ui-y-api');
+assertRedirect('/pt/guides/cipi-gui-and-api', '/pt/guides/painel-ui-e-api');
 assertRedirect('/es/guides/laravel-security-checklist', '/es/guides/checklist-seguridad-laravel');
 assertRedirect('/pt/guides/laravel-ecosystem-2026', '/pt/guides/ecossistema-laravel-2026');
 assertRedirect('/de/guides/cipi-agent-laravel-mcp', '/de/guides/cipi-agent-in-laravel-nutzen');
@@ -178,6 +190,12 @@ assertPass('/de/guides/wordpress-als-custom-app-deployen');
 assertPass('/fr/guides/deployer-wordpress-app-personnalisee');
 assertPass('/es/guides/desplegar-wordpress-app-personalizada');
 assertPass('/pt/guides/deploy-wordpress-app-personalizado');
+assertPass('/de/guides/gui-panel-und-api');
+assertPass('/fr/guides/panneau-ui-et-api');
+assertPass('/es/guides/panel-ui-y-api');
+assertPass('/pt/guides/painel-ui-e-api');
+assertPass('/it/guide/pannello-ui-e-api-cipi');
+assertPass('/en/guides/cipi-gui-and-api');
 assertPass('/es/guides/checklist-seguridad-laravel');
 assertPass('/pt/guides/ecossistema-laravel-2026');
 assertPass('/de/guides/cipi-agent-in-laravel-nutzen');
@@ -200,6 +218,10 @@ assertRedirect('/guides/cipi-agent-in-laravel-nutzen', '/de/guides/cipi-agent-in
 assertRedirect('/guides/utiliser-cipi-agent-laravel', '/fr/guides/utiliser-cipi-agent-laravel');
 assertRedirect('/guides/usar-cipi-agent-en-laravel', '/es/guides/usar-cipi-agent-en-laravel');
 assertRedirect('/guides/usar-cipi-agent-no-laravel', '/pt/guides/usar-cipi-agent-no-laravel');
+assertRedirect('/guides/gui-panel-und-api', '/de/guides/gui-panel-und-api');
+assertRedirect('/guides/panneau-ui-et-api', '/fr/guides/panneau-ui-et-api');
+assertRedirect('/guides/panel-ui-y-api', '/es/guides/panel-ui-y-api');
+assertRedirect('/guides/painel-ui-e-api', '/pt/guides/painel-ui-e-api');
 assert('languageForBarePath DE guide slug', languageForBarePath('/guides/laravel-auf-ubuntu-vps-deployen') === 'de');
 
 // Generated pages must not leak machine-translation placeholders
