@@ -19,6 +19,58 @@ const LANG_PREFIX_RE = /^\/(en|de|fr|it|es|pt)(\/|$)/;
 const ASSET_EXT_RE =
   /\.(?:css|js|mjs|map|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|txt|xml|xsl|json|webmanifest|pdf|zip|gz|tgz|sh|mp4|webm|wasm)$/i;
 
+const GUIDE_SLUGS = {
+  '/guides/deploy-laravel-ubuntu-vps': {
+    de: '/guides/laravel-auf-ubuntu-vps-deployen',
+    fr: '/guides/deployer-laravel-sur-vps-ubuntu',
+    es: '/guides/desplegar-laravel-en-vps-ubuntu',
+    pt: '/guides/deploy-laravel-em-vps-ubuntu',
+    it: '/guide/deploy-laravel-su-ubuntu-vps',
+  },
+  '/guides/laravel-security-checklist': {
+    de: '/guides/laravel-sicherheitscheckliste',
+    fr: '/guides/checklist-securite-laravel',
+    es: '/guides/checklist-seguridad-laravel',
+    pt: '/guides/checklist-seguranca-laravel',
+    it: '/guide/checklist-sicurezza-laravel',
+  },
+  '/guides/laravel-ecosystem-2026': {
+    de: '/guides/laravel-oekosystem-2026',
+    fr: '/guides/ecosysteme-laravel-2026',
+    es: '/guides/ecosistema-laravel-2026',
+    pt: '/guides/ecossistema-laravel-2026',
+    it: '/guide/ecosistema-laravel-2026',
+  },
+  '/guides/laravel-ci-cd-git-workflow': {
+    de: '/guides/ci-cd-git-workflow-fuer-laravel',
+    fr: '/guides/ci-cd-et-workflow-git-laravel',
+    es: '/guides/ci-cd-flujo-git-laravel',
+    pt: '/guides/ci-cd-e-workflow-git-laravel',
+    it: '/guide/ci-cd-workflow-git-laravel',
+  },
+  '/guides/spec-driven-development-ai-laravel': {
+    de: '/guides/spezifikationsgetriebene-ki-entwicklung-laravel',
+    fr: '/guides/developpement-spec-driven-ia-laravel',
+    es: '/guides/desarrollo-spec-driven-ia-laravel',
+    pt: '/guides/desenvolvimento-spec-driven-ia-laravel',
+    it: '/guide/sviluppo-spec-driven-ai-laravel',
+  },
+  '/guides/laravel-developer-stack-2026': {
+    de: '/guides/self-hosted-entwickler-stack-2026',
+    fr: '/guides/stack-developpeur-self-hosted-2026',
+    es: '/guides/stack-desarrollador-self-hosted-2026',
+    pt: '/guides/stack-desenvolvedor-self-hosted-2026',
+    it: '/guide/stack-developer-self-hosted-2026',
+  },
+  '/guides/backup-vps-s3': {
+    de: '/guides/vps-backup-auf-s3',
+    fr: '/guides/sauvegarde-vps-vers-s3',
+    es: '/guides/copias-seguridad-vps-s3',
+    pt: '/guides/backup-vps-para-s3',
+    it: '/guide/backup-vps-s3-con-cipi',
+  },
+};
+
 export const SLUGS_IT = {
   '/': '/',
   '/404': '/404',
@@ -53,14 +105,29 @@ export const SLUGS_IT = {
   '/docs/advanced': '/docs/avanzato',
   '/docs/about': '/docs/informazioni',
   '/guides/': '/guide/',
-  '/guides/deploy-laravel-ubuntu-vps': '/guide/deploy-laravel-su-ubuntu-vps',
-  '/guides/laravel-security-checklist': '/guide/checklist-sicurezza-laravel',
-  '/guides/laravel-ecosystem-2026': '/guide/ecosistema-laravel-2026',
-  '/guides/laravel-ci-cd-git-workflow': '/guide/ci-cd-workflow-git-laravel',
-  '/guides/spec-driven-development-ai-laravel': '/guide/sviluppo-spec-driven-ai-laravel',
-  '/guides/laravel-developer-stack-2026': '/guide/stack-developer-self-hosted-2026',
-  '/guides/backup-vps-s3': '/guide/backup-vps-s3-con-cipi',
 };
+
+for (const [en, langs] of Object.entries(GUIDE_SLUGS)) {
+  SLUGS_IT[en] = langs.it;
+}
+
+export const SLUGS_BY_LANG = { it: SLUGS_IT };
+for (const lang of ['de', 'fr', 'es', 'pt']) {
+  SLUGS_BY_LANG[lang] = Object.fromEntries(
+    Object.entries(GUIDE_SLUGS).map(([en, langs]) => [en, langs[lang]]),
+  );
+}
+
+export const SLUGS_TO_EN = {};
+export const SLUG_LANG = {};
+for (const [lang, mapping] of Object.entries(SLUGS_BY_LANG)) {
+  for (const [en, loc] of Object.entries(mapping)) {
+    if (loc !== en) {
+      SLUGS_TO_EN[loc] = en;
+      SLUG_LANG[loc] = lang;
+    }
+  }
+}
 
 export const SLUGS_EN = Object.fromEntries(Object.entries(SLUGS_IT).map(([en, it]) => [it, en]));
 
@@ -93,6 +160,7 @@ export function toEnglishCanon(bare) {
   let p = bare;
   if (p === '/guide') p = '/guide/';
 
+  if (SLUGS_TO_EN[p]) return SLUGS_TO_EN[p];
   if (SLUGS_EN[p]) return SLUGS_EN[p];
 
   if (p === '/alternative') return '/alternatives';
@@ -104,6 +172,7 @@ export function toEnglishCanon(bare) {
 
   if (p === '/guide/') return '/guides/';
   if (p.startsWith('/guide/')) {
+    if (SLUGS_TO_EN[p]) return SLUGS_TO_EN[p];
     if (SLUGS_EN[p]) return SLUGS_EN[p];
     return '/guides/' + p.slice('/guide/'.length);
   }
@@ -114,7 +183,8 @@ export function toEnglishCanon(bare) {
 export function localizeCanon(bare, lang) {
   const en = toEnglishCanon(bare);
   if (lang === 'en') return en;
-  if (lang === 'it') return SLUGS_IT[en] || en;
+  const table = SLUGS_BY_LANG[lang];
+  if (table && table[en]) return table[en];
   return en;
 }
 
@@ -124,6 +194,7 @@ export function langHref(lang, canon) {
 }
 
 export function languageForBarePath(bare) {
+  if (SLUG_LANG[bare]) return SLUG_LANG[bare];
   if (IT_ONLY_EXACT.has(bare)) return 'it';
   for (const prefix of IT_ONLY_PREFIXES) {
     if (bare.startsWith(prefix)) return 'it';
@@ -144,6 +215,7 @@ export function isKnownLegacyPath(path) {
   if (bare === '/') return false;
   if (Object.prototype.hasOwnProperty.call(SLUGS_IT, bare)) return true;
   if (Object.prototype.hasOwnProperty.call(SLUGS_EN, bare) && bare !== '/') return true;
+  if (Object.prototype.hasOwnProperty.call(SLUGS_TO_EN, bare)) return true;
   if (bare.startsWith('/alternativa-a-') || bare.startsWith('/alternative-to-')) return true;
   if (bare.startsWith('/docs/') || bare.startsWith('/guides/') || bare.startsWith('/guide/')) {
     return true;

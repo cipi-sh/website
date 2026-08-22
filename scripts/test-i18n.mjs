@@ -142,6 +142,27 @@ assert('languageForBarePath /docs/ is en', languageForBarePath('/docs/') === 'en
 assert('normalize /docs/ → /docs/', normalizeBarePath('/docs/') === '/docs/');
 assert('localize it getting-started', localizeCanon('/docs/getting-started', 'it') === '/docs/primi-passi');
 assert('localize de getting-started stays EN slug', localizeCanon('/docs/getting-started', 'de') === '/docs/getting-started');
+assert('localize de deploy guide', localizeCanon('/guides/deploy-laravel-ubuntu-vps', 'de') === '/guides/laravel-auf-ubuntu-vps-deployen');
+assert('localize fr backup guide', localizeCanon('/guides/backup-vps-s3', 'fr') === '/guides/sauvegarde-vps-vers-s3');
+assert('localize es security guide', localizeCanon('/guides/laravel-security-checklist', 'es') === '/guides/checklist-seguridad-laravel');
+assert('localize pt ecosystem guide', localizeCanon('/guides/laravel-ecosystem-2026', 'pt') === '/guides/ecossistema-laravel-2026');
+
+// In-tree English slugs 301 to localized guide slugs
+assertRedirect('/de/guides/deploy-laravel-ubuntu-vps', '/de/guides/laravel-auf-ubuntu-vps-deployen');
+assertRedirect('/fr/guides/backup-vps-s3', '/fr/guides/sauvegarde-vps-vers-s3');
+assertRedirect('/es/guides/laravel-security-checklist', '/es/guides/checklist-seguridad-laravel');
+assertRedirect('/pt/guides/laravel-ecosystem-2026', '/pt/guides/ecossistema-laravel-2026');
+assertPass('/de/guides/laravel-auf-ubuntu-vps-deployen');
+assertPass('/fr/guides/sauvegarde-vps-vers-s3');
+assertPass('/es/guides/checklist-seguridad-laravel');
+assertPass('/pt/guides/ecossistema-laravel-2026');
+
+// Bare localized guide slugs go to the owning language
+assertRedirect('/guides/laravel-auf-ubuntu-vps-deployen', '/de/guides/laravel-auf-ubuntu-vps-deployen');
+assertRedirect('/guides/sauvegarde-vps-vers-s3', '/fr/guides/sauvegarde-vps-vers-s3');
+assertRedirect('/guides/copias-seguridad-vps-s3', '/es/guides/copias-seguridad-vps-s3');
+assertRedirect('/guides/backup-vps-para-s3', '/pt/guides/backup-vps-para-s3');
+assert('languageForBarePath DE guide slug', languageForBarePath('/guides/laravel-auf-ubuntu-vps-deployen') === 'de');
 
 // Generated pages must not leak machine-translation placeholders
 const BROKEN_PLACEHOLDER = /__\w+_\d+__/g;
