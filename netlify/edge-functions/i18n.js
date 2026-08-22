@@ -1,18 +1,24 @@
 /**
- * Canonical origin + language trees for Netlify Edge.
- * /en/… (English slugs) ↔ /it/… (Italian slugs).
- * Legacy bare paths redirect 302 → /{lang}{localized-slug}.
+ * Canonical host + language trees for Netlify Edge.
+ *
+ * Google multilingual rules we follow:
+ * - `/` is the English homepage and must return 200 (never language-redirect it).
+ * - `/en` and `/en/` 301 to `/` so there is one English home URL.
+ * - `/it/` is the Italian homepage.
+ * - Accept-Language and the cipi-lang cookie are never used for redirects.
+ *   Crawlers must see one stable URL graph (Google: don't geo/language-redirect).
+ * - Known legacy bare paths 301 to the language implied by the slug.
+ * - Unknown paths are not rewritten (real 404 — no redirect-to-404).
+ * - In-tree slug mismatches 301 to the localized slug.
  */
-const CANONICAL_HOST = 'cipi.sh';
+export const CANONICAL_HOST = 'cipi.sh';
+
 const LANG_PREFIX_RE = /^\/(en|it)(\/|$)/;
 
 const ASSET_EXT_RE =
   /\.(?:css|js|mjs|map|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|txt|xml|xsl|json|webmanifest|pdf|zip|gz|tgz|sh|mp4|webm|wasm)$/i;
 
-const LEGACY_PAGE_RE =
-  /^\/(?:(?:docs|guides|guide)(?:\/|$)|(?:alternatives|alternative|alternativa-a-[a-z0-9-]+|alternative-to-[a-z0-9-]+|best-laravel-forge-alternatives|migliori-alternative-a-laravel-forge|discovery|whats-new|novita)(?:\.html)?\/?$|index\.html\/?$)/i;
-
-const SLUGS_IT = {
+export const SLUGS_IT = {
   '/': '/',
   '/404': '/404',
   '/whats-new': '/novita',
@@ -54,34 +60,24 @@ const SLUGS_IT = {
   '/guides/laravel-developer-stack-2026': '/guide/stack-developer-self-hosted-2026',
 };
 
-const SLUGS_EN = Object.fromEntries(Object.entries(SLUGS_IT).map(([en, it]) => [it, en]));
+export const SLUGS_EN = Object.fromEntries(Object.entries(SLUGS_IT).map(([en, it]) => [it, en]));
 
-function pickLang(request) {
-  const cookie = request.headers.get('cookie') || '';
-  const chosen = cookie.match(/(?:^|;\s*)cipi-lang=(en|it)(?=;|\s|$)/);
-  if (chosen) return chosen[1];
+const IT_ONLY_PREFIXES = ['/alternativa-a-', '/guide/'];
+const IT_ONLY_EXACT = new Set([
+  '/novita',
+  '/alternative',
+  '/migliori-alternative-a-laravel-forge',
+  '/guide',
+  '/guide/',
+  '/docs/primi-passi',
+  '/docs/app',
+  '/docs/infrastruttura',
+  '/docs/client-cli',
+  '/docs/avanzato',
+  '/docs/informazioni',
+]);
 
-  const header = request.headers.get('accept-language') || '';
-  let best = null;
-  let bestQ = -1;
-  for (const part of header.split(',')) {
-    const [tagRaw, ...params] = part.trim().split(';');
-    const tag = tagRaw.trim().toLowerCase();
-    if (!tag) continue;
-    let q = 1;
-    for (const p of params) {
-      const qm = p.trim().match(/^q=([\d.]+)$/i);
-      if (qm) q = parseFloat(qm[1]);
-    }
-    if (q > bestQ) {
-      bestQ = q;
-      best = tag;
-    }
-  }
-  return best === 'it' || (best && best.startsWith('it-')) ? 'it' : 'en';
-}
-
-function normalizeBarePath(pathname) {
+export function normalizeBarePath(pathname) {
   let p = pathname || '/';
   if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
   if (p.endsWith('.html')) p = p.slice(0, -5);
@@ -91,12 +87,7 @@ function normalizeBarePath(pathname) {
   return p;
 }
 
-function langHref(lang, canon) {
-  if (canon === '/') return `/${lang}/`;
-  return `/${lang}${canon}`;
-}
-
-function toEnglishCanon(bare) {
+export function toEnglishCanon(bare) {
   let p = bare;
   if (p === '/guide') p = '/guide/';
 
@@ -118,83 +109,114 @@ function toEnglishCanon(bare) {
   return p;
 }
 
-function localizeCanon(bare, lang) {
+export function localizeCanon(bare, lang) {
   const en = toEnglishCanon(bare);
   if (lang === 'en') return en;
   return SLUGS_IT[en] || en;
 }
 
-function isAssetPath(path) {
+export function langHref(lang, canon) {
+  if (canon === '/') return lang === 'it' ? '/it/' : '/';
+  return `/${lang}${canon}`;
+}
+
+export function languageForBarePath(bare) {
+  if (IT_ONLY_EXACT.has(bare)) return 'it';
+  for (const prefix of IT_ONLY_PREFIXES) {
+    if (bare.startsWith(prefix)) return 'it';
+  }
+  return 'en';
+}
+
+export function isAssetPath(path) {
   if (path.startsWith('/css/') || path.startsWith('/.well-known/')) return true;
   const last = path.slice(path.lastIndexOf('/') + 1);
   if (!last.includes('.')) return false;
-  if (last.endsWith('.html') && (LEGACY_PAGE_RE.test(path) || path === '/index.html')) {
-    return false;
-  }
+  if (last.endsWith('.html')) return false;
   return ASSET_EXT_RE.test(last) || last.includes('.');
 }
 
-function isLegacyPagePath(path) {
-  if (path === '/' || path === '/index.html') return true;
-  if (LEGACY_PAGE_RE.test(path)) return true;
-  const last = path.slice(path.lastIndexOf('/') + 1);
-  if (!last.includes('.') && !path.startsWith('/css/') && !path.startsWith('/.well-known/')) {
+export function isKnownLegacyPath(path) {
+  const bare = normalizeBarePath(path);
+  if (bare === '/') return false;
+  if (Object.prototype.hasOwnProperty.call(SLUGS_IT, bare)) return true;
+  if (Object.prototype.hasOwnProperty.call(SLUGS_EN, bare) && bare !== '/') return true;
+  if (bare.startsWith('/alternativa-a-') || bare.startsWith('/alternative-to-')) return true;
+  if (bare.startsWith('/docs/') || bare.startsWith('/guides/') || bare.startsWith('/guide/')) {
     return true;
   }
   return false;
 }
 
-function redirectTo(request, pathname) {
-  const url = new URL(request.url);
-  url.pathname = pathname;
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: url.toString(),
-      Vary: 'Accept-Language, Cookie',
-      'Cache-Control': 'no-store',
-    },
-  });
-}
-
-export default async (request, context) => {
-  const url = new URL(request.url);
-  const isPreview =
-    url.hostname.endsWith('.netlify.app') || url.hostname.endsWith('.pages.dev');
-
+/**
+ * Pure routing decision. `pass` means serve the origin file (or a real 404).
+ * `redirect` is a pathname on the same origin.
+ */
+export function decide(url, { isPreview = false } = {}) {
   if (!isPreview && (url.protocol === 'http:' || url.hostname === `www.${CANONICAL_HOST}`)) {
-    url.protocol = 'https:';
-    url.hostname = CANONICAL_HOST;
-    return Response.redirect(url.toString(), 301);
+    const next = new URL(url.toString());
+    next.protocol = 'https:';
+    next.hostname = CANONICAL_HOST;
+    return { redirect: next.pathname + next.search, status: 301, absolute: next.toString() };
   }
 
   const path = url.pathname;
 
-  // Static assets (sitemap, robots, images, …) — never rewrite
   if (isAssetPath(path) && !path.endsWith('.html')) {
-    return;
+    return { pass: true };
+  }
+
+  if (path === '/index.html') {
+    return { redirect: '/', status: 301 };
   }
 
   const langMatch = path.match(LANG_PREFIX_RE);
   if (langMatch) {
     const lang = langMatch[1];
     const rest = path.replace(/^\/(en|it)/, '') || '/';
-    const expected = langHref(lang, localizeCanon(normalizeBarePath(rest), lang));
+    const canon = localizeCanon(normalizeBarePath(rest), lang);
+    const expected = langHref(lang, canon);
     if (path !== expected) {
-      return redirectTo(request, expected);
+      return { redirect: expected, status: 301 };
     }
-    return;
+    return { pass: true };
   }
 
   if (isAssetPath(path)) {
-    return;
+    return { pass: true };
   }
 
-  if (isLegacyPagePath(path)) {
-    const lang = pickLang(request);
-    const canon = localizeCanon(normalizeBarePath(path), lang);
-    return redirectTo(request, langHref(lang, canon));
+  if (isKnownLegacyPath(path)) {
+    const canon = toEnglishCanon(normalizeBarePath(path));
+    const lang = languageForBarePath(normalizeBarePath(path));
+    return { redirect: langHref(lang, localizeCanon(canon, lang)), status: 301 };
   }
+
+  return { pass: true };
+}
+
+function redirectTo(request, pathname, status = 301, absolute) {
+  const location = absolute || (() => {
+    const url = new URL(request.url);
+    url.pathname = pathname;
+    return url.toString();
+  })();
+  return new Response(null, {
+    status,
+    headers: {
+      Location: location,
+      'Cache-Control': 'public, max-age=3600',
+    },
+  });
+}
+
+export default async (request) => {
+  const url = new URL(request.url);
+  const isPreview =
+    url.hostname.endsWith('.netlify.app') || url.hostname.endsWith('.pages.dev');
+  const decision = decide(url, { isPreview });
+  if (decision.pass) return;
+  return redirectTo(request, decision.redirect, decision.status, decision.absolute);
 };
 
 export const config = { path: '/*' };
