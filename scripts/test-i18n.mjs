@@ -89,6 +89,9 @@ assertRedirect('/alternative', '/it/alternative');
 assertRedirect('/alternativa-a-ploi', '/it/alternativa-a-ploi');
 assertRedirect('/guide/', '/it/guide/');
 assertRedirect('/guide/deploy-laravel-su-ubuntu-vps', '/it/guide/deploy-laravel-su-ubuntu-vps');
+assertRedirect('/guide/deploy-wordpress-app-custom-github', '/it/guide/deploy-wordpress-app-custom-github');
+assertRedirect('/it/guides/deploy-wordpress-custom-app', '/it/guide/deploy-wordpress-app-custom-github');
+assertRedirect('/en/guide/deploy-wordpress-app-custom-github', '/en/guides/deploy-wordpress-custom-app');
 assertRedirect('/docs/primi-passi', '/it/docs/primi-passi');
 
 // Unknown paths: real 404, not redirect-to-/en/404

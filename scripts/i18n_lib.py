@@ -68,6 +68,7 @@ SLUGS_IT = {
     "/guides/laravel-ci-cd-git-workflow": "/guide/ci-cd-workflow-git-laravel",
     "/guides/spec-driven-development-ai-laravel": "/guide/sviluppo-spec-driven-ai-laravel",
     "/guides/laravel-developer-stack-2026": "/guide/stack-developer-self-hosted-2026",
+    "/guides/deploy-wordpress-custom-app": "/guide/deploy-wordpress-app-custom-github",
 }
 
 SLUGS_EN = {it: en for en, it in SLUGS_IT.items()}
