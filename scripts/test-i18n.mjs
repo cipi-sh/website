@@ -161,5 +161,20 @@ for (const lang of GENERATED_LANGS) {
   }
 }
 
+// Docs search must load the index for the current page language
+for (const lang of ['en', 'it', ...GENERATED_LANGS]) {
+  const indexPath = join(process.cwd(), lang, 'docs', 'search-index.js');
+  assert(`${lang} docs search-index exists`, readFileSync(indexPath, 'utf8').includes('window.CIPI_DOCS'));
+  const docsDir = join(process.cwd(), lang, 'docs');
+  for (const file of walk(docsDir).filter((f) => f.endsWith('.html'))) {
+    const html = readFileSync(file, 'utf8');
+    if (!html.includes('sidebar-search')) continue;
+    assert(
+      `${file.replace(process.cwd(), '')} uses lang-aware search index`,
+      html.includes("(document.documentElement.lang || 'en') + '/docs/search-index.js'"),
+    );
+  }
+}
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
