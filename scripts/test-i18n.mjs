@@ -89,6 +89,9 @@ assertRedirect('/alternative', '/it/alternative');
 assertRedirect('/alternativa-a-ploi', '/it/alternativa-a-ploi');
 assertRedirect('/guide/', '/it/guide/');
 assertRedirect('/guide/deploy-laravel-su-ubuntu-vps', '/it/guide/deploy-laravel-su-ubuntu-vps');
+assertRedirect('/guide/backup-vps-s3-con-cipi', '/it/guide/backup-vps-s3-con-cipi');
+assertRedirect('/it/guides/backup-vps-s3', '/it/guide/backup-vps-s3-con-cipi');
+assertRedirect('/en/guide/backup-vps-s3-con-cipi', '/en/guides/backup-vps-s3');
 assertRedirect('/docs/primi-passi', '/it/docs/primi-passi');
 
 // Unknown paths: real 404, not redirect-to-/en/404
