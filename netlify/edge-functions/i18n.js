@@ -76,6 +76,13 @@ const GUIDE_SLUGS = {
     pt: '/guides/deploy-wordpress-app-personalizado',
     it: '/guide/deploy-wordpress-app-custom-github',
   },
+  '/guides/cipi-agent-laravel-mcp': {
+    de: '/guides/cipi-agent-in-laravel-nutzen',
+    fr: '/guides/utiliser-cipi-agent-laravel',
+    es: '/guides/usar-cipi-agent-en-laravel',
+    pt: '/guides/usar-cipi-agent-no-laravel',
+    it: '/guide/usare-cipi-agent-in-laravel',
+  },
 };
 
 export const SLUGS_IT = {

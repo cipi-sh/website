@@ -95,6 +95,9 @@ assertRedirect('/en/guide/backup-vps-s3-con-cipi', '/en/guides/backup-vps-s3');
 assertRedirect('/guide/deploy-wordpress-app-custom-github', '/it/guide/deploy-wordpress-app-custom-github');
 assertRedirect('/it/guides/deploy-wordpress-custom-app', '/it/guide/deploy-wordpress-app-custom-github');
 assertRedirect('/en/guide/deploy-wordpress-app-custom-github', '/en/guides/deploy-wordpress-custom-app');
+assertRedirect('/guide/usare-cipi-agent-in-laravel', '/it/guide/usare-cipi-agent-in-laravel');
+assertRedirect('/it/guides/cipi-agent-laravel-mcp', '/it/guide/usare-cipi-agent-in-laravel');
+assertRedirect('/en/guide/usare-cipi-agent-in-laravel', '/en/guides/cipi-agent-laravel-mcp');
 assertRedirect('/docs/primi-passi', '/it/docs/primi-passi');
 
 // Unknown paths: real 404, not redirect-to-/en/404
@@ -150,6 +153,11 @@ assert('localize fr backup guide', localizeCanon('/guides/backup-vps-s3', 'fr') 
 assert('localize de wordpress guide', localizeCanon('/guides/deploy-wordpress-custom-app', 'de') === '/guides/wordpress-als-custom-app-deployen');
 assert('localize es security guide', localizeCanon('/guides/laravel-security-checklist', 'es') === '/guides/checklist-seguridad-laravel');
 assert('localize pt ecosystem guide', localizeCanon('/guides/laravel-ecosystem-2026', 'pt') === '/guides/ecossistema-laravel-2026');
+assert('localize it agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'it') === '/guide/usare-cipi-agent-in-laravel');
+assert('localize de agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'de') === '/guides/cipi-agent-in-laravel-nutzen');
+assert('localize fr agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'fr') === '/guides/utiliser-cipi-agent-laravel');
+assert('localize es agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'es') === '/guides/usar-cipi-agent-en-laravel');
+assert('localize pt agent guide', localizeCanon('/guides/cipi-agent-laravel-mcp', 'pt') === '/guides/usar-cipi-agent-no-laravel');
 
 // In-tree English slugs 301 to localized guide slugs
 assertRedirect('/de/guides/deploy-laravel-ubuntu-vps', '/de/guides/laravel-auf-ubuntu-vps-deployen');
@@ -160,6 +168,10 @@ assertRedirect('/es/guides/deploy-wordpress-custom-app', '/es/guides/desplegar-w
 assertRedirect('/pt/guides/deploy-wordpress-custom-app', '/pt/guides/deploy-wordpress-app-personalizado');
 assertRedirect('/es/guides/laravel-security-checklist', '/es/guides/checklist-seguridad-laravel');
 assertRedirect('/pt/guides/laravel-ecosystem-2026', '/pt/guides/ecossistema-laravel-2026');
+assertRedirect('/de/guides/cipi-agent-laravel-mcp', '/de/guides/cipi-agent-in-laravel-nutzen');
+assertRedirect('/fr/guides/cipi-agent-laravel-mcp', '/fr/guides/utiliser-cipi-agent-laravel');
+assertRedirect('/es/guides/cipi-agent-laravel-mcp', '/es/guides/usar-cipi-agent-en-laravel');
+assertRedirect('/pt/guides/cipi-agent-laravel-mcp', '/pt/guides/usar-cipi-agent-no-laravel');
 assertPass('/de/guides/laravel-auf-ubuntu-vps-deployen');
 assertPass('/fr/guides/sauvegarde-vps-vers-s3');
 assertPass('/de/guides/wordpress-als-custom-app-deployen');
@@ -168,6 +180,12 @@ assertPass('/es/guides/desplegar-wordpress-app-personalizada');
 assertPass('/pt/guides/deploy-wordpress-app-personalizado');
 assertPass('/es/guides/checklist-seguridad-laravel');
 assertPass('/pt/guides/ecossistema-laravel-2026');
+assertPass('/de/guides/cipi-agent-in-laravel-nutzen');
+assertPass('/fr/guides/utiliser-cipi-agent-laravel');
+assertPass('/es/guides/usar-cipi-agent-en-laravel');
+assertPass('/pt/guides/usar-cipi-agent-no-laravel');
+assertPass('/it/guide/usare-cipi-agent-in-laravel');
+assertPass('/en/guides/cipi-agent-laravel-mcp');
 
 // Bare localized guide slugs go to the owning language
 assertRedirect('/guides/laravel-auf-ubuntu-vps-deployen', '/de/guides/laravel-auf-ubuntu-vps-deployen');
@@ -178,6 +196,10 @@ assertRedirect('/guides/wordpress-als-custom-app-deployen', '/de/guides/wordpres
 assertRedirect('/guides/deployer-wordpress-app-personnalisee', '/fr/guides/deployer-wordpress-app-personnalisee');
 assertRedirect('/guides/desplegar-wordpress-app-personalizada', '/es/guides/desplegar-wordpress-app-personalizada');
 assertRedirect('/guides/deploy-wordpress-app-personalizado', '/pt/guides/deploy-wordpress-app-personalizado');
+assertRedirect('/guides/cipi-agent-in-laravel-nutzen', '/de/guides/cipi-agent-in-laravel-nutzen');
+assertRedirect('/guides/utiliser-cipi-agent-laravel', '/fr/guides/utiliser-cipi-agent-laravel');
+assertRedirect('/guides/usar-cipi-agent-en-laravel', '/es/guides/usar-cipi-agent-en-laravel');
+assertRedirect('/guides/usar-cipi-agent-no-laravel', '/pt/guides/usar-cipi-agent-no-laravel');
 assert('languageForBarePath DE guide slug', languageForBarePath('/guides/laravel-auf-ubuntu-vps-deployen') === 'de');
 
 // Generated pages must not leak machine-translation placeholders
