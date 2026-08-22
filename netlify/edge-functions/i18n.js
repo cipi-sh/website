@@ -13,7 +13,8 @@
  */
 export const CANONICAL_HOST = 'cipi.sh';
 
-const LANG_PREFIX_RE = /^\/(en|it)(\/|$)/;
+const LANG_PREFIXES = ['en', 'de', 'fr', 'it', 'es', 'pt'];
+const LANG_PREFIX_RE = /^\/(en|de|fr|it|es|pt)(\/|$)/;
 
 const ASSET_EXT_RE =
   /\.(?:css|js|mjs|map|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|txt|xml|xsl|json|webmanifest|pdf|zip|gz|tgz|sh|mp4|webm|wasm)$/i;
@@ -112,11 +113,12 @@ export function toEnglishCanon(bare) {
 export function localizeCanon(bare, lang) {
   const en = toEnglishCanon(bare);
   if (lang === 'en') return en;
-  return SLUGS_IT[en] || en;
+  if (lang === 'it') return SLUGS_IT[en] || en;
+  return en;
 }
 
 export function langHref(lang, canon) {
-  if (canon === '/') return lang === 'it' ? '/it/' : '/';
+  if (canon === '/') return lang === 'en' ? '/' : `/${lang}/`;
   return `/${lang}${canon}`;
 }
 
@@ -173,7 +175,7 @@ export function decide(url, { isPreview = false } = {}) {
   const langMatch = path.match(LANG_PREFIX_RE);
   if (langMatch) {
     const lang = langMatch[1];
-    const rest = path.replace(/^\/(en|it)/, '') || '/';
+    const rest = path.replace(/^\/(en|de|fr|it|es|pt)/, '') || '/';
     const canon = localizeCanon(normalizeBarePath(rest), lang);
     const expected = langHref(lang, canon);
     if (path !== expected) {

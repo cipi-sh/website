@@ -117,13 +117,26 @@ assertPass('/.well-known/security.txt');
   assert('preview host not rewritten', d.pass === true);
 }
 
+// New language trees
+assertPass('/de/');
+assertPass('/fr/');
+assertPass('/es/');
+assertPass('/pt/');
+assertRedirect('/de', '/de/');
+assertRedirect('/fr', '/fr/');
+assertPass('/de/docs/getting-started');
+assertPass('/fr/alternatives');
+
 // Helpers
 assert('langHref en home is /', langHref('en', '/') === '/');
 assert('langHref it home is /it/', langHref('it', '/') === '/it/');
+assert('langHref de home is /de/', langHref('de', '/') === '/de/');
+assert('langHref fr home is /fr/', langHref('fr', '/') === '/fr/');
 assert('languageForBarePath /novita is it', languageForBarePath('/novita') === 'it');
 assert('languageForBarePath /docs/ is en', languageForBarePath('/docs/') === 'en');
 assert('normalize /docs/ → /docs/', normalizeBarePath('/docs/') === '/docs/');
 assert('localize it getting-started', localizeCanon('/docs/getting-started', 'it') === '/docs/primi-passi');
+assert('localize de getting-started stays EN slug', localizeCanon('/docs/getting-started', 'de') === '/docs/getting-started');
 
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

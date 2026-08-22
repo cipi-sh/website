@@ -1,0 +1,326 @@
+#!/usr/bin/env python3
+"""Generate fr/de/es/pt pages from English sources with machine translation."""
+from __future__ import annotations
+
+import json
+import re
+import sys
+import time
+from pathlib import Path
+
+from bs4 import BeautifulSoup, NavigableString, Tag
+from deep_translator import GoogleTranslator
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from i18n_lib import (  # noqa: E402
+    ROOT,
+    SLUGS_EN,
+    build_alternates,
+    build_og_locales,
+    build_switch,
+    file_to_en_canon,
+    lang_href,
+    localize_canon,
+)
+
+TARGET_LANGS = ["de", "fr", "es", "pt"]
+CACHE_FILE = ROOT / "scripts" / ".translation-cache.json"
+BATCH_SEP = "\n|||CIPI|||\n"
+MAX_BATCH = 4500
+
+SKIP_TAGS = {"script", "style", "pre", "code", "svg", "path", "meta"}
+TRANSLATABLE_ATTRS = ("title", "alt", "aria-label", "placeholder")
+META_TRANSLATE = {"description", "keywords", "twitter:title", "twitter:description"}
+
+PROTECTED = re.compile(
+    r"\b(Cipi|cipi\.sh|Laravel|Forge|Ploi|Kamal|Coolify|Cleavr|RunCloud|"
+    r"ServerPilot|CloudPanel|DirectAdmin|cPanel|Dokku|Easypanel|Moss|Vito|"
+    r"FrankenPHP|Octane|Horizon|Reverb|Valkey|MariaDB|PostgreSQL|Nginx|"
+    r"Supervisor|GitHub|GitLab|Ubuntu|Let's Encrypt|SSL|TLS|VPS|CLI|MCP|"
+    r"API|GUI|CI/CD|DevOps|JSON|YAML|HTTP|HTTPS|DNS|S3|AES|PHP|LEMP|HTML|CSS|"
+    r"JavaScript|Python|Docker|Redis|MySQL|npm|composer|artisan|sudo|apt|"
+    r"systemd|cron|webhook|README|open.?source|self.?hosted)\b",
+    re.IGNORECASE,
+)
+
+ALT_RE = re.compile(r"<!-- i18n:alternates -->.*?<!-- /i18n:alternates -->", re.DOTALL)
+SWITCH_RE = re.compile(r"<!-- i18n:switch -->.*?<!-- /i18n:switch -->", re.DOTALL)
+OG_LOCALE_RE = re.compile(
+    r'<meta[^>]*property="og:locale"[^>]*>\s*(?:<meta[^>]*property="og:locale:alternate"[^>]*>\s*)*',
+    re.DOTALL,
+)
+
+
+def load_cache() -> dict[str, str]:
+    if CACHE_FILE.exists():
+        return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_cache(cache: dict[str, str]) -> None:
+    CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False, indent=0), encoding="utf-8")
+
+
+def protect(text: str) -> tuple[str, dict[str, str]]:
+    tokens: dict[str, str] = {}
+
+    def repl(m: re.Match[str]) -> str:
+        key = f"__KEEP_{len(tokens)}__"
+        tokens[key] = m.group(0)
+        return key
+
+    return PROTECTED.sub(repl, text), tokens
+
+
+def restore(text: str, tokens: dict[str, str]) -> str:
+    for key, val in tokens.items():
+        text = text.replace(key, val)
+    return text
+
+
+def should_skip_text(text: str) -> bool:
+    s = text.strip()
+    if not s:
+        return True
+    if s.startswith(("http://", "https://", "/", "#", "$", "curl ", "ssh ", "git ")):
+        return True
+    if re.fullmatch(r"[\d\s\W]+", s):
+        return True
+    if len(s) <= 2 and s.isupper():
+        return True
+    return False
+
+
+def in_lang_switch(node: NavigableString) -> bool:
+    parent = node.parent
+    while parent and isinstance(parent, Tag):
+        classes = parent.get("class") or []
+        if "lang-switch" in classes or "lang-menu" in classes:
+            return True
+        parent = parent.parent
+    return False
+
+
+def collect_strings(html: str) -> set[str]:
+    soup = BeautifulSoup(html, "html.parser")
+    strings: set[str] = set()
+
+    if soup.title and soup.title.string and not should_skip_text(str(soup.title.string)):
+        strings.add(str(soup.title.string))
+
+    for meta in soup.find_all("meta"):
+        prop = meta.get("property") or ""
+        name = meta.get("name") or ""
+        key = prop or name
+        if key in META_TRANSLATE | {"og:title", "og:description"} and meta.get("content"):
+            strings.add(meta["content"])
+
+    for tag in soup.find_all(True):
+        if tag.name in SKIP_TAGS:
+            continue
+        for attr in TRANSLATABLE_ATTRS:
+            if tag.has_attr(attr) and not should_skip_text(tag[attr]):
+                strings.add(tag[attr])
+
+    for node in soup.strings:
+        if not isinstance(node, NavigableString):
+            continue
+        parent = node.parent
+        if not parent or not isinstance(parent, Tag):
+            continue
+        if parent.name in SKIP_TAGS or in_lang_switch(node):
+            continue
+        text = str(node)
+        if not should_skip_text(text):
+            strings.add(text)
+
+    return strings
+
+
+def batch_translate(engine: GoogleTranslator, items: list[str], cache: dict[str, str], lang: str) -> None:
+    pending: list[str] = []
+
+    def flush() -> None:
+        if not pending:
+            return
+        protected_items = []
+        token_maps = []
+        for item in pending:
+            protected, tokens = protect(item)
+            protected_items.append(protected)
+            token_maps.append(tokens)
+        payload = BATCH_SEP.join(protected_items)
+        try:
+            result = engine.translate(payload)
+            time.sleep(0.1)
+            parts = (result or payload).split(BATCH_SEP)
+            if len(parts) != len(pending):
+                parts = [engine.translate(p) for p in protected_items]
+        except Exception as exc:  # noqa: BLE001
+            print(f"  warn: batch failed ({exc!r}), falling back")
+            parts = pending
+        for src, out, tokens in zip(pending, parts, token_maps):
+            cache[f"{lang}::{src}"] = restore(out, tokens)
+        pending.clear()
+
+    for item in items:
+        if f"{lang}::{item}" in cache:
+            continue
+        if len(BATCH_SEP.join(pending + [item])) > MAX_BATCH:
+            flush()
+        pending.append(item)
+    flush()
+
+
+def warm_cache(all_html: list[str], lang: str, cache: dict[str, str]) -> None:
+    unique: set[str] = set()
+    for html in all_html:
+        unique.update(collect_strings(html))
+    missing = [s for s in sorted(unique, key=len) if f"{lang}::{s}" not in cache]
+    print(f"  translating {len(missing)} unique strings ({len(unique)} total)")
+    if not missing:
+        return
+    engine = GoogleTranslator(source="en", target=lang)
+    batch_translate(engine, missing, cache, lang)
+    save_cache(cache)
+
+
+class Lookup:
+    def __init__(self, lang: str, cache: dict[str, str]) -> None:
+        self.lang = lang
+        self.cache = cache
+
+    def get(self, text: str) -> str:
+        return self.cache.get(f"{self.lang}::{text}", text)
+
+
+def apply_translations(html: str, lang: str, lookup: Lookup) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+
+    if soup.title and soup.title.string:
+        soup.title.string.replace_with(lookup.get(str(soup.title.string)))
+
+    for meta in soup.find_all("meta"):
+        prop = meta.get("property") or ""
+        name = meta.get("name") or ""
+        key = prop or name
+        if key in META_TRANSLATE | {"og:title", "og:description"} and meta.get("content"):
+            meta["content"] = lookup.get(meta["content"])
+
+    for tag in soup.find_all(True):
+        if tag.name in SKIP_TAGS:
+            continue
+        for attr in TRANSLATABLE_ATTRS:
+            if tag.has_attr(attr) and not should_skip_text(tag[attr]):
+                tag[attr] = lookup.get(tag[attr])
+
+    for node in list(soup.strings):
+        if not isinstance(node, NavigableString):
+            continue
+        parent = node.parent
+        if not parent or not isinstance(parent, Tag):
+            continue
+        if parent.name in SKIP_TAGS or in_lang_switch(node):
+            continue
+        text = str(node)
+        if should_skip_text(text):
+            continue
+        node.replace_with(lookup.get(text))
+
+    rewrite_links(soup, lang)
+    return str(soup)
+
+
+def rewrite_links(soup: BeautifulSoup, lang: str) -> None:
+    for tag in soup.find_all(["a", "link"]):
+        attr = "href"
+        if not tag.has_attr(attr):
+            continue
+        href = tag[attr]
+        if not href or href.startswith(("http://", "https://", "mailto:", "#", "javascript:")):
+            continue
+        m = re.match(r"^/(en|it|de|fr|es|pt)(/.*)?$", href)
+        if m:
+            rest = m.group(2) or "/"
+            if rest == "/":
+                tag[attr] = lang_href(lang, "/")
+            else:
+                en_canon = SLUGS_EN.get(rest, rest) if m.group(1) == "it" else rest
+                tag[attr] = lang_href(lang, localize_canon(en_canon, lang))
+
+
+def post_process(text: str, lang: str, en_canon: str) -> str:
+    canon_path = lang_href(lang, localize_canon(en_canon, lang))
+    canon_url = f"https://cipi.sh{canon_path}"
+
+    text = re.sub(r'(<html\b[^>]*\blang=")[^"]*(")', rf'\1{lang}\2', text, count=1)
+    text = re.sub(r'"inLanguage": "en"', f'"inLanguage": "{lang}"', text)
+    text = re.sub(
+        r'(<link\b[^>]*rel="canonical"[^>]*href=")[^"]*(")',
+        rf'\1{canon_url}\2',
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r'(<link\b[^>]*href=")[^"]*("[^>]*rel="canonical")',
+        rf'\1{canon_url}\2',
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r'(<meta\b[^>]*property="og:url"[^>]*content=")[^"]*(")',
+        rf'\1{canon_url}\2',
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r'(<meta\b[^>]*content=")[^"]*("[^>]*property="og:url")',
+        rf'\1{canon_url}\2',
+        text,
+        count=1,
+    )
+    if ALT_RE.search(text):
+        text = ALT_RE.sub(build_alternates(en_canon), text, count=1)
+    if SWITCH_RE.search(text):
+        m = re.search(r"(\s*)<!-- i18n:switch -->", text)
+        indent = m.group(1) if m else ""
+        text = SWITCH_RE.sub(indent + build_switch(lang, en_canon), text, count=1)
+    if OG_LOCALE_RE.search(text):
+        text = OG_LOCALE_RE.sub(build_og_locales(lang), text, count=1)
+    return text
+
+
+def en_sources() -> list[Path]:
+    return sorted(p for p in (ROOT / "en").rglob("*.html"))
+
+
+def main() -> None:
+    cache = load_cache()
+    sources = en_sources()
+    all_html = [p.read_text(encoding="utf-8") for p in sources]
+    print(f"Generating {len(sources)} pages × {len(TARGET_LANGS)} languages")
+
+    for lang in TARGET_LANGS:
+        print(f"\n=== {lang.upper()} ===")
+        warm_cache(all_html, lang, cache)
+        lookup = Lookup(lang, cache)
+        for src, html in zip(sources, all_html):
+            rel = src.relative_to(ROOT / "en")
+            dst = ROOT / lang / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            en_canon = file_to_en_canon(src)
+            assert en_canon is not None
+            if dst.exists() and dst.stat().st_size > 1000:
+                print(f"  skip {rel} (exists)")
+                continue
+            print(f"  write {rel}")
+            translated = apply_translations(html, lang, lookup)
+            translated = post_process(translated, lang, en_canon)
+            dst.write_text(translated, encoding="utf-8")
+
+    save_cache(cache)
+    print("\nDone.")
+
+
+if __name__ == "__main__":
+    main()
