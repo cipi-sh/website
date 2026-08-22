@@ -43,6 +43,9 @@ PROTECTED = re.compile(
     re.IGNORECASE,
 )
 
+# Google Translate rewrites English words inside __KEEP_N__ (→ __GARDER_N__, etc.).
+BROKEN_PLACEHOLDER = re.compile(r"__\w+_\d+__")
+
 ALT_RE = re.compile(r"<!-- i18n:alternates -->.*?<!-- /i18n:alternates -->", re.DOTALL)
 SWITCH_RE = re.compile(r"<!-- i18n:switch -->.*?<!-- /i18n:switch -->", re.DOTALL)
 OG_LOCALE_RE = re.compile(
@@ -65,7 +68,8 @@ def protect(text: str) -> tuple[str, dict[str, str]]:
     tokens: dict[str, str] = {}
 
     def repl(m: re.Match[str]) -> str:
-        key = f"__KEEP_{len(tokens)}__"
+        # Private-use Unicode — not treated as translatable text by Google.
+        key = f"\uE000{len(tokens)}\uE001"
         tokens[key] = m.group(0)
         return key
 
@@ -75,7 +79,37 @@ def protect(text: str) -> tuple[str, dict[str, str]]:
 def restore(text: str, tokens: dict[str, str]) -> str:
     for key, val in tokens.items():
         text = text.replace(key, val)
+    # Fallback when legacy __KEEP_N__ placeholders were translated (KEEP → GARDER, …).
+    for key, val in tokens.items():
+        idx: str | None = None
+        m = re.fullmatch(r"\uE000(\d+)\uE001", key)
+        if m:
+            idx = m.group(1)
+        else:
+            m = re.fullmatch(r"__KEEP_(\d+)__", key)
+            if m:
+                idx = m.group(1)
+        if idx is not None:
+            text = re.sub(rf"__\w+_{idx}__", val, text)
     return text
+
+
+def repair_value(src: str, val: str) -> str:
+    """Restore brand/tech terms in an already-translated string."""
+    if not BROKEN_PLACEHOLDER.search(val):
+        return val
+    index_to_val: dict[str, str] = {}
+
+    def repl(m: re.Match[str]) -> str:
+        idx = str(len(index_to_val))
+        index_to_val[idx] = m.group(0)
+        return f"__KEEP_{idx}__"
+
+    PROTECTED.sub(repl, src)
+    result = val
+    for idx, original in index_to_val.items():
+        result = re.sub(rf"__\w+_{idx}__", original, result)
+    return result
 
 
 def should_skip_text(text: str) -> bool:

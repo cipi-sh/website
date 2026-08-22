@@ -2,6 +2,8 @@
 /**
  * Unit tests for netlify/edge-functions/i18n.js routing (no Netlify runtime).
  */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   decide,
   langHref,
@@ -137,6 +139,27 @@ assert('languageForBarePath /docs/ is en', languageForBarePath('/docs/') === 'en
 assert('normalize /docs/ → /docs/', normalizeBarePath('/docs/') === '/docs/');
 assert('localize it getting-started', localizeCanon('/docs/getting-started', 'it') === '/docs/primi-passi');
 assert('localize de getting-started stays EN slug', localizeCanon('/docs/getting-started', 'de') === '/docs/getting-started');
+
+// Generated pages must not leak machine-translation placeholders
+const BROKEN_PLACEHOLDER = /__\w+_\d+__/g;
+const GENERATED_LANGS = ['de', 'fr', 'es', 'pt'];
+
+function walk(dir, files = []) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) walk(path, files);
+    else if (/\.(html|js)$/.test(name)) files.push(path);
+  }
+  return files;
+}
+
+for (const lang of GENERATED_LANGS) {
+  const langDir = join(process.cwd(), lang);
+  for (const file of walk(langDir)) {
+    const matches = readFileSync(file, 'utf8').match(BROKEN_PLACEHOLDER);
+    assert(`no broken placeholders in ${file.replace(process.cwd(), '')}`, !matches);
+  }
+}
 
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
