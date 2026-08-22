@@ -85,6 +85,13 @@ _GUIDE_SLUGS = {
             "pt": "/guides/deploy-wordpress-app-personalizado",
             "it": "/guide/deploy-wordpress-app-custom-github",
         },
+        "/guides/cipi-gui-and-api": {
+            "de": "/guides/gui-panel-und-api",
+            "fr": "/guides/panneau-ui-et-api",
+            "es": "/guides/panel-ui-y-api",
+            "pt": "/guides/painel-ui-e-api",
+            "it": "/guide/pannello-ui-e-api-cipi",
+        },
     }
 
 SLUGS_IT = {
