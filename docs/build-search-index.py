@@ -5,6 +5,7 @@ Usage:
   python3 docs/build-search-index.py           # legacy: docs/*.html -> docs/search-index.js
   python3 docs/build-search-index.py en       # en/docs -> en/docs/search-index.js
   python3 docs/build-search-index.py it       # it/docs -> it/docs/search-index.js
+  python3 docs/build-search-index.py --all    # rebuild every language tree
 """
 
 from __future__ import annotations
@@ -105,19 +106,15 @@ def extract_entries(docs_dir: str, titles: dict[str, str]) -> list[dict[str, str
     return entries
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("lang", nargs="?", choices=["en", "it", "de", "fr", "es", "pt"], default=None)
-    args = ap.parse_args()
-
-    if args.lang is None:
+def write_index(lang: str | None) -> None:
+    if lang is None:
         docs_dir = os.path.join(ROOT, "docs")
         out = os.path.join(docs_dir, "search-index.js")
         titles = PAGE_TITLES_EN
     else:
-        docs_dir = os.path.join(ROOT, args.lang, "docs")
+        docs_dir = os.path.join(ROOT, lang, "docs")
         out = os.path.join(docs_dir, "search-index.js")
-        titles = PAGE_TITLES_IT if args.lang == "it" else PAGE_TITLES_EN
+        titles = PAGE_TITLES_IT if lang == "it" else PAGE_TITLES_EN
 
     if not os.path.isdir(docs_dir):
         sys.exit(f"docs dir missing: {docs_dir}")
@@ -129,6 +126,20 @@ def main() -> None:
         json.dump(entries, handle, ensure_ascii=False, separators=(",", ":"))
         handle.write(";\n")
     print(f"Wrote {len(entries)} entries to {out}")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("lang", nargs="?", choices=["en", "it", "de", "fr", "es", "pt"], default=None)
+    ap.add_argument("--all", action="store_true", help="Rebuild en, it, de, fr, es, and pt indexes")
+    args = ap.parse_args()
+
+    if args.all:
+        for lang in ("en", "it", "de", "fr", "es", "pt"):
+            write_index(lang)
+        return
+
+    write_index(args.lang)
 
 
 if __name__ == "__main__":
