@@ -20,12 +20,12 @@ Key facts:
 - Install: `wget -O - https://cipi.sh/setup.sh | bash`
 - Admin access: SSH as `cipi` user, then `sudo -s` to run `cipi` commands
 - Optional web GUI: `cipi gui <domain>` installs an opt-in Laravel control panel to manage one or more servers from the browser; Cipi stays fully usable CLI-only without it. GUI supports .env / auth.json / Artisan / App commands (API 1.14+ / Cipi 5.0.3+), server cockpit — PHP, SSH, services, SMTP, health, IP whitelist (API 1.15+ / Cipi 5.0.6+), Octane create (API 1.13+ / Cipi 5.0+), and multi-engine MariaDB/PostgreSQL (API 1.12+ / Cipi 4.8+)
-- Current release: Cipi **5.1.1**, panel API **1.20** (`cipi self-update` applies migrations through 5.1.1). 5.1.1 is a hotfix for 5.1.0: it repairs the FPM pools an unterminated heredoc could empty (migration 5.1.1 rebuilds pools and drifted vhosts) and makes wildcard domains (`*.example.com`) work end to end — primary domain, webhook URLs, and DNS-01 SSL
+- Current release: Cipi **5.1.2**, panel API **1.20** (`cipi self-update` applies migrations through 5.1.2). 5.1.2 makes Laravel Reverb production-ready: generated `REVERB_*` / `VITE_REVERB_*` credentials, `ws://` vs `wss://` derived from the certificate, a proxy that matches only `/app/{key}` and `/apps/{id}/…` (the old `location /app` prefix swallowed `/appointments`), raised open-file limits, `workers.reverb` in `cipi.yml`, clones with their own Reverb, and `cipi app reverb disable` restoring the previous broadcast driver. Migration 5.1.2 rewrites greedy vhosts (backup in `/var/lib/cipi/vhost-backup-5.1.2`) and fills missing `.env` keys without overwriting. 5.1.1 repaired FPM pools and wildcard domains end to end
 - Stack: Nginx, PHP 8.x, MariaDB (default), optional PostgreSQL, Valkey, Supervisor; optional Laravel Octane (FrankenPHP) beside FPM (v5.0+)
 - Databases (v4.8.0+): MariaDB on 3306 + optional PostgreSQL on 5432; `cipi db install|uninstall|default|engines`; `--engine=mariadb|pgsql` on db/app commands
 - www redirects (v4.8.0+): `cipi www add|force-to-root|force-from-root|clear|status`; `cipi ssl force` re-applies HTTPS redirect
 - Backup profiles (v5.1.0+): `cipi backup profile add` — scope (all/files/db), schedule, dest (local/s3), retention, `--encrypt`; databases discovered from the engine (tenant DBs included); `cipi backup verify|status|fetch`; managed crontab block
-- `cipi.yml` (v5.1.0+): optional per-project file for aliases, PHP, extra DBs, workers, healthcheck, backups; `cipi yml generate|plan|apply|auto`
+- `cipi.yml` (v5.1.0+): optional per-project file for aliases, PHP, extra DBs, workers (Horizon; Reverb since 5.1.2), healthcheck, backups; `cipi yml generate|plan|apply|auto`
 - `cipi ini` (v5.1.0+): guided php.ini for FPM and CLI, server-wide or `--app=`; whitelist of settable keys
 - Post-deploy healthchecks (v5.1.0+): verify the live release after every deploy; optional `--rollback-on-unhealthy` (does not undo migrations)
 - Nginx default-server (v5.1.0+): unmatched Host on :80/:443 closed with 444; wildcard aliases (`cipi alias add '*.example.com'`)
@@ -49,7 +49,7 @@ Key facts:
 - [Control Panel (GUI)](https://cipi.sh/en/docs/gui): Optional self-hosted web control panel — apps (incl. Octane / engine), databases, SSL, www, deploys, 2FA/TOTP, multi-server ([GitHub](https://github.com/cipi-sh/gui))
 - [Advanced](https://cipi.sh/en/docs/advanced): REST API (1.20), server sync, vault encryption, SMTP, IP whitelist, log retention, advanced config
 - [About Cipi](https://cipi.sh/en/docs/about): History, security model, design decisions, comparisons
-- [cipi.yml](https://cipi.sh/en/cipi-yml): The per-app configuration file committed with the code — aliases, PHP and php.ini, extra databases, queue workers, scheduler, healthcheck and backup profiles, reconciled with `cipi yml plan` / `cipi yml apply`
+- [cipi.yml](https://cipi.sh/en/cipi-yml): The per-app configuration file committed with the code — aliases, PHP and php.ini, extra databases, queue workers or Horizon, Laravel Reverb (5.1.2+), scheduler, healthcheck and backup profiles, reconciled with `cipi yml plan` / `cipi yml apply`
 
 ## API & CLI
 

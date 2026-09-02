@@ -500,7 +500,8 @@
                 <h2><code>cipi.yml</code> — configuration that travels with the code</h2>
                 <p>Available since <strong>v5.1.0</strong>. An app can carry a <code>cipi.yml</code> file in its
                     repository describing the state it expects: <strong>domain aliases</strong>, <strong>PHP version
-                        and settings</strong>, <strong>extra databases</strong>, <strong>queue workers</strong>, the
+                        and settings</strong>, <strong>extra databases</strong>, <strong>queue workers</strong> or
+                        <strong>Horizon</strong>, <strong>Reverb</strong>, the
                     <strong>scheduler</strong>, its <strong>healthcheck</strong> and its <strong>backup
                         strategy</strong>. The file lives next to the code, so server configuration is reviewed,
                     versioned and shipped like everything else.</p>
@@ -523,8 +524,11 @@
                 <h3>Start from what the server already has</h3>
                 <p>You do not have to write it by hand. <code>cipi yml generate &lt;app&gt;</code> prints the app's
                     configuration as it stands on the server — aliases, PHP version and per-app settings, its extra
-                    databases, its queue workers (read back out of Supervisor), the scheduler and the backup profiles it
-                    owns — as a ready-to-commit file.</p>
+                    databases, its queue workers (read back out of Supervisor), Horizon, Reverb (since
+                    <strong>v5.1.2</strong>), the scheduler and the backup profiles it
+                    owns — as a ready-to-commit file. Declaring <code>horizon: false</code> or
+                    <code>reverb: false</code> is now a real plan (also 5.1.2): previously <code>false</code> was
+                    treated like a missing key.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -569,6 +573,13 @@ databases:
 
 workers:
   horizon: false           <span class="c"># true replaces the queue workers below</span>
+
+  <span class="c"># Laravel Reverb (5.1.2+). Cipi allocates a localhost port, adds the Supervisor
+  # program, proxies /app/{key} and /apps/{id}/… on this app's own domain, and
+  # generates REVERB_APP_ID/KEY/SECRET plus the VITE_ copies in the .env. Laravel
+  # apps only — declaring it on a --custom app is refused.</span>
+  reverb: false
+
   queues:
     - queue: default
       processes: 2

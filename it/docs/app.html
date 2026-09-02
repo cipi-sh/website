@@ -443,20 +443,277 @@
 
             <div class="doc-section" id="cli-app-reverb">
                 <h2><code>cipi app reverb</code></h2>
-                <p>Dalla <strong>v5.0</strong>, abilita <strong>Laravel Reverb</strong> per WebSocket first-party su un'app Laravel. Cipi alloca una porta localhost in <code>9000–9099</code>, aggiunge il programma Supervisor <code>${app}-reverb</code>, fa proxy Nginx di <code>/app</code> su quella porta e scrive <code>REVERB_*</code> in <code>.env</code>.
-                </p>
+                <p><strong>Laravel Reverb</strong> è il server WebSocket first-party di Laravel. Cipi lo gestisce dalla
+                    <strong>v5.0</strong>; la <strong>v5.1.2</strong> è la release che lo ha reso utilizzabile in
+                    produzione: credenziali generate, schema derivato dal certificato, limiti di connessione alzati e
+                    una regola di proxy che non intercetta più le rotte dell'applicazione.</p>
+                <p>Abilitare Reverb su un'app Laravel configura quattro cose:</p>
+                <div class="options-list">
+                    <div class="option-item"><code>127.0.0.1:9000–9099</code><span>Una porta localhost libera, allocata
+                            per app e registrata in <code>apps.json</code>. Reverb non è mai in ascolto su
+                            un'interfaccia pubblica.</span></div>
+                    <div class="option-item"><code>${app}-reverb</code><span>Un programma Supervisor che esegue
+                            <code>artisan reverb:start</code> come utente dell'app, con log in
+                            <code>/home/&lt;app&gt;/logs/reverb.log</code>.</span></div>
+                    <div class="option-item"><code>nginx</code><span>Un blocco proxy sul dominio dell'app per
+                            <code>/app/{key}</code> (l'handshake WebSocket) e <code>/apps/{id}/…</code> (l'API HTTP
+                            usata dall'applicazione per fare broadcast).</span></div>
+                    <div class="option-item"><code>.env</code><span><code>REVERB_*</code> e
+                            <code>VITE_REVERB_*</code>, generati alla prima abilitazione e mai ruotati in
+                            seguito.</span></div>
+                </div>
+
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
                     <pre><span class="p">$</span> cipi app reverb enable myapp
+<span class="p">$</span> cipi app reverb enable myapp --restart-supervisor   <span class="c"># applica subito il nuovo limite di file aperti</span>
 <span class="p">$</span> cipi app reverb status myapp
 <span class="p">$</span> cipi app reverb disable myapp</pre>
+                </div>
+                <div class="options-list">
+                    <div class="option-item"><code>--restart-supervisor</code><span>Riavvia Supervisor durante
+                            <code>enable</code>, così il nuovo limite di file descriptor si applica subito. Questo
+                            riavvia <strong>tutti i queue worker del server</strong>: per questo Cipi non lo fa mai di
+                            sua iniziativa.</span></div>
+                </div>
+                <p>Reverb è <strong>solo per app Laravel</strong>: <code>enable</code> rifiuta un'app
+                    <code>--custom</code>. Rieseguire <code>enable</code> su un'app che ha già Reverb è sicuro e utile:
+                    non rialloca la porta e non tocca le credenziali, ma ricalcola host e schema pubblici e ripristina
+                    le chiavi <code>.env</code> eventualmente mancanti.</p>
+
+                <h3>Abilitarlo dall'inizio alla fine</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
+                    <pre><span class="c"># 1. Nel progetto, in locale — installa il pacchetto e la parte client, poi committa.</span>
+<span class="c">#    `install:broadcasting` crea resources/js/echo.js e config/reverb.php.</span>
+<span class="p">$</span> composer require laravel/reverb
+<span class="p">$</span> php artisan install:broadcasting
+
+<span class="c"># 2. Sul server — porta, programma Supervisor e proxy nginx.</span>
+<span class="p">$</span> cipi app reverb enable myapp
+
+<span class="c"># 3. Un certificato, così i client usano wss:// invece di ws:// (salta se l'app ne ha già uno).</span>
+<span class="p">$</span> cipi ssl install myapp
+
+<span class="c"># 4. Deploy: composer install, build Node, poi Reverb riparte sulla nuova release.</span>
+<span class="p">$</span> cipi deploy myapp
+<span class="p">$</span> cipi app reverb status myapp</pre>
+                </div>
+                <p>L'ordine conta solo per un punto: la build Node deve girare <em>dopo</em>
+                    <code>reverb enable</code>, perché Vite incorpora <code>VITE_REVERB_*</code> nel bundle in fase di
+                    build. Lo step <a href="/it/docs/deploy#cli-deploy-config"><code>node_build</code></a> di Cipi
+                    viene eseguito dopo che Deployer ha collegato il <code>.env</code> condiviso, quindi un deploy
+                    successivo all'<code>enable</code> produce un frontend che trova davvero il socket. Se in seguito
+                    cambi dominio o installi un certificato, serve un altro deploy perché il bundle si allinei.</p>
+
+                <h3>Cosa scrive Cipi nel <code>.env</code></h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
+                    <pre><span class="c"># Laravel Reverb — gestito da Cipi (cipi app reverb status myapp)</span>
+<span class="c"># Dove ascolta il programma Supervisor. Questa coppia è interamente di Cipi.</span>
+REVERB_SERVER_HOST=127.0.0.1
+REVERB_SERVER_PORT=9000
+
+BROADCAST_CONNECTION=reverb
+
+<span class="c"># Generate una volta sola alla prima abilitazione, poi mai più toccate.</span>
+REVERB_APP_ID=482913
+REVERB_APP_KEY=3f9c1ab27de40518b6c4
+REVERB_APP_SECRET=a71f0e5c8d24b93a6f10c7e5482db9af
+
+<span class="c"># Il lato pubblico — derivato da ciò che nginx serve davvero.</span>
+REVERB_HOST=myapp.com
+REVERB_PORT=443
+REVERB_SCHEME=https
+
+<span class="c"># Lette da Vite in fase di build e incorporate nel bundle frontend.</span>
+VITE_REVERB_APP_KEY=<span class="s">"${REVERB_APP_KEY}"</span>
+VITE_REVERB_HOST=<span class="s">"${REVERB_HOST}"</span>
+VITE_REVERB_PORT=<span class="s">"${REVERB_PORT}"</span>
+VITE_REVERB_SCHEME=<span class="s">"${REVERB_SCHEME}"</span></pre>
+                </div>
+                <p>Prima della <strong>5.1.2</strong> le tre credenziali restavano vuote, da inventare a mano — e un
+                    <code>REVERB_APP_KEY</code> vuoto è esattamente ciò che impedisce a <code>reverb:start</code> di
+                    partire. Ora vengono generate al primo <code>enable</code> e un valore già presente vince sempre,
+                    quindi un'app che arriva con le proprie credenziali le mantiene. Cipi non le ruota mai: una chiave
+                    nuova disconnetterebbe tutti i client attivi e invaliderebbe qualsiasi bundle frontend già
+                    compilato con la vecchia.</p>
+
+                <h3>Collegarsi dal frontend</h3>
+                <p>Il <code>resources/js/echo.js</code> standard generato da <code>install:broadcasting</code> legge
+                    già esattamente le variabili che Cipi scrive — non c'è nulla da modificare:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">js</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
+                    <pre>import Echo from <span class="s">'laravel-echo'</span>;
+import Pusher from <span class="s">'pusher-js'</span>;
+
+window.Pusher = Pusher;
+
+window.Echo = new Echo({
+    broadcaster: <span class="s">'reverb'</span>,
+    key: import.meta.env.VITE_REVERB_APP_KEY,
+    wsHost: import.meta.env.VITE_REVERB_HOST,
+    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
+    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? <span class="s">'https'</span>) === <span class="s">'https'</span>,
+    enabledTransports: [<span class="s">'ws'</span>, <span class="s">'wss'</span>],
+});</pre>
+                </div>
+                <p>Poiché nginx espone Reverb sul dominio e sulla porta dell'app, non c'è nessuna porta extra da aprire
+                    nel firewall né un secondo certificato da gestire. <code>cipi app reverb status</code> stampa l'URL
+                    esatto che il client finisce per contattare.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong><code>/app</code> e <code>/apps</code> appartengono al protocollo.</strong> Fino alla
+                        <strong>5.1.1</strong> il proxy era scritto come <code>location /app</code>, che in nginx è un
+                        match per <em>prefisso</em>, non per path: su ogni app con Reverb attivo
+                        <code>/appuntamenti</code>, <code>/apple</code> e <code>/application/…</code> finivano dentro
+                        Reverb invece di arrivare a Laravel. Dalla <strong>5.1.2</strong> il blocco è la regex
+                        <code>~ ^/apps?(/|$)</code>, che intercetta solo <code>/app/{key}</code> e
+                        <code>/apps/{id}/…</code>. Un'app che ha una propria rotta <code>/app</code> o
+                        <code>/apps</code> continua a non poter usare Reverb sullo stesso dominio: mettila su un
+                        sottodominio dedicato.
+                    </div>
+                </div>
+
+                <h3><code>ws://</code> o <code>wss://</code></h3>
+                <p>Cipi deriva host, porta e schema pubblici da ciò che il server serve davvero, invece di dare per
+                    scontato HTTPS:</p>
+                <div class="options-list">
+                    <div class="option-item"><code>nessun certificato</code><span><code>http</code> sulla porta 80 —
+                            l'app è servita in HTTP, quindi il socket è <code>ws://</code>.</span></div>
+                    <div class="option-item"><code>certificato presente</code><span><code>https</code> sulla porta 443
+                            — <code>wss://</code>.</span></div>
+                    <div class="option-item"><code>dominio wildcard</code><span><code>*.example.com</code> viene
+                            risolto in un host concreto (<code>www.example.com</code>), perché nessun browser può
+                            aprire un socket verso un wildcard. Un frontend multi-tenant deve scegliere il proprio host
+                            a runtime.</span></div>
+                </div>
+                <p>Installare un certificato in un secondo momento — HTTP-01 o DNS-01 — sposta subito le impostazioni
+                    Reverb dell'app su <code>wss://</code>, e anche un cambio di dominio le ricalcola. Prima della
+                    5.1.2 questi valori erano fissati a <code>https</code>/443 al momento dell'<code>enable</code>: su
+                    un'app senza certificato il browser rifiutava silenziosamente la connessione come mixed content,
+                    senza nulla nel log di Reverb a spiegarlo. Ora <code>reverb status</code> avvisa quando l'app ha un
+                    certificato ma il <code>.env</code> dice ancora <code>ws://</code>.</p>
+
+                <h3>Connessioni concorrenti e file aperti</h3>
+                <p>Ogni WebSocket aperto costa un file descriptor dentro Reverb e due connessioni dentro nginx: il
+                    limite soft di default di 1024 ferma l'app intorno ai mille client concorrenti, senza che nessun
+                    log ne spieghi il motivo. Dalla <strong>5.1.2</strong> Cipi alza entrambi i tetti:</p>
+                <div class="options-list">
+                    <div class="option-item"><code>Supervisor</code><span>Un drop-in systemd in
+                            <code>/etc/systemd/system/supervisor.service.d/cipi-nofile.conf</code> con
+                            <code>LimitNOFILE=65535</code>, ereditato da ogni programma gestito da
+                            Supervisor.</span></div>
+                    <div class="option-item"><code>nginx</code><span><code>worker_rlimit_nofile 65535</code> e
+                            <code>worker_connections 8192</code> in <code>nginx.conf</code>, applicati con un
+                            reload.</span></div>
+                </div>
+                <p>nginx recepisce i nuovi limiti con il reload che Cipi esegue. Supervisor invece li recepisce solo a
+                    un <strong>riavvio</strong>, che riavvia anche tutti i queue worker del server: Cipi quindi
+                    prepara il drop-in, avvisa che è in attesa e lascia a te la decisione.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
+                    <pre><span class="p">$</span> systemctl restart supervisor
+<span class="c"># oppure, in un colpo solo, al momento dell'enable:</span>
+<span class="p">$</span> cipi app reverb enable myapp --restart-supervisor</pre>
+                </div>
+                <p>Un altro limite silenzioso era il timeout di lettura del proxy: valeva esattamente quanto
+                    l'intervallo di ping di Reverb (60 secondi), quindi ogni client inattivo era un testa o croce tra
+                    il ping e il timeout. Ora è ampiamente più alto, e a chiudere le connessioni morte è il ciclo di
+                    ping/prune di Reverb, che è esattamente il suo compito.</p>
+
+                <h3><code>cipi app reverb status</code></h3>
+                <p>Riporta la porta, cosa sta facendo Supervisor con il processo, l'URL che il client dovrebbe
+                    contattare e i tre problemi che non lasciano traccia in nessun log:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
+                    <pre><span class="p">$</span> cipi app reverb status myapp
+  Reverb: enabled 127.0.0.1:9000
+myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
+  Clients dial: wss://myapp.com:443/app/3f9c1ab27de40518b6c4
+  Open files: 65535 (supervisor)</pre>
+                </div>
+                <div class="options-list">
+                    <div class="option-item"><code>Missing in .env: …</code><span>Una credenziale è assente o vuota:
+                            <code>reverb:start</code> non parte. Riesegui <code>cipi app reverb
+                            enable</code>.</span></div>
+                    <div class="option-item"><code>certificate but REVERB_SCHEME is 'http'</code><span>L'app ha
+                            ottenuto un certificato dopo l'abilitazione di Reverb. Riesegui <code>enable</code> per
+                            passare a <code>wss://</code>, poi fai un deploy perché il bundle si
+                            allinei.</span></div>
+                    <div class="option-item"><code>default open-file limit</code><span>Il drop-in c'è ma Supervisor
+                            non è stato riavviato, quindi il processo è ancora fermo intorno ai mille
+                            client.</span></div>
+                </div>
+                <p>Il log del processo è <code>/home/&lt;app&gt;/logs/reverb.log</code>, e
+                    <code>supervisorctl status myapp-reverb</code> / <code>restart myapp-reverb</code> controllano
+                    direttamente il programma.</p>
+
+                <h3>Disabilitare</h3>
+                <p><code>cipi app reverb disable</code> ferma e rimuove il programma Supervisor, rigenera il vhost
+                    senza il blocco proxy, riapplica SSL e — dalla <strong>5.1.2</strong> — riporta
+                    <code>BROADCAST_CONNECTION</code> al driver che l'app usava prima di Reverb, con
+                    <code>log</code> come fallback. Prima lasciava <code>BROADCAST_CONNECTION=reverb</code>, quindi
+                    ogni broadcast falliva contro un server che non era più in esecuzione.</p>
+                <p>Dal <code>.env</code> vengono rimosse solo <code>REVERB_SERVER_HOST</code> e
+                    <code>REVERB_SERVER_PORT</code>. Le credenziali restano: sono ciò da cui dipendono una
+                    riabilitazione — o un bundle frontend già compilato su di esse.</p>
+
+                <h3>Clonazione e <code>cipi.yml</code></h3>
+                <p><a href="#cli-app-clone"><code>cipi app clone</code></a> copiava le chiavi <code>REVERB_*</code>
+                    dell'app sorgente nel <code>.env</code> del clone — puntando il frontend di staging al socket di
+                    produzione e consegnandogli il secret di produzione — senza però avviare alcun Reverb per esso.
+                    Dalla <strong>5.1.2</strong> un'app Reverb clonata ottiene porta, credenziali e dominio propri,
+                    esattamente come già otteneva il proprio Octane.</p>
+                <p>Reverb si può anche dichiarare nel file di progetto con
+                    <a href="/it/cipi-yml"><code>workers.reverb: true|false</code></a>: viene pianificato e applicato
+                    da <code>cipi yml apply</code> come Horizon e i queue worker, ed emesso da
+                    <code>cipi yml generate</code>. Dichiararlo su un'app <code>--custom</code> viene rifiutato in
+                    partenza.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
+                    <pre>workers:
+  horizon: false
+  reverb: true             <span class="c"># aggiunge un server WebSocket Reverb a questa app</span></pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Stai aggiornando da 5.0.x o 5.1.1?</strong> <code>cipi self-update</code> esegue la
+                        <strong>migrazione 5.1.2</strong>, che alza entrambi i limiti (segnalando se Supervisor ha
+                        ancora bisogno di un riavvio), riscrive il vhost di ogni app la cui location Reverb è ancora il
+                        prefisso ingordo <code>/app</code> — con backup in
+                        <code>/var/lib/cipi/vhost-backup-5.1.2</code>, verifica con <code>nginx -t</code>, SSL
+                        riapplicato e rollback dell'intero blocco in caso di errore — e completa le chiavi
+                        <code>.env</code> mancanti <strong>senza sovrascrivere nulla di già presente</strong>, così
+                        un'app con impostazioni socket sistemate a mano le conserva. Dopo l'aggiornamento fai un nuovo
+                        deploy delle app con Reverb, perché il bundle frontend recepisca i valori
+                        <code>VITE_REVERB_*</code>.
+                    </div>
                 </div>
             </div>
 
             <div class="doc-section" id="cli-app-clone">
                 <h2><code>cipi app clone</code></h2>
-                <p>Dalla <strong>v5.0</strong>, clona un'app Laravel esistente in una nuova app staging (o review) con dominio proprio. Imposta <code>cloned_from</code> in <code>apps.json</code>; <strong>non</strong> copia webhook o ID git.</p>
+                <p>Dalla <strong>v5.0</strong>, clona un'app Laravel esistente in una nuova app staging (o review) con dominio proprio. Imposta <code>cloned_from</code> in <code>apps.json</code>; <strong>non</strong> copia webhook o ID git. Se la sorgente ha Reverb, il clone ottiene porta, credenziali e host pubblici propri (dalla <strong>v5.1.2</strong>) — non eredita più il socket di produzione. Vedi <a href="#cli-app-reverb"><code>cipi app reverb</code></a>.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copia</button></div>
@@ -683,6 +940,31 @@
                                             <tr>
                                                 <td>QUEUE_CONNECTION</td>
                                                 <td><code>database</code></td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>BROADCAST_CONNECTION</td>
+                                                <td>Impostata a <code>reverb</code> all'enable; ripristinata al driver precedente (o <code>log</code>) al disable (v5.1.2+)</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REVERB_APP_ID / KEY / SECRET</td>
+                                                <td>Generate una volta al primo <code>cipi app reverb enable</code>, poi mai ruotate. Un valore già presente vince sempre.</td>
+                                                <td>Cipi (v5.1.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REVERB_HOST / PORT / SCHEME</td>
+                                                <td>Socket pubblico: derivato dal certificato (<code>https</code>/443 o <code>http</code>/80). Un dominio wildcard viene risolto in un host concreto.</td>
+                                                <td>Cipi (v5.1.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>VITE_REVERB_APP_KEY / HOST / PORT / SCHEME</td>
+                                                <td>Copie dei valori pubblici di Reverb, incorporate nel frontend da Vite in fase di build. Serve un nuovo deploy dopo enable, cambio dominio o SSL.</td>
+                                                <td>Cipi (v5.1.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REVERB_SERVER_HOST / PORT</td>
+                                                <td>Bind localhost del programma Supervisor. Rimosse al disable; le credenziali restano.</td>
                                                 <td>Cipi</td>
                                             </tr>
                                             <tr>

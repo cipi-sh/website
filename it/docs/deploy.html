@@ -364,7 +364,7 @@
 
             <div class="doc-section" id="cli-yml">
                 <h2><code>cipi.yml</code> — configurazione che viaggia col codice</h2>
-                <p>Disponibile dalla <strong>v5.1.0</strong>. Un'app può portare nel repository un file <code>cipi.yml</code> che descrive lo stato che si aspetta: <strong>alias di dominio</strong>, <strong>versione e impostazioni PHP</strong>, <strong>database extra</strong>, <strong>queue worker</strong>, lo <strong>scheduler</strong>, l'<strong>healthcheck</strong> e la <strong>strategia di backup</strong>. Il file vive accanto al codice, così la configurazione del server viene revisionata, versionata e spedita come tutto il resto.</p>
+                <p>Disponibile dalla <strong>v5.1.0</strong>. Un'app può portare nel repository un file <code>cipi.yml</code> che descrive lo stato che si aspetta: <strong>alias di dominio</strong>, <strong>versione e impostazioni PHP</strong>, <strong>database extra</strong>, <strong>queue worker</strong> o <strong>Horizon</strong>, <strong>Reverb</strong>, lo <strong>scheduler</strong>, l'<strong>healthcheck</strong> e la <strong>strategia di backup</strong>. Il file vive accanto al codice, così la configurazione del server viene revisionata, versionata e spedita come tutto il resto.</p>
 
                 <h3>Comandi</h3>
                 <div class="code-block">
@@ -381,7 +381,7 @@
                 <p>Il file viene cercato in <code>current/cipi.yml</code>, poi <code>current/cipi.yaml</code>, poi <code>shared/cipi.yml</code> — override con <code>--file=&lt;path&gt;</code>.</p>
 
                 <h3>Parti da quello che il server ha già</h3>
-                <p>Non devi scriverlo a mano. <code>cipi yml generate &lt;app&gt;</code> stampa la configurazione dell'app com'è sul server — alias, versione PHP e impostazioni per-app, i suoi database extra, i suoi queue worker (letti da Supervisor), lo scheduler e i profili di backup che possiede — come file pronto da committare.</p>
+                <p>Non devi scriverlo a mano. <code>cipi yml generate &lt;app&gt;</code> stampa la configurazione dell'app com'è sul server — alias, versione PHP e impostazioni per-app, i suoi database extra, i suoi queue worker (letti da Supervisor), Horizon, Reverb (dalla <strong>v5.1.2</strong>), lo scheduler e i profili di backup che possiede — come file pronto da committare. Dichiarare <code>horizon: false</code> o <code>reverb: false</code> è ora un piano reale (anche 5.1.2): prima <code>false</code> valeva come chiave assente.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -423,6 +423,13 @@ databases:
 
 workers:
   horizon: false           <span class="c"># true sostituisce i queue worker sotto</span>
+
+  <span class="c"># Laravel Reverb (5.1.2+). Cipi alloca una porta localhost, aggiunge il programma
+  # Supervisor, fa proxy di /app/{key} e /apps/{id}/… sul dominio dell'app e genera
+  # REVERB_APP_ID/KEY/SECRET (più le copie VITE_) nel .env alla prima abilitazione.
+  # Solo app Laravel: dichiararlo su un'app --custom viene rifiutato.</span>
+  reverb: false
+
   queues:
     - queue: default
       processes: 2

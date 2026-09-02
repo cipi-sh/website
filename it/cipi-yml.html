@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cipi.yml — la configurazione del server che viaggia con il codice Laravel | Cipi</title>
-    <meta name="description" content="cipi.yml è il file che committi accanto all'app Laravel: alias di dominio, versione PHP e php.ini, database aggiuntivi, worker di coda, scheduler, healthcheck e profili di backup — riallineati con cipi yml plan e cipi yml apply.">
-    <meta name="keywords" content="cipi.yml, configuration as code Laravel, configurazione server nel repository, cipi yml apply, cipi yml plan, file di configurazione deploy Laravel, worker di coda YAML, profili di backup YAML">
+    <meta name="description" content="cipi.yml è il file che committi accanto all'app Laravel: alias di dominio, versione PHP e php.ini, database aggiuntivi, worker di coda oppure Horizon, Laravel Reverb, scheduler, healthcheck e profili di backup — riallineati con cipi yml plan e cipi yml apply.">
+    <meta name="keywords" content="cipi.yml, configuration as code Laravel, configurazione server nel repository, cipi yml apply, cipi yml plan, file di configurazione deploy Laravel, worker di coda YAML, Laravel Reverb YAML, profili di backup YAML">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/it/cipi-yml">
@@ -25,7 +25,7 @@
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/it/cipi-yml">
     <meta property="og:title" content="cipi.yml — la configurazione viaggia con il codice">
-    <meta property="og:description" content="Un file committato descrive cosa l'app si aspetta dal server: alias, PHP, database, worker, scheduler, health e backup. Plan, apply, o riallineamento a ogni deploy.">
+    <meta property="og:description" content="Un file committato descrive cosa l'app si aspetta dal server: alias, PHP, database, worker, Reverb, scheduler, health e backup. Plan, apply, o riallineamento a ogni deploy.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -38,7 +38,7 @@
     <meta property="og:locale:alternate" content="pt_PT">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="cipi.yml — la configurazione viaggia con il codice">
-    <meta name="twitter:description" content="Un file committato descrive cosa l'app si aspetta dal server: alias, PHP, database, worker, scheduler, health e backup. Plan, apply, o riallineamento a ogni deploy.">
+    <meta name="twitter:description" content="Un file committato descrive cosa l'app si aspetta dal server: alias, PHP, database, worker, Reverb, scheduler, health e backup. Plan, apply, o riallineamento a ogni deploy.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <script type="application/ld+json">
@@ -52,9 +52,9 @@
       "inLanguage": "it",
       "image": "https://cipi.sh/og.png",
       "datePublished": "2026-09-02",
-      "dateModified": "2026-09-02",
+      "dateModified": "2026-09-03",
       "author": { "@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri" },
-      "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.1.1" },
+      "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.1.2" },
       "publisher": { "@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/" },
       "isPartOf": { "@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/" }
     }
@@ -72,7 +72,7 @@
         {
           "@type": "Question",
           "name": "Cosa può configurare cipi.yml?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Alias di dominio, versione PHP e override php.ini per-app, database MariaDB o PostgreSQL aggiuntivi, worker di coda oppure Horizon, lo scheduler di Laravel, un healthcheck HTTP con rollback opzionale e i profili di backup dell'app." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Alias di dominio, versione PHP e override php.ini per-app, database MariaDB o PostgreSQL aggiuntivi, worker di coda oppure Horizon, Laravel Reverb per i WebSocket, lo scheduler di Laravel, un healthcheck HTTP con rollback opzionale e i profili di backup dell'app." }
         },
         {
           "@type": "Question",
@@ -333,8 +333,19 @@
                 <span class="alt-tag">workers</span>
                 <h3>Worker di coda e <span>Horizon</span></h3>
                 <p>Dichiari ogni coda con numero di processi, tentativi e timeout, e Supervisor viene riallineato. In
-                    alternativa <code>horizon: true</code> e le code le gestisce Horizon.</p>
+                    alternativa <code>horizon: true</code> e le code le gestisce Horizon. Dalla
+                    <strong>5.1.2</strong>, <code>horizon: false</code> e <code>reverb: false</code> vengono letti
+                    davvero — prima <code>false</code> valeva come chiave assente, quindi dichiarare
+                    <code>horizon: false</code> su un'app con Horizon non faceva nulla.</p>
                 <span class="go">Worker nella documentazione →</span>
+            </a>
+            <a class="alt-card" href="/it/docs/app#cli-app-reverb">
+                <span class="alt-tag">workers.reverb</span>
+                <h3>WebSocket con <span>Reverb</span></h3>
+                <p>Dalla <strong>5.1.2</strong>, <code>reverb: true</code> dà all'app un server Laravel Reverb: una
+                    porta localhost, un programma Supervisor, un proxy nginx per <code>/app</code> e <code>/apps</code>
+                    sul suo stesso dominio e le credenziali <code>REVERB_*</code> generate. Solo app Laravel.</p>
+                <span class="go">Reverb nella documentazione →</span>
             </a>
             <a class="alt-card" href="/it/docs/infrastruttura#cli-schedule">
                 <span class="alt-tag">schedule</span>
@@ -405,6 +416,13 @@ databases:
 
 workers:
   horizon: false           <span class="c"># true sostituisce i worker qui sotto</span>
+
+  <span class="c"># Laravel Reverb (5.1.2+). Cipi alloca una porta localhost, aggiunge il programma
+  # Supervisor, fa proxy di /app/{key} e /apps/{id}/… sul dominio dell'app e genera
+  # REVERB_APP_ID/KEY/SECRET (più le copie VITE_) nel .env alla prima abilitazione.
+  # Solo app Laravel: dichiararlo su un'app --custom viene rifiutato.</span>
+  reverb: false
+
   queues:
     - queue: default
       processes: 2
