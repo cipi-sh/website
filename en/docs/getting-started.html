@@ -329,8 +329,9 @@ cipi app create
 cipi deploy myapp
 cipi ssl install myapp</pre>
                 </div>
-                <p>That is the whole path. Everything below explains each step, and what the installer asks you for
-                    along the way.</p>
+                <p>That is the whole path. First create an SSH key on your computer (below), then run the installer
+                    on the server — it will ask you to paste that public key. Everything after that is explained in
+                    the rest of this page.</p>
 
                 <div class="callout warning">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -344,26 +345,61 @@ cipi ssl install myapp</pre>
                         is not something you point at a remote host from your laptop.</div>
                 </div>
 
-                <p>During installation, the wizard <strong>asks for the public half of an SSH key</strong> — the
-                    contents of <code>~/.ssh/id_ed25519.pub</code> <em>on your own machine</em>, never the private key
-                    (accepted formats: <code>ssh-ed25519</code>, <code>ssh-rsa</code>, <code>ecdsa</code>) — before any
-                    package is installed. Cipi creates a dedicated <code>cipi</code> Linux user for <strong>admin SSH
-                        access</strong>
-                    and applies SSH hardening: root login is disabled, <code>cipi</code> uses public-key only (group
-                    <code>cipi-ssh</code>), app users (group <code>cipi-apps</code>) can connect with password. Login
-                    attempts are limited to 3 with a 20-second grace period, and X11 forwarding is disabled.
-                </p>
+                <h3>Create an SSH key on your computer</h3>
+                <p>Do this <strong>on your laptop or workstation</strong>, not on the VPS. The installer needs the
+                    <strong>public</strong> half of the key so it can lock down the server: after setup you SSH in as
+                    the <code>cipi</code> user with this key. Root SSH login is disabled. Never paste the private
+                    key.</p>
+                <p>See if you already have one:</p>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-lang">bash</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre>ls ~/.ssh/*.pub</pre>
+                </div>
+                <p>If <code>id_ed25519.pub</code> or <code>id_rsa.pub</code> is listed, you already have a key — skip
+                    generation and copy the public file with the command below. If the folder is empty or the command
+                    errors, create a new Ed25519 key:</p>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-lang">bash</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre>ssh-keygen -t ed25519 -C "you@example.com"</pre>
+                </div>
+                <p>Press Enter to accept the default path (<code>~/.ssh/id_ed25519</code>). Set a passphrase if you
+                    want (recommended). On macOS and Linux run this in Terminal; on Windows use PowerShell or WSL.</p>
+                <p>Show the public key — this is the single line you will paste when the installer asks:</p>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-lang">bash</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre>cat ~/.ssh/id_ed25519.pub</pre>
+                </div>
+                <p>It looks like <code>ssh-ed25519 AAAA… comment</code>. Copy the whole line:</p>
+                <ul>
+                    <li><strong>macOS:</strong> <code>pbcopy &lt; ~/.ssh/id_ed25519.pub</code></li>
+                    <li><strong>Linux:</strong> <code>xclip -sel clip &lt; ~/.ssh/id_ed25519.pub</code> (or copy from the
+                        terminal)</li>
+                    <li><strong>Windows (PowerShell):</strong> <code>Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub |
+                            Set-Clipboard</code></li>
+                </ul>
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Only the <code>.pub</code> file is public. The file named <code>id_ed25519</code> (no
+                        extension) is the <strong>private</strong> key — keep it on your computer and never paste it
+                        into the installer or send it to the server.</div>
+                </div>
 
-                <p>The installer also generates a <strong>random 40-character root password</strong>, stores it in
-                    <code>/etc/cipi/server.json</code>, and displays it in the installation summary. It is <em>not</em>
-                    an SSH password: root SSH login is disabled. It is what you type when, already logged in as the
-                    <code>cipi</code> user with your key, you run <code>su root</code>. Keep it in a password
-                    manager.</p>
-
-                <p>Pasted SSH keys are automatically sanitized — comments, carriage returns, and excess whitespace are
-                    stripped before validation.</p>
-
-                <h3>Standard installation</h3>
+                <h3>Run the installer on the server</h3>
+                <p>SSH into the fresh Ubuntu VPS as a user with <code>sudo</code>, then:</p>
                 <div class="code-block">
                     <div class="code-block-header">
                         <span class="code-block-lang">bash</span>
@@ -371,6 +407,18 @@ cipi ssl install myapp</pre>
                     </div>
                     <pre>wget -O - https://cipi.sh/setup.sh | bash</pre>
                 </div>
+                <p>The wizard asks for the public key <strong>before any package is installed</strong>. Paste the line
+                    you copied above (accepted formats: <code>ssh-ed25519</code>, <code>ssh-rsa</code>,
+                    <code>ecdsa</code>). Cipi sanitizes comments, carriage returns, and extra whitespace, then creates
+                    a dedicated <code>cipi</code> Linux user for <strong>admin SSH access</strong> and hardens SSH:
+                    root login disabled, <code>cipi</code> public-key only (group <code>cipi-ssh</code>), app users
+                    (group <code>cipi-apps</code>) can connect with password. Login attempts are limited to 3 with a
+                    20-second grace period; X11 forwarding is disabled.</p>
+                <p>The installer also generates a <strong>random 40-character root password</strong>, stores it in
+                    <code>/etc/cipi/server.json</code>, and displays it in the installation summary. It is <em>not</em>
+                    an SSH password: root SSH login is disabled. It is what you type when, already logged in as the
+                    <code>cipi</code> user with your key, you run <code>su root</code>. Keep it in a password
+                    manager.</p>
 
                 <h3>Non-interactive installation</h3>
                 <p>For automated setups, pass your SSH public key via the <code>SSH_PUBKEY</code> environment variable
@@ -381,19 +429,6 @@ cipi ssl install myapp</pre>
                         <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
                     </div>
                     <pre>SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash</pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>No SSH key yet? Create one with <code>ssh-keygen -t ed25519</code> — on macOS and Linux
-                        from any terminal, on Windows from PowerShell or WSL. Then paste the contents of
-                        <code>~/.ssh/id_ed25519.pub</code> (the <strong>.pub</strong> file) when the installer asks.
-                    </div>
                 </div>
 
                 <h3>AWS (root login disabled by default)</h3>
@@ -928,15 +963,34 @@ MariaDB:      database '<span class="tree-accent">myapp</span>', user '<span cla
             title.textContent = 'On this page';
             const list = document.createElement('nav');
             list.className = 'docs-toc-list';
-            secs.forEach(s => {
-                const h = s.querySelector('h2');
-                if (!h) return;
+            const page = location.pathname.split('/').pop().replace(/\.html$/, '') || 'index';
+            const chapterGroup = document.querySelector('.sidebar-group[data-chapter="' + page + '"]');
+            const sidebarLinks = chapterGroup
+                ? Array.from(chapterGroup.querySelectorAll('.sidebar-link'))
+                : [];
+            function addTocItem(id, label) {
                 const a = document.createElement('a');
-                a.href = '#' + s.id;
-                a.textContent = h.textContent;
-                a.dataset.target = s.id;
+                a.href = '#' + id;
+                a.textContent = label;
+                a.dataset.target = id;
                 list.appendChild(a);
-            });
+            }
+            if (sidebarLinks.length) {
+                sidebarLinks.forEach(function (link) {
+                    const href = link.getAttribute('href') || '';
+                    const hash = href.includes('#') ? href.split('#')[1] : '';
+                    if (!hash) return;
+                    const section = document.getElementById(hash);
+                    const heading = section && section.querySelector('h1, h2');
+                    addTocItem(hash, heading ? heading.textContent : (link.textContent || '').trim());
+                });
+            } else {
+                secs.forEach(function (s) {
+                    const h = s.querySelector('h1, h2');
+                    if (!h) return;
+                    addTocItem(s.id, h.textContent);
+                });
+            }
             if (!list.children.length) return;
             inner.appendChild(title);
             inner.appendChild(list);

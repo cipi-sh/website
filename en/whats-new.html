@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>What's New in Cipi 5</title>
     <meta name="description"
-        content="Cipi 5 is here: Laravel Octane on FrankenPHP, Horizon, Reverb, PostgreSQL alongside MariaDB, Node build on deploy, pre-deploy database snapshots, wildcard SSL via DNS-01, health checks and one-command staging clones.">
+        content="Cipi 5.1 is here: backup profiles, cipi.yml, guided php.ini, post-deploy rollback — plus Laravel Octane on FrankenPHP, Horizon, Reverb, PostgreSQL, Node builds, snapshots, wildcard SSL and health checks from 5.0.">
     <meta name="keywords"
-        content="Cipi 5, Cipi release, Laravel Octane FrankenPHP, Laravel Horizon server, Laravel Reverb server, PostgreSQL Laravel deploy, Cipi what's new">
+        content="Cipi 5.1, Cipi 5, Cipi release, backup profiles, cipi.yml, Laravel Octane FrankenPHP, Laravel Horizon, PostgreSQL Laravel deploy, Cipi what's new">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/en/whats-new">
@@ -25,9 +25,9 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/en/whats-new">
-    <meta property="og:title" content="What's New in Cipi 5">
+    <meta property="og:title" content="What's New in Cipi 5.1">
     <meta property="og:description"
-        content="Laravel Octane on FrankenPHP, Horizon, Reverb, PostgreSQL, Node builds, pre-deploy snapshots, wildcard SSL and health checks. Everything new in Cipi 5.">
+        content="Cipi 5.1: backup profiles, cipi.yml, guided php.ini and post-deploy rollback. Plus everything from 5.0 — Octane, Horizon, Reverb, PostgreSQL.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -38,22 +38,22 @@
     <meta property="og:locale:alternate" content="it_IT">
     <meta property="og:locale:alternate" content="es_ES">
     <meta property="og:locale:alternate" content="pt_PT"><meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="What's New in Cipi 5">
+    <meta name="twitter:title" content="What's New in Cipi 5.1">
     <meta name="twitter:description"
-        content="Laravel Octane on FrankenPHP, Horizon, Reverb, PostgreSQL, Node builds, pre-deploy snapshots, wildcard SSL and health checks. Everything new in Cipi 5.">
+        content="Cipi 5.1: backup profiles, cipi.yml, guided php.ini and post-deploy rollback. Plus everything from 5.0 — Octane, Horizon, Reverb, PostgreSQL.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-07-01",
-      "dateModified": "2026-08-06",
+      "dateModified": "2026-09-02",
       "name": "What's New in Cipi 5",
       "url": "https://cipi.sh/en/whats-new",
-      "description": "Everything new in Cipi 5: Laravel Octane on FrankenPHP, Horizon, Reverb, PostgreSQL, Node build on deploy, pre-deploy snapshots, wildcard SSL, health checks and staging clones.",
+      "description": "Everything new in Cipi 5: 5.0 Octane, Horizon, Reverb, PostgreSQL; 5.1 backup profiles, cipi.yml, php.ini, post-deploy rollback, nginx default-server.",
       "inLanguage": "en",
       "image": "https://cipi.sh/og.png",
-      "about": { "@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/", "softwareVersion": "5" },
+      "about": { "@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/", "softwareVersion": "5.1.0" },
       "author": { "@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri" },
       "publisher": { "@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/" }
     }
@@ -792,10 +792,33 @@
         }
 
         .tile .n {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
             font-family: var(--mono);
             font-size: 0.66rem;
             letter-spacing: 0.16em;
             color: var(--muted);
+        }
+
+        .since {
+            display: inline-block;
+            font-family: var(--mono);
+            font-style: normal;
+            font-size: 0.58rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            padding: 2px 7px;
+            border: 1px solid var(--line);
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .since-new {
+            border-color: var(--signal);
+            color: var(--signal);
         }
 
         .tile h3 {
@@ -812,6 +835,11 @@
             line-height: 1.55;
             color: var(--muted);
             margin-top: 0.55rem;
+        }
+
+        .tile p code {
+            font-family: var(--mono);
+            font-size: 0.8em;
         }
 
         .tile .cmd {
@@ -873,6 +901,16 @@
             color: var(--stage-mute);
         }
 
+        .tile.dark .since {
+            border-color: var(--stage-line);
+            color: var(--stage-mute);
+        }
+
+        .tile.dark .since-new {
+            border-color: var(--lime);
+            color: var(--lime);
+        }
+
         .tile.dark .cmd,
         .tile.dark .go {
             color: var(--lime);
@@ -914,6 +952,16 @@
         .tile.lime .n,
         .tile.lime p {
             color: rgba(10, 11, 15, 0.66);
+        }
+
+        .tile.lime .since {
+            border-color: rgba(10, 11, 15, 0.28);
+            color: rgba(10, 11, 15, 0.62);
+        }
+
+        .tile.lime .since-new {
+            border-color: #0a0b0f;
+            color: #0a0b0f;
         }
 
         .tile.lime .cmd,
@@ -972,6 +1020,14 @@
             letter-spacing: 0.16em;
             text-transform: uppercase;
             color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.35rem;
+        }
+
+        .ba-topic .since {
+            letter-spacing: 0.12em;
         }
 
         .ba-before {
@@ -1058,6 +1114,18 @@
             font-size: 0.88rem;
             color: var(--stage-mute);
             line-height: 1.5;
+        }
+
+        .cmd-row .since {
+            margin-left: 0.45rem;
+            border-color: var(--stage-line);
+            color: var(--stage-mute);
+            vertical-align: 1px;
+        }
+
+        .cmd-row .since-new {
+            border-color: var(--lime);
+            color: var(--lime);
         }
 
         /* ══════════════ FINALE ══════════════ */
@@ -1304,6 +1372,12 @@
         .stagger.on > *:nth-child(13) { transition-delay: 0.5s }
         .stagger.on > *:nth-child(14) { transition-delay: 0.54s }
         .stagger.on > *:nth-child(15) { transition-delay: 0.58s }
+        .stagger.on > *:nth-child(16) { transition-delay: 0.62s }
+        .stagger.on > *:nth-child(17) { transition-delay: 0.66s }
+        .stagger.on > *:nth-child(18) { transition-delay: 0.7s }
+        .stagger.on > *:nth-child(19) { transition-delay: 0.74s }
+        .stagger.on > *:nth-child(20) { transition-delay: 0.78s }
+        .stagger.on > *:nth-child(21) { transition-delay: 0.82s }
 
         @media (prefers-reduced-motion: reduce) {
             .rise,
@@ -1497,12 +1571,11 @@
     <section class="stage" id="top">
         <div class="stage-inner">
             <div>
-                <span class="eyebrow"><i></i> Cipi 5 · Now available</span>
+                <span class="eyebrow"><i></i> Cipi 5.1 · Now available</span>
                 <h1>Your server just got<br><em>a serious promotion.</em></h1>
                 <p class="stage-lead">Laravel Octane on FrankenPHP. Horizon and Reverb in one line. PostgreSQL next to
-                    MariaDB. Frontend builds on deploy, database snapshots before every migration, wildcard
-                    certificates and built-in health checks. <b>Same one-command server. Fourteen new
-                        superpowers.</b></p>
+                    MariaDB. <b>5.1 adds backup profiles, a per-project cipi.yml, guided php.ini and post-deploy
+                        rollback.</b> Same one-command server. Everything Cipi 5, tagged by release.</p>
                 <div class="stage-cta">
                     <a href="#headlines" class="btn-lime">See everything new
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -1514,8 +1587,8 @@
                     <a href="#upgrade" class="btn-wire">Upgrade in one line</a>
                 </div>
                 <ul class="facts">
-                    <li><b>14</b><span>New capabilities</span></li>
-                    <li><b>18</b><span>New commands</span></li>
+                    <li><b>14</b><span>Since 5.0</span></li>
+                    <li><b>6</b><span>Since 5.1</span></li>
                     <li><b>2</b><span>Database engines</span></li>
                     <li><b>$0</b><span>Forever, MIT</span></li>
                 </ul>
@@ -1564,16 +1637,16 @@
             <div class="sec-head rise">
                 <div>
                     <span class="idx">01 — The headlines</span>
-                    <h2>Fourteen reasons to<br><em>update tonight.</em></h2>
+                    <h2>Twenty reasons to<br><em>update tonight.</em></h2>
                 </div>
-                <p>Everything Cipi 5 adds, at a glance. Tap any tile to jump straight into the documentation.</p>
+                <p>Everything Cipi 5 adds, at a glance. Tiles tagged <em>since 5.0</em> shipped with Cipi 5; <em>since 5.1</em> is new in this release. Tap any tile to jump into the docs.</p>
             </div>
 
             <div class="bento stagger rise">
                 <a href="/en/docs/apps#cli-app-octane" class="tile dark w2 h2">
                     <div>
                         <span class="badge">Headline feature</span>
-                        <div class="n">01</div>
+                        <div class="n">01 <span class="since">since 5.0</span></div>
                         <h3>Laravel Octane<br>on FrankenPHP.</h3>
                         <p>Boot the framework once and keep it in memory. Octane apps and classic PHP-FPM apps run
                             side by side on the same server — Nginx proxies to the Octane process, Supervisor keeps it
@@ -1589,7 +1662,7 @@
 
                 <a href="/en/docs/infrastructure#cli-db" class="tile lime w2">
                     <div>
-                        <div class="n">02</div>
+                        <div class="n">02 <span class="since">since 5.0</span></div>
                         <h3>PostgreSQL, alongside MariaDB.</h3>
                         <p>Two engines on one box. Pick per app or set a server-wide default — env, backups and
                             restores follow.</p>
@@ -1604,7 +1677,7 @@
 
                 <a href="/en/docs/infrastructure#cli-workers" class="tile">
                     <div>
-                        <div class="n">03</div>
+                        <div class="n">03 <span class="since">since 5.0</span></div>
                         <h3>Laravel Horizon</h3>
                         <p>Supervised, and restarted on every release.</p>
                     </div>
@@ -1618,7 +1691,7 @@
 
                 <a href="/en/docs/apps#cli-app-reverb" class="tile">
                     <div>
-                        <div class="n">04</div>
+                        <div class="n">04 <span class="since">since 5.0</span></div>
                         <h3>Laravel Reverb</h3>
                         <p>Websockets proxied through Nginx, over SSL.</p>
                     </div>
@@ -1632,7 +1705,7 @@
 
                 <a href="/en/docs/deploy#cli-deploy-script-npm" class="tile w2">
                     <div>
-                        <div class="n">05</div>
+                        <div class="n">05 <span class="since">since 5.0</span></div>
                         <h3>Your frontend builds on the server</h3>
                         <p>Run the build inside the release, right after dependencies. Fail-closed, so broken assets
                             never reach production — and compiled files never reach your repository.</p>
@@ -1647,7 +1720,7 @@
 
                 <a href="/en/docs/infrastructure#cli-schedule" class="tile">
                     <div>
-                        <div class="n">06</div>
+                        <div class="n">06 <span class="since">since 5.0</span></div>
                         <h3>Scheduler switch</h3>
                         <p>Cron on or off per app, from the CLI.</p>
                     </div>
@@ -1661,7 +1734,7 @@
 
                 <a href="/en/docs/apps#cli-app-octane" class="tile">
                     <div>
-                        <div class="n">07</div>
+                        <div class="n">07 <span class="since">since 5.0</span></div>
                         <h3>Convert FPM ⇄ Octane</h3>
                         <p>Switch runtime on a live app, both ways.</p>
                     </div>
@@ -1675,7 +1748,7 @@
 
                 <a href="/en/docs/deploy#safe-deploy" class="tile w2">
                     <div>
-                        <div class="n">08</div>
+                        <div class="n">08 <span class="since">since 5.0</span></div>
                         <h3>A snapshot before every risky migration</h3>
                         <p>Opt in per app or per deploy and Cipi dumps the database before the release goes out. A bad
                             migration becomes recoverable instead of fatal.</p>
@@ -1690,7 +1763,7 @@
 
                 <a href="/en/docs/apps#cli-app-clone" class="tile">
                     <div>
-                        <div class="n">09</div>
+                        <div class="n">09 <span class="since">since 5.0</span></div>
                         <h3>Instant staging</h3>
                         <p>Clone a production app onto a new domain.</p>
                     </div>
@@ -1704,7 +1777,7 @@
 
                 <a href="/en/docs/apps#cli-app-limits" class="tile">
                     <div>
-                        <div class="n">10</div>
+                        <div class="n">10 <span class="since">since 5.0</span></div>
                         <h3>Resource limits</h3>
                         <p>No app can starve the box any more.</p>
                     </div>
@@ -1718,7 +1791,7 @@
 
                 <a href="/en/docs/advanced#wildcard-domains" class="tile w2">
                     <div>
-                        <div class="n">11</div>
+                        <div class="n">11 <span class="since">since 5.0</span></div>
                         <h3>Wildcard certificates, without the HTTP dance</h3>
                         <p>Issue and renew through a Cloudflare DNS-01 challenge when a public HTTP endpoint isn't an
                             option. HTTP-01 stays the default.</p>
@@ -1733,7 +1806,7 @@
 
                 <a href="/en/docs/infrastructure#cli-health" class="tile">
                     <div>
-                        <div class="n">12</div>
+                        <div class="n">12 <span class="since">since 5.0</span></div>
                         <h3>Health checks</h3>
                         <p>Every 5 minutes. Email after 3 failures.</p>
                     </div>
@@ -1747,7 +1820,7 @@
 
                 <a href="/en/docs/infrastructure#cli-www" class="tile">
                     <div>
-                        <div class="n">13</div>
+                        <div class="n">13 <span class="since">since 5.0</span></div>
                         <h3>One canonical host</h3>
                         <p>www or apex, aliased and 301'd for you.</p>
                     </div>
@@ -1761,7 +1834,7 @@
 
                 <a href="/en/docs/infrastructure#cli-ssl" class="tile">
                     <div>
-                        <div class="n">14</div>
+                        <div class="n">14 <span class="since">since 5.0</span></div>
                         <h3>Re-force HTTPS</h3>
                         <p>Restore the redirect without reissuing.</p>
                     </div>
@@ -1773,11 +1846,104 @@
                         </svg></span>
                 </a>
 
-                <a href="https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md" target="_blank" rel="noopener"
+                <a href="/en/docs/infrastructure#cli-backup" class="tile lime w2">
+                    <div>
+                        <div class="n">15 <span class="since since-new">since 5.1</span></div>
+                        <h3>Backup profiles, not one hardcoded job</h3>
+                        <p>Scope, schedule, destination and retention per profile. A 30-minute local database copy next
+                            to an encrypted nightly full copy on S3. Files and databases stored separately; tenant
+                            databases discovered from the engine. Retention is mandatory.</p>
+                    </div>
+                    <div class="cmd">cipi backup profile add</div>
+                    <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <line x1="7" y1="17" x2="17" y2="7" />
+                            <polyline points="7 7 17 7 17 17" />
+                        </svg></span>
+                </a>
+
+                <a href="/en/docs/infrastructure#cli-ini" class="tile">
+                    <div>
+                        <div class="n">16 <span class="since since-new">since 5.1</span></div>
+                        <h3>Guided php.ini</h3>
+                        <p>See every tunable and which layer set it. Writes FPM and CLI together, server-wide or
+                            <code>--app=</code>. Whitelist only.</p>
+                    </div>
+                    <div class="cmd">cipi ini set upload_max_filesize=50M</div>
+                    <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <line x1="7" y1="17" x2="17" y2="7" />
+                            <polyline points="7 7 17 7 17 17" />
+                        </svg></span>
+                </a>
+
+                <a href="/en/docs/deploy#cli-yml" class="tile w2">
+                    <div>
+                        <div class="n">17 <span class="since since-new">since 5.1</span></div>
+                        <h3>cipi.yml travels with the code</h3>
+                        <p>Aliases, PHP, extra databases, workers, healthcheck and backups — in the repo.
+                            <code>plan</code>, <code>apply</code>, <code>auto</code> after every deploy. Fail-closed:
+                            it never creates an app and never runs a shell command.</p>
+                    </div>
+                    <div class="cmd">cipi yml generate shop</div>
+                    <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <line x1="7" y1="17" x2="17" y2="7" />
+                            <polyline points="7 7 17 7 17 17" />
+                        </svg></span>
+                </a>
+
+                <a href="/en/docs/infrastructure#cli-nginx" class="tile">
+                    <div>
+                        <div class="n">18 <span class="since since-new">since 5.1</span></div>
+                        <h3>Unknown Host → 444</h3>
+                        <p>A request matching no app used to land on a random vhost. Now <code>:80</code> and
+                            <code>:443</code> close it with an empty reply.</p>
+                    </div>
+                    <div class="cmd">cipi nginx default-server on</div>
+                    <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <line x1="7" y1="17" x2="17" y2="7" />
+                            <polyline points="7 7 17 7 17 17" />
+                        </svg></span>
+                </a>
+
+                <a href="/en/docs/infrastructure#cli-health" class="tile w2">
+                    <div>
+                        <div class="n">19 <span class="since since-new">since 5.1</span></div>
+                        <h3>Post-deploy health, optional rollback</h3>
+                        <p>The release that just went live is probed immediately — not after three five-minute
+                            failures. Opt in to roll it back automatically. Migrations are not undone; the email says
+                            so.</p>
+                    </div>
+                    <div class="cmd">cipi health set shop --rollback-on-unhealthy</div>
+                    <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <line x1="7" y1="17" x2="17" y2="7" />
+                            <polyline points="7 7 17 7 17 17" />
+                        </svg></span>
+                </a>
+
+                <a href="/en/docs/infrastructure#cli-aliases" class="tile">
+                    <div>
+                        <div class="n">20 <span class="since since-new">since 5.1</span></div>
+                        <h3>Wildcard aliases</h3>
+                        <p>Multi-tenant apps need <code>*.example.com</code>. Nginx already could; Cipi now accepts
+                            it.</p>
+                    </div>
+                    <div class="cmd">cipi alias add shop '*.example.com'</div>
+                    <span class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round">
+                            <line x1="7" y1="17" x2="17" y2="7" />
+                            <polyline points="7 7 17 7 17 17" />
+                        </svg></span>
+                </a>
+
+                <a href="https://github.com/cipi-sh/cipi/releases/tag/5.1.0" target="_blank" rel="noopener"
                     class="tile plain w3">
                     <div>
-                        <h3>Every fix, migration and detail lives in the changelog</h3>
-                        <div class="cmd">github.com/cipi-sh/cipi — CHANGELOG.md ↗</div>
+                        <h3>Every 5.1 fix lives in the release notes</h3>
+                        <div class="cmd">github.com/cipi-sh/cipi — 5.1.0 ↗</div>
                     </div>
                 </a>
             </div>
@@ -1792,70 +1958,107 @@
                     <span class="idx">02 — The shift</span>
                     <h2>What used to be work,<br><em>is now a flag.</em></h2>
                 </div>
-                <p>The honest before-and-after. Left is what running these things used to cost you. Right is Cipi 5.
+                <p>The honest before-and-after. Left is what running these things used to cost you. Right is Cipi 5,
+                    tagged by release.
                 </p>
             </div>
 
             <div class="ba stagger rise">
                 <div class="ba-row">
-                    <span class="ba-topic">Runtime</span>
+                    <span class="ba-topic">Runtime <span class="since">since 5.0</span></span>
                     <span class="ba-before">PHP-FPM for everything</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">FPM <span>or</span> Octane on FrankenPHP, chosen per app</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Queues</span>
+                    <span class="ba-topic">Queues <span class="since">since 5.0</span></span>
                     <span class="ba-before">Bare queue workers, restarted by hand</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">Horizon under Supervisor, deploy-aware</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Websockets</span>
+                    <span class="ba-topic">Websockets <span class="since">since 5.0</span></span>
                     <span class="ba-before">Roll your own port, proxy and service</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">Reverb enabled in one command, SSL included</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Databases</span>
+                    <span class="ba-topic">Databases <span class="since">since 5.0</span></span>
                     <span class="ba-before">MariaDB, take it or leave it</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">MariaDB <span>and</span> PostgreSQL, per app</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Frontend</span>
+                    <span class="ba-topic">Frontend <span class="since">since 5.0</span></span>
                     <span class="ba-before">Commit compiled assets, or build in CI</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">Node build runs inside the release, fail-closed</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Migrations</span>
+                    <span class="ba-topic">Migrations <span class="since">since 5.0</span></span>
                     <span class="ba-before">Deploy and hope</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">Automatic snapshot before the release goes out</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Staging</span>
+                    <span class="ba-topic">Staging <span class="since">since 5.0</span></span>
                     <span class="ba-before">Rebuild a second app by hand</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">One clone command, database optional</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Wildcards</span>
+                    <span class="ba-topic">Wildcards <span class="since">since 5.0</span></span>
                     <span class="ba-before">Manual DNS challenge every renewal</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">DNS-01 with Cloudflare, automated</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Monitoring</span>
+                    <span class="ba-topic">Monitoring <span class="since">since 5.0</span></span>
                     <span class="ba-before">A third-party service and its invoice</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">Health checks every five minutes, built in</span>
                 </div>
                 <div class="ba-row">
-                    <span class="ba-topic">Noisy apps</span>
+                    <span class="ba-topic">Noisy apps <span class="since">since 5.0</span></span>
                     <span class="ba-before">One app could take the server down</span>
                     <span class="ba-arrow">→</span>
                     <span class="ba-after">Hard caps on workers, children and memory</span>
+                </div>
+                <div class="ba-row">
+                    <span class="ba-topic">Backups <span class="since since-new">since 5.1</span></span>
+                    <span class="ba-before">One hardcoded nightly job</span>
+                    <span class="ba-arrow">→</span>
+                    <span class="ba-after">Profiles, client-side AES-256, verify, managed cron</span>
+                </div>
+                <div class="ba-row">
+                    <span class="ba-topic">php.ini <span class="since since-new">since 5.1</span></span>
+                    <span class="ba-before">Hand-edit FPM files; CLI ignored</span>
+                    <span class="ba-arrow">→</span>
+                    <span class="ba-after"><code>cipi ini</code> for both SAPIs, server-wide or per app</span>
+                </div>
+                <div class="ba-row">
+                    <span class="ba-topic">App config <span class="since since-new">since 5.1</span></span>
+                    <span class="ba-before">Recreate by SSH on every server</span>
+                    <span class="ba-arrow">→</span>
+                    <span class="ba-after"><code>cipi.yml</code> in git, applied on deploy</span>
+                </div>
+                <div class="ba-row">
+                    <span class="ba-topic">Unknown Host <span class="since since-new">since 5.1</span></span>
+                    <span class="ba-before">Landed on a random vhost</span>
+                    <span class="ba-arrow">→</span>
+                    <span class="ba-after">Empty 444 default server</span>
+                </div>
+                <div class="ba-row">
+                    <span class="ba-topic">Broken deploy <span class="since since-new">since 5.1</span></span>
+                    <span class="ba-before">Wait fifteen minutes for a health email</span>
+                    <span class="ba-arrow">→</span>
+                    <span class="ba-after">Immediate post-deploy probe, optional rollback</span>
+                </div>
+                <div class="ba-row">
+                    <span class="ba-topic">Aliases <span class="since since-new">since 5.1</span></span>
+                    <span class="ba-before">Exact names only</span>
+                    <span class="ba-arrow">→</span>
+                    <span class="ba-after"><code>*.example.com</code> wildcards</span>
                 </div>
             </div>
         </div>
@@ -1867,58 +2070,62 @@
             <div class="sec-head rise">
                 <div>
                     <span class="idx">03 — The new vocabulary</span>
-                    <h2>Eighteen commands<br>you <em>didn't have</em> before.</h2>
+                    <h2>Every new command<br>you <em>didn't have</em> before.</h2>
                 </div>
-                <p>The complete Cipi 5 addition to the CLI. Same syntax you already know, same one binary.</p>
+                <p>The complete Cipi 5 addition to the CLI. Same syntax you already know, same one binary. Tagged
+                    <em>since 5.0</em> or <em>since 5.1</em>.</p>
             </div>
 
             <div class="cmds stagger rise">
                 <div class="cmd-row"><code>cipi app create --octane</code><span>Create a Laravel app served by Octane
-                        on FrankenPHP</span></div>
+                        on FrankenPHP <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi app convert &lt;app&gt; --to=octane|fpm</code><span>Move an existing app
-                        between runtimes</span></div>
+                        between runtimes <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi app reverb enable|disable|status</code><span>Realtime websockets for an
-                        app</span></div>
+                        app <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi worker horizon enable|disable|status</code><span>Horizon instead of
-                        plain queue workers</span></div>
+                        plain queue workers <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi schedule on|off|status &lt;app&gt;</code><span>Toggle the Laravel
-                        scheduler per app</span></div>
+                        scheduler per app <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi app edit --node-build='…'</code><span>Run a frontend build on every
-                        deploy</span></div>
+                        deploy <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi app edit --no-node-build</code><span>Remove the build step
-                        again</span></div>
+                        again <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi app clone &lt;app&gt; --domain=…</code><span>Instant staging copy of a
-                        production app</span></div>
+                        production app <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi deploy --snapshot</code><span>Dump the database before the release goes
-                        out</span></div>
+                        out <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi app limits &lt;app&gt;</code><span>Cap FPM children, memory, Octane and
-                        queue workers</span></div>
+                        queue workers <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi db install|uninstall pgsql</code><span>Add or remove PostgreSQL next to
-                        MariaDB</span></div>
+                        MariaDB <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi db default mariadb|pgsql</code><span>Choose the engine used when you
-                        omit the flag</span></div>
+                        omit the flag <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi db engines</code><span>Installed engines, ports and current
-                        default</span></div>
+                        default <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi ssl dns set --provider=cloudflare</code><span>Store the credentials for
-                        DNS-01 challenges</span></div>
+                        DNS-01 challenges <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi ssl install --dns=cloudflare --wildcard</code><span>Issue wildcard
-                        certificates via DNS</span></div>
+                        certificates via DNS <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi ssl force &lt;app&gt;</code><span>Re-apply the HTTP to HTTPS
-                        redirect</span></div>
+                        redirect <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi www add|force-to-root|force-from-root</code><span>Canonical host and
-                        permanent redirects</span></div>
+                        permanent redirects <em class="since">since 5.0</em></span></div>
                 <div class="cmd-row"><code>cipi health set|unset|check|list [--json]</code><span>Built-in HTTP monitoring and
-                        alerts</span></div>
-                <div class="cmd-row"><code>cipi api ip-whitelist show|add|set|allow-all</code><span>Restrict panel API / MCP by IP (5.0.6+)</span></div>
-                <div class="cmd-row"><code>cipi app webhook recreate [--rotate-secret]</code><span>Recreate GitHub/GitLab deploy webhook</span></div>
-                <div class="cmd-row"><code>cipi smtp configure --host=… --port=…</code><span>Non-interactive SMTP for API/scripts (5.0.6+)</span></div>
-                <div class="cmd-row"><code>cipi app env|run|deploy-config</code><span>Non-interactive app tooling for API/GUI (5.0.3+)</span></div>
-                <div class="cmd-row"><code>cipi backup profile add|edit|list</code><span>Backup strategies: what, how often, where, how long (5.1.0)</span></div>
-                <div class="cmd-row"><code>cipi backup verify|status|fetch --encrypt</code><span>Integrity check, overdue watchdog, client-side AES-256 (5.1.0)</span></div>
-                <div class="cmd-row"><code>cipi ini list|set|unset</code><span>php.ini for FPM and CLI, server-wide or per app (5.1.0)</span></div>
-                <div class="cmd-row"><code>cipi yml generate|plan|apply|auto</code><span>Per-project cipi.yml that travels with the code (5.1.0)</span></div>
-                <div class="cmd-row"><code>cipi nginx default-server on|off</code><span>Close unmatched Host requests with 444 (5.1.0)</span></div>
-                <div class="cmd-row"><code>cipi health set --rollback-on-unhealthy</code><span>Undo a release that fails its post-deploy check (5.1.0)</span></div>
+                        alerts <em class="since">since 5.0</em></span></div>
+                <div class="cmd-row"><code>cipi api ip-whitelist show|add|set|allow-all</code><span>Restrict panel API / MCP by IP <em class="since">since 5.0</em></span></div>
+                <div class="cmd-row"><code>cipi app webhook recreate [--rotate-secret]</code><span>Recreate GitHub/GitLab deploy webhook <em class="since">since 5.0</em></span></div>
+                <div class="cmd-row"><code>cipi smtp configure --host=… --port=…</code><span>Non-interactive SMTP for API/scripts <em class="since">since 5.0</em></span></div>
+                <div class="cmd-row"><code>cipi app env|run|deploy-config</code><span>Non-interactive app tooling for API/GUI <em class="since">since 5.0</em></span></div>
+                <div class="cmd-row"><code>cipi backup profile add|edit|list</code><span>Backup strategies: what, how often, where, how long <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi backup verify|status|fetch --encrypt</code><span>Integrity check, overdue watchdog, client-side AES-256 <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi ini list|set|unset</code><span>php.ini for FPM and CLI, server-wide or per app <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi yml generate|plan|apply|auto</code><span>Per-project cipi.yml that travels with the code <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi nginx default-server on|off</code><span>Close unmatched Host requests with 444 <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi health set --rollback-on-unhealthy</code><span>Undo a release that fails its post-deploy check <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi health postdeploy &lt;app&gt;</code><span>Run the post-deploy probe on demand <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi deploy --log[=N]</code><span>Show the timestamped deploy log <em class="since since-new">since 5.1</em></span></div>
+                <div class="cmd-row"><code>cipi alias add &lt;app&gt; '*.example.com'</code><span>Wildcard domain aliases <em class="since since-new">since 5.1</em></span></div>
             </div>
         </div>
     </section>
@@ -2009,8 +2216,9 @@
                                 stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12" />
                             </svg>
-                            <span>Everything new is opt-in — Octane, Horizon, Reverb, PostgreSQL, snapshots and health
-                                checks stay off until you ask.</span>
+                            <span>Everything new is opt-in — Octane, Horizon, Reverb, PostgreSQL, snapshots, health
+                                checks, backup profiles, <code>cipi.yml auto</code> and post-deploy rollback stay off
+                                until you ask.</span>
                         </li>
                     <li>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"

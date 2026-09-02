@@ -9,7 +9,7 @@
 <meta content="Andrea Pollastri" name="author"/>
 <meta content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" name="robots"/>
 <link href="https://cipi.sh/pt/docs/getting-started" rel="canonical"/>
-        <!-- i18n:alternates -->
+    <!-- i18n:alternates -->
     <link rel="alternate" hreflang="en" href="https://cipi.sh/en/docs/getting-started">
     <link rel="alternate" hreflang="de" href="https://cipi.sh/de/docs/getting-started">
     <link rel="alternate" hreflang="fr" href="https://cipi.sh/fr/docs/getting-started">
@@ -28,7 +28,7 @@
 <meta content="1200" property="og:image:width"/>
 <meta content="630" property="og:image:height"/>
 <meta content="Cipi Docs — Getting Started" property="og:image:alt"/>
-        <meta property="og:locale" content="pt_PT">
+    <meta property="og:locale" content="pt_PT">
     <meta property="og:locale:alternate" content="en_US">
     <meta property="og:locale:alternate" content="de_DE">
     <meta property="og:locale:alternate" content="fr_FR">
@@ -109,8 +109,6 @@
 </div>
 <div class="nav-right">
 
-
-
 <!-- i18n:switch --><details class="lang-switch" ontoggle="if(this.open){const s=this;const c=e=>{if(!s.contains(e.target)){s.removeAttribute('open');document.removeEventListener('pointerdown',c)}};setTimeout(()=>document.addEventListener('pointerdown',c),0)}"><summary aria-label="Language">PT</summary><div class="lang-menu"><a href="/en/docs/getting-started" hreflang="en" lang="en" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">English</a><a href="/de/docs/getting-started" hreflang="de" lang="de" onclick="document.cookie='cipi-lang=de;path=/;max-age=31536000;SameSite=Lax'">Deutsch</a><a href="/fr/docs/getting-started" hreflang="fr" lang="fr" onclick="document.cookie='cipi-lang=fr;path=/;max-age=31536000;SameSite=Lax'">Français</a><a href="/it/docs/primi-passi" hreflang="it" lang="it" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">Italiano</a><a href="/es/docs/getting-started" hreflang="es" lang="es" onclick="document.cookie='cipi-lang=es;path=/;max-age=31536000;SameSite=Lax'">Español</a><a class="active" href="/pt/docs/getting-started" hreflang="pt" lang="pt" onclick="document.cookie='cipi-lang=pt;path=/;max-age=31536000;SameSite=Lax'">Português</a></div></details><!-- /i18n:switch -->
 <button aria-label="Alternar tema" class="theme-toggle" onclick="toggleTheme()">
 <svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24">
@@ -149,7 +147,7 @@
 <a class="sidebar-link" href="/pt/docs/getting-started#app-structure">estrutura do aplicativo</a>
 </div>
 <div class="sidebar-group" data-chapter="agent">
-<a class="sidebar-group-label" href="/pt/docs/agent">cipi agente</a>
+<a class="sidebar-group-label" href="/pt/docs/agent">cipi agent</a>
 <a class="sidebar-link" href="/pt/docs/agent#agent-install">instalação</a>
 <a class="sidebar-link" href="/pt/docs/agent#agent-webhook">webhook</a>
 <a class="sidebar-link" href="/pt/docs/agent#agent-health">exame de saúde</a>
@@ -293,8 +291,9 @@ cipi app create
 cipi deploy myapp
 cipi ssl install myapp</pre>
 </div>
-<p>Esse é todo o caminho. Tudo abaixo explica cada etapa e o que o instalador pede
-                    ao longo do caminho.</p>
+<p>Esse é todo o caminho. Primeiro crie uma chave SSH no seu computador (abaixo) e execute o instalador
+                    no servidor – será solicitado que você cole essa chave pública. Tudo depois disso é explicado em
+                    o resto desta página.</p>
 <div class="callout warning">
 <svg class="callout-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
@@ -305,23 +304,59 @@ cipi ssl install myapp</pre>
                         VPS primeiro e execute-o lá, como um usuário com <code>sudo</code>. Cipi abastece toda a caixa — ela
                         não é algo que você aponta para um host remoto do seu laptop.</div>
 </div>
-<p>Durante a instalação, o assistente <strong>pede a metade pública de uma chave SSH</strong> - o
-                    conteúdo de <code>~/.ssh/id_ed25519.pub</code> <em>em sua própria máquina</em>, nunca a chave privada
-                    (formatos aceitos: <code>ssh-ed25519</code>, <code>ssh-rsa</code>, <code>ecdsa</code>) - antes de qualquer
-                    pacote está instalado. Cipi cria um dedicado <code>cipi</code> Usuário Linux para <strong>administrador SSH
-                        acesso</strong>
-                    e aplica proteção SSH: o login root está desabilitado, <code>cipi</code> usa apenas chave pública (grupo
-                    <code>cipi-ssh</code>), usuários do aplicativo (grupo <code>cipi-apps</code>) pode se conectar com senha. Entrar
-                    as tentativas são limitadas a 3 com um período de carência de 20 segundos e o encaminhamento X11 está desabilitado.
-                </p>
-<p>O instalador também gera um <strong>senha raiz aleatória de 40 caracteres</strong>, armazena-o em
-                    <code>/etc/cipi/server.json</code>e o exibe no resumo da instalação. É <em>não</em>
-                    uma senha SSH: o login SSH root está desabilitado. É o que você digita quando, já logado como
-                    <code>cipi</code> usuário com sua chave, você executa <code>su root</code>. Mantenha-o em uma senha
-                    gerente.</p>
-<p>As chaves SSH coladas são automaticamente higienizadas – comentários, retornos de carro e excesso de espaços em branco são
-                    removido antes da validação.</p>
-<h3>Instalação padrão</h3>
+<h3>Crie uma chave SSH no seu computador</h3>
+<p>Faça isso <strong>no seu laptop ou estação de trabalho</strong>, não em VPS. O instalador precisa do
+                    <strong>público</strong> metade da chave para que ele possa bloquear o servidor: após a configuração, você usa SSH como
+                    o <code>cipi</code> usuário com esta chave. O login SSH raiz está desativado. Nunca cole o privado
+                    chave.</p>
+<p>Veja se você já tem um:</p>
+<div class="code-block">
+<div class="code-block-header">
+<span class="code-block-lang">festa</span>
+<button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
+</div>
+<pre>ls ~/.ssh/*.pub</pre>
+</div>
+<p>Se <code>id_ed25519.pub</code> ou <code>id_rsa.pub</code> está listado, você já tem uma chave - pule
+                    geração e copie o arquivo público com o comando abaixo. Se a pasta estiver vazia ou o comando
+                    erros, crie uma nova chave Ed25519:</p>
+<div class="code-block">
+<div class="code-block-header">
+<span class="code-block-lang">festa</span>
+<button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
+</div>
+<pre>ssh-keygen -t ed25519 -C "you@example.com"</pre>
+</div>
+<p>Pressione Enter para aceitar o caminho padrão (<code>~/.ssh/id_ed25519</code>). Defina uma senha se você
+                    deseja (recomendado). No macOS e no Linux, execute-o no Terminal; no Windows, use PowerShell ou WSL.</p>
+<p>Mostre a chave pública — esta é a única linha que você colará quando o instalador perguntar:</p>
+<div class="code-block">
+<div class="code-block-header">
+<span class="code-block-lang">festa</span>
+<button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
+</div>
+<pre>cat ~/.ssh/id_ed25519.pub</pre>
+</div>
+<p>Parece <code>ssh-ed25519 AAAA… comment</code>. Copie a linha inteira:</p>
+<ul>
+<li><strong>macOS:</strong> <code>pbcopy &lt; ~/.ssh/id_ed25519.pub</code></li>
+<li><strong>Linux:</strong> <code>xclip -sel clip &lt; ~/.ssh/id_ed25519.pub</code> (ou copie do
+                        terminais)</li>
+<li><strong>Windows (PowerShell):</strong> <code>Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub |
+                            Set-Clipboard</code></li>
+</ul>
+<div class="callout warning">
+<svg class="callout-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
+<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+<line x1="12" x2="12" y1="9" y2="13"></line>
+<line x1="12" x2="12.01" y1="17" y2="17"></line>
+</svg>
+<div>Apenas o <code>.pub</code> arquivo é público. O arquivo nomeado <code>id_ed25519</code> (não
+                        extensão) é o <strong>privado</strong> chave – mantenha-a no seu computador e nunca cole
+                        no instalador ou envie-o para o servidor.</div>
+</div>
+<h3>Execute o instalador no servidor</h3>
+<p>SSH no novo Ubuntu VPS como um usuário com <code>sudo</code>, então:</p>
 <div class="code-block">
 <div class="code-block-header">
 <span class="code-block-lang">festa</span>
@@ -329,6 +364,18 @@ cipi ssl install myapp</pre>
 </div>
 <pre>wget -O - https://cipi.sh/setup.sh | bash</pre>
 </div>
+<p>O assistente pede a chave pública <strong>antes de qualquer pacote ser instalado</strong>. Cole a linha
+                    você copiou acima (formatos aceitos: <code>ssh-ed25519</code>, <code>ssh-rsa</code>,
+                    <code>ecdsa</code>). Cipi limpa comentários, retornos de carro e espaços em branco extras e, em seguida, cria
+                    um dedicado <code>cipi</code> Usuário Linux para <strong>acesso SSH de administrador</strong> e fortalece o SSH:
+                    login root desativado, <code>cipi</code> somente chave pública (grupo <code>cipi-ssh</code>), usuários de aplicativos
+                    (grupo <code>cipi-apps</code>) pode se conectar com senha. As tentativas de login são limitadas a 3 com um
+                    Período de carência de 20 segundos; O encaminhamento X11 está desabilitado.</p>
+<p>O instalador também gera um <strong>senha raiz aleatória de 40 caracteres</strong>, armazena-o em
+                    <code>/etc/cipi/server.json</code>e o exibe no resumo da instalação. É <em>não</em>
+                    uma senha SSH: o login SSH root está desabilitado. É o que você digita quando, já logado como
+                    <code>cipi</code> usuário com sua chave, você executa <code>su root</code>. Mantenha-o em uma senha
+                    gerente.</p>
 <h3>Instalação não interativa</h3>
 <p>Para configurações automatizadas, passe sua chave pública SSH por meio do <code>SSH_PUBKEY</code>variável de ambiente
                     para pular o prompt interativo:</p>
@@ -338,17 +385,6 @@ cipi ssl install myapp</pre>
 <button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
 </div>
 <pre>SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash</pre>
-</div>
-<div class="callout info">
-<svg class="callout-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
-<circle cx="12" cy="12" r="10"></circle>
-<line x1="12" x2="12" y1="8" y2="12"></line>
-<line x1="12" x2="12.01" y1="16" y2="16"></line>
-</svg>
-<div>Ainda não há chave SSH? Crie um com<code>ssh-keygen -t ed25519</code> — no macOS e Linux
-                        de qualquer terminal, no Windows do PowerShell ou WSL. Em seguida, cole o conteúdo de
-                        <code>~/.ssh/id_ed25519.pub</code> (o <strong>.pub</strong> arquivo) quando o instalador solicitar.
-                    </div>
 </div>
 <h3>AWS (login root desabilitado por padrão)</h3>
 <div class="code-block">
@@ -843,15 +879,34 @@ MariaDB:      database '<span class="tree-accent">meu aplicativo</span>', user '
             title.textContent = 'On this page';
             const list = document.createElement('nav');
             list.className = 'docs-toc-list';
-            secs.forEach(s => {
-                const h = s.querySelector('h2');
-                if (!h) return;
+            const page = location.pathname.split('/').pop().replace(/\.html$/, '') || 'index';
+            const chapterGroup = document.querySelector('.sidebar-group[data-chapter="' + page + '"]');
+            const sidebarLinks = chapterGroup
+                ? Array.from(chapterGroup.querySelectorAll('.sidebar-link'))
+                : [];
+            function addTocItem(id, label) {
                 const a = document.createElement('a');
-                a.href = '#' + s.id;
-                a.textContent = h.textContent;
-                a.dataset.target = s.id;
+                a.href = '#' + id;
+                a.textContent = label;
+                a.dataset.target = id;
                 list.appendChild(a);
-            });
+            }
+            if (sidebarLinks.length) {
+                sidebarLinks.forEach(function (link) {
+                    const href = link.getAttribute('href') || '';
+                    const hash = href.includes('#') ? href.split('#')[1] : '';
+                    if (!hash) return;
+                    const section = document.getElementById(hash);
+                    const heading = section && section.querySelector('h1, h2');
+                    addTocItem(hash, heading ? heading.textContent : (link.textContent || '').trim());
+                });
+            } else {
+                secs.forEach(function (s) {
+                    const h = s.querySelector('h1, h2');
+                    if (!h) return;
+                    addTocItem(s.id, h.textContent);
+                });
+            }
             if (!list.children.length) return;
             inner.appendChild(title);
             inner.appendChild(list);

@@ -219,7 +219,7 @@ cipi app create
 cipi deploy myapp
 cipi ssl install myapp</pre>
                 </div>
-                <p>Questo è tutto il percorso. Il resto della pagina spiega ogni passo, e cosa chiede l'installer lungo la strada.</p>
+                <p>Questo è tutto il percorso. Prima crea una chiave SSH sul tuo computer (sotto), poi lancia l'installer sul server — ti chiederà di incollare quella chiave pubblica. Il resto della pagina spiega ogni passo.</p>
 
                 <div class="callout warning">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -231,14 +231,51 @@ cipi ssl install myapp</pre>
                     <div><strong>Esegui l'installer sul server, non sul tuo computer.</strong> Entra via SSH sul VPS fresco e lancialo lì, come utente con <code>sudo</code>. Cipi provisiona l'intera macchina — non è qualcosa che punti da un laptop verso un host remoto.</div>
                 </div>
 
-                <p>Durante l'installazione, la procedura guidata <strong>chiede la metà pubblica di una chiave SSH</strong> — il contenuto di <code>~/.ssh/id_ed25519.pub</code> <em>sulla tua macchina</em>, mai la chiave privata (formati accettati: <code>ssh-ed25519</code>, <code>ssh-rsa</code>, <code>ecdsa</code>) — prima che venga installato qualsiasi pacchetto. Cipi crea un utente Linux dedicato <code>cipi</code> per l'<strong>accesso SSH admin</strong> e applica hardening SSH: login root disabilitato, <code>cipi</code> usa solo chiave pubblica (gruppo <code>cipi-ssh</code>), gli utenti app (gruppo <code>cipi-apps</code>) possono connettersi con password. I tentativi di login sono limitati a 3 con grace period di 20 secondi e X11 forwarding è disabilitato.
-                </p>
+                <h3>Crea una chiave SSH sul tuo computer</h3>
+                <p>Fallo <strong>sul laptop o sulla workstation</strong>, non sul VPS. L'installer serve la metà <strong>pubblica</strong> della chiave per chiudere il server: dopo il setup entri via SSH come utente <code>cipi</code> con questa chiave. Il login SSH di root è disabilitato. Non incollare mai la chiave privata.</p>
+                <p>Controlla se ne hai già una:</p>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-lang">bash</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)">Copia</button>
+                    </div>
+                    <pre>ls ~/.ssh/*.pub</pre>
+                </div>
+                <p>Se vedi <code>id_ed25519.pub</code> o <code>id_rsa.pub</code>, hai già una chiave — salta la generazione e copia il file pubblico col comando sotto. Se la cartella è vuota o il comando fallisce, crea una nuova chiave Ed25519:</p>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-lang">bash</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)">Copia</button>
+                    </div>
+                    <pre>ssh-keygen -t ed25519 -C "you@example.com"</pre>
+                </div>
+                <p>Premi Invio per accettare il path di default (<code>~/.ssh/id_ed25519</code>). Puoi impostare una passphrase (consigliato). Su macOS e Linux da Terminale; su Windows da PowerShell o WSL.</p>
+                <p>Mostra la chiave pubblica — è la riga singola che incollerai quando l'installer la chiede:</p>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-lang">bash</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)">Copia</button>
+                    </div>
+                    <pre>cat ~/.ssh/id_ed25519.pub</pre>
+                </div>
+                <p>Sembra <code>ssh-ed25519 AAAA… commento</code>. Copia l'intera riga:</p>
+                <ul>
+                    <li><strong>macOS:</strong> <code>pbcopy &lt; ~/.ssh/id_ed25519.pub</code></li>
+                    <li><strong>Linux:</strong> <code>xclip -sel clip &lt; ~/.ssh/id_ed25519.pub</code> (o copia dal terminale)</li>
+                    <li><strong>Windows (PowerShell):</strong> <code>Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub | Set-Clipboard</code></li>
+                </ul>
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Solo il file <code>.pub</code> è pubblico. Il file <code>id_ed25519</code> (senza estensione) è la chiave <strong>privata</strong> — tienila sul computer e non incollarla mai nell'installer né inviarla al server.</div>
+                </div>
 
-                <p>L'installer genera anche una <strong>password root casuale di 40 caratteri</strong>, la salva in <code>/etc/cipi/server.json</code> e la mostra nel riepilogo installazione. <em>Non</em> è una password SSH: il login SSH di root è disabilitato. È quello che digiti quando, già loggato come utente <code>cipi</code> con la tua chiave, esegui <code>su root</code>. Conservala in un password manager.</p>
-
-                <p>Le chiavi SSH incollate vengono sanitizzate automaticamente — commenti, carriage return e spazi eccessivi vengono rimossi prima della validazione.</p>
-
-                <h3>Installazione standard</h3>
+                <h3>Lancia l'installer sul server</h3>
+                <p>Entra via SSH sul VPS Ubuntu fresco come utente con <code>sudo</code>, poi:</p>
                 <div class="code-block">
                     <div class="code-block-header">
                         <span class="code-block-lang">bash</span>
@@ -246,6 +283,8 @@ cipi ssl install myapp</pre>
                     </div>
                     <pre>wget -O - https://cipi.sh/setup.sh | bash</pre>
                 </div>
+                <p>La procedura chiede la chiave pubblica <strong>prima che venga installato qualsiasi pacchetto</strong>. Incolla la riga copiata sopra (formati accettati: <code>ssh-ed25519</code>, <code>ssh-rsa</code>, <code>ecdsa</code>). Cipi sanitizza commenti, carriage return e spazi extra, poi crea un utente Linux dedicato <code>cipi</code> per l'<strong>accesso SSH admin</strong> e applica hardening SSH: login root disabilitato, <code>cipi</code> solo chiave pubblica (gruppo <code>cipi-ssh</code>), gli utenti app (gruppo <code>cipi-apps</code>) possono connettersi con password. I tentativi di login sono limitati a 3 con grace period di 20 secondi; X11 forwarding è disabilitato.</p>
+                <p>L'installer genera anche una <strong>password root casuale di 40 caratteri</strong>, la salva in <code>/etc/cipi/server.json</code> e la mostra nel riepilogo installazione. <em>Non</em> è una password SSH: il login SSH di root è disabilitato. È quello che digiti quando, già loggato come utente <code>cipi</code> con la tua chiave, esegui <code>su root</code>. Conservala in un password manager.</p>
 
                 <h3>Installazione non interattiva</h3>
                 <p>Per setup automatizzati, passa la chiave pubblica SSH via la variabile d'ambiente <code>SSH_PUBKEY</code> per saltare il prompt interattivo:</p>
@@ -255,16 +294,6 @@ cipi ssl install myapp</pre>
                         <button class="code-copy-btn" onclick="copyCode(this)">Copia</button>
                     </div>
                     <pre>SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash</pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Nessuna chiave SSH? Creane una con <code>ssh-keygen -t ed25519</code> — su macOS e Linux da qualsiasi terminale, su Windows da PowerShell o WSL. Poi incolla il contenuto di <code>~/.ssh/id_ed25519.pub</code> (il file <strong>.pub</strong>) quando l'installer lo chiede.</div>
                 </div>
 
                 <h3>AWS (login root disabilitato di default)</h3>
@@ -725,15 +754,34 @@ MariaDB:      database '<span class="tree-accent">myapp</span>', user '<span cla
             title.textContent = 'In questa pagina';
             const list = document.createElement('nav');
             list.className = 'docs-toc-list';
-            secs.forEach(s => {
-                const h = s.querySelector('h2');
-                if (!h) return;
+            const page = location.pathname.split('/').pop().replace(/\.html$/, '') || 'index';
+            const chapterGroup = document.querySelector('.sidebar-group[data-chapter="' + page + '"]');
+            const sidebarLinks = chapterGroup
+                ? Array.from(chapterGroup.querySelectorAll('.sidebar-link'))
+                : [];
+            function addTocItem(id, label) {
                 const a = document.createElement('a');
-                a.href = '#' + s.id;
-                a.textContent = h.textContent;
-                a.dataset.target = s.id;
+                a.href = '#' + id;
+                a.textContent = label;
+                a.dataset.target = id;
                 list.appendChild(a);
-            });
+            }
+            if (sidebarLinks.length) {
+                sidebarLinks.forEach(function (link) {
+                    const href = link.getAttribute('href') || '';
+                    const hash = href.includes('#') ? href.split('#')[1] : '';
+                    if (!hash) return;
+                    const section = document.getElementById(hash);
+                    const heading = section && section.querySelector('h1, h2');
+                    addTocItem(hash, heading ? heading.textContent : (link.textContent || '').trim());
+                });
+            } else {
+                secs.forEach(function (s) {
+                    const h = s.querySelector('h1, h2');
+                    if (!h) return;
+                    addTocItem(s.id, h.textContent);
+                });
+            }
             if (!list.children.length) return;
             inner.appendChild(title);
             inner.appendChild(list);

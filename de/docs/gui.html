@@ -725,15 +725,34 @@ cipi gui remove --force</pre>
             title.textContent = 'On this page';
             const list = document.createElement('nav');
             list.className = 'docs-toc-list';
-            secs.forEach(s => {
-                const h = s.querySelector('h2');
-                if (!h) return;
+            const page = location.pathname.split('/').pop().replace(/\.html$/, '') || 'index';
+            const chapterGroup = document.querySelector('.sidebar-group[data-chapter="' + page + '"]');
+            const sidebarLinks = chapterGroup
+                ? Array.from(chapterGroup.querySelectorAll('.sidebar-link'))
+                : [];
+            function addTocItem(id, label) {
                 const a = document.createElement('a');
-                a.href = '#' + s.id;
-                a.textContent = h.textContent;
-                a.dataset.target = s.id;
+                a.href = '#' + id;
+                a.textContent = label;
+                a.dataset.target = id;
                 list.appendChild(a);
-            });
+            }
+            if (sidebarLinks.length) {
+                sidebarLinks.forEach(function (link) {
+                    const href = link.getAttribute('href') || '';
+                    const hash = href.includes('#') ? href.split('#')[1] : '';
+                    if (!hash) return;
+                    const section = document.getElementById(hash);
+                    const heading = section && section.querySelector('h1, h2');
+                    addTocItem(hash, heading ? heading.textContent : (link.textContent || '').trim());
+                });
+            } else {
+                secs.forEach(function (s) {
+                    const h = s.querySelector('h1, h2');
+                    if (!h) return;
+                    addTocItem(s.id, h.textContent);
+                });
+            }
             if (!list.children.length) return;
             inner.appendChild(title);
             inner.appendChild(list);

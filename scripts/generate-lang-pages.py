@@ -35,6 +35,7 @@ TRANSLATABLE_ATTRS = ("title", "alt", "aria-label", "placeholder")
 META_TRANSLATE = {"description", "keywords", "twitter:title", "twitter:description"}
 
 PROTECTED = re.compile(
+    r"since 5\.[01]|"
     r"\b(Cipi|cipi\.sh|Laravel|Forge|Ploi|Kamal|Coolify|Cleavr|RunCloud|"
     r"ServerPilot|CloudPanel|DirectAdmin|cPanel|Dokku|Easypanel|Moss|Vito|"
     r"FrankenPHP|Octane|Horizon|Reverb|Valkey|MariaDB|PostgreSQL|Nginx|"
@@ -119,7 +120,7 @@ def should_skip_text(text: str) -> bool:
     s = text.strip()
     if not s:
         return True
-    if s.startswith(("http://", "https://", "/", "#", "$", "curl ", "ssh ", "git ")):
+    if s.startswith(("http://", "https://", "/", "#", "$", "curl ", "ssh ", "git ", "cipi ")):
         return True
     if re.fullmatch(r"[\d\s\W]+", s):
         return True
@@ -350,6 +351,12 @@ def main() -> None:
         help="Only process pages under en/docs/.",
     )
     parser.add_argument(
+        "--only",
+        action="append",
+        metavar="PATH",
+        help="Only process these paths relative to en/ (repeatable). Example: whats-new.html",
+    )
+    parser.add_argument(
         "--lang",
         action="append",
         choices=TARGET_LANGS,
@@ -361,6 +368,15 @@ def main() -> None:
     sources = en_sources()
     if args.only_docs:
         sources = [p for p in sources if p.relative_to(ROOT / "en").parts[:1] == ("docs",)]
+    if args.only:
+        wanted = {Path(item) for item in args.only}
+        sources = [
+            p
+            for p in sources
+            if p.relative_to(ROOT / "en") in wanted or p.name in {w.name for w in wanted}
+        ]
+        if not sources:
+            sys.exit("No matching --only sources under en/")
     langs = args.lang or TARGET_LANGS
     all_html = [p.read_text(encoding="utf-8") for p in sources]
     print(f"Generating {len(sources)} pages × {len(langs)} languages", flush=True)

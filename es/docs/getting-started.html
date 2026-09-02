@@ -9,7 +9,7 @@
 <meta content="Andrea Pollastri" name="author"/>
 <meta content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" name="robots"/>
 <link href="https://cipi.sh/es/docs/getting-started" rel="canonical"/>
-        <!-- i18n:alternates -->
+    <!-- i18n:alternates -->
     <link rel="alternate" hreflang="en" href="https://cipi.sh/en/docs/getting-started">
     <link rel="alternate" hreflang="de" href="https://cipi.sh/de/docs/getting-started">
     <link rel="alternate" hreflang="fr" href="https://cipi.sh/fr/docs/getting-started">
@@ -28,7 +28,7 @@
 <meta content="1200" property="og:image:width"/>
 <meta content="630" property="og:image:height"/>
 <meta content="Cipi Docs — Getting Started" property="og:image:alt"/>
-        <meta property="og:locale" content="es_ES">
+    <meta property="og:locale" content="es_ES">
     <meta property="og:locale:alternate" content="en_US">
     <meta property="og:locale:alternate" content="de_DE">
     <meta property="og:locale:alternate" content="fr_FR">
@@ -109,8 +109,6 @@
 </div>
 <div class="nav-right">
 
-
-
 <!-- i18n:switch --><details class="lang-switch" ontoggle="if(this.open){const s=this;const c=e=>{if(!s.contains(e.target)){s.removeAttribute('open');document.removeEventListener('pointerdown',c)}};setTimeout(()=>document.addEventListener('pointerdown',c),0)}"><summary aria-label="Language">ES</summary><div class="lang-menu"><a href="/en/docs/getting-started" hreflang="en" lang="en" onclick="document.cookie='cipi-lang=en;path=/;max-age=31536000;SameSite=Lax'">English</a><a href="/de/docs/getting-started" hreflang="de" lang="de" onclick="document.cookie='cipi-lang=de;path=/;max-age=31536000;SameSite=Lax'">Deutsch</a><a href="/fr/docs/getting-started" hreflang="fr" lang="fr" onclick="document.cookie='cipi-lang=fr;path=/;max-age=31536000;SameSite=Lax'">Français</a><a href="/it/docs/primi-passi" hreflang="it" lang="it" onclick="document.cookie='cipi-lang=it;path=/;max-age=31536000;SameSite=Lax'">Italiano</a><a class="active" href="/es/docs/getting-started" hreflang="es" lang="es" onclick="document.cookie='cipi-lang=es;path=/;max-age=31536000;SameSite=Lax'">Español</a><a href="/pt/docs/getting-started" hreflang="pt" lang="pt" onclick="document.cookie='cipi-lang=pt;path=/;max-age=31536000;SameSite=Lax'">Português</a></div></details><!-- /i18n:switch -->
 <button aria-label="Alternar tema" class="theme-toggle" onclick="toggleTheme()">
 <svg class="icon-moon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewbox="0 0 24 24">
@@ -149,7 +147,7 @@
 <a class="sidebar-link" href="/es/docs/getting-started#app-structure">estructura de la aplicación</a>
 </div>
 <div class="sidebar-group" data-chapter="agent">
-<a class="sidebar-group-label" href="/es/docs/agent">cipi agente</a>
+<a class="sidebar-group-label" href="/es/docs/agent">cipi agent</a>
 <a class="sidebar-link" href="/es/docs/agent#agent-install">instalación</a>
 <a class="sidebar-link" href="/es/docs/agent#agent-webhook">webhook</a>
 <a class="sidebar-link" href="/es/docs/agent#agent-health">chequeo de salud</a>
@@ -293,8 +291,9 @@ cipi app create
 cipi deploy myapp
 cipi ssl install myapp</pre>
 </div>
-<p>Ese es todo el camino. Todo lo que sigue explica cada paso y lo que te pide el instalador.
-                    a lo largo del camino.</p>
+<p>Ese es todo el camino. Primero cree una clave SSH en su computadora (a continuación), luego ejecute el instalador
+                    en el servidor: le pedirá que pegue esa clave pública. Todo lo que sigue se explica en
+                    el resto de esta página.</p>
 <div class="callout warning">
 <svg class="callout-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
@@ -305,23 +304,59 @@ cipi ssl install myapp</pre>
                         VPS primero y ejecútelo allí, como usuario con <code>sudo</code>. Cipi abastece toda la caja:
                         no es algo que apuntes a un host remoto desde tu computadora portátil.</div>
 </div>
-<p>Durante la instalación, el asistente <strong>solicita la mitad pública de una clave SSH</strong> — el
-                    contenidos de <code>~/.ssh/id_ed25519.pub</code> <em>en tu propia maquina</em>, nunca la clave privada
-                    (formatos aceptados: <code>ssh-ed25519</code>, <code>ssh-rsa</code>, <code>ecdsa</code>) — antes de cualquier
-                    El paquete está instalado. Cipi crea un dedicado<code>cipi</code> Usuario de Linux para <strong>administrador SSH
-                        acceso</strong>
-                    y aplica endurecimiento SSH: el inicio de sesión raíz está deshabilitado, <code>cipi</code> utiliza sólo clave pública (grupo
-                    <code>cipi-ssh</code>), usuarios de aplicaciones (grupo <code>cipi-apps</code>) puede conectarse con contraseña. Iniciar sesión
-                    los intentos están limitados a 3 con un período de gracia de 20 segundos y el reenvío X11 está deshabilitado.
-                </p>
-<p>El instalador también genera un <strong>contraseña raíz aleatoria de 40 caracteres</strong>, lo almacena en
-                    <code>/etc/cipi/server.json</code>y lo muestra en el resumen de instalación. es <em>no</em>
-                    una contraseña SSH: el inicio de sesión SSH raíz está deshabilitado. Es lo que escribe cuando ya ha iniciado sesión como
-                    <code>cipi</code> usuario con tu clave, corres <code>su root</code>. Guárdalo en una contraseña
-                    gerente.</p>
-<p>Las claves SSH pegadas se desinfectan automáticamente: los comentarios, los retornos de carro y el exceso de espacios en blanco se eliminan.
-                    eliminado antes de la validación.</p>
-<h3>Instalación estándar</h3>
+<h3>Crea una clave SSH en tu computadora</h3>
+<p>haz esto <strong>en su computadora portátil o estación de trabajo</strong>, no en el VPS. El instalador necesita el
+                    <strong>publico</strong> la mitad de la clave para que pueda bloquear el servidor: después de configurar SSH como
+                    el <code>cipi</code> usuario con esta clave. El inicio de sesión raíz SSH está deshabilitado. Nunca pegues el privado.
+                    clave.</p>
+<p>Mira si ya tienes uno:</p>
+<div class="code-block">
+<div class="code-block-header">
+<span class="code-block-lang">fiesta</span>
+<button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
+</div>
+<pre>ls ~/.ssh/*.pub</pre>
+</div>
+<p>si <code>id_ed25519.pub</code> o <code>id_rsa.pub</code> aparece en la lista, ya tienes una clave: omitir
+                    generación y copie el archivo público con el siguiente comando. Si la carpeta está vacía o el comando
+                    errores, cree una nueva clave Ed25519:</p>
+<div class="code-block">
+<div class="code-block-header">
+<span class="code-block-lang">fiesta</span>
+<button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
+</div>
+<pre>ssh-keygen -t ed25519 -C "you@example.com"</pre>
+</div>
+<p>Presione Enter para aceptar la ruta predeterminada (<code>~/.ssh/id_ed25519</code>). Establece una frase de contraseña si
+                    desea (recomendado). En macOS y Linux, ejecute esto en Terminal; en Windows utilice PowerShell o WSL.</p>
+<p>Muestre la clave pública: esta es la única línea que pegará cuando el instalador le solicite:</p>
+<div class="code-block">
+<div class="code-block-header">
+<span class="code-block-lang">fiesta</span>
+<button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
+</div>
+<pre>cat ~/.ssh/id_ed25519.pub</pre>
+</div>
+<p>parece <code>ssh-ed25519 AAAA… comment</code>. Copia toda la línea:</p>
+<ul>
+<li><strong>MacOS:</strong> <code>pbcopy &lt; ~/.ssh/id_ed25519.pub</code></li>
+<li><strong>Linux:</strong> <code>xclip -sel clip &lt; ~/.ssh/id_ed25519.pub</code> (o copia del
+                        terminales)</li>
+<li><strong>Windows (PowerShell):</strong> <code>Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub |
+                            Set-Clipboard</code></li>
+</ul>
+<div class="callout warning">
+<svg class="callout-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
+<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+<line x1="12" x2="12" y1="9" y2="13"></line>
+<line x1="12" x2="12.01" y1="17" y2="17"></line>
+</svg>
+<div>Sólo el <code>.pub</code> El archivo es público. El archivo llamado <code>id_ed25519</code> (no
+                        extensión) es el <strong>privado</strong> clave: guárdela en su computadora y nunca la pegue
+                        en el instalador o enviarlo al servidor.</div>
+</div>
+<h3>Ejecute el instalador en el servidor.</h3>
+<p>SSH en el nuevo Ubuntu VPS como usuario con <code>sudo</code>, entonces:</p>
 <div class="code-block">
 <div class="code-block-header">
 <span class="code-block-lang">fiesta</span>
@@ -329,6 +364,16 @@ cipi ssl install myapp</pre>
 </div>
 <pre>wget -O - https://cipi.sh/setup.sh | bash</pre>
 </div>
+<p>El asistente solicita la clave pública. <strong>antes de instalar cualquier paquete</strong>. Pega la línea
+                    copiaste arriba (formatos aceptados: <code>ssh-ed25519</code>, <code>ssh-rsa</code>,
+                    <code>ecdsa</code>). Cipi desinfecta comentarios, retornos de carro y espacios en blanco adicionales, luego crea
+                    un dedicado <code>cipi</code> Usuario de Linux para <strong>acceso SSH de administrador</strong> y endurece SSH:
+                    inicio de sesión root deshabilitado, <code>cipi</code> sólo clave pública (grupo <code>cipi-ssh</code>), usuarios de aplicaciones
+                    (grupo <code>cipi-apps</code>) puede conectarse con contraseña. Los intentos de inicio de sesión están limitados a 3 con un
+                    período de gracia de 20 segundos; El reenvío X11 está deshabilitado.</p>
+<p>El instalador también genera un <strong>contraseña raíz aleatoria de 40 caracteres</strong>, stores it in
+                    <code>/etc/cipi/server.json</code>y lo muestra en el resumen de instalación. es <em>no</em>una contraseña SSH: el inicio de sesión SSH raíz está deshabilitado. Es lo que escribe cuando ya ha iniciado sesión como<code>cipi</code> usuario con tu clave, corres <code>su root</code>. Guárdalo en una contraseña
+                    gerente.</p>
 <h3>Instalación no interactiva</h3>
 <p>Para configuraciones automatizadas, pase su clave pública SSH a través del <code>SSH_PUBKEY</code> variable de entorno
                     para omitir el mensaje interactivo:</p>
@@ -338,16 +383,6 @@ cipi ssl install myapp</pre>
 <button class="code-copy-btn" onclick="copyCode(this)">Copiar</button>
 </div>
 <pre>SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash</pre>
-</div>
-<div class="callout info">
-<svg class="callout-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
-<circle cx="12" cy="12" r="10"></circle>
-<line x1="12" x2="12" y1="8" y2="12"></line>
-<line x1="12" x2="12.01" y1="16" y2="16"></line>
-</svg>
-<div>¿Aún no tienes una clave SSH? Crea uno con <code>ssh-keygen -t ed25519</code>— en macOS y Linux
-                        desde cualquier terminal, en Windows desde PowerShell o WSL. Luego pegue el contenido de<code>~/.ssh/id_ed25519.pub</code> (el <strong>.pub</strong> archivo) cuando el instalador lo solicite.
-                    </div>
 </div>
 <h3>AWS (inicio de sesión raíz deshabilitado de forma predeterminada)</h3>
 <div class="code-block">
@@ -366,9 +401,9 @@ cipi ssl install myapp</pre>
                     <strong>cifrado en reposo</strong> utilizando AES-256-CBC a través del <a href="/es/docs/advanced#cipi-vault">Bóveda</a>
                     sistema. Credenciales, claves SSH, <code>.env</code> archivos y volcados de bases de datos están protegidos tanto en
                     disco
-                    y durante la transferencia (a través de<a href="/es/docs/advanced#cipi-sync">Sincronizar</a> archivos cifrados). Cipi también hace cumplir
+                    y durante la transferencia (a través de <a href="/es/docs/advanced#cipi-sync">Sincronizar</a> archivos cifrados). Cipi también hace cumplir
                     <strong>Retención de registros compatible con GDPR</strong> con políticas de rotación automática para la aplicación,
-                    seguridad y HTTP registros; consulte <a href="/es/docs/advanced#cipi-log-retention">Retención de registros</a> para más detalles.
+                    seguridad y HTTP registros; consulte<a href="/es/docs/advanced#cipi-log-retention">Retención de registros</a> para más detalles.
                 </p>
 <div class="callout warning">
 <svg class="callout-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="16">
@@ -378,7 +413,7 @@ cipi ssl install myapp</pre>
 </svg>
 <div><strong>Guarde los detalles de acceso SSH, la contraseña de root y la contraseña de root MariaDB.</strong> Mostrado
                         solo una vez durante
-                        instalación. Las credenciales se almacenan cifradas en <code>/etc/cipi/server.json</code>.</div>
+                        instalación. Las credenciales se almacenan cifradas en<code>/etc/cipi/server.json</code>.</div>
 </div>
 <h3>Acceso posterior a la instalación</h3>
 <p>Después de la instalación, <strong>acceso de administrador</strong> utiliza la autenticación de clave pública como
@@ -413,10 +448,10 @@ root@server:~# su - myapp</pre>
 <li>Acceso raíz (o <code>sudo -s</code> en AWS)</li>
 <li>Puertos 22, 80 y 443 abiertos</li>
 <li>Un servidor limpio: no instale Cipi en un servidor con una pila web existente</li>
-<li>A <strong>servidor público con acceso a Internet</strong> con un enrutable <strong>IPv4 pública
+<li>A <strong>servidor público con acceso a Internet</strong> con un enrutable <strong>IPv4 público
                             dirección</strong> — Sólo NAT VPS, redes domésticas detrás de un enrutador y hosts a los que no se puede acceder desde
                         internet no es compatible</li>
-<li>KVM completo o virtualización bare-metal: <strong>no</strong>OpenVZ, contenedores LXC o kernel compartido
+<li>KVM completo o virtualización bare-metal: <strong>no</strong> OpenVZ, contenedores LXC o kernel compartido
                         entornos (incluidos los locales Docker, Docker Desktop, OrbStack, Colima, WSL y similares).
                         tiempos de ejecución de contenedores de escritorio)</li>
 </ul>
@@ -462,7 +497,7 @@ root@server:~# su - myapp</pre>
 </div>
 <p>Al final, Cipi imprime un resumen de credenciales: <strong>guárdalo, se muestra solo una vez</strong> - incluyendo
                     la dirección IP pública del servidor (para la configuración DNS), la clave de implementación SSH, las credenciales de la base de datos,
-                    un listo para usar <code>mariadb+ssh://</code> URL de conexión para GUI clientes (TablePlus, DBeaver,
+                    un listo para usar <code>mariadb+ssh://</code>URL de conexión para GUI clientes (TablePlus, DBeaver,
                     Sequel Pro), webhook URL y webhook token.</p>
 <h3>2. Agregue la clave de implementación a su proveedor de Git.</h3>
 <p>Si ha configurado un token GitHub o GitLab mediante <code>cipi git</code>, este paso es
@@ -499,7 +534,7 @@ root@server:~# su - myapp</pre>
 <div class="code-block-header"><span class="code-block-lang">fiesta</span><button class="code-copy-btn" onclick="copyCode(this)">Copiar</button></div>
 <pre><span class="p">$</span> cipi deploy myapp</pre>
 </div>
-<p>El implementador clona su repositorio en un nuevo <code>releases/N/</code> directorio, se ejecuta
+<p>El implementador clona su repositorio en un nuevo<code>releases/N/</code> directorio, se ejecuta
                     <code>composer install --no-dev</code>, enlaces <code>.env</code> y <code>storage/</code>, corre
                     migraciones, carreras <code>artisan optimize</code>, crea <code>storage:link</code>, intercambia el
                     <code>current</code> enlace simbólico de forma atómica y reinicia los trabajadores de la cola. Cero tiempo de inactividad.
@@ -534,8 +569,7 @@ root@server:~# su - myapp</pre>
 <tr>
 <td><strong>Nginx</strong></td>
 <td>Servidor web, proxy inverso, terminación SSL. desde <strong>v4.5.9</strong>, línea principal
-                                                    nginx de <a href="https://nginx.org/" rel="noopener" target="_blank">nginx.org</a>
-                                                    (1.29.8+) con <code>max_headers 1000</code> para endurecimiento HTTP/2, no el Ubuntu
+                                                    nginx de <a href="https://nginx.org/" rel="noopener" target="_blank">nginx.org</a>(1.29.8+) con <code>max_headers 1000</code> para endurecimiento HTTP/2, no el Ubuntu
                                                     paquete de archivo</td>
 </tr>
 <tr>
@@ -597,7 +631,7 @@ root@server:~# su - myapp</pre>
 <p>Cada aplicación se ejecuta en un entorno completamente aislado. <strong>Laravel</strong> es el valor predeterminado: tiempo de inactividad cero
                     implementa, su propia base de datos, trabajadores, programador y webhook, opcionalmente servido por
                     <strong>Octane (FrankenPHP)</strong> en lugar de PHP-FPM. <code>--custom</code> es para sitios simples
-                    (WordPress, estático + PHP): un despliegue clásico en<code>htdocs</code>, un docroot configurable, no
+                    (WordPress, estático + PHP): un despliegue clásico en <code>htdocs</code>, un docroot configurable, no
                     base de datos, no <code>.env</code>, no cron, no hay trabajadores.</p>
 <div class="table-scroll">
 <table class="cmd-table">
@@ -668,7 +702,7 @@ root@server:~# su - myapp</pre>
 <h2>Estructura de la aplicación</h2>
 <p>cuando corres <code>cipi app create</code>, Cipi crea un entorno completamente aislado para la aplicación.
                     Aquí está todo lo que se configura:</p>
-<div class="tree-block"><pre><span class="tree-accent">/home/myapp/</span> <span class="tree-comment">← usuario aislado de Linux (chmod 750)</span>
+<div class="tree-block"><pre><span class="tree-accent">/home/myapp/</span> <span class="tree-comment">← isolated Linux user (chmod 750)</span>
 ├── .ssh/
 │   ├── id_ed25519 <span class="tree-comment">← implementar clave (privada)</span>
 │   └── id_ed25519.pub <span class="tree-comment">← clave de implementación (pública - agregar a Git)</span>
@@ -842,15 +876,34 @@ MariaDB:      database '<span class="tree-accent">miaplicación</span>', user '<
             title.textContent = 'On this page';
             const list = document.createElement('nav');
             list.className = 'docs-toc-list';
-            secs.forEach(s => {
-                const h = s.querySelector('h2');
-                if (!h) return;
+            const page = location.pathname.split('/').pop().replace(/\.html$/, '') || 'index';
+            const chapterGroup = document.querySelector('.sidebar-group[data-chapter="' + page + '"]');
+            const sidebarLinks = chapterGroup
+                ? Array.from(chapterGroup.querySelectorAll('.sidebar-link'))
+                : [];
+            function addTocItem(id, label) {
                 const a = document.createElement('a');
-                a.href = '#' + s.id;
-                a.textContent = h.textContent;
-                a.dataset.target = s.id;
+                a.href = '#' + id;
+                a.textContent = label;
+                a.dataset.target = id;
                 list.appendChild(a);
-            });
+            }
+            if (sidebarLinks.length) {
+                sidebarLinks.forEach(function (link) {
+                    const href = link.getAttribute('href') || '';
+                    const hash = href.includes('#') ? href.split('#')[1] : '';
+                    if (!hash) return;
+                    const section = document.getElementById(hash);
+                    const heading = section && section.querySelector('h1, h2');
+                    addTocItem(hash, heading ? heading.textContent : (link.textContent || '').trim());
+                });
+            } else {
+                secs.forEach(function (s) {
+                    const h = s.querySelector('h1, h2');
+                    if (!h) return;
+                    addTocItem(s.id, h.textContent);
+                });
+            }
             if (!list.children.length) return;
             inner.appendChild(title);
             inner.appendChild(list);
