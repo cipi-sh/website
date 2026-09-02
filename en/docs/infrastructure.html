@@ -204,6 +204,7 @@
                 <a href="/en/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/en/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
                 <a href="/en/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
+                <a href="/en/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/en/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
                 <a href="/en/docs/deploy#git-providers" class="sidebar-link">Git providers</a>
                 <a href="/en/docs/deploy#git-auto-setup" class="sidebar-link">Git auto-setup</a>
@@ -220,11 +221,13 @@
             <div class="sidebar-group" data-chapter="infrastructure">
                 <a href="/en/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/en/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
+                <a href="/en/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
                 <a href="/en/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/en/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/en/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
                 <a href="/en/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/en/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
+                <a href="/en/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
                 <a href="/en/docs/infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="/en/docs/infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
                 <a href="/en/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
@@ -380,6 +383,65 @@
 
 
 
+            <div class="doc-section" id="cli-ini">
+                <h2><code>cipi ini</code></h2>
+                <p>Available since <strong>v5.1.0</strong>. A guided way to change PHP settings without hunting for the
+                    right <code>php.ini</code>. Every server-wide change reaches <strong>both SAPIs</strong> — PHP-FPM
+                    <em>and</em> CLI — so what your web requests see is also what queue workers, <code>artisan</code>
+                    and cron see.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi ini list                                <span class="c"># effective values and which layer set them</span>
+<span class="p">$</span> cipi ini list --app=shop                     <span class="c"># as seen by one app</span>
+<span class="p">$</span> cipi ini get memory_limit                    <span class="c"># one setting</span>
+<span class="p">$</span> cipi ini set upload_max_filesize=50M         <span class="c"># server-wide (FPM + CLI)</span>
+<span class="p">$</span> cipi ini set memory_limit=512M --app=shop    <span class="c"># for one app only</span>
+<span class="p">$</span> cipi ini unset memory_limit --app=shop       <span class="c"># fall back to the wider value</span>
+<span class="p">$</span> cipi ini reset [--app=shop]                  <span class="c"># back to Cipi defaults</span>
+<span class="p">$</span> cipi ini keys                                <span class="c"># what can be set, and what cannot</span></pre>
+                </div>
+
+                <h3>What it does for you</h3>
+                <ul>
+                    <li><strong>It raises the settings that would silently cap yours.</strong> Setting
+                        <code>upload_max_filesize</code> also raises <code>post_max_size</code> and
+                        <code>memory_limit</code> when they would otherwise limit it, and Nginx's
+                        <code>client_max_body_size</code> is flagged when it would.</li>
+                    <li><strong>It refuses what should not be set this way.</strong> Settable keys are an explicit
+                        whitelist — see <code>cipi ini keys</code>. <code>open_basedir</code>,
+                        <code>auto_prepend_file</code>, <code>extension</code> and friends are refused <em>by name, with
+                            the reason</em>, because Cipi manages them as part of app isolation.</li>
+                    <li><strong>Per-app overrides win.</strong> <code>--app=&lt;app&gt;</code> writes into that app's
+                        FPM pool, which outranks the server-wide file — for that app only.</li>
+                </ul>
+
+                <h3>Why this needed fixing</h3>
+                <p>Before 5.1.0 every FPM pool hardcoded <code>upload_max_filesize</code>, <code>post_max_size</code>
+                    and <code>max_execution_time</code>, and pool values outrank <code>conf.d</code> — so a server-wide
+                    <code>php.ini</code> change could not reach a single app. On top of that, Cipi wrote
+                    <code>99-cipi.ini</code> for FPM only, leaving the CLI SAPI (queue workers, <code>artisan</code>,
+                    cron) on the PHP package defaults.</p>
+                <p>In 5.1.0 pools carry only what is genuinely per-app (<code>open_basedir</code>, the error log,
+                    explicit overrides) and inherit everything else; both SAPIs get their file; and <strong>migration
+                        5.1.0</strong> backfills the CLI <code>99-cipi.ini</code> and rewrites existing pools on
+                    update.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Each change fires the <code>ini_set</code> notification trigger, so a PHP setting never changes
+                        on a shared server without a trace. An app can also carry its PHP version and per-app settings
+                        in its repository — see <a href="/en/docs/deploy#cli-yml"><code>cipi.yml</code></a>.</div>
+                </div>
+            </div>
+
+
             <div class="doc-section" id="cli-db">
                 <h2><code>cipi db</code></h2>
                 <p>Cipi creates a dedicated database for each <strong>Laravel</strong> app automatically during
@@ -438,9 +500,16 @@
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi alias add myapp www.myapp.com
 <span class="p">$</span> cipi alias add myapp myapp.it
+<span class="p">$</span> cipi alias add myapp <span class="s">'*.myapp.com'</span>   <span class="c"># wildcard (v5.1.0+) — quote it</span>
 <span class="p">$</span> cipi alias list myapp
 <span class="p">$</span> cipi alias remove myapp myapp.it</pre>
                 </div>
+                <p>Since <strong>v5.1.0</strong>, <strong>wildcard aliases</strong> such as
+                    <code>*.example.com</code> are accepted — Nginx matches a wildcard <code>server_name</code>
+                    natively, and multi-tenant apps need it. Quote the pattern so the shell does not expand it, and
+                    issue the certificate with
+                    <code>cipi ssl install myapp --dns=cloudflare --wildcard</code>: HTTP-01 cannot validate a
+                    wildcard.</p>
                 <p>For www ↔ apex canonical redirects, prefer <a href="/en/docs/infrastructure#cli-www"><code>cipi www</code></a>
                     instead of managing the counterpart host by hand.</p>
             </div>
@@ -596,111 +665,164 @@
             </div>
 
 
+            <div class="doc-section" id="cli-nginx">
+                <h2><code>cipi nginx default-server</code></h2>
+                <p>Available since <strong>v5.1.0</strong>. Claims whichever of <code>:80</code> / <code>:443</code>
+                    has no default server and closes unmatched requests with an empty reply (<strong>444</strong>).</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi nginx default-server status
+<span class="p">$</span> cipi nginx default-server on
+<span class="p">$</span> cipi nginx default-server off</pre>
+                </div>
+
+                <p>Cipi always had a default server on <code>:80</code>, but never on <code>:443</code>. An HTTPS
+                    request carrying an unknown <code>Host</code> therefore fell through to whichever vhost Nginx had
+                    loaded first — for a wildcard multi-tenant app, straight into a tenant resolver that cannot parse
+                    it.</p>
+
+                <p>It is enabled on fresh installs, and <strong>migration 5.1.0</strong> claims it on existing servers
+                    where nothing else already does. If another vhost legitimately owns the default server, the command
+                    says so and changes nothing.</p>
+            </div>
+
+
+
 
             <div class="doc-section" id="cli-backup">
                 <h2><code>cipi backup</code></h2>
-                <p>Back up databases and storage to Amazon S3 or any S3-compatible provider (Hetzner Object Storage,
-                    DigitalOcean Spaces, Backblaze B2, MinIO, etc.).</p>
+                <p>Back up application files and databases to local disk, to Amazon S3, or to any S3-compatible
+                    provider (Cloudflare R2, Hetzner Object Storage, DigitalOcean Spaces, Backblaze B2, Scaleway,
+                    MinIO, …).</p>
 
-                <h3>Setup</h3>
+                <p>Since <strong>v5.1.0</strong> backups are driven by <strong>profiles</strong> instead of one
+                    hardcoded nightly job. A profile answers four questions — <strong>what</strong> it takes,
+                    <strong>how often</strong> it runs, <strong>where</strong> it goes and <strong>how long</strong> it
+                    is kept — and profiles are independent, so a 30-minute database-only copy kept on disk sits happily
+                    next to an encrypted nightly full copy on S3.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Upgrading from 5.0.x? <strong>Migration 5.1.0</strong> converts the old nightly job into a
+                        profile named <code>default</code>, carrying over its existing <code>--weeks</code> retention,
+                        and takes over the schedule with a managed crontab block. Nothing outside that block is touched,
+                        and <code>cipi backup prune &lt;app&gt; --weeks=N</code> still prunes the pre-5.1 layout.</div>
+                </div>
+
+                <h3>1 — Destinations</h3>
+                <p><code>cipi backup configure</code> stores the S3 credentials shared by every profile. Since
+                    <strong>v5.1.0</strong> you may leave the bucket <strong>empty</strong> for local-only backups,
+                    which land under <code>/var/backups/cipi</code>.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi backup configure
 <span class="c"># → AWS Access Key ID
 # → AWS Secret Access Key
-# → Bucket name
+# → Bucket name        (leave empty for local-only backups)
 # → Region
-# → Endpoint URL (leave empty for AWS; required for other providers)</span></pre>
+# → Endpoint URL       (leave empty for AWS; required for other providers)</span>
+
+<span class="p">$</span> cipi backup status                 <span class="c"># destinations, profiles, last run, overdue</span></pre>
                 </div>
 
-                <h3>S3-compatible endpoints</h3>
-                                <div class="table-scroll">
+                <h4>S3-compatible endpoints</h4>
+                <div class="table-scroll">
                     <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Provider</th>
-                                                <th>Endpoint URL</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>AWS S3</td>
-                                                <td><em>leave empty</em></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Hetzner</td>
-                                                <td>https://&lt;datacenter&gt;.your-objectstorage.com</td>
-                                            </tr>
-                                            <tr>
-                                                <td>DigitalOcean Spaces</td>
-                                                <td>https://&lt;region&gt;.digitaloceanspaces.com</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Backblaze B2</td>
-                                                <td>https://s3.&lt;region&gt;.backblazeb2.com</td>
-                                            </tr>
-                                            <tr>
-                                                <td>MinIO</td>
-                                                <td>https://your-minio-host</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                        <thead>
+                            <tr>
+                                <th>Provider</th>
+                                <th>Endpoint URL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>AWS S3</td>
+                                <td><em>leave empty</em></td>
+                            </tr>
+                            <tr>
+                                <td>Cloudflare R2</td>
+                                <td>https://&lt;account-id&gt;.r2.cloudflarestorage.com</td>
+                            </tr>
+                            <tr>
+                                <td>Hetzner</td>
+                                <td>https://&lt;datacenter&gt;.your-objectstorage.com</td>
+                            </tr>
+                            <tr>
+                                <td>DigitalOcean Spaces</td>
+                                <td>https://&lt;region&gt;.digitaloceanspaces.com</td>
+                            </tr>
+                            <tr>
+                                <td>Backblaze B2</td>
+                                <td>https://s3.&lt;region&gt;.backblazeb2.com</td>
+                            </tr>
+                            <tr>
+                                <td>Scaleway</td>
+                                <td>https://s3.&lt;region&gt;.scw.cloud</td>
+                            </tr>
+                            <tr>
+                                <td>MinIO</td>
+                                <td>https://your-minio-host</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <h3>Running backups</h3>
+                <h3>2 — Backup profiles</h3>
+                <p>Create a profile once; it then runs on its own schedule. Two typical ones:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi backup configure              <span class="c"># configure S3 credentials</span>
-<span class="p">$</span> cipi backup run                    <span class="c"># backup all apps</span>
-<span class="p">$</span> cipi backup run myapp              <span class="c"># backup a single app</span>
-<span class="p">$</span> cipi backup list                   <span class="c"># list all backups</span>
-<span class="p">$</span> cipi backup list myapp             <span class="c"># list backups for one app</span>
-<span class="p">$</span> cipi backup prune myapp --weeks=4  <span class="c"># delete backups older than 4 weeks</span></pre>
+                    <pre><span class="c"># Every 30 minutes — databases only, kept on the server, last 48 runs</span>
+<span class="p">$</span> cipi backup profile add hourly-db --scope=db \
+      --databases=<span class="s">'shop,tenant_*'</span> --exclude-tables=<span class="s">'*.jobs,*.telescope_*'</span> \
+      --every=30m --keep=48 --dest=local
+
+<span class="c"># Every night at 02:00 — files + databases, encrypted to S3, kept 14 days</span>
+<span class="p">$</span> cipi backup profile add nightly --scope=all \
+      --cron=<span class="s">'0 2 * * *'</span> --keep-days=14 --dest=s3 --encrypt</pre>
                 </div>
 
-                <p>Each backup uploads to <code>s3://your-bucket/cipi/appname/YYYY-MM-DD_HHMMSS/</code> and contains:
-                </p>
-                <ul>
-                    <li><code>db.sql.gz</code> — compressed database dump</li>
-                    <li><code>shared.tar.gz</code> — the entire <code>shared/</code> directory (<code>.env</code> +
-                        <code>storage/</code>)
-                    </li>
-                </ul>
-
-                <p>Since <strong>v4.7.14</strong>, backup staging defaults to <code>/var/tmp</code> (disk) instead of
-                    <code>/tmp</code> (often a small RAM-backed tmpfs), so large apps no longer fail mid-backup when
-                    tmpfs fills up. Override with <code>tmpdir</code> in <code>backup.json</code> (set via
-                    <code>cipi backup configure</code>) or the <code>CIPI_BACKUP_TMPDIR</code> environment variable.
-                </p>
-
-                <h3>Scheduling automatic backups</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="c"># Add to root crontab (crontab -e)</span>
-0 2 * * * /usr/local/bin/cipi backup run >> /var/log/cipi/backup.log 2>&1</pre>
+                    <pre><span class="p">$</span> cipi backup profile list                 <span class="c"># all profiles</span>
+<span class="p">$</span> cipi backup profile show nightly         <span class="c"># one profile in detail</span>
+<span class="p">$</span> cipi backup profile edit nightly --keep-days=30
+<span class="p">$</span> cipi backup profile disable hourly-db    <span class="c"># pause it without deleting it</span>
+<span class="p">$</span> cipi backup profile enable hourly-db
+<span class="p">$</span> cipi backup profile remove hourly-db     <span class="c"># deletes the profile, keeps its archives</span></pre>
                 </div>
 
-                <h3>Pruning old backups from S3</h3>
-                <p>Backups accumulate over time. Use <code>cipi backup prune</code> to delete backup folders older than
-                    <strong>N weeks</strong> from S3. Run it as a cron job alongside the backup itself.
-                </p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi backup prune myapp --weeks=4   <span class="c"># delete backups older than 4 weeks</span>
-<span class="p">$</span> cipi backup prune myapp --weeks=2   <span class="c"># keep only the last 2 weeks</span></pre>
-                </div>
-
-                <p>Add both commands to the root crontab to run automatically:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
-                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="c"># root crontab — backup at 02:00, prune at 03:00 (keep 4 weeks)</span>
-0 2 * * * /usr/local/bin/cipi backup run myapp >> /var/log/cipi/backup.log 2>&1
-0 3 * * * /usr/local/bin/cipi backup prune myapp --weeks=4 >> /var/log/cipi/backup-prune.log 2>&1</pre>
+                <h4>Flags for <code>profile add</code> / <code>profile edit</code></h4>
+                <div class="options-list">
+                    <div class="option-item"><code>--scope=all|files|db</code><span>What the profile takes: application
+                            files, databases, or both.</span></div>
+                    <div class="option-item"><code>--apps='shop,blog'</code><span>Which apps its file archives cover.
+                            Glob patterns allowed.</span></div>
+                    <div class="option-item"><code>--databases='main,tenant_*'</code><span>Which databases it covers.
+                            They are discovered from the engine itself, so tenant databases an app creates at runtime
+                            are matched too.</span></div>
+                    <div class="option-item"><code>--exclude-databases='&lt;glob,…&gt;'</code><span>Databases to leave
+                            out of an otherwise broad selection.</span></div>
+                    <div class="option-item"><code>--exclude-tables='*.jobs,*.telescope_*'</code><span>Tables to skip —
+                            expanded against the live table list on MariaDB, passed straight to <code>pg_dump</code> on
+                            PostgreSQL.</span></div>
+                    <div class="option-item"><code>--every=30m|6h|1d</code> or
+                        <code>--cron='0 2 * * *'</code><span>How often it runs.</span></div>
+                    <div class="option-item"><code>--dest=local|s3|local,s3</code><span>Where the run goes.</span></div>
+                    <div class="option-item"><code>--keep=N</code> / <code>--keep-days=N</code> /
+                        <code>--keep-weeks=N</code><span>Retention — <strong>at least one is mandatory</strong>. A
+                            profile that would grow without bound is refused.</span></div>
+                    <div class="option-item"><code>--encrypt</code> / <code>--no-encrypt</code><span>Client-side AES-256
+                            encryption before anything leaves the server.</span></div>
                 </div>
 
                 <div class="callout info">
@@ -710,11 +832,124 @@
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <div><code>cipi backup prune</code> reads S3 credentials from <code>/etc/cipi/backup.conf</code>,
-                        written by <code>cipi backup configure</code>. It works with any S3-compatible provider.
-                        Adjust <code>--weeks</code> to match your retention policy (e.g. <code>--weeks=2</code> for two
-                        weeks, <code>--weeks=8</code> for two months).
-                    </div>
+                    <div><strong>Multi-tenant apps are covered now.</strong> Before 5.1.0 a run dumped exactly one
+                        database per app — the one named after the app — so <code>tenant_1</code>,
+                        <code>tenant_2</code>, … were never saved at all. Databases now come from the engine (minus
+                        system schemas) and are selected with glob patterns.</div>
+                </div>
+
+                <h3>3 — Encryption</h3>
+                <p>With <code>--encrypt</code> the archive is encrypted with <strong>AES-256 on the server</strong>,
+                    before it is uploaded, so the bucket operator never holds readable data. The manifest stays readable
+                    so a run can still be identified.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi backup key show      <span class="c"># print the key — store it off-server</span>
+<span class="p">$</span> cipi backup key rotate    <span class="c"># new key for future runs</span></pre>
+                </div>
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Without the key an encrypted backup cannot be restored — not by you, not by Cipi. Save it in a
+                        password manager the moment you enable <code>--encrypt</code>, and remember that runs taken
+                        before a <code>key rotate</code> still need the old key.</div>
+                </div>
+
+                <h3>4 — Running, checking and restoring</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi backup run                          <span class="c"># run every enabled profile now</span>
+<span class="p">$</span> cipi backup run --profile=nightly        <span class="c"># run one profile now</span>
+<span class="p">$</span> cipi backup run --dry-run                <span class="c"># show what it would take, take nothing</span>
+<span class="p">$</span> cipi backup list [--profile=nightly]     <span class="c"># runs held on each destination</span>
+<span class="p">$</span> cipi backup verify                       <span class="c"># does the newest run of each profile open?</span>
+<span class="p">$</span> cipi backup verify --deep                <span class="c"># same, downloading from S3 to check</span>
+<span class="p">$</span> cipi backup prune [--profile=nightly]    <span class="c"># apply retention now</span>
+<span class="p">$</span> cipi backup fetch nightly 2026-09-02_020000   <span class="c"># download and decrypt one run</span></pre>
+                </div>
+
+                <p>Since <strong>v5.1.0</strong> these commands tell you the truth rather than reassuring you:</p>
+                <ul>
+                    <li>Every archive is <strong>integrity-checked before it ships</strong>. A dump cut short by a full
+                        disk is still a non-empty file, so the old size check passed it; now a corrupt archive is
+                        discarded and reported instead of quietly replacing a good backup.</li>
+                    <li><code>cipi backup fetch</code> no longer reports success on a prefix that holds no objects, so a
+                        mistyped timestamp is an error rather than an empty directory.</li>
+                    <li><code>cipi backup verify</code> says plainly that there is nothing to verify when no run has
+                        happened yet, instead of “passed”.</li>
+                    <li><code>tar</code> warnings — “file changed as we read it”, constant on a live app writing its
+                        logs — no longer fail a perfectly good archive. Only exit code 2 and above counts.</li>
+                    <li>A <strong>disabled</strong> profile actually stops running, and <code>Encrypted</code> is
+                        displayed correctly.</li>
+                </ul>
+
+                <p>To restore, fetch the run and feed the pieces back:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi backup fetch nightly 2026-09-02_020000 --dest=/root/restore
+<span class="p">$</span> cipi db restore myapp /root/restore/databases/mariadb/myapp.sql.gz
+<span class="p">$</span> tar -tzf /root/restore/apps/myapp/files.tar.gz</pre>
+                </div>
+
+                <h3>5 — Storage layout</h3>
+                <p>Application files and databases are stored <strong>separately</strong>, with a manifest per run — so
+                    a database-only profile costs nothing to take, and a database can be restored without unpacking an
+                    app.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">text</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>&lt;root&gt;/&lt;profile&gt;/&lt;YYYY-MM-DD_HHMMSS&gt;/
+├── manifest.json
+├── apps/
+│   └── myapp/
+│       ├── files.tar.gz
+│       └── meta.json
+└── databases/
+    └── mariadb/
+        └── myapp.sql.gz
+
+# local  → /var/backups/cipi/&lt;profile&gt;/&lt;timestamp&gt;/
+# s3     → s3://&lt;bucket&gt;/cipi/&lt;profile&gt;/&lt;timestamp&gt;/</pre>
+                </div>
+                <p>Backup staging defaults to <code>/var/tmp</code> (disk) rather than <code>/tmp</code> (often a small
+                    RAM-backed tmpfs), so large apps do not fail mid-backup when tmpfs fills up. Override with
+                    <code>tmpdir</code> in <code>backup.json</code> (set via <code>cipi backup configure</code>) or the
+                    <code>CIPI_BACKUP_TMPDIR</code> environment variable.</p>
+
+                <h3>6 — Schedule and the staleness watchdog</h3>
+                <p>You no longer write cron lines by hand. <code>cipi backup configure</code> and every profile change
+                    rewrite a <strong>marked block</strong> in root's crontab; anything outside that block is left
+                    alone, and pre-5.1 hand-written lines are absorbed on migration.</p>
+                <p>An hourly watchdog raises the <code>backup_stale</code> notification when a profile has not succeeded
+                    within twice its own interval — because a backup that quietly stopped running is worse than no
+                    backup at all: it still looks configured. A freshly created profile is not reported as overdue
+                    before its first scheduled run could have happened.</p>
+
+                <h3>Legacy pruning</h3>
+                <p><code>cipi backup prune &lt;app&gt; --weeks=N</code> keeps working against the pre-5.1 layout
+                    (<code>s3://&lt;bucket&gt;/cipi/&lt;app&gt;/&lt;timestamp&gt;/</code> plus pre-deploy dumps in
+                    <code>/var/log/cipi/backups</code>), so existing archives and any hand-written cron line still
+                    prune. New profiles use <code>--keep</code>, <code>--keep-days</code> or <code>--keep-weeks</code>
+                    instead.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>An app can declare its own backup profiles in its repository — see
+                        <a href="/en/docs/deploy#cli-yml"><code>cipi.yml</code></a>. Profiles owned by an app must be
+                        named <code>&lt;app&gt;</code> or <code>&lt;app&gt;-*</code>; server-wide profiles stay under
+                        your control only.</div>
                 </div>
             </div>
 
@@ -853,6 +1088,24 @@ myapp@server:~$ crontab -e</pre>
                     workers via <code>cipi-worker</code>. You cannot run classic <code>queue:work</code> workers and
                     Horizon on the same app at once.</p>
 
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>On 5.0.x, <code>cipi worker horizon enable</code> could leave Horizon <strong>half
+                            enabled</strong>: the command printed nothing after “Enabling Horizon…” and
+                        <code>status</code> still said <code>disabled</code>. <strong>v5.1.0</strong> fixes both causes,
+                        always writes the state, reports what Supervisor actually did, and makes <code>status</code>
+                        surface any drift between the two. If you hit this, run <code>cipi self-update</code> and enable
+                        it again.</div>
+                </div>
+
+                <p>Queue workers can also be declared in the app's repository — see
+                    <a href="/en/docs/deploy#cli-yml"><code>cipi.yml</code></a>.</p>
+
                                 <div class="table-scroll">
                     <table class="cmd-table">
                                         <thead>
@@ -904,9 +1157,35 @@ myapp@server:~$ crontab -e</pre>
 
             <div class="doc-section" id="cli-health">
                 <h2><code>cipi health</code></h2>
-                <p>Since <strong>v5.0</strong>, configure HTTP healthchecks per app. A cron runs every 5 minutes; after
-                    3 consecutive failures Cipi notifies via the <code>health_fail</code> trigger (SMTP when
-                    configured).</p>
+                <p>Since <strong>v5.0</strong>, configure HTTP healthchecks per app. Cipi then watches the app in two
+                    different ways, because “is the site up?” and “did the push I just made break production?” are not
+                    the same question.</p>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Check</th>
+                                <th>When it runs</th>
+                                <th>When it alerts</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Periodic probe</td>
+                                <td>Every 5 minutes</td>
+                                <td>After <strong>3 consecutive</strong> failures → <code>health_fail</code></td>
+                            </tr>
+                            <tr>
+                                <td>Post-deploy check</td>
+                                <td>Right after every release goes live</td>
+                                <td><strong>Immediately</strong> on the first failure → <code>deploy_health_fail</code>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -919,9 +1198,59 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi health list --json
 <span class="p">$</span> cipi health check myapp --json</pre>
                 </div>
+
+                <h3>Post-deploy verification (v5.1.0+)</h3>
+                <p>Once an app has a healthcheck URL, the release that just went live is verified right after every
+                    deploy — from <code>cipi deploy</code> and from the Git webhook alike. The probe waits a short grace
+                    period (8 seconds for Octane apps, 3 otherwise, or whatever <code>--grace=N</code> says) and retries five times, so an
+                    app that needs a moment to come up is not reported as broken.</p>
+                <p>The verdict never changes the deploy's exit code — the release is live either way — but the alert
+                    says so and hands you the rollback command. The success email is sent <em>after</em> verification,
+                    so it can never announce a successful deploy while the site is returning 500.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi health postdeploy myapp             <span class="c"># run the post-deploy verification now</span>
+<span class="p">$</span> cipi health set myapp --grace=15         <span class="c"># give the release longer to warm up (max 120)</span>
+<span class="p">$</span> cipi health set myapp --no-postdeploy    <span class="c"># turn the post-deploy check off for this app</span></pre>
+                </div>
+
+                <h3>Auto-rollback of an unhealthy release (opt-in)</h3>
+                <p>Cipi can undo a release that fails its post-deploy healthcheck: the <code>current</code> symlink
+                    moves back to the previous release, the app is probed again, and <strong>one</strong> email
+                    describes the whole sequence — what was published, what it answered, what it was rolled back to and
+                    whether that fixed it.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi health set myapp --rollback-on-unhealthy   <span class="c"># permanent, per app</span>
+<span class="p">$</span> cipi deploy myapp --rollback-on-unhealthy       <span class="c"># just this deploy</span></pre>
+                </div>
+
+                <p>Four outcomes are reported distinctly: <strong>recovered</strong>; <strong>rolled back but still
+                        unhealthy</strong> (so the cause is probably not the code); <strong>the rollback itself
+                        failed</strong> (the bad release is still live); and <strong>there is no earlier release</strong>
+                    to return to.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Auto-rollback is <strong>off by default and deliberately so: database migrations are not
+                            undone.</strong> A release that migrated the schema and then failed can be worse off after
+                        the code is rolled back. Enable it only for apps whose deploys do not migrate, or where you know
+                        the migrations are backwards-compatible.</div>
+                </div>
+
                 <p>REST: <code>GET /api/health</code>, <code>GET|PUT|DELETE /api/apps/{name}/health</code>,
                     <code>POST /api/apps/{name}/health/check</code> (API <strong>1.15.0+</strong> / Cipi
-                    <strong>5.0.6+</strong>).</p>
+                    <strong>5.0.6+</strong>). An app can also declare its healthcheck in its repository — see
+                    <a href="/en/docs/deploy#cli-yml"><code>cipi.yml</code></a>.</p>
             </div>
 
             <div class="doc-section" id="cli-firewall">

@@ -2,6 +2,7 @@
 """Generate fr/de/es/pt pages from English sources with machine translation."""
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -27,7 +28,7 @@ from i18n_lib import (  # noqa: E402
 TARGET_LANGS = ["de", "fr", "es", "pt"]
 CACHE_FILE = ROOT / "scripts" / ".translation-cache.json"
 BATCH_SEP = "\n|||CIPI|||\n"
-MAX_BATCH = 4500
+MAX_BATCH = 1800
 
 SKIP_TAGS = {"script", "style", "pre", "code", "svg", "path", "meta"}
 TRANSLATABLE_ATTRS = ("title", "alt", "aria-label", "placeholder")
@@ -188,13 +189,19 @@ def batch_translate(engine: GoogleTranslator, items: list[str], cache: dict[str,
         payload = BATCH_SEP.join(protected_items)
         try:
             result = engine.translate(payload)
-            time.sleep(0.1)
+            time.sleep(0.15)
             parts = (result or payload).split(BATCH_SEP)
             if len(parts) != len(pending):
-                parts = [engine.translate(p) for p in protected_items]
+                raise ValueError(f"batch split {len(parts)} != {len(pending)}")
         except Exception as exc:  # noqa: BLE001
-            print(f"  warn: batch failed ({exc!r}), falling back")
-            parts = pending
+            print(f"  warn: batch failed ({exc!r}), retrying one-by-one")
+            parts = []
+            for src, prot in zip(pending, protected_items):
+                try:
+                    parts.append(engine.translate(prot) or src)
+                    time.sleep(0.12)
+                except Exception:
+                    parts.append(src)
         for src, out, tokens in zip(pending, parts, token_maps):
             cache[f"{lang}::{src}"] = restore(out, tokens)
         pending.clear()
@@ -331,12 +338,34 @@ def en_sources() -> list[Path]:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing translated pages instead of skipping them.",
+    )
+    parser.add_argument(
+        "--only-docs",
+        action="store_true",
+        help="Only process pages under en/docs/.",
+    )
+    parser.add_argument(
+        "--lang",
+        action="append",
+        choices=TARGET_LANGS,
+        help="Limit to one or more languages (repeatable).",
+    )
+    args = parser.parse_args()
+
     cache = load_cache()
     sources = en_sources()
+    if args.only_docs:
+        sources = [p for p in sources if p.relative_to(ROOT / "en").parts[:1] == ("docs",)]
+    langs = args.lang or TARGET_LANGS
     all_html = [p.read_text(encoding="utf-8") for p in sources]
-    print(f"Generating {len(sources)} pages × {len(TARGET_LANGS)} languages")
+    print(f"Generating {len(sources)} pages × {len(langs)} languages", flush=True)
 
-    for lang in TARGET_LANGS:
+    for lang in langs:
         print(f"\n=== {lang.upper()} ===")
         warm_cache(all_html, lang, cache)
         lookup = Lookup(lang, cache)
@@ -346,7 +375,7 @@ def main() -> None:
             assert en_canon is not None
             dst = localized_html_path(en_canon, lang)
             dst.parent.mkdir(parents=True, exist_ok=True)
-            if dst.exists() and dst.stat().st_size > 1000:
+            if not args.force and dst.exists() and dst.stat().st_size > 1000:
                 print(f"  skip {rel} → {dst.relative_to(ROOT)} (exists)")
                 continue
             print(f"  write {dst.relative_to(ROOT)}")

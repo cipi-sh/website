@@ -204,6 +204,7 @@
                 <a href="/en/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/en/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
                 <a href="/en/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
+                <a href="/en/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/en/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
                 <a href="/en/docs/deploy#git-providers" class="sidebar-link">Git providers</a>
                 <a href="/en/docs/deploy#git-auto-setup" class="sidebar-link">Git auto-setup</a>
@@ -220,11 +221,13 @@
             <div class="sidebar-group" data-chapter="infrastructure">
                 <a href="/en/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/en/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
+                <a href="/en/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
                 <a href="/en/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/en/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/en/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
                 <a href="/en/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/en/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
+                <a href="/en/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
                 <a href="/en/docs/infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="/en/docs/infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
                 <a href="/en/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
@@ -310,9 +313,41 @@
                     (optional PostgreSQL via <code>cipi db install pgsql</code> after install),
                     Supervisor, Fail2ban, UFW, Certbot, Deployer, and the <code>cipi</code> CLI itself.</p>
 
-                <p>During installation, the wizard <strong>asks for your SSH public key</strong> (accepted formats:
-                    <code>ssh-rsa</code>, <code>ssh-ed25519</code>, <code>ecdsa</code>) before any package is
-                    installed. Cipi creates a dedicated <code>cipi</code> Linux user for <strong>admin SSH
+                <h3>From zero to production in three steps</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-lang">bash</span>
+                        <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><span class="c"># 1 — on a fresh Ubuntu 24.04 / 26.04 VPS, over SSH, as a user with sudo</span>
+wget -O - https://cipi.sh/setup.sh | bash
+
+<span class="c"># 2 — create the app (Laravel by default)</span>
+cipi app create
+
+<span class="c"># 3 — deploy it and put it behind HTTPS</span>
+cipi deploy myapp
+cipi ssl install myapp</pre>
+                </div>
+                <p>That is the whole path. Everything below explains each step, and what the installer asks you for
+                    along the way.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Run the installer on the server, not on your own machine.</strong> SSH into the fresh
+                        VPS first and run it there, as a user with <code>sudo</code>. Cipi provisions the whole box — it
+                        is not something you point at a remote host from your laptop.</div>
+                </div>
+
+                <p>During installation, the wizard <strong>asks for the public half of an SSH key</strong> — the
+                    contents of <code>~/.ssh/id_ed25519.pub</code> <em>on your own machine</em>, never the private key
+                    (accepted formats: <code>ssh-ed25519</code>, <code>ssh-rsa</code>, <code>ecdsa</code>) — before any
+                    package is installed. Cipi creates a dedicated <code>cipi</code> Linux user for <strong>admin SSH
                         access</strong>
                     and applies SSH hardening: root login is disabled, <code>cipi</code> uses public-key only (group
                     <code>cipi-ssh</code>), app users (group <code>cipi-apps</code>) can connect with password. Login
@@ -320,10 +355,13 @@
                 </p>
 
                 <p>The installer also generates a <strong>random 40-character root password</strong>, stores it in
-                    <code>/etc/cipi/server.json</code>, and displays it in the installation summary. Pasted SSH keys are
-                    automatically sanitized — comments, carriage returns, and excess whitespace are stripped before
-                    validation.
-                </p>
+                    <code>/etc/cipi/server.json</code>, and displays it in the installation summary. It is <em>not</em>
+                    an SSH password: root SSH login is disabled. It is what you type when, already logged in as the
+                    <code>cipi</code> user with your key, you run <code>su root</code>. Keep it in a password
+                    manager.</p>
+
+                <p>Pasted SSH keys are automatically sanitized — comments, carriage returns, and excess whitespace are
+                    stripped before validation.</p>
 
                 <h3>Standard installation</h3>
                 <div class="code-block">
@@ -331,7 +369,7 @@
                         <span class="code-block-lang">bash</span>
                         <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
                     </div>
-                    <pre><span class="p">$</span> wget -O - https://cipi.sh/setup.sh | bash</pre>
+                    <pre>wget -O - https://cipi.sh/setup.sh | bash</pre>
                 </div>
 
                 <h3>Non-interactive installation</h3>
@@ -342,7 +380,7 @@
                         <span class="code-block-lang">bash</span>
                         <button class="code-copy-btn" onclick="copyCode(this)">Copy</button>
                     </div>
-                    <pre><span class="p">$</span> SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash</pre>
+                    <pre>SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash</pre>
                 </div>
 
                 <div class="callout info">
@@ -352,8 +390,9 @@
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <div>If you don't have an SSH key yet, generate one with:
-                        <code>ssh-keygen -t rsa -b 4096</code>
+                    <div>No SSH key yet? Create one with <code>ssh-keygen -t ed25519</code> — on macOS and Linux
+                        from any terminal, on Windows from PowerShell or WSL. Then paste the contents of
+                        <code>~/.ssh/id_ed25519.pub</code> (the <strong>.pub</strong> file) when the installer asks.
                     </div>
                 </div>
 
@@ -630,6 +669,77 @@ root@server:~# su - myapp</pre>
                                             </tr>
                                         </tbody>
                                     </table>
+                </div>
+
+                <h3>What every app gets</h3>
+                <p>Each app runs in a fully isolated environment. <strong>Laravel</strong> is the default — zero-downtime
+                    deploys, its own database, workers, scheduler and webhook — optionally served by
+                    <strong>Octane (FrankenPHP)</strong> instead of PHP-FPM. <code>--custom</code> is for simple sites
+                    (WordPress, static + PHP): a classic deploy into <code>htdocs</code>, a configurable docroot, no
+                    database, no <code>.env</code>, no cron, no workers.</p>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Area</th>
+                                <th>What Cipi gives you</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Web server</strong></td>
+                                <td>Nginx with a per-app virtual host — PHP-FPM or Octane via <code>proxy_pass</code>,
+                                    tuned for Laravel</td>
+                            </tr>
+                            <tr>
+                                <td><strong>PHP &amp; Composer</strong></td>
+                                <td>Selectable per app, hot-swappable; settings managed with
+                                    <a href="/en/docs/infrastructure#cli-ini"><code>cipi ini</code></a> across FPM and
+                                    CLI</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Database</strong></td>
+                                <td>MariaDB by default, optional PostgreSQL — a dedicated database and user per Laravel
+                                    app</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Queue workers</strong></td>
+                                <td>Supervisor pools per app — <code>queue:work</code> or Horizon; optional Reverb for
+                                    WebSockets</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Deployments</strong></td>
+                                <td>Deployer — atomic symlink, 5 releases, rollback, optional Node build; classic clone
+                                    into <code>htdocs</code> for custom apps</td>
+                            </tr>
+                            <tr>
+                                <td><strong>SSL</strong></td>
+                                <td>Let's Encrypt via Certbot — HTTP-01 by default, optional DNS-01 (Cloudflare) with
+                                    wildcards</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Security</strong></td>
+                                <td>Fail2ban + UFW, a dedicated Linux user, its own FPM/Octane process and SSH key per
+                                    app</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Healthchecks</strong></td>
+                                <td>HTTP probes every 5 minutes, plus a
+                                    <a href="/en/docs/infrastructure#cli-health">post-deploy check</a> with optional
+                                    automatic rollback of a broken release</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Backups</strong></td>
+                                <td><a href="/en/docs/infrastructure#cli-backup">Backup profiles</a> — what, how often,
+                                    where, how long — S3 / S3-compatible / local, with client-side encryption</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Configuration</strong></td>
+                                <td>Optional per-project <a href="/en/docs/deploy#cli-yml"><code>cipi.yml</code></a> for
+                                    aliases, databases, workers, healthcheck and backups</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

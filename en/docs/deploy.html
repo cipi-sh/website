@@ -204,6 +204,7 @@
                 <a href="/en/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/en/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
                 <a href="/en/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
+                <a href="/en/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/en/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
                 <a href="/en/docs/deploy#git-providers" class="sidebar-link">Git providers</a>
                 <a href="/en/docs/deploy#git-auto-setup" class="sidebar-link">Git auto-setup</a>
@@ -220,11 +221,13 @@
             <div class="sidebar-group" data-chapter="infrastructure">
                 <a href="/en/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/en/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
+                <a href="/en/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
                 <a href="/en/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/en/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/en/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
                 <a href="/en/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/en/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
+                <a href="/en/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
                 <a href="/en/docs/infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="/en/docs/infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
                 <a href="/en/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
@@ -347,15 +350,50 @@
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi deploy myapp              <span class="c"># deploy latest commit</span>
 <span class="p">$</span> cipi deploy myapp --rollback   <span class="c"># instant rollback to previous release</span>
-<span class="p">$</span> cipi deploy myapp --releases   <span class="c"># list all releases with timestamps</span>
+<span class="p">$</span> cipi deploy myapp --releases   <span class="c"># list releases with date, commit and subject (v5.1.0+)</span>
+<span class="p">$</span> cipi deploy myapp --log        <span class="c"># timestamped deploy log (v5.1.0+)</span>
+<span class="p">$</span> cipi deploy myapp --log=200    <span class="c"># last 200 lines of it</span>
 <span class="p">$</span> cipi deploy myapp --key        <span class="c"># show the SSH deploy key</span>
 <span class="p">$</span> cipi deploy myapp --webhook    <span class="c"># show webhook URL and token</span>
 <span class="p">$</span> cipi deploy myapp --unlock     <span class="c"># remove a stuck deploy lock</span>
 <span class="p">$</span> cipi deploy myapp --snapshot   <span class="c"># v5.0+ opt-in DB dump before deploy</span>
 <span class="p">$</span> cipi deploy myapp --snapshot-required  <span class="c"># fail if snapshot cannot be taken</span>
+<span class="p">$</span> cipi deploy myapp --rollback-on-unhealthy  <span class="c"># v5.1.0+ undo a release that fails its healthcheck</span>
 <span class="p">$</span> cipi deploy myapp --trust-host=git.mycompany.com       <span class="c"># trust a custom Git server fingerprint</span>
 <span class="p">$</span> cipi deploy myapp --trust-host=git.mycompany.com:2222  <span class="c"># trust on non-standard port (also writes ~/.ssh/config)</span></pre>
                 </div>
+
+                <h3>Knowing whether a deploy worked (v5.1.0+)</h3>
+                <p>Up to 5.0.x a failing deploy could pass in silence: the failure branch, its warnings, the rollback
+                    hint and the <code>deploy_fail</code> email were unreachable code, because a non-zero exit from
+                    Deployer killed the <code>cipi</code> process on the spot. Since <strong>v5.1.0</strong>:</p>
+                <ul>
+                    <li><strong>Both paths email on success and on failure</strong> — the CLI and the automatic Git
+                        webhook alike. Subjects are visibly different
+                        (<code>Cipi deploy succeeded: myapp release 55 …</code> /
+                        <code>Cipi deploy FAILED: myapp …</code>), and the body names the branch, the release number,
+                        the commit hash and subject, its author and date, the duration, the previous release, the deploy
+                        log path and the post-deploy healthcheck verdict.</li>
+                    <li><strong><code>cipi deploy</code> exits non-zero when the deploy failed</strong>, so CI and
+                        webhooks can see it. The same applies to <code>cipi deploy --rollback</code>.</li>
+                    <li>The success email is sent <em>after</em>
+                        <a href="/en/docs/infrastructure#cli-health">post-deploy verification</a>, so it can never
+                        announce a successful deploy while the site is returning 500.</li>
+                </ul>
+
+                <h3>Reading the deploy log</h3>
+                <p><code>/home/&lt;app&gt;/logs/deploy.log</code> used to be raw Deployer output appended forever, which
+                    made a deploy that failed overnight unreadable afterwards. Since <strong>v5.1.0</strong> every line
+                    is timestamped and each run is bracketed by a banner naming the trigger (CLI or webhook), the
+                    branch, the release and the duration.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi deploy myapp --log=100   <span class="c"># same as tailing /home/myapp/logs/deploy.log</span>
+<span class="p">$</span> cipi deploy myapp --releases  <span class="c"># release number, date, commit, subject</span></pre>
+                </div>
+                <p>Release directories stay numeric — rollback depends on that ordering — so <code>--releases</code>
+                    adds the human detail on top rather than renaming anything.</p>
 
                 <p>Since <strong>v5.0</strong>, opt-in <strong>pre-deploy DB snapshots</strong> are available via
                     <code>--snapshot</code> / <code>--snapshot-required</code> or a permanent app setting — see
@@ -452,6 +490,172 @@
                     <code>apps-deploy-config</code>, API <strong>1.14+</strong> / Cipi <strong>5.0.3+</strong>).
                     MCP: <code>AppDeployConfigShow</code>, <code>AppDeployConfigUpdate</code>.</p>
             </div>
+
+
+            <div class="doc-section" id="cli-yml">
+                <h2><code>cipi.yml</code> — configuration that travels with the code</h2>
+                <p>Available since <strong>v5.1.0</strong>. An app can carry a <code>cipi.yml</code> file in its
+                    repository describing the state it expects: <strong>domain aliases</strong>, <strong>PHP version
+                        and settings</strong>, <strong>extra databases</strong>, <strong>queue workers</strong>, the
+                    <strong>scheduler</strong>, its <strong>healthcheck</strong> and its <strong>backup
+                        strategy</strong>. The file lives next to the code, so server configuration is reviewed,
+                    versioned and shipped like everything else.</p>
+
+                <h3>Commands</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi yml generate myapp          <span class="c"># this app's current config, as a cipi.yml</span>
+<span class="p">$</span> cipi yml example myapp           <span class="c"># blank commented template, in myapp's namespace</span>
+<span class="p">$</span> cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
+<span class="p">$</span> cipi yml plan myapp              <span class="c"># show exactly what would change</span>
+<span class="p">$</span> cipi yml apply myapp [--yes]     <span class="c"># apply it</span>
+<span class="p">$</span> cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span></pre>
+                </div>
+
+                <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
+                    <code>shared/cipi.yml</code> — override with <code>--file=&lt;path&gt;</code>.</p>
+
+                <h3>Start from what the server already has</h3>
+                <p>You do not have to write it by hand. <code>cipi yml generate &lt;app&gt;</code> prints the app's
+                    configuration as it stands on the server — aliases, PHP version and per-app settings, its extra
+                    databases, its queue workers (read back out of Supervisor), the scheduler and the backup profiles it
+                    owns — as a ready-to-commit file.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi yml generate myapp &gt; cipi.yml   <span class="c"># then commit it</span>
+<span class="p">$</span> cipi yml plan myapp                  <span class="c"># reports nothing to do</span></pre>
+                </div>
+
+                <p>Cron expressions come back as the friendlier <code>every: 30m</code> form where they map cleanly,
+                    values are quoted wherever a plain scalar would be misread, and the result is fed through the
+                    validator before printing. Server-wide backup profiles and the app's own database are deliberately
+                    left out — those stay yours.</p>
+
+                <h3>The file</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>version: 1
+
+app:
+  <span class="c"># 8.3, 8.4 or 8.5 — must already be installed (cipi php install 8.5)</span>
+  php: <span class="s">"8.5"</span>
+
+  <span class="c"># The declared list replaces the current aliases: one you remove here is
+  # removed from the server. The primary domain is not managed here.</span>
+  aliases:
+    - <span class="s">"www.myapp.com"</span>
+    - <span class="s">"*.myapp.com"</span>      <span class="c"># wildcard, for multi-tenant subdomains</span>
+
+  <span class="c"># Per-app php.ini overrides. Server-wide values stay with `cipi ini set`.</span>
+  ini:
+    upload_max_filesize: 50M
+    post_max_size: 60M
+    memory_limit: 512M
+
+<span class="c"># Extra databases beyond the one created with the app. Credentials land in
+# /home/myapp/shared/cipi-databases.env — never written back to the repo.</span>
+databases:
+  - name: myapp_reporting
+  - name: myapp_analytics
+    engine: pgsql          <span class="c"># mariadb (default) or pgsql</span>
+
+workers:
+  horizon: false           <span class="c"># true replaces the queue workers below</span>
+  queues:
+    - queue: default
+      processes: 2
+    - queue: emails
+      processes: 1
+      tries: 5
+      timeout: 300
+
+<span class="c"># Laravel scheduler (* * * * * artisan schedule:run)</span>
+schedule: true
+
+<span class="c"># HTTP healthcheck. Probed every 5 minutes and right after every deploy.
+# The URL must be one of this app's own domains.</span>
+health:
+  url: <span class="s">"https://myapp.com/up"</span>
+  expect: 200
+  <span class="c"># grace: 8                      # seconds before the first probe after a deploy
+  # postdeploy: false             # skip the check right after a deploy
+  # rollback_on_unhealthy: true   # undo a release that fails the check
+  #                               # (the code symlink only — migrations are NOT undone)</span>
+
+<span class="c"># Backup strategy for this app. Profile names must be myapp or myapp-*.</span>
+backup:
+  profiles:
+    <span class="c"># Frequent and cheap: databases only, without the noisy tables.</span>
+    - name: myapp-db
+      scope: db
+      databases: [<span class="s">"myapp"</span>, <span class="s">"myapp_*"</span>, <span class="s">"tenant_*"</span>]
+      exclude_tables: [<span class="s">"*.jobs"</span>, <span class="s">"*.telescope_*"</span>]
+      every: 30m           <span class="c"># 5m/10m/15m/20m/30m, 1h..12h, 1d..28d</span>
+      keep: 48             <span class="c"># keep the last 48 runs</span>
+      destinations: [local]
+
+    <span class="c"># Slower, complete, off-site and encrypted.</span>
+    - name: myapp-nightly
+      scope: all           <span class="c"># all | files | db</span>
+      cron: <span class="s">"0 2 * * *"</span>
+      keep_days: 14
+      destinations: [s3]
+      encrypt: true</pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><code>cipi yml example</code> takes an optional app name — <code>cipi yml example myapp</code>
+                        — so the placeholder databases and profiles land inside that app's namespace and the template
+                        validates as-is.</div>
+                </div>
+
+                <h3>Deploys ignore the file until you opt in</h3>
+                <p>Nothing happens on deploy until you run <code>cipi yml auto &lt;app&gt; on</code>. With that opt-in
+                    given, every <strong>successful</strong> deploy reconciles — from both <code>cipi deploy</code> and
+                    the Git webhook, the latter through one narrowly scoped sudoers rule. A release that carries no
+                    <code>cipi.yml</code> is a quiet no-op, and a file that fails validation is reported by email
+                    (<code>yml_fail</code>) and <strong>never partially applied</strong>. A successful reconcile fires
+                    <code>yml_apply</code>.</p>
+
+                <h3>Why it is safe to accept over Git</h3>
+                <p>The file arrives from a repository, so anyone who can commit controls its contents. It is therefore
+                    fail-closed throughout:</p>
+                <ul>
+                    <li>It can only <strong>configure</strong> an app that already exists — never create, rename or
+                        delete one.</li>
+                    <li>Its databases must be named <code>&lt;app&gt;</code> or <code>&lt;app&gt;_*</code>, and its
+                        backup profiles <code>&lt;app&gt;</code> or <code>&lt;app&gt;-*</code>.</li>
+                    <li>Its healthcheck URL must resolve to one of the app's own domains — otherwise a commit could aim
+                        the server's five-minute prober at an internal address and read the answer back out of the alert
+                        emails.</li>
+                    <li>Unknown keys are errors, and no field carries a shell command or a path to include.</li>
+                    <li>The parser implements a deliberately small YAML subset and refuses anchors, aliases, tags, merge
+                        keys, block scalars and flow mappings outright.</li>
+                </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Once <code>yml auto</code> is on, anyone who can push to that repository can change the app's
+                        aliases, PHP settings, workers, healthcheck and backup profiles. That is the point of
+                        configuration-as-code — treat write access to the repo accordingly.</div>
+                </div>
+            </div>
+
 
             <div class="doc-section" id="cli-auth">
                 <h2><code>auth.json</code></h2>
