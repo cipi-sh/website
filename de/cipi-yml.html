@@ -69,7 +69,7 @@
         {
           "@type": "Question",
           "name": "What can cipi.yml configure?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, the Laravel scheduler, an HTTP healthcheck with optional rollback, and the app's backup profiles." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, Laravel Reverb for WebSockets, the Laravel scheduler, an HTTP healthcheck with optional rollback, and the app's backup profiles." }
         },
         {
           "@type": "Question",
@@ -325,6 +325,12 @@
                     Spiel. Oder einstellen <code>horizon: true</code> und lassen Sie stattdessen Horizon die Warteschlangen besitzen.</p>
 <span class="go">Arbeiter in den Dokumenten →</span>
 </a>
+<a class="alt-card" href="/de/docs/apps#cli-app-reverb">
+<span class="alt-tag">workers.reverb</span>
+<h3>WebSockets mit <span>Reverb</span></h3>
+<p>Seit <strong>5.1.2</strong> gibt <code>reverb: true</code> der App einen Laravel-Reverb-Server — einen Localhost-Port, ein Supervisor-Programm, einen nginx-Proxy für <code>/app</code> und <code>/apps</code> auf der eigenen Domain und generierte <code>REVERB_*</code>-Zugangsdaten. Nur Laravel-Apps.</p>
+<span class="go">Reverb in der Dokumentation →</span>
+</a>
 <a class="alt-card" href="/de/docs/infrastructure#cli-schedule">
 <span class="alt-tag">Zeitplan</span>
 <h3>Die Laravel <span>Planer</span></h3>
@@ -393,6 +399,13 @@ databases:
 
 workers:
   horizon: false           <span class="c"># true replaces the queue workers below</span>
+
+  <span class="c"># Laravel Reverb (5.1.2+). Cipi allocates a localhost port, adds the Supervisor
+  # program, proxies /app/{key} and /apps/{id}/… on this app's own domain, and
+  # generates REVERB_APP_ID/KEY/SECRET plus the VITE_ copies in the .env. Laravel
+  # apps only — declaring it on a --custom app is refused.</span>
+  reverb: false
+
   queues:
     - queue: default
       processes: 2

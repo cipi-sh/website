@@ -69,7 +69,7 @@
         {
           "@type": "Question",
           "name": "What can cipi.yml configure?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, the Laravel scheduler, an HTTP healthcheck with optional rollback, and the app's backup profiles." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, Laravel Reverb for WebSockets, the Laravel scheduler, an HTTP healthcheck with optional rollback, and the app's backup profiles." }
         },
         {
           "@type": "Question",
@@ -325,6 +325,12 @@
                     correspondre. Ou définir <code>horizon: true</code> et laissez Horizon posséder les files d'attente à la place.</p>
 <span class="go">Travailleurs dans la documentation →</span>
 </a>
+<a class="alt-card" href="/fr/docs/apps#cli-app-reverb">
+<span class="alt-tag">workers.reverb</span>
+<h3>WebSockets avec <span>Reverb</span></h3>
+<p>Depuis <strong>5.1.2</strong>, <code>reverb: true</code> donne à l'app un serveur Laravel Reverb — un port localhost, un programme Supervisor, un proxy nginx pour <code>/app</code> et <code>/apps</code> sur son propre domaine, et des identifiants <code>REVERB_*</code> générés. Applications Laravel uniquement.</p>
+<span class="go">Reverb dans la documentation →</span>
+</a>
 <a class="alt-card" href="/fr/docs/infrastructure#cli-schedule">
 <span class="alt-tag">calendrier</span>
 <h3>Le Laravel <span>planificateur</span></h3>
@@ -393,6 +399,13 @@ databases:
 
 workers:
   horizon: false           <span class="c"># true replaces the queue workers below</span>
+
+  <span class="c"># Laravel Reverb (5.1.2+). Cipi allocates a localhost port, adds the Supervisor
+  # program, proxies /app/{key} and /apps/{id}/… on this app's own domain, and
+  # generates REVERB_APP_ID/KEY/SECRET plus the VITE_ copies in the .env. Laravel
+  # apps only — declaring it on a --custom app is refused.</span>
+  reverb: false
+
   queues:
     - queue: default
       processes: 2

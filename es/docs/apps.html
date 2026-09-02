@@ -569,23 +569,53 @@
 </div>
 <div class="doc-section" id="cli-app-reverb">
 <h2><code>cipi app reverb</code></h2>
-<p>desde <strong>v5.0</strong>, habilitar <strong>Laravel Reverb</strong> para WebSockets propios en un
-                    Laravel aplicación. Cipi asigna un puerto de host local en <code>9000–9099</code>, agrega el programa Supervisor
-                    <code>${app}-reverb</code>, representantes Nginx <code>/app</code> a ese puerto, y escribe
-                    <code>REVERB_*</code> en <code>.env</code>.
-                </p>
+<p><strong>Laravel Reverb</strong> es el servidor WebSocket de primera parte de Laravel. Cipi lo gestiona desde
+                    <strong>v5.0</strong>; la <strong>v5.1.2</strong> es la release que lo deja usable en producción —
+                    credenciales generadas, esquema derivado del certificado, límites de conexión más altos y un proxy
+                    que ya no se traga tus propias rutas.</p>
+<p>Activarlo en una app Laravel cablea cuatro cosas: un puerto localhost <code>9000–9099</code>, el programa
+                    Supervisor <code>${app}-reverb</code>, un proxy nginx para <code>/app/{key}</code> y
+                    <code>/apps/{id}/…</code> en el dominio de la app, y las claves
+                    <code>REVERB_*</code> / <code>VITE_REVERB_*</code> en el <code>.env</code>.</p>
 <div class="code-block">
-<div class="code-block-header"><span class="code-block-lang">fiesta</span><button class="code-copy-btn" onclick="copyCode(this)">Copiar</button></div>
+<div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copiar</button></div>
 <pre><span class="p">$</span> cipi app reverb enable myapp
+<span class="p">$</span> cipi app reverb enable myapp --restart-supervisor   <span class="c"># aplica ya el nuevo límite de archivos abiertos</span>
 <span class="p">$</span> cipi app reverb status myapp
 <span class="p">$</span> cipi app reverb disable myapp</pre>
 </div>
+<p>Reverb es <strong>solo Laravel</strong>. Volver a ejecutar <code>enable</code> es seguro: no reasigna el puerto
+                    ni toca las credenciales; recalcula host y esquema y rellena claves <code>.env</code> que falten.
+                    El build de Node debe ir <em>después</em> del <code>enable</code>. Ver
+                    <a href="/es/docs/deploy#cli-deploy-config"><code>node_build</code></a>.</p>
+<div class="callout warning">
+<svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+<line x1="12" y1="9" x2="12" y2="13"></line>
+<line x1="12" y1="17" x2="12.01" y2="17"></line>
+</svg>
+<div><strong><code>/app</code> y <code>/apps</code> pertenecen al protocolo.</strong> Hasta
+                    <strong>5.1.1</strong> el proxy era <code>location /app</code> (prefijo nginx), así que
+                    <code>/appointments</code> y <code>/application/…</code> iban a Reverb. Desde
+                    <strong>5.1.2</strong> el bloque es <code>~ ^/apps?(/|$)</code>. Una app con su propia ruta
+                    <code>/app</code> necesita un subdominio dedicado.</div>
 </div>
+<p><code>ws://</code> o <code>wss://</code> se deriva del certificado. Un wildcard se resuelve a un host concreto.
+                    <code>status</code> imprime la URL del cliente y avisa si falta una credencial, si hay certificado
+                    pero el esquema sigue en <code>http</code>, o si Supervisor aún tiene el límite antiguo.
+                    <code>--restart-supervisor</code> reinicia <strong>todos los queue workers del servidor</strong>.</p>
+<p><code>disable</code> restaura <code>BROADCAST_CONNECTION</code> (fallback <code>log</code>). Un clon obtiene
+                    puerto, credenciales y dominio propios. Se declara en
+                    <a href="/es/cipi-yml"><code>workers.reverb</code></a>. La <strong>migración 5.1.2</strong>
+                    reescribe los vhosts voraces (copia en <code>/var/lib/cipi/vhost-backup-5.1.2</code>) y rellena
+                    el <code>.env</code> sin sobrescribir — luego redeploy para el bundle Vite.</p>
+</div>
+
 <div class="doc-section" id="cli-app-clone">
 <h2><code>cipi app clone</code></h2>
 <p>desde <strong>v5.0</strong>, clone una aplicación Laravel existente en una nueva aplicación de preparación (o revisión) con
                     su propio dominio. Conjuntos <code>cloned_from</code> en <code>apps.json</code>; hace <strong>no</strong>
-                    copie webhook o git ID.</p>
+                    copie webhook o git ID. Si la fuente tiene Reverb, el clon obtiene puerto, credenciales y host propios (desde <strong>v5.1.2</strong>). Ver <a href="#cli-app-reverb"><code>cipi app reverb</code></a>.</p>
 <div class="code-block">
 <div class="code-block-header"><span class="code-block-lang">fiesta</span><button class="code-copy-btn" onclick="copyCode(this)">Copiar</button></div>
 <pre><span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com
@@ -824,6 +854,31 @@
 <tr>
 <td>QUEUE_CONNECTION</td>
 <td><code>database</code></td>
+<td>Cipi</td>
+</tr>
+<tr>
+<td>BROADCAST_CONNECTION</td>
+<td>Se pone en <code>reverb</code> al activar; se restaura el driver anterior (o <code>log</code>) al desactivar (v5.1.2+)</td>
+<td>Cipi</td>
+</tr>
+<tr>
+<td>REVERB_APP_ID / KEY / SECRET</td>
+<td>Generadas una vez en el primer <code>cipi app reverb enable</code>, luego nunca se rotan.</td>
+<td>Cipi (v5.1.2+)</td>
+</tr>
+<tr>
+<td>REVERB_HOST / PORT / SCHEME</td>
+<td>Socket público derivado del certificado (<code>https</code>/443 o <code>http</code>/80).</td>
+<td>Cipi (v5.1.2+)</td>
+</tr>
+<tr>
+<td>VITE_REVERB_APP_KEY / HOST / PORT / SCHEME</td>
+<td>Copias públicas, horneadas por Vite en el build. Redeploy tras enable, cambio de dominio o SSL.</td>
+<td>Cipi (v5.1.2+)</td>
+</tr>
+<tr>
+<td>REVERB_SERVER_HOST / PORT</td>
+<td>Bind localhost del programa Supervisor. Se quitan al desactivar; las credenciales se quedan.</td>
 <td>Cipi</td>
 </tr>
 <tr>

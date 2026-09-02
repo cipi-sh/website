@@ -572,23 +572,55 @@
 </div>
 <div class="doc-section" id="cli-app-reverb">
 <h2><code>cipi app reverb</code></h2>
-<p>Depuis <strong>v5.0</strong>, activez <strong>Laravel Reverb</strong> pour les WebSockets propriétaires sur un
-                    Laravel application. Cipi alloue un port localhost dans <code>9000–9099</code>, ajoute Supervisor programme
-                    <code>${app}-reverb</code>, procurations Nginx <code>/app</code> à ce port, et écrit
-                    <code>REVERB_*</code> dans <code>.env</code>.
-                </p>
+<p><strong>Laravel Reverb</strong> est le serveur WebSocket first-party de Laravel. Cipi le gère depuis
+                    <strong>v5.0</strong> ; la <strong>v5.1.2</strong> est la release qui le rend utilisable en
+                    production — identifiants générés, schéma dérivé du certificat, limites de connexion relevées et
+                    une règle de proxy qui n'intercepte plus vos propres routes.</p>
+<p>Activer Reverb sur une app Laravel configure quatre choses : un port localhost <code>9000–9099</code>,
+                    le programme Supervisor <code>${app}-reverb</code>, un proxy nginx pour
+                    <code>/app/{key}</code> et <code>/apps/{id}/…</code> sur le domaine de l'app, et les clés
+                    <code>REVERB_*</code> / <code>VITE_REVERB_*</code> dans le <code>.env</code>.</p>
 <div class="code-block">
-<div class="code-block-header"><span class="code-block-lang">coup</span><button class="code-copy-btn" onclick="copyCode(this)">Copier</button></div>
+<div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copier</button></div>
 <pre><span class="p">$</span> cipi app reverb enable myapp
+<span class="p">$</span> cipi app reverb enable myapp --restart-supervisor   <span class="c"># applique tout de suite la nouvelle limite de fichiers ouverts</span>
 <span class="p">$</span> cipi app reverb status myapp
 <span class="p">$</span> cipi app reverb disable myapp</pre>
 </div>
+<p>Reverb est <strong>Laravel uniquement</strong>. Relancer <code>enable</code> est sûr : il ne réalloue pas le port
+                    ni ne touche aux identifiants, il recalcule l'hôte et le schéma publics et complète les clés
+                    <code>.env</code> manquantes. La build Node doit tourner <em>après</em> <code>enable</code> — Vite
+                    incorpore <code>VITE_REVERB_*</code> au build. Voir
+                    <a href="/fr/docs/deploy#cli-deploy-config"><code>node_build</code></a>.</p>
+<div class="callout warning">
+<svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+<line x1="12" y1="9" x2="12" y2="13"></line>
+<line x1="12" y1="17" x2="12.01" y2="17"></line>
+</svg>
+<div><strong><code>/app</code> et <code>/apps</code> appartiennent au protocole.</strong> Jusqu'à
+                    <strong>5.1.1</strong> le proxy était <code>location /app</code> (préfixe nginx) — donc
+                    <code>/appointments</code> et <code>/application/…</code> partaient dans Reverb. Depuis
+                    <strong>5.1.2</strong> le bloc est <code>~ ^/apps?(/|$)</code>. Une app avec sa propre route
+                    <code>/app</code> doit passer par un sous-domaine dédié.</div>
 </div>
+<p><code>ws://</code> ou <code>wss://</code> est dérivé du certificat (HTTP/80 vs HTTPS/443). Un domaine wildcard
+                    devient un hôte concret (<code>www.example.com</code>). <code>cipi app reverb status</code> affiche
+                    l'URL exacte à composer, et prévient si un identifiant manque, si le certificat est là mais le
+                    schéma est encore <code>http</code>, ou si Supervisor n'a pas encore la nouvelle limite de fichiers.
+                    <code>--restart-supervisor</code> redémarre <strong>tous les queue workers du serveur</strong>.</p>
+<p><code>disable</code> restaure <code>BROADCAST_CONNECTION</code> (fallback <code>log</code>). Un clone obtient
+                    son propre port, ses identifiants et son domaine. Déclarable dans
+                    <a href="/fr/cipi-yml"><code>workers.reverb</code></a>. La <strong>migration 5.1.2</strong>
+                    réécrit les vhosts trop gourmands (backup dans <code>/var/lib/cipi/vhost-backup-5.1.2</code>)
+                    et complète le <code>.env</code> sans rien écraser — redéployez ensuite pour le bundle Vite.</p>
+</div>
+
 <div class="doc-section" id="cli-app-clone">
 <h2><code>cipi app clone</code></h2>
 <p>Depuis <strong>v5.0</strong>, clonez une application Laravel existante dans une nouvelle application de préparation (ou de révision) avec
                     son propre domaine. Ensembles <code>cloned_from</code> dans <code>apps.json</code>; fait <strong>pas</strong>
-                    copiez les identifiants webhook ou git.</p>
+                    copiez les identifiants webhook ou git. Si la source a Reverb, le clone obtient son propre port, ses identifiants et son hôte (depuis <strong>v5.1.2</strong>). Voir <a href="#cli-app-reverb"><code>cipi app reverb</code></a>.</p>
 <div class="code-block">
 <div class="code-block-header"><span class="code-block-lang">coup</span><button class="code-copy-btn" onclick="copyCode(this)">Copier</button></div>
 <pre><span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com
@@ -825,6 +857,31 @@
 <tr>
 <td>QUEUE_CONNECTION</td>
 <td><code>database</code></td>
+<td>Cipi</td>
+</tr>
+<tr>
+<td>BROADCAST_CONNECTION</td>
+<td>Mis à <code>reverb</code> à l'activation ; rétabli au driver précédent (ou <code>log</code>) à la désactivation (v5.1.2+)</td>
+<td>Cipi</td>
+</tr>
+<tr>
+<td>REVERB_APP_ID / KEY / SECRET</td>
+<td>Générés une fois au premier <code>cipi app reverb enable</code>, puis jamais rotés.</td>
+<td>Cipi (v5.1.2+)</td>
+</tr>
+<tr>
+<td>REVERB_HOST / PORT / SCHEME</td>
+<td>Socket public dérivé du certificat (<code>https</code>/443 ou <code>http</code>/80).</td>
+<td>Cipi (v5.1.2+)</td>
+</tr>
+<tr>
+<td>VITE_REVERB_APP_KEY / HOST / PORT / SCHEME</td>
+<td>Copies publiques, incorporées par Vite au build. Redéployer après enable, changement de domaine ou SSL.</td>
+<td>Cipi (v5.1.2+)</td>
+</tr>
+<tr>
+<td>REVERB_SERVER_HOST / PORT</td>
+<td>Bind localhost du programme Supervisor. Retirés à la désactivation ; les identifiants restent.</td>
 <td>Cipi</td>
 </tr>
 <tr>
