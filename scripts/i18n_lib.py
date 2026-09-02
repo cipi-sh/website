@@ -105,6 +105,7 @@ SLUGS_IT = {
     "/": "/",
     "/404": "/404",
     "/whats-new": "/novita",
+    "/cipi-yml": "/cipi-yml",
     "/discovery": "/discovery",
     "/alternatives": "/alternative",
     "/best-laravel-forge-alternatives": "/migliori-alternative-a-laravel-forge",
