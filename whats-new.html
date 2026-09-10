@@ -3,6 +3,39 @@
 
 <head>
     <meta charset="UTF-8">
+    <!-- Google consent mode v2 — defaults must run before any Google tag command -->
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+
+        gtag('consent', 'default', {
+            'ad_storage': 'denied',
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied',
+            'analytics_storage': 'denied'
+        });
+        gtag('set', 'ads_data_redaction', true);
+        gtag('set', 'url_passthrough', true);
+
+        // A visitor who already accepted must not be measured as denied on the next page.
+        try {
+            if (localStorage.getItem('cipi-consent') === 'granted') {
+                gtag('consent', 'update', {
+                    'ad_storage': 'granted',
+                    'ad_user_data': 'granted',
+                    'ad_personalization': 'granted',
+                    'analytics_storage': 'granted'
+                });
+            }
+        } catch (e) { }
+    </script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18442180441"></script>
+    <script>
+        gtag('js', new Date());
+        gtag('config', 'AW-18442180441');
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>What's New in Cipi 5</title>
     <meta name="description"
@@ -73,7 +106,8 @@
            ═══════════════════════════════════════════════════════════ */
 
         :root {
-            --wrap: 1240px;
+            /* same content frame as the rest of the site */
+            --wrap: var(--max);
         }
 
         [data-theme="light"] {
@@ -143,7 +177,7 @@
             width: 100%;
             max-width: var(--wrap);
             margin: 0 auto;
-            padding: 0 28px;
+            padding: 0 var(--gutter);
         }
 
         /* ── Scroll progress ── */
@@ -158,151 +192,116 @@
             transition: width 0.1s linear;
         }
 
-        /* ── Nav ── */
-        .topbar {
+        /* ── Nav (shared chrome — identical on every page) ── */
+        nav {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             z-index: 200;
-            height: 4.2rem;
-            display: flex;
-            align-items: center;
-            transition: background 0.3s, border-color 0.3s, height 0.3s;
-            border-bottom: 1px solid transparent;
-        }
-
-        .topbar.solid {
-            height: 3.6rem;
+            height: var(--nav-height);
             background: var(--nav-bg);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            border-bottom-color: var(--line);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--line);
+            transition: background 0.3s;
         }
 
-        .topbar-inner {
-            width: 100%;
-            max-width: var(--wrap);
-            margin: 0 auto;
-            padding: 0 28px;
+        nav .nav-inner {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
+            height: 100%;
+            padding: 0 var(--gutter);
+            max-width: var(--nav-max);
+            margin: 0 auto;
         }
 
-        .brand {
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-logo {
             display: flex;
             align-items: center;
             gap: 10px;
             text-decoration: none;
-            color: var(--stage-text);
-            transition: color 0.3s;
+            color: var(--text);
         }
 
-        .topbar.solid .brand {
-            color: var(--ink);
-        }
-
-        .brand svg {
+        .nav-logo svg.tux-logo {
             width: 26px;
             height: 26px;
             flex-shrink: 0;
+            color: var(--text);
         }
 
-        .brand b {
-            font-family: var(--display);
+        .nav-logo span {
+            font-family: var(--font-display);
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.25rem;
             letter-spacing: -0.04em;
         }
 
-        .brand .pi {
-            color: var(--lime);
+        .nav-badge {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: var(--accent);
+            background: var(--tag-bg);
+            border: 1px solid rgba(101, 163, 13, 0.18);
+            padding: 3px 10px;
+            border-radius: 0;
+            letter-spacing: 0.04em;
         }
 
-        .topbar.solid .brand .pi {
-            color: var(--signal);
+        [data-theme="dark"] .nav-badge {
+            border-color: rgba(163, 230, 53, 0.25);
         }
 
-        .ver-pill {
-            font-family: var(--mono);
-            font-size: 0.62rem;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            padding: 4px 9px;
-            border: 1px solid var(--lime);
-            color: var(--lime);
-            margin-left: 4px;
-        }
-
-        .topbar.solid .ver-pill {
-            border-color: var(--signal);
-            color: var(--signal);
-        }
-
-        .topnav {
+        .nav-right {
             display: flex;
             align-items: center;
-            gap: 0.85rem;
+            gap: 0.9rem;
         }
 
-        .topnav .nav-actions {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.55rem;
-            margin-left: 0.25rem;
-        }
-
-        .topnav a {
-            font-size: 0.88rem;
-            font-weight: 500;
+        .nav-link {
             text-decoration: none;
-            color: var(--stage-nav);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 400;
             transition: color 0.2s;
         }
 
-        .topnav a:hover {
-            color: var(--lime);
+        .nav-link:hover {
+            color: var(--text);
         }
 
-        .topbar.solid .topnav a {
-            color: var(--muted);
-        }
-
-        .topbar.solid .topnav a:hover {
-            color: var(--signal);
-        }
-
-        .theme-btn {
+        .theme-toggle {
             background: none;
-            border: none;
+            border: 1px solid var(--border);
+            border-radius: 0;
             cursor: pointer;
-            padding: 0;
-            width: 30px;
-            height: 30px;
+            color: var(--text-secondary);
+            width: 34px;
+            height: 34px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--stage-nav-muted);
-            transition: color 0.2s;
+            flex-shrink: 0;
+            transition: all 0.2s;
         }
 
-        .theme-btn:hover {
-            color: var(--lime);
+        .theme-toggle:hover {
+            color: var(--text);
+            background: var(--bg-warm);
         }
 
-        .topbar.solid .theme-btn {
-            color: var(--muted);
-        }
-
-        .topbar.solid .theme-btn:hover {
-            color: var(--signal);
-        }
-
-        .theme-btn svg {
-            width: 17px;
-            height: 17px;
+        .theme-toggle svg {
+            width: 15px;
+            height: 15px;
         }
 
         [data-theme="light"] .icon-sun {
@@ -313,54 +312,98 @@
             display: none;
         }
 
-        .topnav .nav-cta {
-            padding: 0.45rem 0.9rem;
-            border: 1px solid var(--lime);
-            color: var(--lime);
-            font-weight: 600;
-        }
-
-        .topnav .nav-cta:hover {
-            background: var(--lime);
-            color: #0a0b0f;
-        }
-
-        .topbar.solid .topnav .nav-cta {
-            border-color: var(--ink);
-            background: var(--ink);
-            color: var(--paper);
-        }
-
-        .topbar.solid .topnav .nav-cta:hover {
-            opacity: 0.85;
-            color: var(--paper);
-        }
-
-        .topnav .btn-nav-sm {
+        .btn-nav-sm {
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
-            padding: 0.45rem 0.85rem;
-            border: 1px solid var(--lime);
-            background: transparent;
-            color: var(--lime);
+            gap: 6px;
+            padding: 7px 16px;
+            border: 1px solid var(--text);
+            background: var(--text);
+            color: var(--bg);
+            border-radius: 0;
+            font-size: 0.8rem;
+            font-weight: 500;
             text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            white-space: nowrap;
+            transition: opacity 0.2s;
         }
-        .topnav .btn-nav-sm:hover {
-            background: var(--lime);
-            color: #0a0b0f;
+
+        .btn-nav-sm:hover {
+            opacity: 0.82;
         }
-        .topbar.solid .topnav .btn-nav-sm {
-            border-color: var(--ink);
-            background: var(--ink);
-            color: var(--paper);
+
+        /* ── Mobile navigation (shared with every other page) ── */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: 0;
+            cursor: pointer;
+            color: var(--text);
+            padding: 0.25rem;
         }
-        .topbar.solid .topnav .btn-nav-sm:hover {
-            opacity: 0.85;
-            color: var(--paper);
+
+        .nav-toggle svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .nav-toggle .icon-close {
+            display: none;
+        }
+
+        .nav-toggle.active .icon-open {
+            display: none;
+        }
+
+        .nav-toggle.active .icon-close {
+            display: block;
+        }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            inset: var(--nav-height) 0 0 0;
+            background: var(--bg-warm);
+            border-top: 1px solid var(--border);
+            z-index: 190;
+            padding: 1rem var(--gutter) 2rem;
+            overflow-y: auto;
+        }
+
+        .mobile-menu.open {
+            display: block;
+        }
+
+        .mobile-menu ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .mobile-menu li a {
+            display: block;
+            padding: 0.85rem 0;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* One breakpoint for the whole site: inline links give way to the hamburger. */
+        @media (max-width: 860px) {
+            .nav-link {
+                display: none;
+            }
+
+            .nav-toggle {
+                display: inline-flex;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-badge {
+                display: none;
+            }
         }
 
         /* ══════════════ HERO / STAGE ══════════════ */
@@ -405,7 +448,7 @@
             width: 100%;
             max-width: var(--wrap);
             margin: 0 auto;
-            padding: 0 28px;
+            padding: 0 var(--gutter);
             display: grid;
             grid-template-columns: 1.15fr 0.85fr;
             gap: 3.5rem;
@@ -1377,7 +1420,9 @@
         @media (max-width: 1080px) {
             .stage-inner,
             .finale-inner {
-                grid-template-columns: 1fr;
+                /* minmax(0,…) so a wide code block shrinks instead of
+                   pushing the column past the gutter */
+                grid-template-columns: minmax(0, 1fr);
                 gap: 2.6rem;
             }
 
@@ -1410,10 +1455,6 @@
         }
 
         @media (max-width: 860px) {
-            .topnav .hide-sm {
-                display: none;
-            }
-
             .ba-row {
                 grid-template-columns: 1fr;
                 gap: 0.3rem;
@@ -1432,7 +1473,6 @@
 
         @media (max-width: 620px) {
             .wrap,
-            .topbar-inner,
             .stage-inner {
                 padding: 0 20px;
             }
@@ -1483,44 +1523,46 @@
     <div class="progress" id="progress"></div>
 
     <!-- ══════════ TOP BAR ══════════ -->
-    <header class="topbar" id="topbar">
-        <div class="topbar-inner">
-            <a href="/" class="brand">
-                <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true">
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M16.2182,35.9c-3.1368,0-6.8982,1.496-7.2988,5.6766a.916.916,0,0,0,.9061,1.0025h11.97A.9.9,0,0,0,22.7,41.643C22.6175,39.8048,21.7865,35.9,16.2182,35.9Z" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M18.0508,20.564c-1.35,1.0368-7.3687,7.51-4.3595,15.6667" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M31.7818,35.9c3.1368,0,6.8982,1.496,7.2988,5.6766a.916.916,0,0,1-.9061,1.0025h-11.97A.9.9,0,0,1,25.3,41.643C25.3825,39.8048,26.2135,35.9,31.7818,35.9Z" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M35.0148,36.4556c3.1848-2.8438,2.7468-7.5246,2.7468-8.7785,2.8935.82,5.0306,2.9709,5.5941,2.17,1.3744-1.9531-7.5193-7.5461-7.6918-10.8989C35.4951,15.6692,35.1706,5.4214,24,5.4214S12.5049,15.6692,12.3361,18.9484c-.1725,3.3528-9.0662,8.9458-7.6918,10.8989.5635.8007,2.7006-1.35,5.5941-2.17,0,1.2539-.438,5.9347,2.7468,8.7785" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M29.2763,19.8324c1.9318,1.5032,8.0416,8.242,5.0324,16.3983" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M24,24.8431l3.9479-4.2791c-.3858-1.0127-1.712-1.929-3.9479-1.929s-3.5621.9163-3.9479,1.929Z" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M20.0521,20.564c-3.424.5063-3.9062-2.7247-3.9062-4.7019,0-2.7006,1.4467-4.4367,3.9062-4.4367S23.79,14.7529,23.79,16.3443A3.8486,3.8486,0,0,1,23.181,18.68" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M27.7205,20.1334c.6751.0482,3.9538-.3892,3.9538-3.331s-1.76-3.7615-4.1232-3.7615a3.7861,3.7861,0,0,0-3.8164,2.6682" />
-                    <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                        d="M22.7012,41.4815a6.8371,6.8371,0,0,0,2.6076,0" />
-                    <circle fill="currentColor" cx="22.1579" cy="16.5888" r="0.75" />
-                    <circle fill="currentColor" cx="25.5497" cy="16.5888" r="0.75" />
-                </svg>
-                <b>Ci<span class="pi">pi</span></b>
-                <span class="ver-pill">v5.2.3</span>
-            </a>
-            <nav class="topnav">
-                <a href="/cipi-yml" class="hide-sm">cipi.yml</a>
-                <div class="nav-actions">
-                    <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
-                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                        stroke-linecap="round" stroke-linejoin="round">
+    <nav>
+        <div class="nav-inner">
+            <div class="nav-left">
+                <a href="/" class="nav-logo">
+                    <svg class="tux-logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M16.2182,35.9c-3.1368,0-6.8982,1.496-7.2988,5.6766a.916.916,0,0,0,.9061,1.0025h11.97A.9.9,0,0,0,22.7,41.643C22.6175,39.8048,21.7865,35.9,16.2182,35.9Z" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M18.0508,20.564c-1.35,1.0368-7.3687,7.51-4.3595,15.6667" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M31.7818,35.9c3.1368,0,6.8982,1.496,7.2988,5.6766a.916.916,0,0,1-.9061,1.0025h-11.97A.9.9,0,0,1,25.3,41.643C25.3825,39.8048,26.2135,35.9,31.7818,35.9Z" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M35.0148,36.4556c3.1848-2.8438,2.7468-7.5246,2.7468-8.7785,2.8935.82,5.0306,2.9709,5.5941,2.17,1.3744-1.9531-7.5193-7.5461-7.6918-10.8989C35.4951,15.6692,35.1706,5.4214,24,5.4214S12.5049,15.6692,12.3361,18.9484c-.1725,3.3528-9.0662,8.9458-7.6918,10.8989.5635.8007,2.7006-1.35,5.5941-2.17,0,1.2539-.438,5.9347,2.7468,8.7785" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M29.2763,19.8324c1.9318,1.5032,8.0416,8.242,5.0324,16.3983" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M24,24.8431l3.9479-4.2791c-.3858-1.0127-1.712-1.929-3.9479-1.929s-3.5621.9163-3.9479,1.929Z" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M20.0521,20.564c-3.424.5063-3.9062-2.7247-3.9062-4.7019,0-2.7006,1.4467-4.4367,3.9062-4.4367S23.79,14.7529,23.79,16.3443A3.8486,3.8486,0,0,1,23.181,18.68" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M27.7205,20.1334c.6751.0482,3.9538-.3892,3.9538-3.331s-1.76-3.7615-4.1232-3.7615a3.7861,3.7861,0,0,0-3.8164,2.6682" />
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                            d="M22.7012,41.4815a6.8371,6.8371,0,0,0,2.6076,0" />
+                        <circle fill="currentColor" cx="22.1579" cy="16.5888" r="0.75" />
+                        <circle fill="currentColor" cx="25.5497" cy="16.5888" r="0.75" />
+                    </svg>
+                    <span>Ci<span style="color:var(--signal)">pi</span></span>
+                </a>
+                <span class="nav-badge">What's new</span>
+            </div>
+            <div class="nav-right">
+                <a href="/guides/" class="nav-link">Guides</a>
+                <a href="/discovery" class="nav-link">Discovery</a>
+                <a href="/docs/" class="nav-link">Docs</a>
+                <a href="/cipi-yml" class="nav-link">cipi.yml</a>
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
                     </svg>
-                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-                        stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="5" />
                         <line x1="12" y1="1" x2="12" y2="3" />
                         <line x1="12" y1="21" x2="12" y2="23" />
@@ -1532,16 +1574,36 @@
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
                     </svg>
                 </button>
-                    <a href="https://github.com/cipi-sh/cipi" target="_blank" class="btn-nav-sm" rel="noopener">
+                <a href="https://github.com/cipi-sh/cipi" target="_blank" class="btn-nav-sm" rel="noopener">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                     </svg>
                     GitHub
                 </a>
-                </div>
-            </nav>
+                <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                    <svg class="icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <line x1="4" y1="7" x2="20" y2="7" />
+                        <line x1="4" y1="12" x2="20" y2="12" />
+                        <line x1="4" y1="17" x2="20" y2="17" />
+                    </svg>
+                    <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                        <line x1="6" y1="18" x2="18" y2="6" />
+                    </svg>
+                </button>
+            </div>
         </div>
-    </header>
+    </nav>
+
+    <!-- Mobile menu overlay (outside nav to avoid backdrop-filter stacking context) -->
+    <div class="mobile-menu" id="mobileMenu">
+        <ul>
+            <li><a href="/guides/">Guides</a></li>
+            <li><a href="/discovery">Discovery</a></li>
+            <li><a href="/docs/">Docs</a></li>
+            <li><a href="/cipi-yml">cipi.yml</a></li>
+        </ul>
+    </div>
 
     <!-- ══════════ HERO STAGE ══════════ -->
     <section class="stage" id="top">
@@ -2484,13 +2546,10 @@
             });
         }
 
-        // ── Sticky bar + scroll progress ──
-        const bar = document.getElementById('topbar');
+        // ── Scroll progress (the nav is solid on every page now) ──
         const prog = document.getElementById('progress');
-        const stage = document.querySelector('.stage');
         function onScroll() {
             const y = window.scrollY;
-            bar.classList.toggle('solid', y > stage.offsetHeight - 90);
             const max = document.documentElement.scrollHeight - window.innerHeight;
             prog.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
         }
@@ -2511,6 +2570,8 @@
     <script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
     <noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/" width="1"
             height="1" /></noscript>
+    <script defer src="/js/nav.js"></script>
+    <script defer src="/js/consent.js"></script>
 </body>
 
 </html>
