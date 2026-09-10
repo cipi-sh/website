@@ -219,6 +219,7 @@
                 <a href="/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
+                <a href="/docs/infrastructure#cli-stack-upgrade" class="sidebar-link">stack upgrades</a>
                 <a href="/docs/infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="/docs/infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
@@ -1015,6 +1016,12 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                         <code>search install|upgrade|key rotate|remove</code> and
                         <code>package install|remove</code> stay off it — they change or destroy server
                         state and stay with the operator on the CLI.</li>
+                    <li>Since Cipi <strong>5.2.3+</strong>: the manual
+                        <a href="/docs/infrastructure#cli-stack-upgrade">stack upgrades</a> —
+                        <code>nginx upgrade</code>, <code>db upgrade</code> and <code>service upgrade</code> — are
+                        <strong>not</strong> in the sudoers whitelist either, for the same reason as
+                        <code>package install</code>: restarting a database engine is an operator decision, taken at
+                        the CLI while you are watching.</li>
                     <li>Async jobs — <code>cipi app</code> (including <code>--octane</code> /
                         <code>--engine</code>), <code>deploy</code>, <code>alias</code>, <code>www</code>,
                         <code>ssl</code> / <code>ssl force</code>,
@@ -2083,6 +2090,9 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     (<code>search_install</code>, <code>search_enable</code>, <code>search_disable</code>,
                     <code>search_key_rotate</code>, <code>search_upgrade</code>, <code>search_remove</code>)
                     and Packages (<code>package_install</code>, <code>package_remove</code>).</p>
+                <p><strong>v5.2.3</strong> adds five: <code>yml_post_fail</code> (a <code>deploy.post</code> step
+                    failed) and one per manually upgraded service — <code>nginx_upgrade</code>,
+                    <code>mariadb_upgrade</code>, <code>pgsql_upgrade</code>, <code>valkey_upgrade</code>.</p>
 
                                 <div class="table-scroll">
                     <table class="cmd-table">
@@ -2125,6 +2135,10 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                             <tr><td><code>php_switch</code></td><td>PHP</td><td>System PHP switched</td></tr>
                                             <tr><td><code>php_remove</code></td><td>PHP</td><td>PHP version removed</td></tr>
                                             <tr><td><code>php_upgrade</code></td><td>PHP</td><td>PHP packages upgraded</td></tr>
+                                            <tr><td><code>nginx_upgrade</code></td><td>Stack</td><td>nginx packages upgraded <strong>(5.2.3)</strong></td></tr>
+                                            <tr><td><code>mariadb_upgrade</code></td><td>Stack</td><td>MariaDB packages upgraded <strong>(5.2.3)</strong></td></tr>
+                                            <tr><td><code>pgsql_upgrade</code></td><td>Stack</td><td>PostgreSQL packages upgraded <strong>(5.2.3)</strong></td></tr>
+                                            <tr><td><code>valkey_upgrade</code></td><td>Stack</td><td>Valkey packages upgraded <strong>(5.2.3)</strong></td></tr>
                                             <tr><td><code>db_create</code></td><td>Database</td><td>Database created</td></tr>
                                             <tr><td><code>db_delete</code></td><td>Database</td><td>Database deleted</td></tr>
                                             <tr><td><code>worker_add</code></td><td>Workers</td><td>Worker added</td></tr>
@@ -2141,6 +2155,7 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                             <tr><td><code>ini_set</code></td><td>PHP</td><td>PHP setting changed <strong>(5.1.0)</strong></td></tr>
                                             <tr><td><code>yml_apply</code></td><td>cipi.yml</td><td>cipi.yml applied <strong>(5.1.0)</strong></td></tr>
                                             <tr><td><code>yml_fail</code></td><td>cipi.yml</td><td>cipi.yml invalid or could not be applied <strong>(5.1.0)</strong></td></tr>
+                                            <tr><td><code>yml_post_fail</code></td><td>cipi.yml</td><td>A <code>deploy.post</code> step failed <strong>(5.2.3)</strong></td></tr>
                                             <tr><td><code>self_update</code></td><td>Updates</td><td>Cipi updated itself <strong>(5.1.0)</strong></td></tr>
                                             <tr><td><code>reset_root_password</code></td><td>Reset</td><td>Root SSH password reset</td></tr>
                                             <tr><td><code>reset_db_password</code></td><td>Reset</td><td>MariaDB root password reset</td></tr>

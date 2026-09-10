@@ -16,24 +16,26 @@ Cipi is a free, open-source (MIT), Laravel-first deploy CLI for Ubuntu VPS. One 
 - Admin access: SSH as `cipi` user, then `sudo -s` to run `cipi` commands
 - License: MIT, source at https://github.com/cipi-sh/cipi
 - Author: Andrea Pollastri (https://github.com/andreapollastri)
-- Current major version: Cipi 5.2.2 (5.2.2: opt-in Meilisearch for Laravel Scout via `cipi search` and an allowlisted `cipi package` for host binaries; 5.2.0: opt-in CrowdSec — engine plus a registered firewall bouncer, a rescue TLS listener with a one-shot break-glass token, and no WAF — plus a nightly 04:40 integrity scan of the live release against the sha256 manifest written at each deploy, ClamAV on upload dirs only, and bash/zsh tab-completion installed automatically; nothing is enabled by setup.sh or self-update. 5.1.3 hotfix: `cipi ini list` no longer dies on the first setting after printing the header; 5.1.2 Reverb production-ready: generated credentials, ws/wss from the certificate, proxy limited to /app/{key} and /apps/{id}/…, raised connection limits, workers.reverb in cipi.yml; 5.1.1 hotfix: FPM pool repair and wildcard domains end to end; 5.1.0: backup profiles, cipi.yml, cipi ini, post-deploy healthchecks, nginx default-server, wildcard aliases; plus Laravel Octane on FrankenPHP, Horizon, PostgreSQL, Node build on deploy, pre-deploy snapshots, wildcard SSL via DNS-01, staging clones)
+- Current major version: Cipi 5.2.3 (5.2.3: `cipi git` auto-setup beyond GitHub/GitLab — Cursor Origin, AWS CodeCommit, Bitbucket Cloud and Azure DevOps detected from the SSH clone URL, deploy key always registered, webhook where the forge has one (Bitbucket repo:push + HMAC secret, Azure git.push service hook sending X-Gitlab-Token; Origin and CodeCommit have none); `deploy.post` in cipi.yml — allowlisted post-deploy steps (artisan, npm/npx/yarn/pnpm, composer, one relative php/node script), no free shell, and the one section that runs without `cipi yml auto`, with `post_on_failure: warn|abort` and `cipi yml post-deploy <app>`; manual patch-level stack upgrades for the packages kept off unattended-upgrades — `cipi nginx upgrade`, `cipi db upgrade [mariadb|pgsql]`, `cipi service upgrade [nginx|mariadb|postgresql|valkey]`, never on a cron and `all` refused; security fix: a custom app's committed cipi.yml was downloadable at https://domain/cipi.yml — every app vhost now denies /cipi.yml and /cipi.yaml at any path. 5.2.2: opt-in Meilisearch for Laravel Scout via `cipi search` and an allowlisted `cipi package` for host binaries; 5.2.0: opt-in CrowdSec — engine plus a registered firewall bouncer, a rescue TLS listener with a one-shot break-glass token, and no WAF — plus a nightly 04:40 integrity scan of the live release against the sha256 manifest written at each deploy, ClamAV on upload dirs only, and bash/zsh tab-completion installed automatically; nothing is enabled by setup.sh or self-update. 5.1.3 hotfix: `cipi ini list` no longer dies on the first setting after printing the header; 5.1.2 Reverb production-ready: generated credentials, ws/wss from the certificate, proxy limited to /app/{key} and /apps/{id}/…, raised connection limits, workers.reverb in cipi.yml; 5.1.1 hotfix: FPM pool repair and wildcard domains end to end; 5.1.0: backup profiles, cipi.yml, cipi ini, post-deploy healthchecks, nginx default-server, wildcard aliases; plus Laravel Octane on FrankenPHP, Horizon, PostgreSQL, Node build on deploy, pre-deploy snapshots, wildcard SSL via DNS-01, staging clones)
 
 ## Core capabilities
 
 - One-command install of the full LEMP production stack on any Ubuntu VPS
 - Isolated apps: each app gets its own system user, PHP-FPM pool (or Octane service), Nginx vhost and database
-- Zero-downtime Git deployments via GitHub/GitLab webhooks (deploy keys and webhooks configured automatically), Deployer-style releases
+- Zero-downtime Git deployments via webhooks from GitHub, GitLab, Bitbucket Cloud or Azure DevOps (deploy keys and webhooks configured automatically; Cursor Origin and AWS CodeCommit get the deploy key only), Deployer-style releases
 - Laravel Octane on FrankenPHP: `cipi app create --octane`, `cipi app convert --to=octane`; Octane apps run beside classic FPM apps
 - Laravel Horizon, Reverb, queue workers (Supervisor) and scheduler configured out of the box
 - Databases: MariaDB default, optional PostgreSQL (`cipi db install pgsql`), per-app engine choice (`--engine=mariadb|pgsql`)
 - SSL: free Let's Encrypt certificates (`cipi ssl install`), wildcard via DNS-01, forced HTTPS (`cipi ssl force`)
 - www redirects: `cipi www add|force-to-root|force-from-root|clear|status`
 - Backups: profile-driven (`cipi backup profile`) — S3-compatible / local, client-side encryption, verify, overdue watchdog; pre-deploy database snapshots; `cipi db restore`
-- Security: AES-256-CBC config encryption at rest, hardened defaults, PHP security patches managed by Cipi (`cipi php upgrade`)
+- Security: AES-256-CBC config encryption at rest, hardened defaults, PHP security patches managed by Cipi (`cipi php upgrade`); nginx, MariaDB, PostgreSQL and Valkey patched on demand with `cipi nginx upgrade` / `cipi db upgrade` / `cipi service upgrade` (v5.2.3+)
 - IP reputation (v5.2.0+, opt-in): `cipi crowdsec enable` installs the CrowdSec engine and a registered firewall bouncer, reads the per-vhost Nginx logs, allowlists your SSH session, GitHub webhook CIDRs and Let's Encrypt, and starts a rescue TLS listener so an automatic ban cannot lock you out; `cipi ban list|unban` covers both CrowdSec and fail2ban. Not a WAF
 - Integrity + malware scan (v5.2.0+, opt-in): `cipi scan` verifies nightly that the live release still matches the sha256 manifest written at its deploy (manifests kept root-only in /var/lib/cipi/manifests), then runs ClamAV over the upload directories only; alerts are `scan_integrity` or `scan_incomplete`
 - Shell tab-completion (v5.2.0+): bash and zsh completion for verbs, sub-commands, flags and app names, installed by `setup.sh` and every `cipi self-update`
 - Search (v5.2.2+, opt-in): `cipi search` installs Meilisearch as a native binary on 127.0.0.1 for Laravel Scout; Cipi writes SCOUT_PREFIX; not in cipi backup
+- Git forges (v5.2.3+): GitHub, GitLab, Cursor Origin, AWS CodeCommit, Bitbucket Cloud, Azure DevOps — `cipi git <provider>-token`, `remove-<provider>`, `cipi git refresh` covers them all
+- Manual stack upgrades (v5.2.3+): `cipi nginx upgrade`, `cipi db upgrade [engine]`, `cipi service upgrade [name]` — patch-level, operator-triggered, mails nginx_upgrade/mariadb_upgrade/pgsql_upgrade/valkey_upgrade
 - Host packages (v5.2.2+, opt-in): `cipi package list|install|remove` — allowlisted Ubuntu binaries (image-optimizers, ffmpeg, imagemagick, poppler-utils); Chromium refused
 - Sync/failover: encrypted server-to-server sync
 - Automation: REST API (package `cipi/api`, 46 MCP tools), remote CLI client (cipi-cli), webhooks, WHMCS module
@@ -177,7 +179,7 @@ English tree (`/…`):
 - Advanced (REST API 1.14.0 — .env/auth/artisan/run/deploy-config, sync, vault, SMTP): https://cipi.sh/docs/advanced
 - Cipi Agent (Laravel package: webhooks, health check, MCP, anonymizer): https://cipi.sh/docs/agent
 - About & design decisions: https://cipi.sh/docs/about
-- cipi.yml (per-app config file in the repository: aliases, PHP/php.ini, databases, workers, scheduler, health, backups): https://cipi.sh/cipi-yml
+- cipi.yml (per-app config file in the repository: aliases, PHP/php.ini, databases, workers, scheduler, health, backups, and post-deploy steps since 5.2.3): https://cipi.sh/cipi-yml
 - What's new in Cipi 5: https://cipi.sh/whats-new
 - Discovery: https://cipi.sh/discovery
 - GitHub: https://github.com/cipi-sh/cipi

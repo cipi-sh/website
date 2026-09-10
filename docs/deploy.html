@@ -216,6 +216,7 @@
                 <a href="/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
+                <a href="/docs/infrastructure#cli-stack-upgrade" class="sidebar-link">stack upgrades</a>
                 <a href="/docs/infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="/docs/infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
@@ -486,8 +487,9 @@
                         and settings</strong>, <strong>extra databases</strong>, <strong>queue workers</strong> or
                         <strong>Horizon</strong>, <strong>Reverb</strong>, the
                     <strong>scheduler</strong>, its <strong>healthcheck</strong> and its <strong>backup
-                        strategy</strong>. The file lives next to the code, so server configuration is reviewed,
-                    versioned and shipped like everything else.</p>
+                        strategy</strong>. Since <strong>v5.2.3</strong> it can also declare
+                    <a href="#cli-yml-deploy-post"><strong>post-deploy steps</strong></a>. The file lives next to the
+                    code, so server configuration is reviewed, versioned and shipped like everything else.</p>
 
                 <h3>Commands</h3>
                 <div class="code-block">
@@ -498,11 +500,29 @@
 <span class="p">$</span> cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
 <span class="p">$</span> cipi yml plan myapp              <span class="c"># show exactly what would change</span>
 <span class="p">$</span> cipi yml apply myapp [--yes]     <span class="c"># apply it</span>
-<span class="p">$</span> cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span></pre>
+<span class="p">$</span> cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span>
+<span class="p">$</span> cipi yml post-deploy myapp       <span class="c"># run the declared deploy.post steps now (5.2.3+)</span></pre>
                 </div>
 
                 <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
-                    <code>shared/cipi.yml</code> — override with <code>--file=&lt;path&gt;</code>.</p>
+                    <code>shared/cipi.yml</code> — and, since <strong>v5.2.3</strong>, in <code>htdocs/</code>, which
+                    is where a <a href="/docs/apps#cli-app-custom">custom app</a>'s repository actually lives.
+                    Override with <code>--file=&lt;path&gt;</code>.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Fixed in v5.2.3:</strong> on a custom app, <code>htdocs/</code> <em>is</em> the
+                        document root, so a committed <code>cipi.yml</code> was downloadable at
+                        <code>https://&lt;domain&gt;/cipi.yml</code>. Every app vhost now denies
+                        <code>/cipi.yml</code> and <code>/cipi.yaml</code> at any path, Laravel included. Existing
+                        servers get the rule on update, without regenerating the vhost. Update, then check your own
+                        domains.</div>
+                </div>
 
                 <h3>Start from what the server already has</h3>
                 <p>You do not have to write it by hand. <code>cipi yml generate &lt;app&gt;</code> prints the app's
@@ -584,6 +604,16 @@ health:
   # rollback_on_unhealthy: true   # undo a release that fails the check
   #                               # (the code symlink only — migrations are NOT undone)</span>
 
+<span class="c"># Post-deploy steps (5.2.3+). Allowlisted runners only — no free shell.
+# Unlike every other section, this one does NOT need `cipi yml auto` on.</span>
+deploy:
+  post:
+    - artisan cache:clear
+    - artisan scout:import --force
+    - npm run build
+    - composer dump-autoload -o
+  <span class="c"># post_on_failure: abort   # default warn</span>
+
 <span class="c"># Backup strategy for this app. Profile names must be myapp or myapp-*.</span>
 backup:
   profiles:
@@ -625,6 +655,111 @@ backup:
                     (<code>yml_fail</code>) and <strong>never partially applied</strong>. A successful reconcile fires
                     <code>yml_apply</code>.</p>
 
+                <h3 id="cli-yml-deploy-post"><code>deploy.post</code> — post-deploy steps that travel with the
+                    code</h3>
+                <p>Available since <strong>v5.2.3</strong>. After every successful deploy, Cipi can run a declared
+                    list of allowlisted commands from the live release directory — on both <code>cipi deploy</code>
+                    and the Git webhook.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Unlike aliases, workers and the rest of the file, <code>deploy.post</code> does
+                        <strong>not</strong> require <code>cipi yml auto &lt;app&gt; on</code>. Commit the section and
+                        the steps run as soon as the release is live.</div>
+                </div>
+
+                <h4>Syntax</h4>
+                <p>Plain strings, or structured maps when you want the arguments spelled out. Both forms go through
+                    the same allowlist — see <code>cipi yml example &lt;app&gt;</code> for a commented template.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>deploy:
+  post:
+    - artisan cache:clear
+    - artisan scout:import --force
+    - npm run build
+    - composer dump-autoload -o
+    - php scripts/post-deploy.php
+    - node scripts/warm-cache.mjs
+  <span class="c"># post_on_failure: abort   # default warn</span></pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Structured form — same allowlist, useful for explicit arguments</span>
+deploy:
+  post:
+    - run: artisan
+      command: scout:import
+      args: [--force]
+    - run: npm
+      args: [run, build]
+    - artisan: view:cache</pre>
+                </div>
+
+                <h4>Allowlisted runners only</h4>
+                <p>There is no free shell. What is accepted:</p>
+                <ul>
+                    <li><code>artisan</code> — <code>cache:clear</code>, <code>migrate --force</code>, …</li>
+                    <li><code>npm</code> / <code>npx</code> / <code>yarn</code> / <code>pnpm</code> —
+                        <code>run build</code>, <code>ci</code>, …</li>
+                    <li><code>composer</code> — <code>dump-autoload -o</code>, …</li>
+                    <li><code>php</code> / <code>node</code> — one relative script path under the release, e.g.
+                        <code>scripts/warm.mjs</code></li>
+                </ul>
+                <p>Rejected: unknown runners, <code>bash</code>, pipes, <code>;</code>, <code>..</code> in paths,
+                    <code>artisan tinker</code> and the other interactive subcommands — the same spirit as
+                    <code>cipi app run</code>.</p>
+
+                <h4>Where it sits in the deploy</h4>
+                <p>After Deployer finishes (migrate, symlink, worker restart, …), then the optional
+                    <code>cipi yml apply</code> (only if auto-apply is on), then <code>deploy.post</code>, then the
+                    post-deploy healthcheck, then the success notification.</p>
+
+                <h4><code>deploy.post_on_failure</code></h4>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Value</th>
+                                <th>Behaviour</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>warn</code> <em>(default)</em></td>
+                                <td>Log the failure and send the <code>yml_post_fail</code> email. The release stays
+                                    live.</td>
+                            </tr>
+                            <tr>
+                                <td><code>abort</code></td>
+                                <td>Post-deploy exits non-zero and <code>cipi deploy</code> fails with it — for CI,
+                                    where e.g. <code>npm run build</code> must pass.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Testing the steps</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># run the declared steps now, against current/</span>
+<span class="p">$</span> cipi yml post-deploy myapp
+
+<span class="c"># cipi yml plan lists them under "After deploy" — informational,</span>
+<span class="c"># they are not server state to reconcile</span>
+<span class="p">$</span> cipi yml plan myapp</pre>
+                </div>
+
                 <h3>Why it is safe to accept over Git</h3>
                 <p>The file arrives from a repository, so anyone who can commit controls its contents. It is therefore
                     fail-closed throughout:</p>
@@ -636,7 +771,9 @@ backup:
                     <li>Its healthcheck URL must resolve to one of the app's own domains — otherwise a commit could aim
                         the server's five-minute prober at an internal address and read the answer back out of the alert
                         emails.</li>
-                    <li>Unknown keys are errors, and no field carries a shell command or a path to include.</li>
+                    <li>Unknown keys are errors, and no field carries a shell command or a path to include.
+                        <code>deploy.post</code> (5.2.3+) is the one section that runs something, and it accepts only
+                        <a href="#cli-yml-deploy-post">allowlisted runners</a> — never a shell line.</li>
                     <li>The parser implements a deliberately small YAML subset and refuses anchors, aliases, tags, merge
                         keys, block scalars and flow mappings outright.</li>
                 </ul>
@@ -747,8 +884,90 @@ backup:
 
             <div class="doc-section" id="git-providers">
                 <h2>Git providers</h2>
-                <p>Cipi is ready to work with <strong>GitHub</strong> and <strong>GitLab</strong> but it supports any
-                    other Git provider that supports SSH deploy keys — no vendor lock-in.</p>
+                <p>Cipi auto-configures <strong>GitHub</strong>, <strong>GitLab</strong> and — since
+                    <strong>v5.2.3</strong> — <strong>Cursor Origin</strong>, <strong>AWS CodeCommit</strong>,
+                    <strong>Bitbucket Cloud</strong> and <strong>Azure DevOps</strong>. Any other provider that
+                    supports SSH deploy keys still works through the manual fallback — no vendor lock-in.</p>
+
+                <p>The forge is detected from the <strong>SSH clone URL</strong> you give the app, never from a flag:
+                </p>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Provider</th>
+                                <th>Host detected</th>
+                                <th>Deploy key</th>
+                                <th>Webhook</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>GitHub</strong></td>
+                                <td><code>github.com</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — HMAC secret</td>
+                            </tr>
+                            <tr>
+                                <td><strong>GitLab</strong></td>
+                                <td><code>gitlab.com</code>, self-hosted via <code>cipi git gitlab-url</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — <code>X-Gitlab-Token</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Bitbucket Cloud</strong> <em>(5.2.3)</em></td>
+                                <td><code>bitbucket.org</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — <code>repo:push</code> + HMAC <code>secret</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Azure DevOps</strong> <em>(5.2.3)</em></td>
+                                <td><code>dev.azure.com</code>, <code>ssh.dev.azure.com</code>,
+                                    <code>*.visualstudio.com</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — service hook <code>git.push</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cursor Origin</strong> <em>(5.2.3)</em></td>
+                                <td><code>origin.cursor.com</code></td>
+                                <td>Automatic</td>
+                                <td>Not available — deploy with <code>cipi deploy</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>AWS CodeCommit</strong> <em>(5.2.3)</em></td>
+                                <td><code>git-codecommit.*.amazonaws.com</code></td>
+                                <td>Automatic (IAM SSH key)</td>
+                                <td>Not available — deploy with <code>cipi deploy</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Anything else</strong></td>
+                                <td>Gitea, Forgejo, self-hosted…</td>
+                                <td>Manual (<code>cipi deploy &lt;app&gt; --key</code>)</td>
+                                <td>Manual (<code>cipi deploy &lt;app&gt; --webhook</code>)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Origin and CodeCommit have no per-repository HTTP webhook to create — Origin Apps expose a
+                        single Ed25519-signed webhook rather than a per-repo HMAC URL, and CodeCommit only publishes to
+                        SNS/EventBridge. The deploy key is still registered automatically; releases go out with
+                        <code>cipi deploy</code> or from CI over SSH.</div>
+                </div>
+
+                <p>Since <strong>v5.2.3</strong> a new app keyscans <code>bitbucket.org</code>,
+                    <code>origin.cursor.com</code> and <code>ssh.dev.azure.com</code> alongside
+                    <code>github.com</code> and <code>gitlab.com</code>, plus the host of the repository URL you
+                    actually gave it — so a supported forge is trusted before the first clone without any extra flag.
+                </p>
 
                 <p>For self-hosted or custom Git servers, you need to trust the server's host fingerprint before
                     Deployer can clone over SSH. Use the <code>--trust-host</code> flag to add the fingerprint to the
@@ -784,9 +1003,11 @@ backup:
 
             <div class="doc-section" id="git-auto-setup">
                 <h2>Git auto-setup</h2>
-                <p>If you save a <strong>GitHub</strong> or <strong>GitLab</strong> Personal Access Token, Cipi
-                    automatically adds the SSH deploy key and creates the webhook on the repository every time you run
-                    <code>cipi app create</code>. No manual steps required.
+                <p>If you save a Personal Access Token for the forge that hosts the repository, Cipi automatically
+                    adds the SSH deploy key and creates the webhook every time you run <code>cipi app create</code>.
+                    No manual steps required. Since <strong>v5.2.3</strong> this covers <strong>GitHub</strong>,
+                    <strong>GitLab</strong>, <strong>Cursor Origin</strong>, <strong>AWS CodeCommit</strong>,
+                    <strong>Bitbucket Cloud</strong> and <strong>Azure DevOps</strong>.
                 </p>
 
                 <h3>Save a token</h3>
@@ -801,8 +1022,25 @@ backup:
 
 <span class="c"># GitLab (self-hosted — set the URL before or after the token)</span>
 <span class="p">$</span> cipi git gitlab-url https://gitlab.example.com
-<span class="p">$</span> cipi git gitlab-token glpat-xxxxxxxxxxxxxxxxxxxx</pre>
+<span class="p">$</span> cipi git gitlab-token glpat-xxxxxxxxxxxxxxxxxxxx
+
+<span class="c"># Cursor Origin (5.2.3+)</span>
+<span class="p">$</span> cipi git origin-token &lt;token&gt;
+
+<span class="c"># Bitbucket Cloud (5.2.3+) — bearer token, or email:token for Basic auth</span>
+<span class="p">$</span> cipi git bitbucket-token &lt;token&gt;
+<span class="p">$</span> cipi git bitbucket-token you@example.com:&lt;app-password&gt;
+
+<span class="c"># Azure DevOps (5.2.3+) — a PAT, sent as Basic with an empty user</span>
+<span class="p">$</span> cipi git azure-token &lt;pat&gt;
+
+<span class="c"># AWS CodeCommit (5.2.3+) — IAM access key, secret key and IAM user name</span>
+<span class="p">$</span> cipi git codecommit-token &lt;access-key&gt; &lt;secret-key&gt; &lt;iam-user&gt;</pre>
                 </div>
+
+                <p>Every provider has a matching <code>remove-*</code> command:
+                    <code>cipi git remove-github</code>, <code>remove-gitlab</code>, <code>remove-origin</code>,
+                    <code>remove-bitbucket</code>, <code>remove-azure</code>, <code>remove-codecommit</code>.</p>
 
                 <h4>GitHub token permissions</h4>
                 <p>Fine-grained tokens (recommended) need <strong>Administration</strong> and
@@ -813,6 +1051,36 @@ backup:
                 <h4>GitLab token permissions</h4>
                 <p>The <code>api</code> scope is the minimum required — GitLab does not offer a more granular scope
                     that covers both deploy keys and webhooks.</p>
+
+                <h4>Cursor Origin token permissions</h4>
+                <p>Sent as a <code>Bearer</code> token. Origin registers the deploy key; there is no per-repository
+                    webhook to create.</p>
+
+                <h4>Bitbucket Cloud token permissions</h4>
+                <p>Sent as a <code>Bearer</code> token, or as HTTP Basic when you store it in the
+                    <code>email:token</code> form. It needs to administer <em>repository access keys</em> and
+                    <em>webhooks</em>. The webhook Cipi creates subscribes to <code>repo:push</code> and carries an
+                    HMAC <code>secret</code> — the same token <code>cipi/agent</code> already verifies for GitHub.</p>
+
+                <h4>Azure DevOps token permissions</h4>
+                <p>A PAT with <em>Code (read &amp; write)</em> — sent as Basic auth with an empty user name, which is
+                    what Azure expects. The service hook Cipi creates is a <code>git.push</code> subscription that
+                    sends <code>X-Gitlab-Token</code>, so the existing GitLab header check in the agent accepts it
+                    unchanged.</p>
+
+                <h4>AWS CodeCommit credentials</h4>
+                <p>CodeCommit is not a PAT forge: Cipi calls IAM <code>UploadSSHPublicKey</code> directly with curl's
+                    <code>--aws-sigv4</code> signing, using the access key, secret key and IAM user name you stored.
+                    Two details follow from IAM:</p>
+                <ul>
+                    <li>IAM accepts <strong>RSA only</strong>, not ed25519 — so Cipi mints an extra 4096-bit
+                        <code>id_rsa</code> beside the usual ed25519 deploy key and uploads that one.</li>
+                    <li>The SSH user name for CodeCommit is the <strong>SSH Key ID</strong> IAM returns, so Cipi
+                        writes a <code>Host git-codecommit.*.amazonaws.com</code> block into the app user's
+                        <code>~/.ssh/config</code> pointing at it.</li>
+                </ul>
+                <p>IAM allows <strong>five</strong> SSH keys per user — plan the IAM user accordingly if one account
+                    serves many apps or many servers.</p>
 
                 <h3>Automatic lifecycle</h3>
                                 <div class="table-scroll">
@@ -860,9 +1128,10 @@ backup:
                                             </tr>
                                             <tr>
                                                 <td><code>cipi git refresh [app]</code></td>
-                                                <td>Re-register the SSH deploy key and deploy webhook on GitHub/GitLab (since
-                                                    <strong>v5.2.1</strong>). One named app, or every GitHub/GitLab app.
-                                                    Custom/SFTP apps get the key only. Flags:
+                                                <td>Re-register the SSH deploy key and deploy webhook (since
+                                                    <strong>v5.2.1</strong>; every supported provider since
+                                                    <strong>v5.2.3</strong>). One named app, or every app on a
+                                                    supported forge. Custom/SFTP apps get the key only. Flags:
                                                     <code>--rotate-keys</code>, <code>--rotate-secret</code>,
                                                     <code>--force</code></td>
                                             </tr>
@@ -879,12 +1148,35 @@ backup:
                                                 <td>Set the base URL for a self-hosted GitLab instance</td>
                                             </tr>
                                             <tr>
+                                                <td><code>cipi git origin-token &lt;token&gt;</code></td>
+                                                <td>Save a Cursor Origin token (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git bitbucket-token &lt;token&gt;</code></td>
+                                                <td>Save a Bitbucket Cloud token — bearer, or <code>email:token</code>
+                                                    for Basic (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git azure-token &lt;pat&gt;</code></td>
+                                                <td>Save an Azure DevOps PAT (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git codecommit-token &lt;access-key&gt; &lt;secret-key&gt; &lt;iam-user&gt;</code></td>
+                                                <td>Save AWS IAM credentials for CodeCommit (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
                                                 <td><code>cipi git remove-github</code></td>
                                                 <td>Remove the stored GitHub token</td>
                                             </tr>
                                             <tr>
                                                 <td><code>cipi git remove-gitlab</code></td>
                                                 <td>Remove the stored GitLab token and URL</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git remove-origin</code> · <code>remove-bitbucket</code>
+                                                    · <code>remove-azure</code> · <code>remove-codecommit</code></td>
+                                                <td>Remove the stored credentials for that provider
+                                                    (<strong>v5.2.3</strong>)</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -922,11 +1214,27 @@ backup:
                     Both rotate flags ask before touching every app unless <code>--force</code>. Deployer still SSHs
                     to localhost with the app's deploy key after a rotation.</p>
 
+                <h3 id="git-webhook-firewall">Webhook egress and CrowdSec</h3>
+                <p>If <a href="/docs/infrastructure#cli-crowdsec"><code>cipi crowdsec</code></a> is enabled, the forge
+                    has to be able to reach the agent. Cipi already allowlists GitHub's webhook CIDRs from
+                    <code>api.github.com/meta</code>; since <strong>v5.2.3</strong> it also pulls Bitbucket Cloud's
+                    egress ranges from <code>ip-ranges.atlassian.com</code> (product <code>bitbucket</code>,
+                    direction <code>egress</code>), fail-open in the same way — a fetch that does not answer never
+                    blocks the enable.</p>
+                <p>Azure DevOps and Origin do not publish a small, stable list of webhook source addresses, so there
+                    is nothing to allowlist ahead of time. If a delivery is banned, add the address by hand:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi crowdsec allow 20.37.158.0/23</pre>
+                </div>
+
                 <h3>Manual setup (fallback)</h3>
-                <p>Auto-setup is skipped when no token is configured, when the API call fails (wrong permissions,
-                    repository not found, rate limit), or when the repository is hosted on a provider other than
-                    GitHub or GitLab (e.g. Gitea, Forgejo, Bitbucket). In all these cases Cipi falls back to the
-                    manual workflow and the app creation proceeds normally.</p>
+                <p>Auto-setup is skipped when no token is configured for that provider, when the API call fails
+                    (wrong permissions, repository not found, rate limit), or when the repository is hosted somewhere
+                    Cipi does not integrate with (e.g. Gitea, Forgejo, a self-hosted server). In all these cases Cipi
+                    falls back to the manual workflow and the app creation proceeds normally.</p>
 
                 <p>To configure deploy key and webhook manually:</p>
                 <div class="code-block">
@@ -1285,9 +1593,13 @@ task('deploy', [
             <div class="doc-section" id="ci-webhook">
                 <h2>Automatic deploys — Cipi Agent &amp; webhook</h2>
                 <p><strong>cipi-agent</strong> (<code>cipi/agent</code>) is a Laravel package that exposes
-                    <code>POST /cipi/webhook</code> inside your running application. When GitHub or GitLab sends a push
+                    <code>POST /cipi/webhook</code> inside your running application. When the forge sends a push
                     event, the agent validates the payload signature, acknowledges immediately, and queues a deploy on
                     the server — no SSH from the CI runner, no <code>sudo</code>, no open inbound ports beyond HTTPS.
+                    Since <strong>v5.2.3</strong> that covers GitHub, GitLab, <strong>Bitbucket Cloud</strong>
+                    (<code>repo:push</code> with an HMAC <code>secret</code>) and <strong>Azure DevOps</strong>
+                    (a <code>git.push</code> service hook sending <code>X-Gitlab-Token</code>) — the agent's existing
+                    checks accept both unchanged.
                 </p>
 
                 <h3>How the webhook flow works</h3>
@@ -1442,11 +1754,12 @@ task('deploy', [
                         check</a> endpoint.</p>
 
                 <h3>Git auto-setup</h3>
-                <p>When a <a href="#git-auto-setup">GitHub or GitLab token</a> is configured on the server, Cipi
-                    registers the deploy key <em>and</em> creates the webhook automatically on every
+                <p>When a <a href="#git-auto-setup">token for the repository's forge</a> is configured on the
+                    server, Cipi registers the deploy key <em>and</em> creates the webhook automatically on every
                     <code>cipi app create</code>. The app summary shows <em>"auto-configured ✓"</em> instead of manual
                     instructions. Lifecycle events (<code>app edit --repository</code>, <code>app delete</code>) keep
-                    keys and webhooks in sync.
+                    keys and webhooks in sync. Cursor Origin and AWS CodeCommit get the deploy key only — neither
+                    exposes a per-repository HTTP webhook, so deploy those with <code>cipi deploy</code> or from CI.
                 </p>
 
                 <h3>Troubleshooting</h3>

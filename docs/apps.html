@@ -216,6 +216,7 @@
                 <a href="/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
+                <a href="/docs/infrastructure#cli-stack-upgrade" class="sidebar-link">stack upgrades</a>
                 <a href="/docs/infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="/docs/infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
@@ -492,6 +493,16 @@
                 <p>With a repository, use <code>cipi deploy &lt;app&gt;</code> to deploy; code is cloned into
                     <code>/home/&lt;app&gt;/htdocs</code>.
                 </p>
+
+                <h3><code>cipi.yml</code> is never served (v5.2.3)</h3>
+                <p>A custom app serves <code>htdocs/</code> (or a subdirectory of it) as the Nginx document root, so a
+                    <code>cipi.yml</code> committed at the repository root used to answer at
+                    <code>https://&lt;domain&gt;/cipi.yml</code>. Since <strong>v5.2.3</strong> every app vhost denies
+                    <code>/cipi.yml</code> and <code>/cipi.yaml</code> at any path — Laravel apps included, in case the
+                    file is ever copied into <code>public/</code>.</p>
+                <p>Existing servers get the <code>location</code> block on update, without regenerating the vhost, so
+                    certbot's <code>:443</code> block is left untouched. <code>cipi yml</code> also looks for the file
+                    in <code>htdocs/</code> now, which is where a custom app's repository actually lives.</p>
             </div>
 
             <div class="doc-section" id="cli-app-manage">

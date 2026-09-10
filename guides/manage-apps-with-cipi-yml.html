@@ -367,6 +367,10 @@ $ cipi yml plan myapp                  <span class="c"># reports nothing to do</
                         <td><code>cipi yml auto</code></td>
                         <td><code>on</code> / <code>off</code> / <code>status</code> — reconcile after every successful deploy</td>
                     </tr>
+                    <tr>
+                        <td><code>cipi yml post-deploy</code></td>
+                        <td>Since <strong>5.2.3</strong> — run the declared <code>deploy.post</code> steps now, against <code>current/</code></td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -375,10 +379,11 @@ $ cipi yml example myapp
 $ cipi yml validate myapp
 $ cipi yml plan myapp
 $ cipi yml apply myapp [--yes]
-$ cipi yml auto myapp on|off|status</code></pre>
+$ cipi yml auto myapp on|off|status
+$ cipi yml post-deploy myapp</code></pre>
 
         <h2 id="declare">What you can declare</h2>
-        <p>Seven areas. You do not have to declare all of them — only the sections you write are reconciled.</p>
+        <p>Eight areas. You do not have to declare all of them — only the sections you write are reconciled.</p>
         <ul>
             <li><strong>Aliases</strong> — the declared list replaces the current one. An alias you delete from the file is removed from Nginx. Wildcards such as <code>*.myapp.com</code> are accepted. The primary domain is never managed here.</li>
             <li><strong>PHP and php.ini</strong> — pin the app to PHP 8.3, 8.4 or 8.5 (already installed on the server) and set per-app overrides: <code>upload_max_filesize</code>, <code>post_max_size</code>, <code>memory_limit</code> and the rest. Server-wide values stay with <code>cipi ini set</code>.</li>
@@ -388,6 +393,7 @@ $ cipi yml auto myapp on|off|status</code></pre>
             <li><strong>Scheduler</strong> — one boolean turns <code>* * * * * artisan schedule:run</code> on or off. No crontab editing on the next server.</li>
             <li><strong>Healthcheck</strong> — an HTTP probe on one of the app's own domains, checked every five minutes and again right after every deploy. Optionally roll a failing release back automatically — the code symlink only; migrations are not undone.</li>
             <li><strong>Backup profiles</strong> — per-app profiles with their own scope, schedule, retention, destinations and encryption. Names must be <code>myapp</code> or <code>myapp-*</code>.</li>
+            <li><strong>Post-deploy steps</strong> — since <strong>5.2.3</strong>, a <code>deploy.post</code> list that runs from the live release after every successful deploy, on <code>cipi deploy</code> and the webhook alike. Allowlisted runners only — <code>artisan</code>, <code>npm</code>/<code>npx</code>/<code>yarn</code>/<code>pnpm</code>, <code>composer</code>, or one relative <code>php</code>/<code>node</code> script — never a shell line. It is the one section that runs <em>without</em> <code>cipi yml auto</code> being on; <code>deploy.post_on_failure: abort</code> makes a failing step fail the deploy instead of just emailing <code>yml_post_fail</code>.</li>
         </ul>
 
         <h2 id="example">A complete file</h2>
@@ -425,6 +431,13 @@ schedule: true
 health:
   url: "https://myapp.com/up"
   expect: 200
+
+deploy:
+  post:
+    - artisan cache:clear
+    - npm run build
+    - composer dump-autoload -o
+  # post_on_failure: abort
 
 backup:
   profiles:
@@ -503,7 +516,7 @@ $ cipi yml auto myapp off      <span class="c"># back to manual apply</span></co
 
         <h2 id="faq">Frequently asked questions</h2>
         <div class="faq-item"><h3>Do I have to write cipi.yml by hand?</h3><p>No. <code>cipi yml generate &lt;app&gt;</code> prints the app's current server configuration as a ready-to-commit file, and <code>cipi yml example</code> prints a blank commented template if you would rather start from scratch.</p></div>
-        <div class="faq-item"><h3>Does a deploy apply the file automatically?</h3><p>Only after you opt in with <code>cipi yml auto &lt;app&gt; on</code>. Until then deploys ignore the file and you reconcile manually with <code>plan</code> and <code>apply</code>.</p></div>
+        <div class="faq-item"><h3>Does a deploy apply the file automatically?</h3><p>Only after you opt in with <code>cipi yml auto &lt;app&gt; on</code>. Until then deploys ignore the file and you reconcile manually with <code>plan</code> and <code>apply</code>. The exception is <code>deploy.post</code> (since 5.2.3): those steps run on every successful deploy without the opt-in, because they accept allowlisted runners only and never a shell line.</p></div>
         <div class="faq-item"><h3>What happens to things the file does not mention?</h3><p>They are left alone. Only the sections you declare are reconciled — with one deliberate exception: the alias list is authoritative, so removing an alias from the file removes it from the server.</p></div>
         <div class="faq-item"><h3>Can a commit break my server?</h3><p>The schema carries no shell commands and no include paths, an app can only touch its own databases and backup profiles, and a file that fails validation is rejected as a whole rather than applied halfway. Deploys ignore the file entirely until you turn <code>yml auto</code> on.</p></div>
         <div class="faq-item"><h3>Does it work with the Git webhook?</h3><p>Yes. With <code>cipi yml auto</code> on, both <code>cipi deploy</code> and a webhook-triggered deploy reconcile after a successful release.</p></div>

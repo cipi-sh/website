@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cipi.yml — Server Configuration That Ships With Your Laravel Code | Cipi</title>
-    <meta name="description" content="cipi.yml is a file you commit next to your Laravel app: domain aliases, PHP version and php.ini, extra databases, queue workers or Horizon, Laravel Reverb, the scheduler, healthcheck and backup profiles — reconciled with cipi yml plan and cipi yml apply.">
+    <meta name="description" content="cipi.yml is a file you commit next to your Laravel app: domain aliases, PHP version and php.ini, extra databases, queue workers or Horizon, Laravel Reverb, the scheduler, healthcheck, backup profiles and post-deploy steps — reconciled with cipi yml plan and cipi yml apply.">
     <meta name="keywords" content="cipi.yml, Laravel configuration as code, server config in repository, cipi yml apply, cipi yml plan, Laravel deploy configuration file, queue workers YAML, Laravel Reverb YAML, backup profiles YAML">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
@@ -16,7 +16,7 @@
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/cipi-yml">
     <meta property="og:title" content="cipi.yml — configuration that travels with the code">
-    <meta property="og:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health and backups. Plan it, apply it, or reconcile on every deploy.">
+    <meta property="og:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups and post-deploy steps. Plan it, apply it, or reconcile on every deploy.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -24,7 +24,7 @@
     <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="cipi.yml — configuration that travels with the code">
-    <meta name="twitter:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health and backups. Plan it, apply it, or reconcile on every deploy.">
+    <meta name="twitter:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups and post-deploy steps. Plan it, apply it, or reconcile on every deploy.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <script type="application/ld+json">
@@ -40,7 +40,7 @@
       "datePublished": "2026-09-02",
       "dateModified": "2026-09-03",
       "author": { "@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri" },
-      "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.2.2" },
+      "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.2.3" },
       "publisher": { "@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/" },
       "isPartOf": { "@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/" }
     }
@@ -242,7 +242,8 @@
 <span class="p">$</span> cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
 <span class="p">$</span> cipi yml plan myapp              <span class="c"># show exactly what would change</span>
 <span class="p">$</span> cipi yml apply myapp [--yes]     <span class="c"># apply it</span>
-<span class="p">$</span> cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span></pre>
+<span class="p">$</span> cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span>
+<span class="p">$</span> cipi yml post-deploy myapp       <span class="c"># run the declared deploy.post steps now (5.2.3+)</span></pre>
         </div>
         <div class="table-scroll">
             <table class="cmd-table">
@@ -282,11 +283,19 @@
                         <td>Opt in — or out — of reconciling automatically after every successful deploy.
                             <code>status</code> reports the current setting.</td>
                     </tr>
+                    <tr>
+                        <td><code>cipi yml post-deploy</code> <em>(5.2.3)</em></td>
+                        <td>Runs the declared <code>deploy.post</code> steps now, against <code>current/</code> — for
+                            testing them without pushing a commit.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
         <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
-            <code>shared/cipi.yml</code> — override with <code>--file=&lt;path&gt;</code>.</p>
+            <code>shared/cipi.yml</code> — and, since <strong>5.2.3</strong>, in <code>htdocs/</code>, where a custom
+            app's repository lives. Override with <code>--file=&lt;path&gt;</code>. Since 5.2.3 every app vhost also
+            denies <code>/cipi.yml</code> and <code>/cipi.yaml</code>, so the file is never downloadable from the
+            site it configures.</p>
 
         <h2 class="cmp-h2-lg" id="what-it-configures">What the file can configure</h2>
         <div class="alt-grid">
@@ -354,6 +363,15 @@
                     database run every 30 minutes, a complete encrypted copy to S3 at night. Profile names are scoped
                     to the app.</p>
                 <span class="go">Backups in the docs →</span>
+            </a>
+            <a class="alt-card" href="/docs/deploy#cli-yml-deploy-post">
+                <span class="alt-tag">deploy.post</span>
+                <h3>Post-deploy <span>steps</span></h3>
+                <p>New in 5.2.3. A declared list of allowlisted commands — <code>artisan</code>, <code>npm</code>,
+                    <code>composer</code>, a <code>php</code> or <code>node</code> script — run from the live release
+                    after every successful deploy. No free shell, and the one section that does not need
+                    <code>yml auto</code>.</p>
+                <span class="go">deploy.post in the docs →</span>
             </a>
             <a class="alt-card featured" href="/docs/deploy#cli-yml">
                 <span class="alt-tag">reference</span>
@@ -430,6 +448,17 @@ health:
   # rollback_on_unhealthy: true   # undo a release that fails the check
   #                               # (the code symlink only — migrations are NOT undone)</span>
 
+<span class="c"># Post-deploy steps (5.2.3+). Allowlisted runners only — artisan, npm/npx/yarn/pnpm,
+# composer, or one relative php/node script under the release. No free shell.
+# This is the one section that runs WITHOUT `cipi yml auto` being on.</span>
+deploy:
+  post:
+    - artisan cache:clear
+    - artisan scout:import --force
+    - npm run build
+    - composer dump-autoload -o
+  <span class="c"># post_on_failure: abort   # default warn: log + email, release stays live</span>
+
 <span class="c"># Backup strategy for this app. Profile names must be myapp or myapp-*.</span>
 backup:
   profiles:
@@ -464,6 +493,25 @@ backup:
 <span class="p">$</span> cipi yml auto myapp off      <span class="c"># back to manual apply</span></pre>
         </div>
 
+        <h3 id="deploy-post"><code>deploy.post</code> — the one exception (5.2.3)</h3>
+        <p>Post-deploy steps are the single section that does <strong>not</strong> wait for
+            <code>cipi yml auto</code>. Commit a <code>deploy.post</code> list and it runs from the live release after
+            every successful deploy — <code>cipi deploy</code> and the Git webhook alike. It can afford to, because it
+            accepts no shell: only <code>artisan</code>, <code>npm</code>/<code>npx</code>/<code>yarn</code>/<code>pnpm</code>,
+            <code>composer</code>, and one relative <code>php</code> or <code>node</code> script under the release.
+            Unknown runners, <code>bash</code>, pipes, <code>;</code>, <code>..</code> in paths and
+            <code>artisan tinker</code> are all refused.</p>
+        <p>The order is: Deployer finishes → optional <code>yml apply</code> → <code>deploy.post</code> →
+            post-deploy healthcheck → success notification. A failing step logs and emails
+            <code>yml_post_fail</code> while the release stays live; set
+            <code>deploy.post_on_failure: abort</code> to make <code>cipi deploy</code> fail with it instead — useful
+            in CI when <code>npm run build</code> must pass.</p>
+        <div class="code-block">
+            <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+            <pre><span class="p">$</span> cipi yml post-deploy myapp   <span class="c"># run the steps now, against current/</span>
+<span class="p">$</span> cipi yml plan myapp          <span class="c"># lists them under "After deploy"</span></pre>
+        </div>
+
         <h2 class="cmp-h2-lg" id="safety">Why it is safe to accept over Git</h2>
         <p>The file arrives from a repository, so anyone who can commit controls its contents. It is fail-closed
             throughout:</p>
@@ -474,7 +522,9 @@ backup:
                 profiles <code>&lt;app&gt;</code> or <code>&lt;app&gt;-*</code>.</li>
             <li>Its healthcheck URL must resolve to one of the app's own domains — otherwise a commit could aim the
                 server's prober at an internal address and read the answer back out of the alert emails.</li>
-            <li>Unknown keys are errors, and no field carries a shell command or a path to include.</li>
+            <li>Unknown keys are errors, and no field carries a shell command or a path to include.
+                <code>deploy.post</code> (5.2.3) is the one section that runs something, and it takes allowlisted
+                runners only — never a shell line.</li>
             <li>The parser implements a deliberately small YAML subset and refuses anchors, aliases, tags, merge keys,
                 block scalars and flow mappings outright.</li>
         </ul>
@@ -500,7 +550,9 @@ backup:
             <h3>Can a commit break my server?</h3>
             <p>The schema carries no shell commands and no include paths, an app can only touch its own databases and
                 backup profiles, and a file that fails validation is rejected as a whole rather than applied halfway.
-                Deploys ignore the file entirely until you turn <code>cipi yml auto</code> on.</p>
+                Deploys ignore the file entirely until you turn <code>cipi yml auto</code> on — with the single
+                exception of <a href="#deploy-post"><code>deploy.post</code></a> (5.2.3), which runs a fixed
+                allowlist of runners and no shell.</p>
         </div>
         <div class="faq-item">
             <h3>What happens to things the file does not mention?</h3>
@@ -510,7 +562,8 @@ backup:
         <div class="faq-item">
             <h3>Does it work with the Git webhook?</h3>
             <p>Yes. With <code>cipi yml auto</code> on, both <code>cipi deploy</code> and a webhook-triggered deploy
-                reconcile after a successful release.</p>
+                reconcile after a successful release. <a href="#deploy-post"><code>deploy.post</code></a> runs on both
+                too, and does not need the opt-in.</p>
         </div>
 
         <div class="cmp-cta">

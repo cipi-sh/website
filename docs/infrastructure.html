@@ -216,6 +216,7 @@
                 <a href="/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
+                <a href="/docs/infrastructure#cli-stack-upgrade" class="sidebar-link">stack upgrades</a>
                 <a href="/docs/infrastructure#cli-backup" class="sidebar-link"><code>backup</code></a>
                 <a href="/docs/infrastructure#cli-app-cron" class="sidebar-link">user crontab</a>
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
@@ -341,6 +342,10 @@
                     <code>cipi-cron-notify</code>). Log:
                     <code>/var/log/cipi/php-upgrade.log</code>. Existing servers receive the cron on
                     <code>cipi self-update</code> (migration 4.7.13).</p>
+                <p>PHP is not the only package Cipi keeps out of <code>unattended-upgrades</code>. Since
+                    <strong>v5.2.3</strong>, nginx, MariaDB, PostgreSQL and Valkey have their own operator-triggered
+                    equivalent — see <a href="#cli-stack-upgrade">manual stack upgrades</a>. Unlike PHP, those are
+                    never scheduled.</p>
 
                 <h3>System default vs app-specific PHP</h3>
                 <p>The <strong>system default</strong> is the PHP version used by the <code>root</code> and
@@ -473,6 +478,19 @@
                     on PostgreSQL — <code>.env</code> and the connection URL match the engine. Root password reset:
                     <code>cipi reset db-password [--engine=]</code>.
                 </p>
+
+                <h3><code>cipi db upgrade</code> (v5.2.3+)</h3>
+                <p>Both engines are excluded from <code>unattended-upgrades</code> on purpose, so patch-level upgrades
+                    are a command you run:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi db upgrade                  <span class="c"># every installed engine</span>
+<span class="p">$</span> cipi db upgrade mariadb [--yes]
+<span class="p">$</span> cipi db upgrade pgsql   [--yes]</pre>
+                </div>
+                <p>Expect brief downtime while the service restarts — the prompt says so before it starts. See
+                    <a href="#cli-stack-upgrade">manual stack upgrades</a>.</p>
             </div>
 
             <div class="doc-section" id="cli-aliases">
@@ -673,6 +691,13 @@
                 <p>It is enabled on fresh installs, and <strong>migration 5.1.0</strong> claims it on existing servers
                     where nothing else already does. If another vhost legitimately owns the default server, the command
                     says so and changes nothing.</p>
+
+                <h3><code>cipi nginx upgrade</code> (v5.2.3+)</h3>
+                <p>Nginx is on the <code>unattended-upgrades</code> blacklist, so patches are applied when you ask for
+                    them: <code>cipi nginx upgrade [--yes]</code> runs <code>apt --only-upgrade</code> over the
+                    installed <code>nginx*</code> packages, keeps your <code>nginx.conf</code>, checks the config with
+                    <code>nginx -t</code> and reloads. Details in
+                    <a href="#cli-stack-upgrade">manual stack upgrades</a>.</p>
             </div>
 
             <div class="doc-section" id="cli-backup">
@@ -1771,6 +1796,10 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi service start fail2ban
 <span class="p">$</span> cipi service stop supervisor         <span class="c"># asks for confirmation</span>
 
+<span class="c"># Patch-level upgrades for the blacklisted stack (v5.2.3+)</span>
+<span class="p">$</span> cipi service upgrade                 <span class="c"># list installed vs apt candidate</span>
+<span class="p">$</span> cipi service upgrade valkey [--yes]  <span class="c"># 'all' is refused on purpose</span>
+
 <span class="c"># Structured output (v5.0.6+) — panel API</span>
 <span class="p">$</span> cipi service list --json</pre>
                 </div>
@@ -1794,9 +1823,95 @@ myapp@server:~$ crontab -e</pre>
                     <code>localhost</code> only, and its credentials (user, password) are saved in
                     <code>/etc/cipi/server.json</code> and shown at the end of installation.
                     <code>valkey-server</code> is added to the unattended-upgrades blacklist — Cipi manages it, so it is
-                    not auto-upgraded automatically. See the <a href="/docs/advanced#valkey">Valkey</a> section for details
+                    not auto-upgraded automatically. Since <strong>v5.2.3</strong>,
+                    <code>cipi service upgrade valkey</code> is how you apply its patches — see
+                    <a href="#cli-stack-upgrade">manual stack upgrades</a>. See the
+                    <a href="/docs/advanced#valkey">Valkey</a> section for details
                     and the automatic Redis → Valkey migration.
                 </p>
+            </div>
+
+            <div class="doc-section" id="cli-stack-upgrade">
+                <h2>Manual stack upgrades — <code>nginx</code>, MariaDB, PostgreSQL, Valkey</h2>
+                <p>Available since <strong>v5.2.3</strong>. Nginx, MariaDB, PostgreSQL and Valkey are deliberately
+                    kept off <code>unattended-upgrades</code>: a MariaDB restart is not a 4am surprise. PHP has had
+                    <a href="#cli-php"><code>cipi php upgrade</code></a> (Sunday 03:30) for a while; this is the
+                    operator-facing equivalent for the rest of the blacklisted stack — still
+                    <strong>manual</strong>, still <strong>patch-level only</strong>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># nginx — apt --only-upgrade of installed nginx*, nginx -t, then reload</span>
+<span class="p">$</span> cipi nginx upgrade [--yes]
+
+<span class="c"># databases — one engine, or every installed engine when omitted</span>
+<span class="p">$</span> cipi db upgrade [mariadb|pgsql] [--yes]
+
+<span class="c"># the generic entry, and the home for Valkey</span>
+<span class="p">$</span> cipi service upgrade [nginx|mariadb|postgresql|valkey] [--yes]
+
+<span class="c"># no name: list installed versions against the current apt candidate</span>
+<span class="p">$</span> cipi service upgrade</pre>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Command</th>
+                                <th>What it does</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>cipi nginx upgrade [--yes]</code></td>
+                                <td><code>apt --only-upgrade</code> of the installed <code>nginx*</code> packages from
+                                    the nginx.org mainline repo Cipi already configured, then <code>nginx -t</code> and
+                                    a reload. <code>/etc/nginx/nginx.conf</code> is kept
+                                    (<code>--force-confold</code>) — this is not the HTTP/2-bomb rewrite.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi db upgrade [engine] [--yes]</code></td>
+                                <td>The same for MariaDB / PostgreSQL. Without an engine argument it upgrades every
+                                    installed engine. The prompt says plainly that there will be brief downtime.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi service upgrade [name] [--yes]</code></td>
+                                <td>The generic entry point, and the only way to upgrade <strong>Valkey</strong>. With
+                                    no name it lists installed versions against the current apt candidate.
+                                    <code>all</code> is <strong>refused</strong> — that is exactly what the blacklist
+                                    exists to prevent — and <code>php</code> is pointed at
+                                    <code>cipi php upgrade</code>.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>How it stays scoped</h3>
+                <p>All three share <code>lib/stack-upgrade.sh</code>, which pins the package patterns
+                    (<code>^nginx(-|$)</code>, <code>^mariadb-</code>, <code>^postgresql</code>,
+                    <code>^valkey</code>) so a loose match cannot drag PHP in. It re-asserts the nginx.org and
+                    MariaDB.org repositories if they were wiped, and holds
+                    <code>/run/cipi-stack-upgrade.lock</code> so two upgrades cannot overlap.</p>
+                <p>On success, and when SMTP is configured, you get a mail:
+                    <code>nginx_upgrade</code>, <code>mariadb_upgrade</code>, <code>pgsql_upgrade</code> or
+                    <code>valkey_upgrade</code> (disable any of them with
+                    <code>cipi notifications disable &lt;trigger&gt;</code>).</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>These commands are <strong>not on a cron and not on the panel</strong>.
+                        <code>setup.sh</code> and <code>cipi self-update</code> do not run them, and
+                        <code>/etc/sudoers.d/cipi-api</code> does not grant them — the same rule as
+                        <a href="#cli-package"><code>cipi package install</code></a>. Upgrading a database engine is an
+                        operator decision, taken while you are watching.</div>
+                </div>
             </div>
 
             <div class="doc-section" id="cli-ssh">
