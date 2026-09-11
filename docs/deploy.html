@@ -64,7 +64,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-09",
+      "dateModified": "2026-09-11",
       "headline": "Cipi Docs — Deploy & CI/CD",
       "name": "Deploy & CI/CD",
       "url": "https://cipi.sh/docs/deploy",
@@ -275,9 +275,11 @@
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
+                <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
+                <a href="/docs/infrastructure#cli-zt" class="sidebar-link"><code>zt</code> (Cloudflare)</a>
                 <a href="/docs/infrastructure#cli-scan" class="sidebar-link"><code>scan</code></a>
                 <a href="/docs/infrastructure#cli-search" class="sidebar-link"><code>search</code></a>
                 <a href="/docs/infrastructure#cli-package" class="sidebar-link"><code>package</code></a>
@@ -326,6 +328,7 @@
                 <a href="/docs/advanced#cipi-sync" class="sidebar-link"><code>cipi sync</code></a>
                 <a href="/docs/advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
                 <a href="/docs/advanced#cipi-smtp" class="sidebar-link">email notifications</a>
+                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">chat alert channels</a>
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
@@ -648,7 +651,8 @@ workers:
 schedule: true
 
 <span class="c"># HTTP healthcheck. Probed every 5 minutes and right after every deploy.
-# The URL must be one of this app's own domains.</span>
+# The URL must be one of this app's own domains.
+# To remove an existing healthcheck, write only  health: { enabled: false }  (honoured since 5.3.0).</span>
 health:
   url: <span class="s">"https://myapp.com/up"</span>
   expect: 200
@@ -2073,6 +2077,21 @@ deploy:
                     notification steps after <code>cipi deploy</code> to broadcast success, failure, and automatic
                     rollbacks to Slack or Telegram. Both examples below work with GitHub Actions and GitLab CI using
                     only standard HTTP calls — no extra platform dependencies.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Since <strong>v5.3.0</strong> the server can post for you — webhook deploys included:
+                        <code>cipi notifications channel add slack ops --url=…</code> sends every
+                        <code>deploy_success</code>, <code>deploy_fail</code> and <code>deploy_rollback</code> (and every
+                        other trigger) to Slack, Discord, Telegram, ntfy or a custom webhook. See
+                        <a href="/docs/advanced#cipi-alert-channels">chat alert channels</a>. The pipeline examples
+                        below are still the way to go when the message should come from CI.</div>
+                </div>
 
                 <h3>Slack</h3>
                 <p>Add a final step that posts to a Slack webhook regardless of deploy outcome. Use

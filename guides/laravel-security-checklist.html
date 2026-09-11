@@ -76,7 +76,7 @@
   "inLanguage": "en",
   "image": "https://cipi.sh/og.png",
   "datePublished": "2026-08-04",
-  "dateModified": "2026-08-04",
+  "dateModified": "2026-09-11",
   "author": {
     "@type": "Person",
     "name": "Andrea Pollastri",
@@ -394,7 +394,9 @@
                 <a class="inline" href="/">Cipi</a> install applies exactly this by default: root login disabled,
                 key-only admin access, Fail2ban and UFW enabled.)</li>
                     <li><strong>Firewall default-deny.</strong> Only 22, 80 and 443 should answer. Databases and Valkey/Redis
-                listen on localhost — verify with <code>ss -tlnp</code>.</li>
+                listen on localhost — verify with <code>ss -tlnp</code>. Behind Cloudflare you can go further:
+                Cipi 5.3's <a class="inline" href="/docs/infrastructure#cli-zt"><code>cipi zt</code></a> closes 80/443
+                to everything but the tunnel and, once SSH runs through Cloudflare Access, port 22 too.</li>
                     <li><strong>TLS everywhere, forced.</strong> Free Let's Encrypt certificates, HTTP redirected to HTTPS
                 (<code>cipi ssl install</code> then <code>cipi ssl force</code>), HSTS enabled.</li>
                     <li><strong>Patch on a schedule, not on memory.</strong> Unattended security updates for the OS; a
@@ -472,8 +474,10 @@
             <li><strong>Centralize exceptions.</strong> A spike in 500s is often the first sign of probing.
                 <a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> gives you a self-hosted
                 exception tracker, so error payloads (which often contain user data) stay on your infrastructure.</li>
-                    <li><strong>Health checks + uptime alerts.</strong> Cipi 5 ships app health checks; pair them with an
-                external uptime monitor for the outside view.</li>
+                    <li><strong>Health checks + uptime alerts.</strong> Cipi 5 ships app health checks and, since 5.3,
+                <a class="inline" href="/docs/infrastructure#cli-monitor"><code>cipi monitor</code></a> for the server
+                itself — disk, services, workers, 5xx spikes, load — with alerts by email, Slack, Discord, Telegram or
+                ntfy. Pair them with an external uptime monitor for the outside view.</li>
                     <li><strong>Watch auth logs.</strong> Fail2ban reports and <code>lastb</code> tell you who's knocking.</li>
                     <li><strong>Have a response plan before you need it:</strong> isolate the box, rotate every secret
                 (including APP_KEY implications for encrypted data), restore from a known-good snapshot

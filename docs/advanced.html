@@ -39,7 +39,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cipi Docs — Advanced</title>
     <meta name="description"
-        content="REST API, server sync, vault encryption, SMTP notifications, log retention, and advanced configuration.">
+        content="REST API, server sync, vault encryption, SMTP and chat notifications, log retention, and advanced configuration.">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/docs/advanced">
@@ -50,7 +50,7 @@
     <meta property="og:url" content="https://cipi.sh/docs/advanced">
     <meta property="og:title" content="Cipi Docs — Advanced">
     <meta property="og:description"
-        content="REST API, server sync, vault encryption, SMTP notifications, log retention, and advanced configuration.">
+        content="REST API, server sync, vault encryption, SMTP and chat notifications, log retention, and advanced configuration.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -59,7 +59,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Cipi Docs — Advanced">
     <meta name="twitter:description"
-        content="REST API, server sync, vault encryption, SMTP notifications, log retention, and advanced configuration.">
+        content="REST API, server sync, vault encryption, SMTP and chat notifications, log retention, and advanced configuration.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <script type="application/ld+json">
@@ -67,11 +67,11 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-09",
+      "dateModified": "2026-09-11",
       "headline": "Cipi Docs — Advanced",
       "name": "Advanced",
       "url": "https://cipi.sh/docs/advanced",
-      "description": "REST API, server sync, vault encryption, SMTP notifications, log retention, and advanced configuration.",
+      "description": "REST API, server sync, vault encryption, SMTP and chat notifications, log retention, and advanced configuration.",
       "inLanguage": "en",
       "image": "https://cipi.sh/og.png",
       "about": { "@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/" },
@@ -278,9 +278,11 @@
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
+                <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
+                <a href="/docs/infrastructure#cli-zt" class="sidebar-link"><code>zt</code> (Cloudflare)</a>
                 <a href="/docs/infrastructure#cli-scan" class="sidebar-link"><code>scan</code></a>
                 <a href="/docs/infrastructure#cli-search" class="sidebar-link"><code>search</code></a>
                 <a href="/docs/infrastructure#cli-package" class="sidebar-link"><code>package</code></a>
@@ -329,6 +331,7 @@
                 <a href="/docs/advanced#cipi-sync" class="sidebar-link"><code>cipi sync</code></a>
                 <a href="/docs/advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
                 <a href="/docs/advanced#cipi-smtp" class="sidebar-link">email notifications</a>
+                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">chat alert channels</a>
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
@@ -1075,6 +1078,10 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                         <strong>not</strong> in the sudoers whitelist either, for the same reason as
                         <code>package install</code>: restarting a database engine is an operator decision, taken at
                         the CLI while you are watching.</li>
+                    <li>Since Cipi <strong>5.3.0+</strong>: <code>zt status</code> and <code>monitor list</code> in the
+                        sudoers whitelist. <a href="/docs/infrastructure#cli-zt"><code>zt enable</code>, <code>lock</code></a>
+                        and the rest, and <code>monitor enable|disable|set</code>, stay with the operator on the CLI —
+                        the same rule as <code>package install</code>.</li>
                     <li>Async jobs — <code>cipi app</code> (including <code>--octane</code> /
                         <code>--engine</code>), <code>deploy</code>, <code>alias</code>, <code>www</code>,
                         <code>ssl</code> / <code>ssl force</code>,
@@ -2097,7 +2104,8 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 <p>Cipi can send email alerts when backup errors, deploy failures, system cron job failures, or
                     security-relevant authentication events occur.
                     SMTP configuration is stored encrypted in <code>/etc/cipi/smtp.json</code> and included in sync
-                    exports.</p>
+                    exports. Since <strong>v5.3.0</strong> the same notifications can also go to Slack, Discord,
+                    Telegram, ntfy or a webhook — see <a href="#cipi-alert-channels">chat alert channels</a>.</p>
 
                 <h3>Commands</h3>
                 <div class="code-block">
@@ -2147,6 +2155,33 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     failed) and one per manually upgraded service — <code>nginx_upgrade</code>,
                     <code>mariadb_upgrade</code>, <code>pgsql_upgrade</code>, <code>valkey_upgrade</code>.</p>
 
+                <p><strong>v5.3.0</strong> adds twelve. Eight under Monitor, one per
+                    <a href="/docs/infrastructure#cli-monitor"><code>cipi monitor</code></a> check —
+                    <code>monitor_disk</code>, <code>monitor_ssl</code>, <code>monitor_services</code>,
+                    <code>monitor_workers</code>, <code>monitor_http_5xx</code>, <code>monitor_fs</code>,
+                    <code>monitor_load</code> — plus the recovery message <code>monitor_ok</code>. Four under Security
+                    for <a href="/docs/infrastructure#cli-zt">Cloudflare Zero Trust</a>: <code>zt_enable</code>,
+                    <code>zt_disable</code>, <code>zt_lock_http</code> and <code>zt_lock_ssh</code>. Every trigger also
+                    reaches the <a href="#cipi-alert-channels">chat channels</a> you configure.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Fixed in v5.3.0:</strong> jq's <code>// true</code> treats <code>false</code> the same
+                        as “absent”, so an explicitly disabled flag read back as enabled.
+                        <code>cipi notifications disable &lt;trigger&gt;</code> wrote <code>false</code>, yet the trigger
+                        kept sending email and <code>cipi notifications list</code> showed it as on. And
+                        <code>cipi smtp configure --tls=off</code> stored <code>tls: false</code>, then generated
+                        <code>/etc/msmtprc</code> with <code>tls on</code> — which breaks a plain relay — while
+                        <code>cipi smtp status</code> reported the wrong value. An explicit <code>false</code> now stays
+                        false. If you rely on <code>--tls=off</code>, run <code>cipi smtp configure</code> again after
+                        updating so <code>/etc/msmtprc</code> is rewritten.</div>
+                </div>
+
                                 <div class="table-scroll">
                     <table class="cmd-table">
                                         <thead>
@@ -2181,6 +2216,14 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                             <tr><td><code>deploy_snapshot_fail</code></td><td>Deploy</td><td>Pre-deploy DB snapshot failed</td></tr>
                                             <tr><td><code>health_fail</code></td><td>Health</td><td>HTTP healthcheck failed (periodic, after 3 failures)</td></tr>
                                             <tr><td><code>deploy_health_fail</code></td><td>Health</td><td>Post-deploy healthcheck failed</td></tr>
+                                            <tr><td><code>monitor_disk</code></td><td>Monitor</td><td>Disk usage over threshold <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>monitor_ssl</code></td><td>Monitor</td><td>SSL certificate expiring <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>monitor_services</code></td><td>Monitor</td><td>System service not running <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>monitor_workers</code></td><td>Monitor</td><td>Queue worker / Horizon not running <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>monitor_http_5xx</code></td><td>Monitor</td><td>HTTP 5xx spike in access logs <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>monitor_fs</code></td><td>Monitor</td><td>Filesystem read-only / config not writable <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>monitor_load</code></td><td>Monitor</td><td>Load average over threshold <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>monitor_ok</code></td><td>Monitor</td><td>Monitor check recovered <strong>(5.3.0)</strong></td></tr>
                                             <tr><td><code>ssl_install</code></td><td>SSL</td><td>SSL certificate installed</td></tr>
                                             <tr><td><code>ssl_force</code></td><td>SSL</td><td>HTTP → HTTPS redirect forced</td></tr>
                                             <tr><td><code>ssl_renew</code></td><td>SSL</td><td>SSL certificates renewed</td></tr>
@@ -2202,6 +2245,10 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                             <tr><td><code>ssh_login</code></td><td>Security</td><td>SSH login (cipi/root/sudo users)</td></tr>
                                             <tr><td><code>sudo</code></td><td>Security</td><td>Sudo elevation</td></tr>
                                             <tr><td><code>su</code></td><td>Security</td><td>su to root by cipi</td></tr>
+                                            <tr><td><code>zt_enable</code></td><td>Security</td><td>Cloudflare Zero Trust enabled <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>zt_disable</code></td><td>Security</td><td>Cloudflare Zero Trust disabled <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>zt_lock_http</code></td><td>Security</td><td>HTTP ports locked (Cloudflare) <strong>(5.3.0)</strong></td></tr>
+                                            <tr><td><code>zt_lock_ssh</code></td><td>Security</td><td>SSH port closed (Cloudflare Tunnel) <strong>(5.3.0)</strong></td></tr>
                                             <tr><td><code>backup_fail</code></td><td>Backup</td><td>Backup failed</td></tr>
                                             <tr><td><code>backup_stale</code></td><td>Backup</td><td>Backup overdue (no successful run in its window) <strong>(5.1.0)</strong></td></tr>
                                             <tr><td><code>cron_fail</code></td><td>Cron</td><td>Cron job failed</td></tr>
@@ -2306,6 +2353,113 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 <h3>Cron wrapper</h3>
                 <p>The <code>cipi-cron-notify</code> utility wraps system cron jobs and sends a notification if the job
                     exits with a non-zero code. This is useful for monitoring critical scheduled tasks.</p>
+            </div>
+
+            <!-- ── Alert Channels ── -->
+            <div class="doc-section" id="cipi-alert-channels">
+                <h2>Chat alert channels</h2>
+                <p>Since <strong>v5.3.0</strong>, email is no longer the only way out of Cipi's notifications. Every
+                    trigger — deploys, backups, scans, SSH logins, healthchecks and
+                    <a href="/docs/infrastructure#cli-monitor">monitor</a> alerts — also fans out to
+                    <strong>Slack</strong>, <strong>Discord</strong>, <strong>Telegram</strong>, <strong>ntfy</strong> or
+                    a custom <strong>webhook</strong>. Channels do not need SMTP. And nothing changes until you add one:
+                    with no channel configured, delivery is email-only, exactly as before.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi notifications channel add slack ops --url=https://hooks.slack.com/services/…
+<span class="p">$</span> cipi notifications channel add discord team --url=https://discord.com/api/webhooks/…
+<span class="p">$</span> cipi notifications channel add telegram oncall --token=&lt;bot-token&gt; --chat-id=&lt;id&gt;
+<span class="p">$</span> cipi notifications channel add ntfy phone --url=https://ntfy.sh/my-topic --priority=high
+<span class="p">$</span> cipi notifications channel add webhook pager --url=https://example.com/hooks/cipi
+
+<span class="p">$</span> cipi notifications channel list [--json]   <span class="c"># secrets masked</span>
+<span class="p">$</span> cipi notifications channel test ops        <span class="c"># or: test all</span>
+<span class="p">$</span> cipi notifications channel disable ops     <span class="c"># keep it, stop sending</span>
+<span class="p">$</span> cipi notifications channel enable ops
+<span class="p">$</span> cipi notifications channel remove ops</pre>
+                </div>
+                <p>Channel ids are lowercase letters, digits and dashes, and unique on the server.</p>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Options</th>
+                                <th>What arrives</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>slack</code></td>
+                                <td><code>--url=</code> — an Incoming Webhook</td>
+                                <td>A text message: the subject in bold, then the body.</td>
+                            </tr>
+                            <tr>
+                                <td><code>discord</code></td>
+                                <td><code>--url=</code> — a channel webhook</td>
+                                <td>The same, truncated at Discord's 2,000-character cap.</td>
+                            </tr>
+                            <tr>
+                                <td><code>telegram</code></td>
+                                <td><code>--token=</code> — the bot token from @BotFather;
+                                    <code>--chat-id=</code> — send <code>/start</code> to the bot, then read
+                                    <code>getUpdates</code> (negative for groups)</td>
+                                <td>Plain text through the Bot API — no Markdown, so an underscore in a hostname cannot
+                                    break it — truncated at Telegram's 4,096-character cap.</td>
+                            </tr>
+                            <tr>
+                                <td><code>ntfy</code></td>
+                                <td><code>--url=</code> — the topic URL; optional
+                                    <code>--priority=min|low|default|high|urgent</code></td>
+                                <td><code>Title</code>, <code>Priority</code> and <code>Tags</code> headers. Urgent
+                                    triggers — security events, failures, most monitor alerts — raise a
+                                    default-priority channel to <code>high</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><code>webhook</code></td>
+                                <td><code>--url=</code></td>
+                                <td>Structured JSON, for anything else.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c">// POST body sent to a webhook channel</span>
+{
+  "server": "web-01",
+  "trigger": "deploy_fail",
+  "subject": "…",
+  "body": "…",
+  "ts": 1789123456
+}</pre>
+                </div>
+
+                <h3>Best-effort, never blocking</h3>
+                <p>Each channel gets a <strong>5-second timeout</strong>, and a failed delivery is only logged to
+                    <code>/var/log/cipi/events.log</code>: a slow or dead webhook can never stall a deploy or a cron run.
+                    Channels are stored encrypted in <code>/etc/cipi/alerts.json</code>; <code>channel list</code> masks
+                    the secret part of webhook URLs and shows only the start of a bot token.</p>
+                <p>Channels follow the same triggers as email: <code>cipi notifications disable &lt;trigger&gt;</code>
+                    mutes that event everywhere, and there is no per-channel filter. A chat message carries the same body
+                    as the email, footer included.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Migration 5.3.0</strong> writes an empty <code>alerts.json</code> and configures no
+                        channel and no trigger. To see what an alert looks like everywhere at once, run
+                        <code>cipi monitor test</code>.</div>
+                </div>
             </div>
 
             <!-- ── Log Retention ── -->

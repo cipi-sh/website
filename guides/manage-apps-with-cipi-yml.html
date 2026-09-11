@@ -76,7 +76,7 @@
   "inLanguage": "en",
   "image": "https://cipi.sh/og.png",
   "datePublished": "2026-09-07",
-  "dateModified": "2026-09-07",
+  "dateModified": "2026-09-11",
   "author": {
     "@type": "Person",
     "name": "Andrea Pollastri",
@@ -446,7 +446,7 @@ $ cipi yml post-deploy myapp</code></pre>
             <li><strong>Queue workers and Horizon</strong> — declare each queue with process count, tries and timeout, and Supervisor is reconciled to match. Or set <code>horizon: true</code> and let Horizon own the queues. Since <strong>5.1.2</strong>, <code>horizon: false</code> is actually read — previously <code>false</code> was treated like a missing key.</li>
             <li><strong>Laravel Reverb</strong> — since <strong>5.1.2</strong>, <code>reverb: true</code> gives the app a localhost port, a Supervisor program, an nginx proxy for <code>/app/{key}</code> and <code>/apps/{id}/…</code> on its own domain, and generated <code>REVERB_*</code> credentials. Laravel apps only. An app that already owns <code>/app</code> or <code>/apps</code> cannot share that domain with Reverb.</li>
             <li><strong>Scheduler</strong> — one boolean turns <code>* * * * * artisan schedule:run</code> on or off. No crontab editing on the next server.</li>
-            <li><strong>Healthcheck</strong> — an HTTP probe on one of the app's own domains, checked every five minutes and again right after every deploy. Optionally roll a failing release back automatically — the code symlink only; migrations are not undone.</li>
+            <li><strong>Healthcheck</strong> — an HTTP probe on one of the app's own domains, checked every five minutes and again right after every deploy. Optionally roll a failing release back automatically — the code symlink only; migrations are not undone. <code>health: {enabled: false}</code> removes the check (it was silently ignored before 5.3.0).</li>
             <li><strong>Backup profiles</strong> — per-app profiles with their own scope, schedule, retention, destinations and encryption. Names must be <code>myapp</code> or <code>myapp-*</code>.</li>
             <li><strong>Post-deploy steps</strong> — since <strong>5.2.3</strong>, a <code>deploy.post</code> list that runs from the live release after every successful deploy, on <code>cipi deploy</code> and the webhook alike. Allowlisted runners only — <code>artisan</code>, <code>npm</code>/<code>npx</code>/<code>yarn</code>/<code>pnpm</code>, <code>composer</code>, or one relative <code>php</code>/<code>node</code> script — never a shell line. It is the one section that runs <em>without</em> <code>cipi yml auto</code> being on; <code>deploy.post_on_failure: abort</code> makes a failing step fail the deploy instead of just emailing <code>yml_post_fail</code>.</li>
         </ul>

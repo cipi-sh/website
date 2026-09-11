@@ -64,7 +64,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-09",
+      "dateModified": "2026-09-11",
       "headline": "Cipi Docs — Infrastructure",
       "name": "Infrastructure",
       "url": "https://cipi.sh/docs/infrastructure",
@@ -275,9 +275,11 @@
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
+                <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
+                <a href="/docs/infrastructure#cli-zt" class="sidebar-link"><code>zt</code> (Cloudflare)</a>
                 <a href="/docs/infrastructure#cli-scan" class="sidebar-link"><code>scan</code></a>
                 <a href="/docs/infrastructure#cli-search" class="sidebar-link"><code>search</code></a>
                 <a href="/docs/infrastructure#cli-package" class="sidebar-link"><code>package</code></a>
@@ -326,6 +328,7 @@
                 <a href="/docs/advanced#cipi-sync" class="sidebar-link"><code>cipi sync</code></a>
                 <a href="/docs/advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
                 <a href="/docs/advanced#cipi-smtp" class="sidebar-link">email notifications</a>
+                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">chat alert channels</a>
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
@@ -707,6 +710,14 @@
                     with <code>cipi ssl dns set</code>, then pass <code>--dns=cloudflare</code> (and optionally
                     <code>--wildcard</code>) to <code>cipi ssl install</code>.
                 </p>
+
+                <p>Since <strong>v5.3.0</strong>, <code>cipi ssl</code> knows about
+                    <a href="#cli-zt">Cloudflare Zero Trust</a>. HTTP-01 refuses while <code>cipi zt lock http</code>
+                    is on — Let's Encrypt does not validate from Cloudflare's IPs — and on an app that uses a
+                    Cloudflare Origin CA certificate, which it would overwrite; use <code>--dns=cloudflare</code>
+                    instead. Apps routed through the tunnel get certbot's <code>--no-redirect</code>, and
+                    <code>cipi ssl force</code> refuses on them, because <code>cloudflared</code> talks plain HTTP to
+                    <code>:80</code> and an origin redirect would break it.</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -1321,7 +1332,134 @@ myapp@server:~$ crontab -e</pre>
                 <p>REST: <code>GET /api/health</code>, <code>GET|PUT|DELETE /api/apps/{name}/health</code>,
                     <code>POST /api/apps/{name}/health/check</code> (API <strong>1.15.0+</strong> / Cipi
                     <strong>5.0.6+</strong>). An app can also declare its healthcheck in its repository — see
-                    <a href="/docs/deploy#cli-yml"><code>cipi.yml</code></a>.</p>
+                    <a href="/docs/deploy#cli-yml"><code>cipi.yml</code></a>.
+                    To watch the server rather than the app — disk, services, workers, 5xx spikes, load — see
+                    <a href="#cli-monitor"><code>cipi monitor</code></a> (v5.3.0+).</p>
+            </div>
+
+            <div class="doc-section" id="cli-monitor">
+                <h2><code>cipi monitor</code></h2>
+                <p>Available since <strong>v5.3.0</strong>. <a href="#cli-health"><code>cipi health</code></a> watches
+                    app URLs; <code>cipi monitor</code> watches <strong>the server itself</strong> — from cron, every 5
+                    minutes (<code>/etc/cron.d/cipi-monitor</code> runs <code>/usr/local/bin/cipi-monitor</code>). No
+                    metrics storage, no graphs, no agent: a few state files under <code>/var/log/cipi/monitor/</code>
+                    and a message when something actually breaks.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi monitor                               <span class="c"># run every check now — exits 1 on warn/crit</span>
+<span class="p">$</span> cipi monitor --json                        <span class="c"># same, machine-readable</span>
+<span class="p">$</span> cipi monitor list                          <span class="c"># checks, thresholds, current state, last alert</span>
+<span class="p">$</span> cipi monitor disable load                  <span class="c"># turn one check off</span>
+<span class="p">$</span> cipi monitor enable load
+<span class="p">$</span> cipi monitor set disk --warn=85 --crit=95
+<span class="p">$</span> cipi monitor set ssl --days=21
+<span class="p">$</span> cipi monitor set http_5xx --count=50 --ratio=10
+<span class="p">$</span> cipi monitor set load --factor=6 --runs=3
+<span class="p">$</span> cipi monitor set reminder --minutes=120    <span class="c"># re-alert interval while failing (min 15)</span>
+<span class="p">$</span> cipi monitor test                          <span class="c"># sample alert through email and every channel</span></pre>
+                </div>
+
+                <h3>Seven checks, all on by default</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Check</th>
+                                <th>What it looks at</th>
+                                <th>Alerts when (default)</th>
+                                <th>Trigger</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>disk</code></td>
+                                <td>Every local filesystem</td>
+                                <td>warn at <strong>&ge;80%</strong>, crit at <strong>&ge;90%</strong></td>
+                                <td><code>monitor_disk</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>ssl</code></td>
+                                <td>Let's Encrypt certificates in <code>/etc/letsencrypt/live</code></td>
+                                <td>warn when expiry is <strong>&le;14 days</strong> away, crit once expired</td>
+                                <td><code>monitor_ssl</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>services</code></td>
+                                <td>Every installed Cipi service via systemd — nginx, MariaDB, PHP-FPM, Valkey,
+                                    Supervisor, fail2ban, and the optional ones when present</td>
+                                <td>Any unit not active</td>
+                                <td><code>monitor_services</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>workers</code></td>
+                                <td>Every configured <code>*-worker-*</code> / <code>*-horizon</code> Supervisor
+                                    program</td>
+                                <td>A process not <code>RUNNING</code></td>
+                                <td><code>monitor_workers</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>http_5xx</code></td>
+                                <td>The bytes appended to each app's Nginx access log since the previous run</td>
+                                <td><strong>&ge;20</strong> 5xx <strong>and</strong> <strong>&ge;5%</strong> of
+                                    requests</td>
+                                <td><code>monitor_http_5xx</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>fs</code></td>
+                                <td><code>/etc/cipi</code> and <code>/var/log/cipi</code></td>
+                                <td>Either one is no longer writable (read-only remount)</td>
+                                <td><code>monitor_fs</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>load</code></td>
+                                <td>1-minute load average</td>
+                                <td>Above <strong>4&times; the core count</strong> for <strong>2 consecutive
+                                        runs</strong></td>
+                                <td><code>monitor_load</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Edge-triggered, so the cron never spams</h3>
+                <ul>
+                    <li><strong>ok &rarr; warn/crit</strong> fires once, and a <strong>warn &harr; crit</strong>
+                        escalation fires once.</li>
+                    <li><strong>fail &rarr; ok</strong> sends one recovery message (<code>monitor_ok</code>) that says
+                        how long the check had been failing.</li>
+                    <li>A failure that persists re-alerts every <code>reminder_minutes</code> — <strong>240</strong> by
+                        default, <code>cipi monitor set reminder --minutes=N</code> to change it.</li>
+                </ul>
+
+                <h3>Details that keep it honest</h3>
+                <ul>
+                    <li><code>http_5xx</code> keeps a byte offset per log, so it only reads what was written since the
+                        last run. The offsets survive logrotate, and the <strong>first run only records a
+                            baseline</strong> — it never alerts on last week's errors.</li>
+                    <li><code>load</code> needs <code>runs</code> consecutive runs over the limit: a single 5-minute
+                        spike is noise, a sustained one is a problem.</li>
+                    <li>A check that cannot run reports <code>crit</code> instead of crashing the runner.</li>
+                    <li>Every check maps to its own trigger, so any of them can be muted like everything else:
+                        <code>cipi notifications disable monitor_load</code>.</li>
+                </ul>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Alerts go out through the normal notification path: email once
+                        <a href="/docs/advanced#cipi-smtp"><code>cipi smtp configure</code></a> is done, and every
+                        <a href="/docs/advanced#cipi-alert-channels">chat channel</a> you add. <strong>Migration
+                            5.3.0</strong> installs the cron and the helper and writes <code>monitor.json</code> with
+                        all seven checks on; <code>setup.sh</code> does the same on fresh servers. The panel API
+                        sudoers allow <code>cipi monitor list</code>; <code>enable</code>, <code>disable</code> and
+                        <code>set</code> stay on the CLI.</div>
+                </div>
             </div>
 
             <div class="doc-section" id="cli-firewall">
@@ -1338,6 +1476,10 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi firewall deny 8080                   <span class="c"># block a port</span>
 <span class="p">$</span> cipi firewall list                        <span class="c"># show all rules</span></pre>
                 </div>
+                <p>Since <strong>v5.3.0</strong>, once Cloudflare Tunnel carries the traffic,
+                    <a href="#cli-zt"><code>cipi zt lock http</code></a> can close 80/443 (or allow only Cloudflare's
+                    ranges) and <code>cipi zt lock ssh</code> can close 22. <code>cipi zt disable</code> puts the
+                    three default rules back.</p>
             </div>
 
             <div class="doc-section" id="cli-ban">
@@ -1414,7 +1556,9 @@ myapp@server:~$ crontab -e</pre>
                     <li><strong>Nginx looks like it sits behind a reverse proxy</strong> without
                         <code>set_real_ip_from</code> and <code>real_ip_header</code>. Every log line would carry your
                         CDN's address, so CrowdSec would ban Cloudflare and leave the attacker alone.
-                        <code>--force</code> overrides it if you know better.</li>
+                        <code>--force</code> overrides it if you know better. Since <strong>v5.3.0</strong> the error
+                        points at <a href="#cli-zt"><code>cipi zt enable</code></a>, which writes exactly that
+                        Cloudflare <code>real_ip</code> config.</li>
                 </ul>
                 <p>Before anything can start banning, <code>enable</code> <strong>allowlists the SSH session you are
                         typing from</strong>. And <code>cipi crowdsec disable</code> <strong>flushes the CrowdSec
@@ -1495,6 +1639,193 @@ myapp@server:~$ crontab -e</pre>
                         candidate file is validated with <code>visudo -c</code> before it replaces the live one.
                         Nothing else is migrated: CrowdSec and the scan stay off.</div>
                 </div>
+            </div>
+
+            <div class="doc-section" id="cli-zt">
+                <h2><code>cipi zt</code> — Cloudflare Zero Trust</h2>
+                <p>Available since <strong>v5.3.0</strong>, and <strong>off until you ask</strong> — the same contract
+                    as <a href="#cli-crowdsec">CrowdSec</a>: <code>setup.sh</code> and <code>cipi self-update</code>
+                    never install <code>cloudflared</code> and never call <code>cipi zt enable</code>. Fail2ban and UFW
+                    stay; this feature teaches them about Cloudflare rather than replacing them.</p>
+                <p>Public sites stay public — visitors of a shop go through Cloudflare's CDN/WAF over the same tunnel,
+                    with no login. Staging, the <a href="/docs/gui">GUI</a> and SSH are what you put behind Cloudflare
+                    Access. Every step that could cut you off is a separate, explicit command.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># 1 — API token, saved root-only</span>
+<span class="p">$</span> cipi zt token set --token=CF_API_TOKEN --account=ACCOUNT_ID
+<span class="p">$</span> cipi zt token show                         <span class="c"># whether a token is saved — never the secret</span>
+
+<span class="c"># 2 — tunnel + nginx real_ip (22/80/443 stay open)</span>
+<span class="p">$</span> cipi zt enable
+<span class="p">$</span> cipi zt status                             <span class="c"># tunnel, hostnames, Access, locks, apps not on the tunnel</span>
+
+<span class="c"># 3 — route traffic</span>
+<span class="p">$</span> cipi zt hostname add myapp                 <span class="c"># public, through Cloudflare's CDN/WAF</span>
+<span class="p">$</span> cipi zt hostname add --gui                 <span class="c"># the control panel hostname</span>
+<span class="p">$</span> cipi zt access enable staging              <span class="c"># Cloudflare Access in front of an app</span>
+<span class="p">$</span> cipi zt access enable --gui
+<span class="p">$</span> cipi zt ssh enable --hostname=ssh.example.com
+
+<span class="c"># 4 — close the origin, when you are ready</span>
+<span class="p">$</span> cipi zt lock http --yes                    <span class="c"># 80/443: closed, or Cloudflare IPs only</span>
+<span class="p">$</span> cipi zt lock ssh --yes                     <span class="c"># port 22 — refuses unless the tunnel carries SSH</span>
+
+<span class="c"># rescue and teardown</span>
+<span class="p">$</span> cipi zt ssh unlock                         <span class="c"># reopen port 22</span>
+<span class="p">$</span> cipi zt unlock http                        <span class="c"># 80/443 world-open again</span>
+<span class="p">$</span> cipi zt refresh                            <span class="c"># reload Cloudflare IP ranges (also a daily cron)</span>
+<span class="p">$</span> cipi zt disable                            <span class="c"># restore UFW 22/80/443, remove cloudflared</span></pre>
+                </div>
+
+                <h3>The API token</h3>
+                <p><code>cipi zt token set</code> stores the token root-only at <code>/etc/cipi/zt.token</code>. If
+                    <code>--account</code> is omitted and the token sees exactly one account, Cipi uses it. The token
+                    needs <strong>Account &middot; Cloudflare Tunnel: Edit</strong>, <strong>Account &middot; Access:
+                        Apps and Policies: Edit</strong> and <strong>Zone &middot; DNS: Edit</strong>;
+                    <a href="#cli-zt-origin-cert">Origin CA</a> also needs <strong>Zone &middot; SSL and Certificates:
+                        Edit</strong>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>This is <strong>not</strong> <code>/etc/cipi/cloudflare.ini</code>. That file belongs to
+                        certbot's DNS-01 challenge (<a href="#cli-ssl"><code>cipi ssl dns set</code></a>) and needs
+                        Zone.DNS only. The two credentials stay separate.</div>
+                </div>
+
+                <h3>What <code>enable</code> does — and what it leaves alone</h3>
+                <ul>
+                    <li>Installs the official <code>cloudflared</code> package and runs a <strong>locally-managed
+                            tunnel</strong> under its own systemd unit.</li>
+                    <li>Writes Nginx <code>real_ip</code> from <code>https://api.cloudflare.com/client/v4/ips</code>,
+                        reading <code>CF-Connecting-IP</code> (<code>/etc/nginx/conf.d/cipi-cloudflare-realip.conf</code>),
+                        so logs, fail2ban and your app see the visitor instead of Cloudflare.</li>
+                    <li>Adds the same ranges to fail2ban's <code>ignoreip</code> as a backup and, when CrowdSec is
+                        already on, to a CrowdSec allowlist.</li>
+                    <li>Installs a daily <code>cipi zt refresh</code> cron. A failed fetch keeps the previous list.</li>
+                    <li><strong>Does not close 22, 80 or 443.</strong></li>
+                </ul>
+
+                <h3>Hostnames, Access and SSH</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Command</th>
+                                <th>What it does</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>cipi zt hostname add &lt;app|--gui&gt;</code></td>
+                                <td>CNAME to <code>{tunnel-id}.cfargotunnel.com</code>, ingress
+                                    <code>http://127.0.0.1:80</code>. <strong>Public</strong> — CDN/WAF, no Access.
+                                    <code>cipi app create</code> does not do this on its own; <code>cipi zt status</code>
+                                    lists the apps that are not on the tunnel yet.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt hostname remove &lt;app|--gui&gt;</code></td>
+                                <td>Removes the DNS records and Access applications Cipi created for it, and the
+                                    ingress rule.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt access enable &lt;app|--gui&gt;</code></td>
+                                <td>Cloudflare Access in front of that hostname, allowing any authenticated user —
+                                    tighten the identity provider in the Zero Trust dashboard. If the app has a Git
+                                    webhook, a <strong>Bypass</strong> application is created for
+                                    <code>/cipi/webhook</code> so GitHub, GitLab and Bitbucket are not answered with a
+                                    403.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt access disable &lt;app|--gui&gt;</code></td>
+                                <td>Drops Access; the hostname stays public on the tunnel.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt ssh enable --hostname=</code></td>
+                                <td>Ingress <code>ssh://127.0.0.1:22</code> plus an Access SSH application, then prints
+                                    the <code>~/.ssh/config</code> block below. <strong>Port 22 stays open.</strong></td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt ssh disable</code></td>
+                                <td>Removes SSH from the tunnel — reopening port 22 first if it was locked.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">ssh config</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># ~/.ssh/config on your laptop</span>
+Host ssh.example.com
+  ProxyCommand cloudflared access ssh --hostname %h
+  User cipi
+  IdentityFile ~/.ssh/id_ed25519</pre>
+                </div>
+                <p>Deployer still SSHs to <code>localhost</code>, so deploys are not affected by any of this.</p>
+
+                <h3>Locking the origin</h3>
+                <p><code>cipi zt lock http [--yes]</code> <strong>refuses while any app still renews Let's Encrypt over
+                        HTTP-01</strong>: validation does not come from Cloudflare's IPs, so those certificates would
+                    quietly stop renewing. Move each app to <code>cipi ssl install &lt;app&gt; --dns=cloudflare</code>
+                    or <code>cipi zt origin-cert &lt;app&gt;</code> first; <code>--force</code> skips the check if you
+                    accept the consequence. Then:</p>
+                <ul>
+                    <li>if <strong>every</strong> HTTP hostname — the GUI included — is on the tunnel, 80/443 are closed
+                        entirely: the origin goes dark;</li>
+                    <li>otherwise 80/443 are allowed <strong>only from Cloudflare's ranges</strong>, kept current by
+                        the daily refresh.</li>
+                </ul>
+                <p><code>cipi zt lock ssh [--yes]</code> closes port 22 <strong>only if <code>cloudflared</code> is
+                        active and the tunnel already has SSH ingress</strong>; otherwise it would lock you out. The
+                    way back is <code>cipi zt ssh unlock</code>. A CrowdSec rescue listener, if enabled, stays
+                    reachable.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Lock SSH only after <code>ssh ssh.example.com</code> through <code>cloudflared</code> already
+                        works from your own machine. If the tunnel stops while port 22 is closed, the way in is your
+                        VPS provider's console — keep it at hand before you run <code>lock ssh</code>.</div>
+                </div>
+
+                <h3 id="cli-zt-origin-cert">Origin CA certificates (optional)</h3>
+                <p><code>cipi zt origin-cert &lt;app&gt;</code> requests a <strong>15-year Cloudflare Origin CA</strong>
+                    certificate for the app's domains, stores it under <code>/etc/ssl/cipi-origin/&lt;app&gt;/</code>
+                    and swaps the <code>ssl_certificate</code> paths when the vhost already has a <code>:443</code>
+                    block. The app is marked so a later <code>cipi ssl install</code> over HTTP-01 will not overwrite
+                    it.</p>
+                <p>It is not a default replacement for Let's Encrypt. Full (Strict) still needs <em>an</em> origin
+                    certificate, but the tunnel talks HTTP to <code>:80</code> and does not need one.</p>
+
+                <h3>How it fits the rest of Cipi</h3>
+                <ul>
+                    <li><a href="#cli-ssl"><code>cipi ssl install</code></a> over HTTP-01 refuses while
+                        <code>lock http</code> is on, and on an app with an Origin CA certificate. Apps on the tunnel
+                        get certbot <code>--no-redirect</code>, and <code>cipi ssl force</code> refuses on them: an
+                        origin HTTP&rarr;HTTPS redirect would break <code>cloudflared</code>.</li>
+                    <li>CrowdSec's reverse-proxy check still refuses without <code>real_ip</code>; the error now points
+                        at <code>cipi zt enable</code>, after which the check finds the Cloudflare config.</li>
+                    <li>Notification triggers: <code>zt_enable</code>, <code>zt_disable</code>,
+                        <code>zt_lock_http</code> and <code>zt_lock_ssh</code>.</li>
+                    <li>The panel API sudoers grant <code>cipi zt status</code> only. <code>enable</code>,
+                        <code>lock</code> and everything else stay with the operator on the CLI.</li>
+                </ul>
+                <p><code>cipi zt disable</code> reopens UFW 22/80/443, removes the Access applications and DNS records
+                    Cipi created, deletes the tunnel, purges <code>cloudflared</code> and removes the real_ip, fail2ban
+                    and CrowdSec files and the cron. Fail2ban stays, and your Let's Encrypt certificates are left
+                    alone.</p>
             </div>
 
             <div class="doc-section" id="cli-scan">
@@ -1869,7 +2200,9 @@ myapp@server:~$ crontab -e</pre>
                     <code>redis-server</code>, <code>redis</code>, and <code>valkey</code> are accepted as aliases of
                     <code>valkey-server</code>. Since <strong>v5.2.2</strong>,
                     <code>meilisearch</code> (alias <code>search</code>) appears only when
-                    <a href="#cli-search"><code>cipi search</code></a> has installed the unit.
+                    <a href="#cli-search"><code>cipi search</code></a> has installed the unit. Since
+                    <strong>v5.3.0</strong>, <code>cloudflared</code> appears the same way once
+                    <a href="#cli-zt"><code>cipi zt enable</code></a> has installed it.
                 </p>
                 <p>Valkey — the BSD-licensed, Redis-compatible fork — is included in the default stack and replaces
                     <code>redis-server</code> since Cipi 4.5.6. It is installed with a password, bound to

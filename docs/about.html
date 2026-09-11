@@ -66,7 +66,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-09",
+      "dateModified": "2026-09-11",
       "headline": "Cipi Docs — About Cipi",
       "name": "About Cipi",
       "url": "https://cipi.sh/docs/about",
@@ -277,9 +277,11 @@
                 <a href="/docs/infrastructure#cli-schedule" class="sidebar-link"><code>schedule</code></a>
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
+                <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
+                <a href="/docs/infrastructure#cli-zt" class="sidebar-link"><code>zt</code> (Cloudflare)</a>
                 <a href="/docs/infrastructure#cli-scan" class="sidebar-link"><code>scan</code></a>
                 <a href="/docs/infrastructure#cli-search" class="sidebar-link"><code>search</code></a>
                 <a href="/docs/infrastructure#cli-package" class="sidebar-link"><code>package</code></a>
@@ -328,6 +330,7 @@
                 <a href="/docs/advanced#cipi-sync" class="sidebar-link"><code>cipi sync</code></a>
                 <a href="/docs/advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
                 <a href="/docs/advanced#cipi-smtp" class="sidebar-link">email notifications</a>
+                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">chat alert channels</a>
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
@@ -691,7 +694,7 @@
                         </div>
                     </div>
 
-                    <div class="timeline-item timeline-item--current">
+                    <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-body">
                             <span class="timeline-version">v5.2</span>
@@ -710,7 +713,29 @@
                                     <line x1="12" y1="8" x2="12" y2="12" />
                                     <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
-                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.3" target="_blank" rel="noopener">5.2.3</a> — Git beyond GitHub and GitLab: <code>cipi git</code> now detects <strong>Cursor Origin</strong>, <strong>AWS CodeCommit</strong>, <strong>Bitbucket Cloud</strong> and <strong>Azure DevOps</strong> from the clone URL, registers the deploy key, and creates the webhook where the forge has one (Bitbucket <code>repo:push</code> with an HMAC secret; Azure a <code>git.push</code> service hook sending <code>X-Gitlab-Token</code>). Origin and CodeCommit get the key only — neither has a per-repo HTTP webhook. <code>cipi.yml</code> gains <a href="/docs/deploy#cli-yml-deploy-post"><code>deploy.post</code></a>: allowlisted post-deploy steps (<code>artisan</code>, <code>npm</code>, <code>composer</code>, a <code>php</code>/<code>node</code> script — no shell) that run without needing <code>yml auto</code>. <a href="/docs/infrastructure#cli-stack-upgrade"><code>cipi nginx upgrade</code>, <code>cipi db upgrade</code> and <code>cipi service upgrade</code></a> apply patch-level updates to the four packages deliberately kept off <code>unattended-upgrades</code> — manual, never on a cron, and <code>all</code> is refused. <strong>Security fix:</strong> a custom app's committed <code>cipi.yml</code> was downloadable at <code>https://&lt;domain&gt;/cipi.yml</code>; every app vhost now denies <code>/cipi.yml</code> and <code>/cipi.yaml</code> at any path, applied on update without regenerating the vhost. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.2" target="_blank" rel="noopener">5.2.2</a> — two more opt-in additions, neither installed by <code>setup.sh</code> or <code>cipi self-update</code>. <code>cipi search</code> is Meilisearch as a native binary for Laravel Scout: listen on 127.0.0.1, mint a key scoped to <code>&lt;app&gt;-*</code>, write <code>SCOUT_PREFIX</code> yourself so two apps cannot share an index. <code>cipi app delete</code> revokes the key; <code>cipi app clone</code> mints a new one instead of inheriting production's. <code>cipi package</code> is an allowlisted apt for host binaries a Laravel project may need — image optimisers, ffmpeg, the ImageMagick CLI, <code>pdftotext</code> — and the allowlist is the feature. Chromium is refused on purpose (it would pull snapd). Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.1" target="_blank" rel="noopener">5.2.1</a> — <code>cipi git refresh [app]</code> and <code>cipi app fix-permissions [app]</code>. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.0" target="_blank" rel="noopener">5.2.0</a> — opt-in CrowdSec (engine <strong>and</strong> a registered firewall bouncer) and a nightly integrity check. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.20" target="_blank" rel="noopener">1.20</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
+                                <div>In 5.2: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.3" target="_blank" rel="noopener">5.2.3</a> — Git beyond GitHub and GitLab: <code>cipi git</code> now detects <strong>Cursor Origin</strong>, <strong>AWS CodeCommit</strong>, <strong>Bitbucket Cloud</strong> and <strong>Azure DevOps</strong> from the clone URL, registers the deploy key, and creates the webhook where the forge has one (Bitbucket <code>repo:push</code> with an HMAC secret; Azure a <code>git.push</code> service hook sending <code>X-Gitlab-Token</code>). Origin and CodeCommit get the key only — neither has a per-repo HTTP webhook. <code>cipi.yml</code> gains <a href="/docs/deploy#cli-yml-deploy-post"><code>deploy.post</code></a>: allowlisted post-deploy steps (<code>artisan</code>, <code>npm</code>, <code>composer</code>, a <code>php</code>/<code>node</code> script — no shell) that run without needing <code>yml auto</code>. <a href="/docs/infrastructure#cli-stack-upgrade"><code>cipi nginx upgrade</code>, <code>cipi db upgrade</code> and <code>cipi service upgrade</code></a> apply patch-level updates to the four packages deliberately kept off <code>unattended-upgrades</code> — manual, never on a cron, and <code>all</code> is refused. <strong>Security fix:</strong> a custom app's committed <code>cipi.yml</code> was downloadable at <code>https://&lt;domain&gt;/cipi.yml</code>; every app vhost now denies <code>/cipi.yml</code> and <code>/cipi.yaml</code> at any path, applied on update without regenerating the vhost. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.2" target="_blank" rel="noopener">5.2.2</a> — two more opt-in additions, neither installed by <code>setup.sh</code> or <code>cipi self-update</code>. <code>cipi search</code> is Meilisearch as a native binary for Laravel Scout: listen on 127.0.0.1, mint a key scoped to <code>&lt;app&gt;-*</code>, write <code>SCOUT_PREFIX</code> yourself so two apps cannot share an index. <code>cipi app delete</code> revokes the key; <code>cipi app clone</code> mints a new one instead of inheriting production's. <code>cipi package</code> is an allowlisted apt for host binaries a Laravel project may need — image optimisers, ffmpeg, the ImageMagick CLI, <code>pdftotext</code> — and the allowlist is the feature. Chromium is refused on purpose (it would pull snapd). Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.1" target="_blank" rel="noopener">5.2.1</a> — <code>cipi git refresh [app]</code> and <code>cipi app fix-permissions [app]</code>. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.2.0" target="_blank" rel="noopener">5.2.0</a> — opt-in CrowdSec (engine <strong>and</strong> a registered firewall bouncer) and a nightly integrity check. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.20" target="_blank" rel="noopener">1.20</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item timeline-item--current">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-body">
+                            <span class="timeline-version">v5.3</span>
+                            <span class="timeline-date">September 2026</span>
+                            <h3 class="timeline-title">Cloudflare Zero Trust, a server monitor, and alerts where you actually look</h3>
+                            <p>v5.3 keeps the opt-in contract of 5.2. <code>cipi zt enable</code> installs <code>cloudflared</code>, creates a locally-managed tunnel and teaches Nginx, fail2ban and CrowdSec Cloudflare's edge ranges — without closing a single port. Every step after that is explicit: route an app through the tunnel, put Cloudflare Access in front of staging or the GUI, carry SSH over the tunnel, and only then <code>cipi zt lock http</code> (80/443 closed, or Cloudflare-only) and <code>cipi zt lock ssh</code>, which refuses unless the tunnel already carries SSH. Public sites stay public. <code>cipi monitor</code> is the other half: <code>cipi health</code> watches app URLs, the monitor watches the server — disk, certificate expiry, services, queue workers, 5xx spikes, read-only filesystems and load — every five minutes, alerting on state changes rather than on every run. And every notification Cipi sends can now reach Slack, Discord, Telegram, ntfy or a custom webhook as well as email. See
+                                <a href="/docs/infrastructure#cli-zt"><code>cipi zt</code></a>,
+                                <a href="/docs/infrastructure#cli-monitor"><code>cipi monitor</code></a>, and
+                                <a href="/docs/advanced#cipi-alert-channels">chat alert channels</a>.</p>
+                            <div class="callout info" style="margin-top:16px;">
+                                <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.0" target="_blank" rel="noopener">5.3.0</a> — Cloudflare Zero Trust (<code>cipi zt</code>), off until you ask: <code>setup.sh</code> and <code>cipi self-update</code> never install <code>cloudflared</code>. The API token lives root-only in <code>/etc/cipi/zt.token</code> and is not the certbot DNS-01 file. <code>lock http</code> refuses while any app still renews Let's Encrypt over HTTP-01; <code>lock ssh</code> refuses unless <code>cloudflared</code> is active with SSH ingress, and <code>cipi zt ssh unlock</code> is the way back. The optional <code>cipi zt origin-cert</code> installs a 15-year Cloudflare Origin CA certificate. <code>cipi monitor</code> runs seven checks from <code>/etc/cron.d/cipi-monitor</code>, each toggleable and each with its own <code>monitor_*</code> trigger, recovery included. <code>cipi notifications channel add</code> fans every trigger out to chat, best-effort with a 5-second timeout. <strong>Fixed:</strong> jq's <code>// true</code> read an explicit <code>false</code> as true — a muted trigger kept sending email, <code>cipi smtp configure --tls=off</code> was ignored, and <code>health: {enabled: false}</code> in <code>cipi.yml</code> did nothing. Migration 5.3.0 installs the monitor cron and default configs, adds <code>zt status</code> and <code>monitor list</code> to the panel API sudoers, and configures no channel. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.20" target="_blank" rel="noopener">1.20</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
                             </div>
                         </div>
                     </div>
