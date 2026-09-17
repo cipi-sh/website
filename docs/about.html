@@ -66,7 +66,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-11",
+      "dateModified": "2026-09-17",
       "headline": "Cipi Docs — About Cipi",
       "name": "About Cipi",
       "url": "https://cipi.sh/docs/about",
@@ -268,6 +268,8 @@
                 <a href="/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
+                <a href="/docs/infrastructure#cli-redirect" class="sidebar-link"><code>redirect</code></a>
+                <a href="/docs/infrastructure#cli-proxy" class="sidebar-link"><code>proxy</code></a>
                 <a href="/docs/infrastructure#cli-domains" class="sidebar-link"><code>domains</code></a>
                 <a href="/docs/infrastructure#cli-ssl" class="sidebar-link"><code>ssl</code></a>
                 <a href="/docs/infrastructure#cli-nginx" class="sidebar-link"><code>nginx default-server</code></a>
@@ -283,6 +285,7 @@
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
                 <a href="/docs/infrastructure#cli-zt" class="sidebar-link"><code>zt</code> (Cloudflare)</a>
                 <a href="/docs/infrastructure#cli-scan" class="sidebar-link"><code>scan</code></a>
+                <a href="/docs/infrastructure#cli-compliance" class="sidebar-link"><code>compliance</code></a>
                 <a href="/docs/infrastructure#cli-search" class="sidebar-link"><code>search</code></a>
                 <a href="/docs/infrastructure#cli-package" class="sidebar-link"><code>package</code></a>
                 <a href="/docs/infrastructure#cli-completion" class="sidebar-link"><code>completion</code></a>
@@ -349,6 +352,7 @@
                 <a href="/docs/about#why-valkey" class="sidebar-link">why Valkey?</a>
                 <a href="/docs/about#why-laravel" class="sidebar-link">why Laravel?</a>
                 <a href="/docs/about#why-cipi" class="sidebar-link">why "Ci-Pi"?</a>
+                <a href="/docs/about#companion-tools" class="sidebar-link">companion tools</a>
                 <a href="/docs/about#vs-alternatives" class="sidebar-link">Cipi vs alternatives</a>
             </div>
 
@@ -727,7 +731,10 @@
                             <p>v5.3 keeps the opt-in contract of 5.2. <code>cipi zt enable</code> installs <code>cloudflared</code>, creates a locally-managed tunnel and teaches Nginx, fail2ban and CrowdSec Cloudflare's edge ranges — without closing a single port. Every step after that is explicit: route an app through the tunnel, put Cloudflare Access in front of staging or the GUI, carry SSH over the tunnel, and only then <code>cipi zt lock http</code> (80/443 closed, or Cloudflare-only) and <code>cipi zt lock ssh</code>, which refuses unless the tunnel already carries SSH. Public sites stay public. <code>cipi monitor</code> is the other half: <code>cipi health</code> watches app URLs, the monitor watches the server — disk, certificate expiry, services, queue workers, 5xx spikes, read-only filesystems and load — every five minutes, alerting on state changes rather than on every run. And every notification Cipi sends can now reach Slack, Discord, Telegram, ntfy or a custom webhook as well as email. See
                                 <a href="/docs/infrastructure#cli-zt"><code>cipi zt</code></a>,
                                 <a href="/docs/infrastructure#cli-monitor"><code>cipi monitor</code></a>, and
-                                <a href="/docs/advanced#cipi-alert-channels">chat alert channels</a>.</p>
+                                <a href="/docs/advanced#cipi-alert-channels">chat alert channels</a>. 5.3.1 adds audit evidence with
+                                <a href="/docs/infrastructure#cli-compliance"><code>cipi compliance</code></a>, plus
+                                <a href="/docs/infrastructure#cli-redirect">redirects</a> and
+                                <a href="/docs/infrastructure#cli-proxy">proxy prefixes</a> that survive every vhost rebuild.</p>
                             <div class="callout info" style="margin-top:16px;">
                                 <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2">
@@ -735,7 +742,7 @@
                                     <line x1="12" y1="8" x2="12" y2="12" />
                                     <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
-                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.0" target="_blank" rel="noopener">5.3.0</a> — Cloudflare Zero Trust (<code>cipi zt</code>), off until you ask: <code>setup.sh</code> and <code>cipi self-update</code> never install <code>cloudflared</code>. The API token lives root-only in <code>/etc/cipi/zt.token</code> and is not the certbot DNS-01 file. <code>lock http</code> refuses while any app still renews Let's Encrypt over HTTP-01; <code>lock ssh</code> refuses unless <code>cloudflared</code> is active with SSH ingress, and <code>cipi zt ssh unlock</code> is the way back. The optional <code>cipi zt origin-cert</code> installs a 15-year Cloudflare Origin CA certificate. <code>cipi monitor</code> runs seven checks from <code>/etc/cron.d/cipi-monitor</code>, each toggleable and each with its own <code>monitor_*</code> trigger, recovery included. <code>cipi notifications channel add</code> fans every trigger out to chat, best-effort with a 5-second timeout. <strong>Fixed:</strong> jq's <code>// true</code> read an explicit <code>false</code> as true — a muted trigger kept sending email, <code>cipi smtp configure --tls=off</code> was ignored, and <code>health: {enabled: false}</code> in <code>cipi.yml</code> did nothing. Migration 5.3.0 installs the monitor cron and default configs, adds <code>zt status</code> and <code>monitor list</code> to the panel API sudoers, and configures no channel. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.20" target="_blank" rel="noopener">1.20</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
+                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.1" target="_blank" rel="noopener">5.3.1</a> — <a href="/docs/infrastructure#cli-compliance"><code>cipi compliance</code></a> collects evidence for ISO/IEC 27001:2022 and SOC 2 audits: 17 read-only controls (SSH, firewall, patching, TLS, accounts, API tokens, GUI 2FA, secrets, deploys, backups, logging, monitoring and more), and <code>cipi compliance report</code> writes a root-only bundle with <code>report.md</code>, <code>report.json</code>, the raw evidence and <code>SHA256SUMS</code>, archived with a printed SHA-256. No token hashes, password hashes, 2FA secrets or backup credentials are ever exported, and the report states Cipi's own gaps — the vault is AES-256-CBC without a MAC — before an auditor asks. <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a> moves a whole app in one hop or redirects single paths and prefixes; <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a> hands a prefix to another upstream with WebSocket, forwarded headers and an optional unbuffered mode. Both live in <code>apps.json</code>, survive vhost regeneration, are validated against nginx injection and loops, and roll back if <code>nginx -t</code> fails. CLI only; no migration. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.0" target="_blank" rel="noopener">5.3.0</a> — Cloudflare Zero Trust (<code>cipi zt</code>), off until you ask: <code>setup.sh</code> and <code>cipi self-update</code> never install <code>cloudflared</code>. The API token lives root-only in <code>/etc/cipi/zt.token</code> and is not the certbot DNS-01 file. <code>lock http</code> refuses while any app still renews Let's Encrypt over HTTP-01; <code>lock ssh</code> refuses unless <code>cloudflared</code> is active with SSH ingress, and <code>cipi zt ssh unlock</code> is the way back. The optional <code>cipi zt origin-cert</code> installs a 15-year Cloudflare Origin CA certificate. <code>cipi monitor</code> runs seven checks from <code>/etc/cron.d/cipi-monitor</code>, each toggleable and each with its own <code>monitor_*</code> trigger, recovery included. <code>cipi notifications channel add</code> fans every trigger out to chat, best-effort with a 5-second timeout. <strong>Fixed:</strong> jq's <code>// true</code> read an explicit <code>false</code> as true — a muted trigger kept sending email, <code>cipi smtp configure --tls=off</code> was ignored, and <code>health: {enabled: false}</code> in <code>cipi.yml</code> did nothing. Migration 5.3.0 installs the monitor cron and default configs, adds <code>zt status</code> and <code>monitor list</code> to the panel API sudoers, and configures no channel. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.20" target="_blank" rel="noopener">1.20</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
                             </div>
                         </div>
                     </div>
@@ -1294,6 +1301,140 @@
                     quieter sibling who prefers the terminal over the spotlight.</p>
                 <p>The illustration is rendered as a pure SVG using the project's accent color, so it adapts naturally
                     to light and dark mode and scales to any size without losing quality.</p>
+            </div>
+
+            <div class="doc-section" id="companion-tools">
+                <h2>Companion tools</h2>
+                <p>Cipi deploys and runs your apps. It does not try to be an exception tracker, an analytics suite or
+                    an object store as well: those are separate jobs, better done by separate tools. The projects below
+                    cover the gaps around a Cipi server. They come from the same author, are open source under the
+                    <strong>MIT</strong> licence, and are all optional — Cipi does not depend on any of them.</p>
+
+                <h3>Around the server</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>What it does</th>
+                                <th>With Cipi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="https://conn.web.ap.it/" target="_blank" rel="noopener"><strong>conn</strong></a></td>
+                                <td>SSH connection manager: a lightweight Bash tool that saves connections under aliases
+                                    and connects with <code>conn to &lt;alias&gt;</code>.</td>
+                                <td>Runs on your machine. Keep one alias per server for the <code>cipi</code> admin user
+                                    and one per app user, instead of remembering hosts and ports.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://johnny.web.ap.it/" target="_blank" rel="noopener"><strong>Johnny</strong></a></td>
+                                <td>S3-compatible object storage on your own VPS, powered by Garage and secured by Caddy,
+                                    with automated backups, a web panel, a CLI and a REST API.</td>
+                                <td>Put it on a <strong>separate</strong> VPS (it brings its own Caddy), then use it as an
+                                    S3-compatible destination for <a href="/docs/infrastructure#cli-backup"><code>cipi
+                                            backup</code></a> or as a Laravel filesystem disk — off-site, and still on
+                                    infrastructure you own.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Monitoring and analytics</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>What it does</th>
+                                <th>With Cipi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="https://boogle.web.ap.it/" target="_blank" rel="noopener"><strong>Boogle</strong></a></td>
+                                <td>Self-hosted exception tracker and uptime monitor for Laravel: ingests errors from your
+                                    apps, groups issues, sends digests and watches services.</td>
+                                <td><a href="/docs/infrastructure#cli-monitor"><code>cipi monitor</code></a> watches the
+                                    server and <a href="/docs/infrastructure#cli-health"><code>cipi health</code></a> one
+                                    URL per app; Boogle adds the application view — exceptions and uptime seen from
+                                    outside. Error payloads stay on your infrastructure.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://indiestats.web.ap.it/" target="_blank" rel="noopener"><strong>IndieStats</strong></a></td>
+                                <td>Privacy-friendly, self-hosted web analytics on Laravel: real-time dashboards, filters,
+                                    country map, ASN detection, Excel export — no cookies, no consent banner.</td>
+                                <td>A Laravel app like any other: deploy it with <code>cipi app create</code> on a
+                                    subdomain and track every site on the server without sending visitor data to a
+                                    third party.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Application security</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>What it does</th>
+                                <th>With Cipi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="https://checkpoint.web.ap.it/" target="_blank" rel="noopener"><strong>Checkpoint</strong></a></td>
+                                <td>Laravel security audit in one Artisan command: known CVEs in dependencies, leaked
+                                    secrets and injection risks, with CI support and custom checks.</td>
+                                <td>Cipi hardens the server; Checkpoint checks the code. Run it in the pipeline before
+                                    the deploy, so a vulnerable release never reaches the server.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://hackly.web.ap.it/" target="_blank" rel="noopener"><strong>Hackly</strong></a></td>
+                                <td>Authorized attack-surface and application security scanning: inventory targets,
+                                    verify DNS ownership, scan linked GitHub repositories (Laravel/PHP SAST and SCA),
+                                    review findings in a Filament panel.</td>
+                                <td>A continuous vulnerability view across all your projects and domains.
+                                    Built on Laravel and Filament, so it can run on a Cipi server itself. Its findings
+                                    sit well next to a <a href="/docs/infrastructure#cli-compliance"><code>cipi
+                                            compliance</code></a> report.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Building Laravel apps</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Tool</th>
+                                <th>What it does</th>
+                                <th>With Cipi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="https://init.web.ap.it/" target="_blank" rel="noopener"><strong>init</strong></a></td>
+                                <td>One command to scaffold a complete Laravel + Filament local stack on macOS, with
+                                    Docker, SSL and a real <code>*.127001.it</code> subdomain.</td>
+                                <td>Start the project locally with init, push it to Git, and let Cipi take it from
+                                    there — <a href="/docs/deploy#git-auto-setup">Git auto-setup</a>,
+                                    <a href="/cipi-yml"><code>cipi.yml</code></a>, zero-downtime deploys.</td>
+                            </tr>
+                            <tr>
+                                <td><a href="https://larapilot.web.ap.it/" target="_blank" rel="noopener"><strong>Larapilot</strong></a></td>
+                                <td>Spec-driven AI product workflow for Laravel, via Laravel Boost: from product idea to
+                                    reviewed code, with personas, skills and optional forge and chat notifications.</td>
+                                <td>Larapilot shapes the code; the <a href="/docs/agent#agent-mcp">Cipi Agent MCP
+                                        server</a> and the <a href="/docs/advanced#cipi-api">panel API</a> let the same AI
+                                    tooling see and operate the running app.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="doc-section" id="vs-alternatives">
