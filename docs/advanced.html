@@ -230,6 +230,7 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
@@ -247,6 +248,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/docs/deploy#deploy-audit" class="sidebar-link">deploy audit ledger</a>
                 <a href="/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
@@ -266,6 +268,7 @@
                 <a href="/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
+                <a href="/docs/infrastructure#cli-node" class="sidebar-link"><code>node</code></a>
                 <a href="/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
@@ -367,13 +370,18 @@
                 <p>Cipi can optionally enable a REST API layer on the server via <code>cipi api
                     &lt;domain&gt;</code>. It is powered by the Laravel package
                     <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener"><code>cipi/api</code></a>
-                    (current release <strong>1.20</strong>), which exposes:
+                    (current release <strong>1.31.0</strong>, which needs Cipi <strong>5.4.1+</strong> for its newest
+                    endpoints), which exposes:
                 </p>
                 <ul>
-                    <li><strong>REST API</strong> — apps (including Octane create, <code>.env</code>,
-                        <code>auth.json</code>, Artisan, whitelisted <code>app run</code>, deploy-config), aliases, www
-                        redirects, deploy, SSL, multi-engine databases, app logs, server status (<code>/api/*</code>)</li>
-                    <li><strong>MCP server</strong> — 50+ tools at <code>/mcp</code> (Streamable HTTP)</li>
+                    <li><strong>REST API</strong> — apps (including Octane and Node create, <code>.env</code>,
+                        <code>auth.json</code>, Artisan, whitelisted <code>app run</code>, deploy-config,
+                        fix-permissions), aliases, www redirects, app and path redirects, prefix proxies, Node runtimes,
+                        deploy and the deploy audit ledger, SSL, multi-engine databases, Meilisearch, app logs, server
+                        status (<code>/api/*</code>)</li>
+                    <li><strong>MCP server</strong> — 68 tools at <code>/mcp</code> (Streamable HTTP)</li>
+                    <li><strong>Read-only host insights</strong> — optional packages, system monitor, Cloudflare Zero
+                        Trust status (API <strong>1.31+</strong>)</li>
                     <li><strong>Server cockpit</strong> — PHP install/switch, SSH keys, services, SMTP, healthchecks,
                         IP whitelist (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>)</li>
                     <li><strong>Swagger UI</strong> — interactive reference at <code>/docs</code></li>
@@ -472,8 +480,8 @@
                     <li><code>apps-deploy-config</code> — structured Deployer recipe options (API
                         <strong>1.14.0+</strong>)</li>
                     <li><code>php-view</code> — list installed PHP versions (API <strong>1.15.0+</strong>)</li>
-                    <li><code>php-manage</code> — install/remove PHP, set system default (API
-                        <strong>1.15.0+</strong> / <strong>1.17.0+</strong> for <code>PUT /api/php/default</code>)</li>
+                    <li><code>php-manage</code> — install PHP versions (API <strong>1.15.0+</strong>; install-only since
+                        <strong>1.19.0</strong> — removing a version or switching the default stays on the CLI)</li>
                     <li><code>ssh-view</code> — list SSH keys on the <code>cipi</code> user (API
                         <strong>1.15.0+</strong>)</li>
                     <li><code>ssh-manage</code> — add/remove/rename SSH keys (API <strong>1.15.0+</strong>)</li>
@@ -489,8 +497,19 @@
                     <li><code>ip-whitelist-view</code> — read panel API / MCP IP allowlist (API
                         <strong>1.15.0+</strong>)</li>
                     <li><code>ip-whitelist-manage</code> — edit IP allowlist entries (API <strong>1.15.0+</strong>)</li>
+                    <li><code>redirects-view</code> / <code>redirects-manage</code> — read and change whole-app and path
+                        redirects (API <strong>1.31.0+</strong> / Cipi <strong>5.4.1+</strong>)</li>
+                    <li><code>proxies-view</code> / <code>proxies-manage</code> — read and change prefix reverse
+                        proxies (API <strong>1.31.0+</strong> / Cipi <strong>5.4.1+</strong>)</li>
+                    <li><code>node-view</code> — Node runtimes and per-app Node status; <code>node-manage</code> —
+                        blue/green restart of an SSR app (API <strong>1.31.0+</strong> / Cipi <strong>5.4.1+</strong>)</li>
+                    <li><code>search-view</code> — Meilisearch status; <code>search-manage</code> — enable or disable
+                        search per Laravel app (API <strong>1.31.0+</strong> / Cipi <strong>5.2.2+</strong>)</li>
+                    <li><code>packages-view</code>, <code>monitor-view</code>, <code>zt-view</code> — read-only host
+                        package catalog, system monitor and Cloudflare Zero Trust status (API <strong>1.31.0+</strong>)</li>
                     <li><code>apps-delete</code> — delete apps</li>
-                    <li><code>deploy-manage</code> — deploy, rollback, unlock</li>
+                    <li><code>deploy-manage</code> — deploy, rollback, unlock, and read the deploy audit ledger (API
+                        <strong>1.31.0+</strong> / Cipi <strong>5.4.0+</strong>)</li>
                     <li><code>ssl-manage</code> — install and manage SSL certificates</li>
                     <li><code>aliases-view</code> — read aliases</li>
                     <li><code>aliases-create</code> — add aliases</li>
@@ -499,8 +518,7 @@
                         Cipi <strong>4.8+</strong>)</li>
                     <li><code>dbs-view</code> — list databases</li>
                     <li><code>dbs-create</code> — create databases</li>
-                    <li><code>dbs-delete</code> — delete databases</li>
-                    <li><code>dbs-manage</code> — backup, restore, regenerate password</li>
+                    <li><code>dbs-manage</code> — backup, restore, regenerate password, install an engine</li>
                     <li><code>status-view</code> — read server status snapshot (<code>GET /api/status</code>, API
                         <strong>1.11.6+</strong>)</li>
                     <li><code>mcp-access</code> — access the MCP server</li>
@@ -509,7 +527,8 @@
                     <code>cipi api token create</code> reads the canonical ability list from the panel API package
                     (same entries as <code>php artisan cipi:token-abilities</code> on the server). Migration
                     <strong>4.6.3</strong> retrofits existing servers with the updated list (including
-                    <code>status-view</code>, <code>apps-suspend</code>, and <code>apps-basicauth</code>).</p>
+                    <code>status-view</code>, <code>apps-suspend</code>, and <code>apps-basicauth</code>). API
+                    <strong>1.19.0</strong> removed <code>dbs-delete</code> along with the endpoints it guarded.</p>
 
                 <h3>REST endpoints</h3>
                 <p>All endpoints require the <code>Authorization: Bearer &lt;token&gt;</code> header. Write operations
@@ -521,7 +540,9 @@
                     <code>GET /api/apps/{name}/logs</code> (API <strong>1.11.9+</strong>),
                     <code>GET /api/php</code>, <code>GET /api/ssh/keys</code>, <code>GET /api/services</code>,
                     <code>GET /api/smtp</code>, <code>GET /api/health</code>, <code>GET /api/ip-whitelist</code>
-                    (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>) are synchronous.
+                    (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>), and the API <strong>1.31.0</strong>
+                    additions — redirects, proxies, <code>GET /api/node</code>, the deploy audit, search,
+                    packages, monitor and Zero Trust — are synchronous.
                     <code>POST /api/apps</code> accepts optional <code>custom</code> (boolean) and
                     <code>docroot</code> (string) parameters for creating
                     <a href="/docs/apps#cli-app-custom">custom apps</a> with classic deployment.
@@ -594,14 +615,24 @@
                 <p><strong>PHP management</strong> (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>):
                     <code>GET /api/php</code> lists installed versions (sync; ability <code>php-view</code>).
                     <code>POST /api/php/install</code> and <code>DELETE /api/php/{version}</code> install or remove a
-                    version (async; <code>php-manage</code>). Since API <strong>1.17.0+</strong>,
-                    <code>PUT /api/php/default</code> sets the system default PHP synchronously (body
-                    <code>{ "version": "8.5" }</code>; wraps <code>cipi php switch</code>; returns updated
-                    <code>GET /api/php</code> payload). Installable versions are <strong>8.3, 8.4, 8.5</strong>. MCP:
-                    <code>PhpList</code>.</p>
-                <p><strong>DB engines</strong> — <code>POST /api/dbs/engines/install</code> and
-                    <code>PUT /api/dbs/engines/default</code> (ability <code>dbs-manage</code>; API
-                    <strong>1.15.0+</strong>).</p>
+                    version (async; <code>php-manage</code>). Installable versions are <strong>8.3, 8.4, 8.5</strong>.
+                    MCP: <code>PhpList</code>.</p>
+                <p><strong>DB engines</strong> — <code>POST /api/dbs/engines/install</code> (ability
+                    <code>dbs-manage</code>; API <strong>1.15.0+</strong>).</p>
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Removed in API 1.19.0:</strong> <code>DELETE /api/php/{version}</code>,
+                        <code>PUT /api/php/default</code>, <code>DELETE /api/dbs/{name}</code> (and MCP
+                        <code>DbDelete</code>) and <code>PUT /api/dbs/engines/default</code>. Removing PHP, switching
+                        the default PHP or engine, and dropping a database are destructive host operations — run
+                        <code>cipi php remove|switch</code>, <code>cipi db delete</code> and
+                        <code>cipi db default</code> on the server.</div>
+                </div>
                 <p><strong>SSH keys</strong> — <code>GET|POST /api/ssh/keys</code>,
                     <code>DELETE /api/ssh/keys/{n}</code> (abilities <code>ssh-view</code> / <code>ssh-manage</code>;
                     API <strong>1.15.0+</strong>).</p>
@@ -644,6 +675,69 @@
                     recent first), <code>per_page</code> (default <code>50</code>, max <code>1000</code>). Requires the
                     <code>apps-view</code> ability and API package <strong>1.11.9+</strong>. Log text is redacted for
                     common secrets (same policy as MCP <code>AppLogs</code> since API <strong>1.11.5+</strong>).</p>
+                <p><strong>Redirects</strong> (API <strong>1.31.0+</strong>) wrap
+                    <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a> synchronously: the CLI
+                    validates the rule, regenerates the vhost, runs <code>nginx -t</code> and reverts on failure.
+                    <code>GET /api/apps/{name}/redirects</code> returns the whole-app redirect and the path redirects
+                    (<code>redirects-view</code>). <code>PUT /api/apps/{name}/redirect</code> with
+                    <code>{ "to", "code"?, "keep_path"? }</code> sends every hostname of the app to the target in one
+                    hop; <code>POST …/redirect/enable</code> and <code>…/redirect/disable</code> toggle it without
+                    forgetting the target; <code>DELETE …/redirect</code> removes it.
+                    <code>POST /api/apps/{name}/redirects</code> with <code>{ "from", "to", "code"?, "keep_path"? }</code>
+                    adds or updates a path redirect (a <code>from</code> ending in <code>/</code> is a prefix), and
+                    <code>DELETE</code> with <code>{ "from" }</code> removes it. Writes need
+                    <code>redirects-manage</code>. MCP: <code>RedirectList</code>, <code>RedirectSet</code>,
+                    <code>RedirectToggle</code>, <code>RedirectUnset</code>, <code>RedirectAdd</code>,
+                    <code>RedirectRemove</code>.</p>
+                <p><strong>Proxies</strong> (API <strong>1.31.0+</strong>) wrap
+                    <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a>:
+                    <code>GET /api/apps/{name}/proxies</code> (<code>proxies-view</code>), <code>POST</code> with
+                    <code>{ "prefix", "upstream", "strip_prefix"?, "preserve_host"?, "timeout"?, "buffering"? }</code>
+                    and <code>DELETE</code> with <code>{ "prefix" }</code> (<code>proxies-manage</code>). The loopback
+                    guard is <strong>never bypassed from the API</strong> — there is no <code>--force</code> — so
+                    upstreams on ports Cipi already uses (nginx, SSH, MariaDB, PostgreSQL, Valkey, Meilisearch, another
+                    app's Octane or Reverb) are refused. MCP: <code>ProxyList</code>, <code>ProxyAdd</code>,
+                    <code>ProxyRemove</code>.</p>
+                <p><strong>Node apps</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.4.0+</strong>):
+                    <code>POST /api/apps</code> accepts <code>node</code> (<code>spa|static|ssr</code>),
+                    <code>framework</code> (<code>next|nuxt|sveltekit|astro|remix|vite</code>),
+                    <code>node_version</code>, <code>build</code>, <code>start</code>, <code>output</code> and
+                    <code>health_path</code> — see <a href="/docs/apps#cli-app-node">Node apps</a>. Node apps require a
+                    repository and refuse <code>custom</code>, <code>octane</code>, <code>engine</code> and
+                    <code>php</code>. <code>PUT /api/apps/{name}</code> accepts the same fields;
+                    <code>node_version</code> also pins a <strong>Laravel</strong> app's asset builds to a Node major
+                    (<code>default</code> follows the server again). <code>GET /api/node</code> lists installed runtimes,
+                    the server default and the apps on each major; <code>GET /api/apps/{name}/node</code> shows an app's
+                    Node status (<code>node-view</code>). <code>POST /api/apps/{name}/node/restart</code> is a blue/green
+                    restart, async job <code>node-restart</code> (<code>node-manage</code>). App list/show expose
+                    <code>node</code>, <code>node_mode</code> and <code>node_version</code>, plus <code>redirect</code>,
+                    <code>redirects</code> and <code>proxies</code>. Installing, upgrading, removing runtimes and
+                    changing the server default stay on the CLI (<code>cipi node</code>). MCP: <code>NodeRuntimes</code>,
+                    <code>NodeStatus</code>, <code>NodeRestart</code>.</p>
+                <p><strong>Deploy audit</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.4.0+</strong>) —
+                    <code>GET /api/apps/{name}/deploy/audit?days=90</code> returns the app's records from the
+                    <a href="/docs/deploy#deploy-audit">hash-chained deploy ledger</a> (<code>cipi deploy &lt;app&gt;
+                    --audit --json</code>): event, release, commit, origin (<code>cli</code>, <code>panel</code>,
+                    <code>webhook</code>, <code>ssh</code>, <code>cron</code>, …), operator, IP and the app's
+                    <code>claimed</code> fields. The list is empty until the first deploy after the update. Ability
+                    <code>deploy-manage</code>; MCP <code>DeployAudit</code>.</p>
+                <p><strong>Search</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.2+</strong>) —
+                    <code>GET /api/search</code> (<code>search-view</code>) and
+                    <code>POST /api/apps/{name}/search/enable|disable</code> (<code>search-manage</code>, Laravel apps
+                    only) wrap <a href="/docs/infrastructure#cli-search"><code>cipi search</code></a>. Installing,
+                    upgrading or removing Meilisearch and rotating its master key stay on the CLI. MCP:
+                    <code>SearchStatus</code>, <code>SearchEnable</code>, <code>SearchDisable</code>.</p>
+                <p><strong>Host insights</strong> (API <strong>1.31.0+</strong>, read-only by design) —
+                    <code>GET /api/packages</code> (<code>packages-view</code>, <code>cipi package list</code>),
+                    <code>GET /api/monitor</code> (<code>monitor-view</code>, checks with config, state and last alert)
+                    and <code>GET /api/zt</code> (<code>zt-view</code>, parsed <code>cipi zt status</code> plus raw
+                    output). MCP: <code>PackageList</code>, <code>MonitorList</code>, <code>ZtStatus</code>.</p>
+                <p><strong>Fix permissions</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.1+</strong>) —
+                    <code>POST /api/apps/{name}/fix-permissions</code> restores the app home permission model
+                    (<a href="/docs/apps#cli-app-fix-permissions"><code>cipi app fix-permissions</code></a>). Async job
+                    <code>app-fix-permissions</code>; ability <code>apps-edit</code>; MCP <code>AppFixPermissions</code>.
+                    Since API <strong>1.31.0</strong>, app create and edit also accept a wildcard primary domain
+                    (<code>*.example.com</code>, Cipi <strong>5.1.1+</strong>).</p>
                                 <div class="table-scroll">
                     <table class="cmd-table">
                                         <thead>
@@ -681,6 +775,16 @@
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
+                                                <td><code>/api/apps/{name}/webhook/recreate</code></td>
+                                                <td>apps-edit</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/fix-permissions</code></td>
+                                                <td>apps-edit</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
                                                 <td><code>/api/apps/{name}/suspend</code></td>
                                                 <td>apps-suspend</td>
                                             </tr>
@@ -696,43 +800,63 @@
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
+                                                <td><code>/api/apps/{name}/basicauth</code></td>
+                                                <td>apps-basicauth</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/basicauth/enable</code></td>
+                                                <td>apps-basicauth</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/basicauth/disable</code></td>
+                                                <td>apps-basicauth</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET|PUT</td>
+                                                <td><code>/api/apps/{name}/env</code></td>
+                                                <td>apps-env</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET|POST|PUT|DELETE</td>
+                                                <td><code>/api/apps/{name}/auth</code></td>
+                                                <td>apps-auth</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/artisan</code></td>
+                                                <td>apps-artisan</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/run-commands</code></td>
+                                                <td>apps-run</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/run</code></td>
+                                                <td>apps-run</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET|PUT</td>
+                                                <td><code>/api/apps/{name}/deploy-config</code></td>
+                                                <td>apps-deploy-config</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
                                                 <td><code>/api/apps/{name}/aliases</code></td>
                                                 <td>aliases-view</td>
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
-                                                <td><code>/api/apps/{name}/aliases</code></td>
+                                                <td><code>/api/apps/{name}/aliases/{alias}</code></td>
                                                 <td>aliases-create</td>
                                             </tr>
                                             <tr>
                                                 <td>DELETE</td>
-                                                <td><code>/api/apps/{name}/aliases</code></td>
+                                                <td><code>/api/apps/{name}/aliases/{alias}</code></td>
                                                 <td>aliases-delete</td>
-                                            </tr>
-                                            <tr>
-                                                <td>POST</td>
-                                                <td><code>/api/apps/{name}/deploy</code></td>
-                                                <td>deploy-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>POST</td>
-                                                <td><code>/api/apps/{name}/deploy/rollback</code></td>
-                                                <td>deploy-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>POST</td>
-                                                <td><code>/api/apps/{name}/deploy/unlock</code></td>
-                                                <td>deploy-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>POST</td>
-                                                <td><code>/api/apps/{name}/ssl</code></td>
-                                                <td>ssl-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>POST</td>
-                                                <td><code>/api/apps/{name}/ssl/force</code></td>
-                                                <td>ssl-manage</td>
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
@@ -761,23 +885,88 @@
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
-                                                <td><code>/api/apps/{name}/basicauth</code></td>
-                                                <td>apps-basicauth</td>
+                                                <td><code>/api/apps/{name}/redirects</code></td>
+                                                <td>redirects-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT|DELETE</td>
+                                                <td><code>/api/apps/{name}/redirect</code></td>
+                                                <td>redirects-manage</td>
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
-                                                <td><code>/api/apps/{name}/basicauth/enable</code></td>
-                                                <td>apps-basicauth</td>
+                                                <td><code>/api/apps/{name}/redirect/enable|disable</code></td>
+                                                <td>redirects-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST|DELETE</td>
+                                                <td><code>/api/apps/{name}/redirects</code></td>
+                                                <td>redirects-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/proxies</code></td>
+                                                <td>proxies-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST|DELETE</td>
+                                                <td><code>/api/apps/{name}/proxies</code></td>
+                                                <td>proxies-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/node</code></td>
+                                                <td>node-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/node</code></td>
+                                                <td>node-view</td>
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
-                                                <td><code>/api/apps/{name}/basicauth/disable</code></td>
-                                                <td>apps-basicauth</td>
+                                                <td><code>/api/apps/{name}/node/restart</code></td>
+                                                <td>node-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/deploy</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/deploy/rollback</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/deploy/unlock</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/deploy/audit</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/ssl</code></td>
+                                                <td>ssl-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/ssl/force</code></td>
+                                                <td>ssl-manage</td>
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
                                                 <td><code>/api/dbs/engines</code></td>
                                                 <td>dbs-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs/engines/install</code></td>
+                                                <td>dbs-manage</td>
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
@@ -788,11 +977,6 @@
                                                 <td>POST</td>
                                                 <td><code>/api/dbs</code></td>
                                                 <td>dbs-create</td>
-                                            </tr>
-                                            <tr>
-                                                <td>DELETE</td>
-                                                <td><code>/api/dbs/{name}</code></td>
-                                                <td>dbs-delete</td>
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
@@ -811,21 +995,6 @@
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
-                                                <td><code>/api/status</code></td>
-                                                <td>status-view</td>
-                                            </tr>
-                                            <tr>
-                                                <td>GET</td>
-                                                <td><code>/api/jobs/{id}</code></td>
-                                                <td>any authenticated token</td>
-                                            </tr>
-                                            <tr>
-                                                <td>POST</td>
-                                                <td><code>/api/apps/{name}/webhook/recreate</code></td>
-                                                <td>apps-edit</td>
-                                            </tr>
-                                            <tr>
-                                                <td>GET</td>
                                                 <td><code>/api/php</code></td>
                                                 <td>php-view</td>
                                             </tr>
@@ -833,26 +1002,6 @@
                                                 <td>POST</td>
                                                 <td><code>/api/php/install</code></td>
                                                 <td>php-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>PUT</td>
-                                                <td><code>/api/php/default</code></td>
-                                                <td>php-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>DELETE</td>
-                                                <td><code>/api/php/{version}</code></td>
-                                                <td>php-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>POST</td>
-                                                <td><code>/api/dbs/engines/install</code></td>
-                                                <td>dbs-manage</td>
-                                            </tr>
-                                            <tr>
-                                                <td>PUT</td>
-                                                <td><code>/api/dbs/engines/default</code></td>
-                                                <td>dbs-manage</td>
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
@@ -905,14 +1054,54 @@
                                                 <td>health-view</td>
                                             </tr>
                                             <tr>
-                                                <td>GET|PUT|DELETE</td>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/health</code></td>
+                                                <td>health-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT|DELETE</td>
                                                 <td><code>/api/apps/{name}/health</code></td>
                                                 <td>health-manage</td>
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
                                                 <td><code>/api/apps/{name}/health/check</code></td>
-                                                <td>health-manage</td>
+                                                <td>health-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/search</code></td>
+                                                <td>search-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/search/enable|disable</code></td>
+                                                <td>search-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/packages</code></td>
+                                                <td>packages-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/monitor</code></td>
+                                                <td>monitor-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/zt</code></td>
+                                                <td>zt-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/status</code></td>
+                                                <td>status-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/jobs/{id}</code></td>
+                                                <td>any authenticated token</td>
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
@@ -1032,6 +1221,48 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
   -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span></pre>
                 </div>
 
+                <p><strong>Create a Node SSR app</strong> (async, API <strong>1.31.0+</strong> / Cipi
+                    <strong>5.4.1+</strong>; requires <code>apps-create</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{
+    "domain": "web.example.com",
+    "repository": "git@github.com:you/web.git",
+    "node": "ssr",
+    "framework": "next",
+    "node_version": "22"
+  }'</span></pre>
+                </div>
+
+                <p><strong>Redirects and proxies</strong> (sync, API <strong>1.31.0+</strong> / Cipi <strong>5.4.1+</strong>;
+                    <code>redirects-manage</code> / <code>proxies-manage</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/redirects"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"from":"/blog/","to":"https://blog.example.com/","code":301}'</span>
+
+curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"prefix":"/api/","upstream":"http://127.0.0.1:3000","strip_prefix":true}'</span></pre>
+                </div>
+
+                <p><strong>Deploy audit</strong> (sync, API <strong>1.31.0+</strong> / Cipi <strong>5.4.0+</strong>;
+                    <code>deploy-manage</code>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>curl -sS <span class="s">"${CIPI_API_URL}/api/apps/myapp/deploy/audit?days=30"</span> \
+  -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span></pre>
+                </div>
+
                 <p><strong>Database backup</strong> (async, <code>dbs-manage</code>) — returns a real backup path in
                     the job <code>result</code>, not an anonymized dump (see
                     <a href="/docs/agent#agent-anonymizer">Agent anonymizer</a>):</p>
@@ -1086,6 +1317,16 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                         sudoers whitelist. <a href="/docs/infrastructure#cli-zt"><code>zt enable</code>, <code>lock</code></a>
                         and the rest, and <code>monitor enable|disable|set</code>, stay with the operator on the CLI —
                         the same rule as <code>package install</code>.</li>
+                    <li>Since Cipi <strong>5.4.1+</strong> (API <strong>1.31.0+</strong>):
+                        <code>redirect set|enable|disable|unset|add|remove|list</code>,
+                        <code>proxy add|remove|list</code> and <code>node list|status|restart</code> — each rule the
+                        usual exact command line. <code>deploy &lt;app&gt; --audit</code> reads the root-only ledger.
+                        Migration <strong>5.4.1</strong> regenerates <code>/etc/sudoers.d/cipi-api</code> and checks it
+                        with <code>visudo -cf</code>. What deliberately stays CLI-root: Node runtime management
+                        (<code>node install|default|upgrade|remove</code>), <code>search install|upgrade|key-rotate</code>,
+                        <code>package install|remove</code> and every <code>zt</code> mutation — installing software on
+                        the server is not something a web panel should be able to do, compromised or not. The
+                        redirect/proxy validation is the CLI's own, so the panel gets exactly the same refusals.</li>
                     <li>Async jobs — <code>cipi app</code> (including <code>--octane</code> /
                         <code>--engine</code>), <code>deploy</code>, <code>alias</code>, <code>www</code>,
                         <code>ssl</code> / <code>ssl force</code>,
@@ -1115,20 +1356,22 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                 <p>Interactive documentation is available at <code>/docs</code> (Swagger UI). The OpenAPI spec is
                     generated from <code>public/api-docs/openapi.json</code> and covers apps (including suspend,
                     unsuspend, domain rename, basic auth, <code>.env</code>, Composer <code>auth.json</code>,
-                    Artisan / app-run jobs, deploy-config, paginated logs, www redirects, Octane create, and
-                    multi-engine <code>engine</code>), aliases, deploy, SSL (install + force HTTPS), databases
-                    (engines list + optional <code>engine</code> on mutations), server status, job polling with
-                    structured <code>result</code> types, and MCP tool schemas. Current API package version:
-                    <strong>1.20</strong>.</p>
+                    Artisan / app-run jobs, deploy-config, fix-permissions, paginated logs, www redirects, Octane and
+                    Node create, and multi-engine <code>engine</code>), app and path redirects, proxies, Node runtimes,
+                    aliases, deploy and deploy audit, SSL (install + force HTTPS), databases (engines list + optional
+                    <code>engine</code> on mutations), search, packages, monitor, Zero Trust, server status, job polling
+                    with structured <code>result</code> types, and MCP tool schemas. Current API package version:
+                    <strong>1.31.0</strong> (1.30.0 was published in error from an old commit — skip it).</p>
 
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
                     Streamable HTTP. Since API package <strong>1.11.1+</strong>, a token with the
                     <code>mcp-access</code> ability is sufficient for <strong>all</strong> MCP tools — per-endpoint REST
                     abilities (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>,
-                    <code>www-manage</code>, etc.) are not checked on <code>/mcp</code>.                     The server exposes
-                    <strong>50+ tools</strong> for app, alias, www, database, deploy, SSL, HTTP Basic Auth,
-                    server management (PHP, SSH, services, SMTP, health, IP whitelist),
+                    <code>www-manage</code>, etc.) are not checked on <code>/mcp</code>. The server exposes
+                    <strong>68 tools</strong> (one <code>tools/list</code> page) for app, alias, www, redirects,
+                    proxies, Node, database, deploy and deploy audit, SSL, HTTP Basic Auth, search, server management
+                    (PHP, SSH, services, SMTP, health, IP whitelist, packages, monitor, Zero Trust),
                     <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, job polling,
                     logs, Artisan, and server monitoring. Write operations that dispatch async jobs return a
                     <code>job_id</code> — poll with <code>JobShow</code>
@@ -1145,10 +1388,26 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                         <code>AppAuthJson*</code>, <code>AppRun</code>, <code>AppRunCommands</code>,
                         <code>AppDeployConfigShow</code>, <code>AppDeployConfigUpdate</code>,
                         <code>AppWebhookRecreate</code> (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>;
-                        earlier app tooling requires API <strong>1.14.0+</strong> / Cipi <strong>5.0.3+</strong>)
+                        earlier app tooling requires API <strong>1.14.0+</strong> / Cipi <strong>5.0.3+</strong>),
+                        <code>AppFixPermissions</code> (API <strong>1.31.0+</strong>)
+                    </li>
+                    <li><strong>Redirects &amp; proxies:</strong> <code>RedirectList</code>, <code>RedirectSet</code>,
+                        <code>RedirectToggle</code>, <code>RedirectUnset</code>, <code>RedirectAdd</code>,
+                        <code>RedirectRemove</code>, <code>ProxyList</code>, <code>ProxyAdd</code>,
+                        <code>ProxyRemove</code> (API <strong>1.31.0+</strong> / Cipi <strong>5.4.1+</strong>)
+                    </li>
+                    <li><strong>Node:</strong> <code>NodeRuntimes</code>, <code>NodeStatus</code>,
+                        <code>NodeRestart</code> (API <strong>1.31.0+</strong> / Cipi <strong>5.4.1+</strong>)
+                    </li>
+                    <li><strong>Deploy audit:</strong> <code>DeployAudit</code> (API <strong>1.31.0+</strong> / Cipi
+                        <strong>5.4.0+</strong>)
+                    </li>
+                    <li><strong>Search:</strong> <code>SearchStatus</code>, <code>SearchEnable</code>,
+                        <code>SearchDisable</code> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.2+</strong>)
                     </li>
                     <li><strong>Server management:</strong> <code>PhpList</code>, <code>IpWhitelistShow</code>
-                        (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>)
+                        (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>); <code>PackageList</code>,
+                        <code>MonitorList</code>, <code>ZtStatus</code> — read-only (API <strong>1.31.0+</strong>)
                     </li>
                     <li><strong>HTTP Basic Auth:</strong> <code>AppBasicAuthStatus</code>,
                         <code>AppBasicAuthEnable</code>, <code>AppBasicAuthDisable</code>
@@ -1161,9 +1420,9 @@ curl -sS <span class="s">"${CIPI_API_URL}/api/jobs/JOB_ID"</span> \
                         (API <strong>1.12.0+</strong>)
                     </li>
                     <li><strong>Databases:</strong> <code>DbEngines</code>, <code>DbList</code>,
-                        <code>DbCreate</code>, <code>DbDelete</code>, <code>DbBackup</code>,
-                        <code>DbRestore</code>, <code>DbPassword</code> (optional <code>engine</code> on
-                        list/mutations; API <strong>1.12.0+</strong>)
+                        <code>DbCreate</code>, <code>DbBackup</code>, <code>DbRestore</code>, <code>DbPassword</code>
+                        (optional <code>engine</code> on list/mutations; API <strong>1.12.0+</strong>;
+                        <code>DbDelete</code> removed in <strong>1.19.0</strong>)
                     </li>
                     <li><strong>SSL:</strong> <code>SslInstall</code>, <code>SslForce</code>
                         (API <strong>1.12.0+</strong>)</li>
@@ -2172,6 +2431,13 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <code>redirect_change</code> for <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a>
                     and <code>proxy_change</code> for <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a>.</p>
 
+                <p><strong>v5.4.0</strong> adds <code>node_default</code> under a new Node category: the server-wide
+                    Node version changed (<a href="/docs/infrastructure#cli-node"><code>cipi node default</code></a>, or
+                    the 5.4.0 migration moving a server from Node 20 to 22). Since 5.4.0, <code>api_update</code> fires
+                    only when <code>cipi api update</code> actually changed a locked package, and names the old and new
+                    <code>cipi/api</code> versions — before, the 04:30 soft update sent it every night. A backup whose
+                    retention could not list or delete on S3 now sends <code>backup_fail</code> as well.</p>
+
                 <div class="callout warning">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2">
@@ -2215,6 +2481,7 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                             <tr><td><code>www_clear</code></td><td>Domains</td><td>WWW redirect cleared</td></tr>
                                             <tr><td><code>redirect_change</code></td><td>Domains</td><td>App or path redirect changed <strong>(5.3.1)</strong></td></tr>
                                             <tr><td><code>proxy_change</code></td><td>Domains</td><td>Proxy prefix added or removed <strong>(5.3.1)</strong></td></tr>
+                                            <tr><td><code>node_default</code></td><td>Node</td><td>Server-wide Node version changed <strong>(5.4.0)</strong></td></tr>
                                             <tr><td><code>auth_create</code></td><td>Auth</td><td>Composer auth.json created</td></tr>
                                             <tr><td><code>auth_edit</code></td><td>Auth</td><td>Composer auth.json edited</td></tr>
                                             <tr><td><code>auth_delete</code></td><td>Auth</td><td>Composer auth.json deleted</td></tr>
@@ -2271,7 +2538,7 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                             <tr><td><code>reset_db_password</code></td><td>Reset</td><td>MariaDB root password reset</td></tr>
                                             <tr><td><code>reset_valkey_password</code></td><td>Reset</td><td>Valkey password reset</td></tr>
                                             <tr><td><code>api_configure</code></td><td>API</td><td>Panel API configured</td></tr>
-                                            <tr><td><code>api_update</code></td><td>API</td><td>Panel API updated</td></tr>
+                                            <tr><td><code>api_update</code></td><td>API</td><td>Panel API updated — only on a real package change since 5.4.0</td></tr>
                                             <tr><td><code>api_upgrade</code></td><td>API</td><td>Panel API upgraded</td></tr>
                                             <tr><td><code>api_ssl</code></td><td>API</td><td>Panel API SSL installed</td></tr>
                                             <tr><td><code>git_configure</code></td><td>Git</td><td>Git provider token configured</td></tr>
@@ -2656,6 +2923,30 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <code>grep</code> that matched nothing could fail the migration under <code>set -o pipefail</code>,
                     and a failed migration makes <code>cipi self-update</code> refuse the release and retry it, failing
                     again, every night.</p>
+
+                <h3 id="migration-5-4-0">Migrations 5.4.0 and 5.4.1</h3>
+                <p><strong>5.4.0</strong> turns on the <a href="/docs/deploy#deploy-audit">deploy audit ledger</a> for
+                    existing apps: it installs <code>cipi-deploy-audit</code>, adds one sudoers rule per app (validated
+                    with <code>visudo</code> and restored if rejected), appends the audit hooks to each
+                    <code>deploy.php</code> without touching the rest of the file, switches the deploy-trigger cron from
+                    <code>rm</code> to <code>mv</code>, and writes the audit start marker.</p>
+                <p>It also moves servers off <strong>Node 20</strong>, which reached end of life in April 2026:</p>
+                <ul>
+                    <li><strong>Fresh installs:</strong> <code>setup.sh</code> installs Node 22 from NodeSource.</li>
+                    <li><strong>Servers still on Node 20</strong> (the NodeSource package, or
+                        <code>cipi node default 20</code>) are switched with
+                        <a href="/docs/infrastructure#cli-node"><code>cipi node default 22</code></a>, which downloads
+                        and verifies the official build and links it into <code>/usr/local/bin</code> ahead of
+                        <code>/usr/bin</code>. The NodeSource package is not touched, so
+                        <code>cipi node default system</code> restores 20. Laravel asset builds,
+                        <code>cipi app run npm</code> and <code>deploy.post</code> use 22 from their next run.</li>
+                    <li><strong>Servers on another major</strong>, or with no Node at all, are left as they are.</li>
+                    <li><strong>A failed download</strong> leaves the server on 20, prints how to retry and lets the
+                        update carry on. A <code>node_default</code> notification is sent.</li>
+                </ul>
+                <p><strong>5.4.1</strong> regenerates <code>/etc/sudoers.d/cipi-api</code> so the
+                    <a href="#cipi-api-host">panel API</a> can drive redirects, proxies and Node apps. Neither
+                    migration deploys, reloads or restarts anything.</p>
 
                 <h3>When the update itself fails</h3>
                 <p>Up to 5.0.x, <code>cipi self-update</code> reported only “Download failed” — git's stderr was

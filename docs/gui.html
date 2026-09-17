@@ -64,7 +64,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-08-04",
+      "dateModified": "2026-09-17",
       "headline": "Cipi Docs — Control Panel (GUI)",
       "name": "Control Panel (GUI)",
       "url": "https://cipi.sh/docs/gui",
@@ -227,6 +227,7 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
@@ -244,6 +245,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/docs/deploy#deploy-audit" class="sidebar-link">deploy audit ledger</a>
                 <a href="/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
@@ -263,6 +265,7 @@
                 <a href="/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
+                <a href="/docs/infrastructure#cli-node" class="sidebar-link"><code>node</code></a>
                 <a href="/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
@@ -387,9 +390,26 @@
 
                 <h3>What you can do from the panel</h3>
                 <ul>
-                    <li>Manage <strong>apps</strong> — create, edit, deploy, suspend/unsuspend, and delete Laravel and
-                        custom apps; manage aliases, WWW/apex redirects, SSL (install + force HTTPS), and HTTP basic
-                        auth.</li>
+                    <li>Manage <strong>apps</strong> — create, edit, deploy, suspend/unsuspend, fix permissions and
+                        delete Laravel, <strong>Node</strong> (SPA / static / SSR) and custom apps; manage aliases,
+                        WWW/apex redirects, SSL (install + force HTTPS), and HTTP basic auth. Wildcard primary domains
+                        (<code>*.example.com</code>) are accepted.</li>
+                    <li>Create <strong>Node apps</strong> with a framework preset (Next.js, Nuxt, SvelteKit, Astro,
+                        Remix, Vite), Node major, build/start commands, output directory and health path; edit them
+                        later, restart SSR apps blue/green, and pin a Laravel app's asset build to its own Node major
+                        (API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong>). See
+                        <a href="/docs/apps#cli-app-node">Node apps</a>.</li>
+                    <li><strong>Routing</strong> — whole-app redirects (set, enable, disable, unset), path redirects
+                        and prefix reverse proxies, with the same validation as
+                        <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a> and
+                        <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a> (API <strong>1.31+</strong>
+                        / Cipi <strong>5.4.1+</strong>).</li>
+                    <li><strong>Deploy</strong> — deploy, rollback and unlock; structured <code>deploy.php</code>
+                        options; and the app's <a href="/docs/deploy#deploy-audit">deploy audit ledger</a> — who or
+                        what deployed each release, from where (API <strong>1.31+</strong> / Cipi
+                        <strong>5.4.0+</strong>).</li>
+                    <li><strong>Search</strong> — Meilisearch status and per-app enable/disable for Laravel Scout (API
+                        <strong>1.31+</strong> / Cipi <strong>5.2.2+</strong>).</li>
                     <li>Create Laravel apps with optional <strong>Laravel Octane (FrankenPHP)</strong> (API
                         <strong>1.13+</strong> / Cipi <strong>5.0+</strong>); list and detail views show FPM vs
                         Octane.</li>
@@ -399,8 +419,9 @@
                         <strong>1.14+</strong> / Cipi <strong>5.0.3+</strong> (terminal output supports Markdown
                         copy).</li>
                     <li>Pick a database <strong>engine</strong> at app create (<code>mariadb</code> or
-                        <code>pgsql</code>) and manage multi-engine databases (API <strong>1.12+</strong> / Cipi
-                        <strong>4.8+</strong>).</li>
+                        <code>pgsql</code>) and manage multi-engine databases — list, create, back up, restore,
+                        regenerate passwords (API <strong>1.12+</strong> / Cipi <strong>4.8+</strong>). Deleting a
+                        database stays on the host CLI since API <strong>1.19</strong>.</li>
                     <li>Browse application and server <strong>logs</strong> with type filter, pagination, and
                         auto-refresh.</li>
                     <li>Watch <strong>async jobs</strong> in an interactive overlay (spinner + terminal output while
@@ -408,8 +429,12 @@
                     <li>Live <strong>dashboard</strong> — CPU, memory, disk, services, and app count via
                         <code>GET /api/status</code>.</li>
                     <li><strong>Server cockpit</strong> (API <strong>1.15+</strong> / Cipi <strong>5.0.6+</strong>) —
-                        manage PHP versions and system default, SSH keys, services, SMTP notifications, HTTP
-                        healthchecks, and panel API IP whitelist from the browser.</li>
+                        install PHP versions, manage SSH keys, services, SMTP notifications, HTTP healthchecks, and
+                        panel API IP whitelist from the browser. Since API <strong>1.31</strong> the same page shows
+                        <strong>Node runtimes</strong>, Meilisearch, the optional <strong>host packages</strong>
+                        catalog, the <strong>system monitor</strong> and <strong>Cloudflare Zero Trust</strong> status
+                        — read-only by design: installing software, changing monitor thresholds and every
+                        <code>zt</code> change stay with the operator on the CLI.</li>
                     <li>Register and switch between <strong>multiple servers</strong> from one login.</li>
                 </ul>
             </div>
@@ -441,7 +466,10 @@
                     <li><code>cipi api</code> enabled on every server you want to control, each with a full-ability
                         token (include <code>www-manage</code>, <code>status-view</code>, and for app tooling
                         <code>apps-env</code>, <code>apps-auth</code>, <code>apps-artisan</code>,
-                        <code>apps-run</code>, <code>apps-deploy-config</code>). For server cockpit (PHP, SSH,
+                        <code>apps-run</code>, <code>apps-deploy-config</code>). For Node apps, redirects and proxies,
+                        managed servers need API <strong>1.31+</strong> and Cipi <strong>5.4.1+</strong> (the
+                        5.4.1 migration opens those commands to the panel sudoers); the deploy audit needs Cipi
+                        <strong>5.4.0+</strong>. For server cockpit (PHP, SSH,
                         services, SMTP, health, IP whitelist), managed servers need API <strong>1.15+</strong> and Cipi
                         <strong>5.0.6+</strong>. For <code>.env</code> /
                         <code>auth.json</code> / Artisan / App commands, managed servers need API
@@ -450,6 +478,12 @@
                         multi-engine MariaDB/PostgreSQL and www redirects, API <strong>1.12+</strong> and Cipi
                         <strong>4.8+</strong>.</li>
                 </ul>
+                <p>A token covering everything the panel uses (API <strong>1.31</strong>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi api token create --name=gui --abilities=apps-view,apps-create,apps-edit,apps-delete,apps-suspend,apps-basicauth,apps-env,apps-auth,apps-artisan,apps-run,apps-deploy-config,aliases-view,aliases-create,aliases-delete,www-manage,redirects-view,redirects-manage,proxies-view,proxies-manage,node-view,node-manage,search-view,search-manage,deploy-manage,ssl-manage,dbs-view,dbs-create,dbs-manage,php-view,php-manage,ssh-view,ssh-manage,services-view,services-manage,smtp-view,smtp-manage,health-view,health-manage,packages-view,monitor-view,zt-view,ip-whitelist-view,ip-whitelist-manage,status-view</pre>
+                </div>
                 <p>PHP, the FPM pool, the Nginx vhost and the scheduler are all provisioned for you by the installer —
                     you do not set up a Laravel environment by hand.</p>
             </div>
@@ -659,16 +693,33 @@ cipi gui remove --force</pre>
                                         <tbody>
                                             <tr>
                                                 <td>Server</td>
-                                                <td><code>GET /api/status</code></td>
+                                                <td><code>GET /api/status</code>; Manage page: PHP, DB engines, Node
+                                                    runtimes (<code>GET /api/node</code>), SSH keys, services, SMTP,
+                                                    search (<code>GET /api/search</code>), packages
+                                                    (<code>GET /api/packages</code>), monitor
+                                                    (<code>GET /api/monitor</code>), Zero Trust
+                                                    (<code>GET /api/zt</code>), IP whitelist (API
+                                                    <strong>1.15–1.31</strong>)</td>
                                             </tr>
                                             <tr>
                                                 <td>Apps</td>
-                                                <td>CRUD, basic auth, logs, <code>.env</code>, <code>auth.json</code>,
-                                                    Artisan, App commands (<code>app run</code>); create accepts
-                                                    <code>engine</code> (mariadb/pgsql) and <code>octane</code>
-                                                    (FrankenPHP, API <strong>1.13+</strong>); env/auth/run need API
-                                                    <strong>1.14+</strong>; list/show expose
-                                                    <code>octane</code> / <code>octane_port</code></td>
+                                                <td>CRUD, suspend/unsuspend, fix-permissions
+                                                    (<code>POST /api/apps/{name}/fix-permissions</code>), basic auth,
+                                                    logs, <code>.env</code>, <code>auth.json</code>, Artisan, App
+                                                    commands (<code>app run</code>); create accepts
+                                                    <code>engine</code> (mariadb/pgsql), <code>octane</code>
+                                                    (FrankenPHP, API <strong>1.13+</strong>) and Node
+                                                    (<code>node</code>, <code>framework</code>,
+                                                    <code>node_version</code>, <code>build</code>,
+                                                    <code>start</code>, <code>output</code>,
+                                                    <code>health_path</code>, API <strong>1.31+</strong>);
+                                                    env/auth/run need API <strong>1.14+</strong>; list/show expose
+                                                    <code>octane</code> / <code>octane_port</code>,
+                                                    <code>node</code> / <code>node_mode</code> /
+                                                    <code>node_version</code> and <code>redirect</code> /
+                                                    <code>redirects</code> / <code>proxies</code>; wildcard primary
+                                                    domains; webhook recreate and secret rotation; per-app HTTP
+                                                    healthcheck</td>
                                             </tr>
                                             <tr>
                                                 <td>Deploy config</td>
@@ -686,8 +737,28 @@ cipi gui remove --force</pre>
                                                     (<code>www-manage</code>; API <strong>1.12+</strong>)</td>
                                             </tr>
                                             <tr>
+                                                <td>Routing</td>
+                                                <td>Whole-app and path redirects (<code>/api/apps/{name}/redirect*</code>),
+                                                    prefix reverse proxies (<code>/api/apps/{name}/proxies</code>) —
+                                                    API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Node</td>
+                                                <td><code>GET /api/node</code>, <code>GET /api/apps/{name}/node</code>,
+                                                    <code>POST /api/apps/{name}/node/restart</code> (SSR blue/green) —
+                                                    API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Search</td>
+                                                <td><code>GET /api/search</code>;
+                                                    <code>POST /api/apps/{name}/search/enable</code> and
+                                                    <code>…/disable</code> (API <strong>1.31+</strong>)</td>
+                                            </tr>
+                                            <tr>
                                                 <td>Deploy</td>
-                                                <td>Deploy, rollback, unlock</td>
+                                                <td>Deploy, rollback, unlock; deploy audit ledger
+                                                    (<code>GET /api/apps/{name}/deploy/audit</code>, API
+                                                    <strong>1.31+</strong> / Cipi <strong>5.4.0+</strong>)</td>
                                             </tr>
                                             <tr>
                                                 <td>SSL</td>
@@ -695,8 +766,9 @@ cipi gui remove --force</pre>
                                             </tr>
                                             <tr>
                                                 <td>Databases</td>
-                                                <td>Engines + list (sync); create/delete/backup/restore/password with optional
-                                                    <code>engine</code> (async; API <strong>1.12+</strong>)</td>
+                                                <td>Engines + list (sync); create/backup/restore/password with optional
+                                                    <code>engine</code> (async; API <strong>1.12+</strong>). Database
+                                                    deletion is host-CLI only since API <strong>1.19</strong></td>
                                             </tr>
                                             <tr>
                                                 <td>Jobs</td>

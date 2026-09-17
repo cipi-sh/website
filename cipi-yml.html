@@ -38,8 +38,8 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>cipi.yml — Server Configuration That Ships With Your Laravel Code | Cipi</title>
-    <meta name="description" content="cipi.yml is a file you commit next to your Laravel app: domain aliases, PHP version and php.ini, extra databases, queue workers or Horizon, Laravel Reverb, the scheduler, healthcheck, backup profiles and post-deploy steps — reconciled with cipi yml plan and cipi yml apply.">
-    <meta name="keywords" content="cipi.yml, Laravel configuration as code, server config in repository, cipi yml apply, cipi yml plan, Laravel deploy configuration file, queue workers YAML, Laravel Reverb YAML, backup profiles YAML">
+    <meta name="description" content="cipi.yml is a file you commit next to your Laravel app: domain aliases, PHP version and php.ini, extra databases, queue workers or Horizon, Laravel Reverb, the scheduler, healthcheck, backup profiles, post-deploy steps and, since 5.4, redirects, proxies, basic auth, crons and Node builds — reconciled with cipi yml plan and cipi yml apply.">
+    <meta name="keywords" content="cipi.yml, Laravel configuration as code, server config in repository, cipi yml apply, cipi yml plan, Laravel deploy configuration file, queue workers YAML, Laravel Reverb YAML, backup profiles YAML, nginx redirects YAML, reverse proxy YAML, Node app build config, Laravel cron YAML">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/cipi-yml">
@@ -49,7 +49,7 @@
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/cipi-yml">
     <meta property="og:title" content="cipi.yml — configuration that travels with the code">
-    <meta property="og:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups and post-deploy steps. Plan it, apply it, or reconcile on every deploy.">
+    <meta property="og:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups, post-deploy steps, redirects, proxies, crons and Node builds. Plan it, apply it, or reconcile on every deploy.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -57,7 +57,7 @@
     <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="cipi.yml — configuration that travels with the code">
-    <meta name="twitter:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups and post-deploy steps. Plan it, apply it, or reconcile on every deploy.">
+    <meta name="twitter:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups, post-deploy steps, redirects, proxies, crons and Node builds. Plan it, apply it, or reconcile on every deploy.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <script type="application/ld+json">
@@ -71,9 +71,9 @@
       "inLanguage": "en",
       "image": "https://cipi.sh/og.png",
       "datePublished": "2026-09-02",
-      "dateModified": "2026-09-11",
+      "dateModified": "2026-09-17",
       "author": { "@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri" },
-      "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.3.1" },
+      "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.4.1" },
       "publisher": { "@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/" },
       "isPartOf": { "@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/" }
     }
@@ -91,7 +91,7 @@
         {
           "@type": "Question",
           "name": "What can cipi.yml configure?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, Laravel Reverb for WebSockets, the Laravel scheduler, an HTTP healthcheck with optional rollback, and the app's backup profiles." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, Laravel Reverb for WebSockets, the Laravel scheduler, an HTTP healthcheck with optional rollback, the app's backup profiles, post-deploy steps, and since Cipi 5.4 the www redirect, basic auth users, app and path redirects, reverse proxy prefixes, Meilisearch, Deployer recipe options, resource limits, forced HTTPS, required .env names, crons and a Node app's build settings." }
         },
         {
           "@type": "Question",
@@ -101,7 +101,7 @@
         {
           "@type": "Question",
           "name": "Is it safe to accept configuration from a Git repository?",
-          "acceptedAnswer": { "@type": "Answer", "text": "The schema carries no shell commands or include paths, an app can only touch databases named after itself and its own backup profiles, the healthcheck URL must be one of its own domains, unknown keys are errors and an invalid file is rejected as a whole rather than applied halfway." }
+          "acceptedAnswer": { "@type": "Answer", "text": "The schema carries no shell commands or include paths, an app can only touch databases named after itself and its own backup profiles, the healthcheck URL must be one of its own domains, unknown keys are errors, commands (deploy.post and crons) use allowlisted runners only, basic auth takes password hashes never passwords, proxies cannot target Cipi's own ports or cloud metadata, and an invalid file is rejected as a whole rather than applied halfway." }
         }
       ]
     }
@@ -272,16 +272,17 @@
                 <h1 id="cipi-yml-title" class="hero-title"><span class="accent">cipi.yml</span> — config that ships with the code.</h1>
                 <p class="hero-copy">One file at the root of your repository describes the state an app expects on the
                     server: domain aliases, PHP version and per-app settings, extra databases, queue workers, the
-                    scheduler, its healthcheck and its backup profiles. Review it in a pull request, ship it with the
+                    scheduler, its healthcheck and its backup profiles — and since <strong>5.4</strong> its redirects,
+                    proxies, basic auth, crons, recipe options and a Node app's build. Review it in a pull request, ship it with the
                     release, and let <code>cipi yml apply</code> reconcile the server with it.</p>
                 <div class="hero-metrics" aria-label="Highlights">
-                    <div class="hero-metric"><strong>7 areas</strong><span>Aliases, PHP, php.ini, databases, workers, scheduler, health and backups.</span></div>
+                    <div class="hero-metric"><strong>20+ keys</strong><span>Aliases, PHP, databases, workers, health, backups, routes, basic auth, search, limits, crons, Node.</span></div>
                     <div class="hero-metric"><strong>plan → apply</strong><span>Nothing changes until you look at the diff and say yes.</span></div>
-                    <div class="hero-metric"><strong>Fail-closed</strong><span>Scoped to one app, no shell commands anywhere in the schema.</span></div>
+                    <div class="hero-metric"><strong>Fail-closed</strong><span>Scoped to one app, allowlisted runners only, no shell anywhere in the schema.</span></div>
                 </div>
                 <div class="cmp-cta">
                     <a class="btn-primary" href="/docs/deploy#cli-yml">Full reference in the docs</a>
-                    <a class="btn-ghost" href="/whats-new">What's new in 5.1</a>
+                    <a class="btn-ghost" href="/whats-new">What's new in 5.4</a>
                 </div>
             </div>
         </section>
@@ -319,7 +320,8 @@
                         <td><code>cipi yml generate</code></td>
                         <td>Prints the app's configuration <em>as it stands on the server</em> — aliases, PHP version
                             and per-app settings, extra databases, queue workers read back out of Supervisor, the
-                            scheduler and the backup profiles the app owns — as a ready-to-commit file.</td>
+                            scheduler, the backup profiles the app owns and, since 5.4.0, the new keys below (basic auth
+                            user names only, never hashes) — as a ready-to-commit file.</td>
                     </tr>
                     <tr>
                         <td><code>cipi yml example</code></td>
@@ -435,6 +437,46 @@
                     <code>yml auto</code>.</p>
                 <span class="go">deploy.post in the docs →</span>
             </a>
+            <a class="alt-card" href="/docs/deploy#cli-yml-routes">
+                <span class="alt-tag">app.www · app.basic_auth</span>
+                <h3>www redirect and <span>basic auth</span></h3>
+                <p>New in 5.4.0. <code>to-root</code>, <code>from-root</code> or <code>none</code>, checked against the
+                    alias list at plan time. Basic auth users by name — keeping the server's password — or with a bcrypt
+                    / SHA-512 hash. Never a password in the repository.</p>
+                <span class="go">www and basic auth →</span>
+            </a>
+            <a class="alt-card" href="/docs/deploy#cli-yml-routes">
+                <span class="alt-tag">redirect · redirects · proxies</span>
+                <h3>Redirects and <span>proxy prefixes</span></h3>
+                <p>New in 5.4.0. The whole-app redirect, path redirects and reverse proxies, validated as one set and
+                    applied as one <code>nginx -t</code>. Stricter than the CLI: no <code>--force</code>, no Cipi ports,
+                    no link-local or cloud-metadata upstreams.</p>
+                <span class="go">Routes in the docs →</span>
+            </a>
+            <a class="alt-card" href="/docs/deploy#cli-yml-more">
+                <span class="alt-tag">search · deploy · app.limits</span>
+                <h3>Search, recipe and <span>limits</span></h3>
+                <p>New in 5.4.0. Meilisearch for Scout, the <code>deploy-config</code> options (releases kept, migrate,
+                    optimize, extra artisan, snapshot) and per-app memory, FPM, Octane and worker limits — out of bounds
+                    blocks the plan instead of being clamped.</p>
+                <span class="go">More keys in the docs →</span>
+            </a>
+            <a class="alt-card" href="/docs/deploy#cli-yml-more">
+                <span class="alt-tag">ssl · env.required · crons</span>
+                <h3>HTTPS, required env and <span>crons</span></h3>
+                <p>New in 5.4.0. Force HTTPS once the certificate exists. Block a release while a named
+                    <code>.env</code> variable is missing. Scheduled commands through allowlisted runners, in tagged
+                    crontab lines that never touch the rest.</p>
+                <span class="go">More keys in the docs →</span>
+            </a>
+            <a class="alt-card" href="/docs/deploy#cli-yml-node">
+                <span class="alt-tag">node</span>
+                <h3>A Node app's <span>build</span></h3>
+                <p>New in 5.4.0. Framework, mode, Node major, build and start commands, output and health path — read
+                    by the deploy from <em>that</em> release, so the commit that changes the start command is built and
+                    started with it.</p>
+                <span class="go">node: in the docs →</span>
+            </a>
             <a class="alt-card featured" href="/docs/deploy#cli-yml">
                 <span class="alt-tag">reference</span>
                 <h3>Every key, <span>documented</span></h3>
@@ -471,6 +513,12 @@ app:
     upload_max_filesize: 50M
     post_max_size: 60M
     memory_limit: 512M
+
+  <span class="c"># 5.4.0+: canonical www redirect and basic auth (names or hashes, never passwords)</span>
+  www: to-root
+  basic_auth:
+    users:
+      - admin
 
 <span class="c"># Extra databases beyond the one created with the app. Credentials land in
 # /home/myapp/shared/cipi-databases.env — never written back to the repo.</span>
@@ -521,6 +569,28 @@ deploy:
     - npm run build
     - composer dump-autoload -o
   <span class="c"># post_on_failure: abort   # default warn: log + email, release stays live</span>
+  <span class="c"># 5.4.0+: the cipi app deploy-config options, e.g.</span>
+  <span class="c"># keep_releases: 5
+  # snapshot: true</span>
+
+<span class="c"># 5.4.0+: Meilisearch for Scout (the engine is installed by root first)</span>
+search: false
+
+<span class="c"># 5.4.0+: names (never values) the .env must carry, and allowlisted crons</span>
+env:
+  required: [ STRIPE_KEY ]
+crons:
+  - every: 30m
+    run: artisan queue:prune-batches
+
+<span class="c"># 5.4.0+: path redirects and reverse proxy prefixes (each list replaces the current one)</span>
+redirects:
+  - from: /blog/
+    to: <span class="s">"https://blog.myapp.com/"</span>
+proxies:
+  - prefix: /api/
+    upstream: <span class="s">"http://127.0.0.1:3000"</span>
+    strip_prefix: true
 
 <span class="c"># Backup strategy for this app. Profile names must be myapp or myapp-*.</span>
 backup:
@@ -586,8 +656,12 @@ backup:
             <li>Its healthcheck URL must resolve to one of the app's own domains — otherwise a commit could aim the
                 server's prober at an internal address and read the answer back out of the alert emails.</li>
             <li>Unknown keys are errors, and no field carries a shell command or a path to include.
-                <code>deploy.post</code> (5.2.3) is the one section that runs something, and it takes allowlisted
-                runners only — never a shell line.</li>
+                <code>deploy.post</code> (5.2.3) and <code>crons</code> (5.4.0) are the sections that run something,
+                and they take allowlisted runners only — never a shell line.</li>
+            <li>Basic auth accepts user names or bcrypt / SHA-512 hashes — never a password, and never apr1/MD5.</li>
+            <li>Proxies declared in the file cannot target Cipi's own local ports, link-local addresses or cloud
+                metadata; resolved hostnames are checked as well as literal IPs. <code>ssl.force_https</code> can only
+                be turned on, and out-of-bounds limits block the plan instead of being clamped.</li>
             <li>The parser implements a deliberately small YAML subset and refuses anchors, aliases, tags, merge keys,
                 block scalars and flow mappings outright.</li>
         </ul>
@@ -598,7 +672,8 @@ backup:
                 <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             <div>Once <code>yml auto</code> is on, anyone who can push to that repository can change the app's aliases,
-                PHP settings, workers, healthcheck and backup profiles. That is the point of configuration-as-code —
+                PHP settings, workers, healthcheck, backup profiles, basic auth users, redirects, proxies, crons and a
+                Node app's build. That is the point of configuration-as-code —
                 treat write access to the repo accordingly.</div>
         </div>
 

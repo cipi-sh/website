@@ -229,6 +229,7 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
@@ -246,6 +247,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/docs/deploy#deploy-audit" class="sidebar-link">deploy audit ledger</a>
                 <a href="/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
@@ -265,6 +267,7 @@
                 <a href="/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
+                <a href="/docs/infrastructure#cli-node" class="sidebar-link"><code>node</code></a>
                 <a href="/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
@@ -546,7 +549,9 @@
                                     to aliases, refreshes Nginx, <code>APP_URL</code>, webhooks, and Let's Encrypt when
                                     applicable).                                     The panel API package (<a href="https://github.com/cipi-sh/api"
                                         target="_blank" rel="noopener">cipi/api</a>) is at
-                                    <strong>1.20</strong>: app <code>.env</code> / Composer <code>auth.json</code> /
+                                    <strong>1.31.0</strong>: Node apps, app and path redirects, prefix proxies, the deploy
+                                    audit ledger, Meilisearch and read-only package / monitor / Zero Trust status
+                                    (requires Cipi <strong>5.4.1+</strong>); app <code>.env</code> / Composer <code>auth.json</code> /
                                     Artisan / whitelisted <code>app run</code> / structured deploy-config (requires
                                     Cipi <strong>5.0.3+</strong>), server cockpit — PHP install/default, SSH keys,
                                     services, SMTP, healthchecks, IP whitelist (requires Cipi <strong>5.0.6+</strong>,
@@ -722,7 +727,7 @@
                         </div>
                     </div>
 
-                    <div class="timeline-item timeline-item--current">
+                    <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-body">
                             <span class="timeline-version">v5.3</span>
@@ -742,11 +747,34 @@
                                     <line x1="12" y1="8" x2="12" y2="12" />
                                     <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
-                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.1" target="_blank" rel="noopener">5.3.1</a> — <a href="/docs/infrastructure#cli-compliance"><code>cipi compliance</code></a> collects evidence for ISO/IEC 27001:2022 and SOC 2 audits: 17 read-only controls (SSH, firewall, patching, TLS, accounts, API tokens, GUI 2FA, secrets, deploys, backups, logging, monitoring and more), and <code>cipi compliance report</code> writes a root-only bundle with <code>report.md</code>, <code>report.json</code>, the raw evidence and <code>SHA256SUMS</code>, archived with a printed SHA-256. No token hashes, password hashes, 2FA secrets or backup credentials are ever exported, and the report states Cipi's own gaps — the vault is AES-256-CBC without a MAC — before an auditor asks. <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a> moves a whole app in one hop or redirects single paths and prefixes; <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a> hands a prefix to another upstream with WebSocket, forwarded headers and an optional unbuffered mode. Both live in <code>apps.json</code>, survive vhost regeneration, are validated against nginx injection and loops, and roll back if <code>nginx -t</code> fails. CLI only; no migration. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.0" target="_blank" rel="noopener">5.3.0</a> — Cloudflare Zero Trust (<code>cipi zt</code>), off until you ask: <code>setup.sh</code> and <code>cipi self-update</code> never install <code>cloudflared</code>. The API token lives root-only in <code>/etc/cipi/zt.token</code> and is not the certbot DNS-01 file. <code>lock http</code> refuses while any app still renews Let's Encrypt over HTTP-01; <code>lock ssh</code> refuses unless <code>cloudflared</code> is active with SSH ingress, and <code>cipi zt ssh unlock</code> is the way back. The optional <code>cipi zt origin-cert</code> installs a 15-year Cloudflare Origin CA certificate. <code>cipi monitor</code> runs seven checks from <code>/etc/cron.d/cipi-monitor</code>, each toggleable and each with its own <code>monitor_*</code> trigger, recovery included. <code>cipi notifications channel add</code> fans every trigger out to chat, best-effort with a 5-second timeout. <strong>Fixed:</strong> jq's <code>// true</code> read an explicit <code>false</code> as true — a muted trigger kept sending email, <code>cipi smtp configure --tls=off</code> was ignored, and <code>health: {enabled: false}</code> in <code>cipi.yml</code> did nothing. Migration 5.3.0 installs the monitor cron and default configs, adds <code>zt status</code> and <code>monitor list</code> to the panel API sudoers, and configures no channel. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.20" target="_blank" rel="noopener">1.20</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
+                                <div>In 5.3: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.1" target="_blank" rel="noopener">5.3.1</a> — <a href="/docs/infrastructure#cli-compliance"><code>cipi compliance</code></a> collects evidence for ISO/IEC 27001:2022 and SOC 2 audits: 17 read-only controls (SSH, firewall, patching, TLS, accounts, API tokens, GUI 2FA, secrets, deploys, backups, logging, monitoring and more), and <code>cipi compliance report</code> writes a root-only bundle with <code>report.md</code>, <code>report.json</code>, the raw evidence and <code>SHA256SUMS</code>, archived with a printed SHA-256. No token hashes, password hashes, 2FA secrets or backup credentials are ever exported, and the report states Cipi's own gaps — the vault is AES-256-CBC without a MAC — before an auditor asks. <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a> moves a whole app in one hop or redirects single paths and prefixes; <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a> hands a prefix to another upstream with WebSocket, forwarded headers and an optional unbuffered mode. Both live in <code>apps.json</code>, survive vhost regeneration, are validated against nginx injection and loops, and roll back if <code>nginx -t</code> fails. CLI only; no migration. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.3.0" target="_blank" rel="noopener">5.3.0</a> — Cloudflare Zero Trust (<code>cipi zt</code>), off until you ask: <code>setup.sh</code> and <code>cipi self-update</code> never install <code>cloudflared</code>. The API token lives root-only in <code>/etc/cipi/zt.token</code> and is not the certbot DNS-01 file. <code>lock http</code> refuses while any app still renews Let's Encrypt over HTTP-01; <code>lock ssh</code> refuses unless <code>cloudflared</code> is active with SSH ingress, and <code>cipi zt ssh unlock</code> is the way back. The optional <code>cipi zt origin-cert</code> installs a 15-year Cloudflare Origin CA certificate. <code>cipi monitor</code> runs seven checks from <code>/etc/cron.d/cipi-monitor</code>, each toggleable and each with its own <code>monitor_*</code> trigger, recovery included. <code>cipi notifications channel add</code> fans every trigger out to chat, best-effort with a 5-second timeout. <strong>Fixed:</strong> jq's <code>// true</code> read an explicit <code>false</code> as true — a muted trigger kept sending email, <code>cipi smtp configure --tls=off</code> was ignored, and <code>health: {enabled: false}</code> in <code>cipi.yml</code> did nothing. Migration 5.3.0 installs the monitor cron and default configs, adds <code>zt status</code> and <code>monitor list</code> to the panel API sudoers, and configures no channel. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.20" target="_blank" rel="noopener">1.20</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
                             </div>
                         </div>
                     </div>
 
+
+                    <div class="timeline-item timeline-item--current">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-body">
+                            <span class="timeline-version">v5.4</span>
+                            <span class="timeline-date">September 2026</span>
+                            <h3 class="timeline-title">Node apps, a deploy ledger nobody can argue with, and a cipi.yml that covers the whole app</h3>
+                            <p>v5.4 stops treating JavaScript frontends as second-class. <code>cipi app create --node=spa|static|ssr</code> builds a Vite SPA, a pre-rendered site or a Next.js, Nuxt, SvelteKit, Astro or Remix server on every deploy, with the same releases, rollback, webhook and SSL as a Laravel app — SSR apps switch blue/green only after the new release answers its health path. <code>cipi node</code> installs checksum-verified official Node builds and can make one the server-wide Node for Laravel asset builds, which is how servers leave end-of-life Node 20 for 22. Every deploy, however it was started — CLI, panel, webhook, <code>dep</code> over SSH or an MCP client inside the app — now lands in a root-only, hash-chained ledger that records what root verified apart from what the app claimed. And <code>cipi.yml</code> gains the www redirect, basic auth, redirects, proxies, Meilisearch, recipe options, limits, forced HTTPS, required <code>.env</code> names, crons and a Node app's build. See
+                                <a href="/docs/apps#cli-app-node">Node apps</a>,
+                                <a href="/docs/infrastructure#cli-node"><code>cipi node</code></a>,
+                                <a href="/docs/deploy#deploy-audit">the deploy audit ledger</a>, and
+                                <a href="/docs/deploy#cli-yml-routes">the new <code>cipi.yml</code> keys</a>.</p>
+                            <div class="callout info" style="margin-top:16px;">
+                                <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.4.1" target="_blank" rel="noopener">5.4.1</a> — opens redirects, proxies and Node app management to the panel: <code>www-data</code> may now run <code>cipi redirect</code>, <code>cipi proxy add|remove|list</code> and <code>cipi node list|status|restart</code>, each as an exact command line. Node runtime management, <code>cipi search install|upgrade|key-rotate</code>, <code>cipi package install|remove</code> and every <code>zt</code> change deliberately stay CLI-root. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.31.0" target="_blank" rel="noopener">1.31.0</a> covers Cipi 5.1.1 → 5.4.0 in one release — redirects, proxies, Node apps and runtimes, the deploy audit, Meilisearch, read-only packages / monitor / Zero Trust, fix-permissions and wildcard domains, 68 MCP tools — and the <a href="/docs/gui">web GUI</a> puts all of it in the browser. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.4.0" target="_blank" rel="noopener">5.4.0</a> — Node apps with blue/green SSR and a webhook receiver that needs no <code>cipi/agent</code>; <code>cipi node</code>; the deploy audit ledger in <code>/var/log/cipi/deploys.jsonl</code>, mirrored to syslog, read by <code>cipi deploy --audit</code> and <code>cipi compliance deploys</code>; twelve new <code>cipi.yml</code> keys. <strong>Fixed:</strong> old backups were never deleted — archives from before 5.1 and from removed profiles are now pruned, and S3 retention errors alert instead of failing silently; <code>cipi api update</code> no longer announces an update every night. Migration 5.4.0 adds the audit hooks without touching the rest of <code>deploy.php</code> and moves servers still on Node 20 to 22. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

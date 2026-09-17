@@ -76,7 +76,7 @@
   "inLanguage": "en",
   "image": "https://cipi.sh/og.png",
   "datePublished": "2026-08-22",
-  "dateModified": "2026-08-22",
+  "dateModified": "2026-09-17",
   "author": {
     "@type": "Person",
     "name": "Andrea Pollastri",
@@ -380,7 +380,7 @@
         <h2 id="two-extensions">Two extensions, zero lock-in</h2>
         <p>Cipi is not a panel that hides a CLI. It is a CLI that, if you want, exposes an API and a dashboard. Skip both packages and the server runs exactly as before — no extra daemon, no web surface, nothing listening. Install only what you need.</p>
         <ul>
-            <li><strong><code>cipi/api</code></strong> — a Laravel package (current release <strong>1.20</strong>) that exposes REST at <code>/api/*</code>, an MCP server at <code>/mcp</code> and Swagger UI at <code>/docs</code>.</li>
+            <li><strong><code>cipi/api</code></strong> — a Laravel package (current release <strong>1.31.0</strong>, for Cipi <strong>5.4.1+</strong>) that exposes REST at <code>/api/*</code>, an MCP server at <code>/mcp</code> and Swagger UI at <code>/docs</code>.</li>
             <li><strong><code>cipi/gui</code></strong> — a self-hosted Laravel 12 dashboard that talks to one or more servers <em>only</em> through that REST API. It has no proprietary control plane and stores no managed-server state.</li>
         </ul>
         <p>Anything you do in the browser, you can do from the shell. Anything you do from the shell, you can automate over HTTP. Both packages are clients of the same surface, not a second Cipi.</p>
@@ -409,15 +409,23 @@ $ cipi api token create</code></pre>
                 <tbody>
                     <tr>
                         <td>Apps</td>
-                        <td>Laravel and custom CRUD, Octane/FrankenPHP, DB engine at create time, suspend/unsuspend (HTTP 503), rename primary domain, HTTP Basic Auth, paginated logs, <code>.env</code>, Composer <code>auth.json</code>, Artisan and whitelisted <code>app run</code>, deploy-config, recreate Git webhooks</td>
+                        <td>Laravel, Node (SPA / static / SSR, API <strong>1.31+</strong>) and custom CRUD, Octane/FrankenPHP, DB engine at create time, wildcard primary domains, fix-permissions, suspend/unsuspend (HTTP 503), rename primary domain, HTTP Basic Auth, paginated logs, <code>.env</code>, Composer <code>auth.json</code>, Artisan and whitelisted <code>app run</code>, deploy-config, recreate Git webhooks</td>
                     </tr>
                     <tr>
                         <td>Deploy</td>
-                        <td>Zero-downtime deploy, rollback, unlock a stuck release</td>
+                        <td>Zero-downtime deploy, rollback, unlock a stuck release, and the hash-chained deploy audit ledger (API <strong>1.31+</strong> / Cipi <strong>5.4.0+</strong>)</td>
                     </tr>
                     <tr>
                         <td>Aliases and WWW</td>
                         <td>Aliases, apex/www counterpart, force-to-root / force-from-root, clear redirects</td>
+                    </tr>
+                    <tr>
+                        <td>Redirects and proxies</td>
+                        <td>Whole-app redirect in one hop, path redirects, reverse proxy prefixes — synchronous, <code>nginx -t</code> with revert, the loopback guard never bypassed (API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong>)</td>
+                    </tr>
+                    <tr>
+                        <td>Node</td>
+                        <td>Installed runtimes and the server default, per-app Node status, blue/green restart of SSR apps (API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong>)</td>
                     </tr>
                     <tr>
                         <td>SSL</td>
@@ -425,7 +433,7 @@ $ cipi api token create</code></pre>
                     </tr>
                     <tr>
                         <td>Databases</td>
-                        <td>MariaDB and PostgreSQL: list/engines, create, delete, backup, restore, password, install engine and system default</td>
+                        <td>MariaDB and PostgreSQL: list/engines, create, backup, restore, password, install an engine. Dropping a database and changing the default engine stay on the CLI since API <strong>1.19</strong></td>
                     </tr>
                     <tr>
                         <td>Server</td>
@@ -433,7 +441,7 @@ $ cipi api token create</code></pre>
                     </tr>
                     <tr>
                         <td>Cockpit</td>
-                        <td>PHP 8.3/8.4/8.5 (install, remove, default), SSH keys, service restarts, SMTP, HTTP healthchecks, IP whitelist on <code>/api/*</code> and <code>/mcp</code></td>
+                        <td>PHP 8.3/8.4/8.5 install, SSH keys, service restarts, SMTP, HTTP healthchecks, IP whitelist on <code>/api/*</code> and <code>/mcp</code>; Meilisearch status and per-app enable/disable; read-only host packages, system monitor and Cloudflare Zero Trust status (API <strong>1.31+</strong>)</td>
                     </tr>
                 </tbody>
             </table>
@@ -463,7 +471,7 @@ curl -sS "${CIPI_API_URL}/api/status" \
 
         <h2 id="tokens">Sanctum tokens and granular abilities</h2>
         <p>Auth is Laravel Sanctum. Each token carries one or more <em>abilities</em>: a CI token can hold only <code>deploy-manage</code> and <code>apps-view</code>; a panel token needs the full set. <code>cipi api token create</code> reads the canonical list from the package (same as <code>php artisan cipi:token-abilities</code>).</p>
-        <p>Abilities cover apps (view/create/edit/delete/suspend/basicauth/env/auth/artisan/run/deploy-config), aliases, www, deploy, SSL, databases, status, MCP and — since API <strong>1.15+</strong> — PHP, SSH, services, SMTP, health and IP whitelist. Revoke with <code>cipi api token revoke &lt;id&gt;</code>. Do not reuse a full-ability token in a public pipeline.</p>
+        <p>Abilities cover apps (view/create/edit/delete/suspend/basicauth/env/auth/artisan/run/deploy-config), aliases, www, deploy, SSL, databases, status, MCP and — since API <strong>1.15+</strong> — PHP, SSH, services, SMTP, health and IP whitelist; API <strong>1.31</strong> adds <code>redirects-view/manage</code>, <code>proxies-view/manage</code>, <code>node-view/manage</code>, <code>search-view/manage</code>, <code>packages-view</code>, <code>monitor-view</code> and <code>zt-view</code>. Revoke with <code>cipi api token revoke &lt;id&gt;</code>. Do not reuse a full-ability token in a public pipeline.</p>
 
         <h2 id="jobs">Async jobs and polling</h2>
         <p>A deploy or <code>db create</code> does not live in the HTTP request: the API queues the work and returns <code>202</code> + <code>job_id</code>. Poll <code>GET /api/jobs/{id}</code> for status, CLI <code>output</code> and <code>exit_code</code>. That is the same overlay the GUI shows and the same loop as <code>cipi-cli jobs wait</code>.</p>
@@ -475,7 +483,7 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
         <p>Since Cipi <strong>4.6.3</strong> the API package soft-updates every night at 04:30 (<code>cipi api update</code>), so REST endpoints and MCP tools stay current without a manual step.</p>
 
         <h2 id="mcp">MCP: Cipi inside Cursor, VS Code and Claude</h2>
-        <p>The MCP server at <code>/mcp</code> (Streamable HTTP) exposes <strong>50+ tools</strong>: apps, aliases, www, databases, deploy, SSL, Basic Auth, server cockpit, <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, jobs, logs and <code>ServerStatus</code>. From API <strong>1.11.1+</strong> a token with only <code>mcp-access</code> is enough for every MCP tool — per-endpoint REST abilities are not checked on <code>/mcp</code>.</p>
+        <p>The MCP server at <code>/mcp</code> (Streamable HTTP) exposes <strong>68 tools</strong>: apps, aliases, www, redirects, proxies, Node, databases, deploy and deploy audit, SSL, Basic Auth, search, server cockpit, packages, monitor, Zero Trust, <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, jobs, logs and <code>ServerStatus</code>. From API <strong>1.11.1+</strong> a token with only <code>mcp-access</code> is enough for every MCP tool — per-endpoint REST abilities are not checked on <code>/mcp</code>.</p>
         <p>Cursor config in <code>~/.cursor/mcp.json</code>:</p>
         <pre class="code-pre"><code>{
   "mcpServers": {
@@ -499,7 +507,9 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
 
         <h2 id="browser">What you can do in the browser</h2>
         <ul>
-            <li><strong>Laravel and custom apps</strong> — create, edit, deploy, rollback, unlock, suspend/unsuspend, delete. Octane (FrankenPHP) at create time from API <strong>1.13+</strong>; list/detail views distinguish FPM from Octane.</li>
+            <li><strong>Laravel, Node and custom apps</strong> — create, edit, deploy, rollback, unlock, suspend/unsuspend, fix permissions, delete. Octane (FrankenPHP) at create time from API <strong>1.13+</strong>; list/detail views distinguish FPM from Octane. Node apps from API <strong>1.31+</strong>: framework preset, Node major, build/start, output, health path, blue/green restart — and a Laravel app's asset build can be pinned to its own Node major.</li>
+            <li><strong>Redirects and proxies</strong> — whole-app redirect (set, enable, disable, unset), path redirects and prefix reverse proxies, with the CLI's own refusals (API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong>).</li>
+            <li><strong>Deploy config and audit</strong> — structured <code>deploy.php</code> options, and who or what deployed each release, from where (API <strong>1.31+</strong> / Cipi <strong>5.4.0+</strong>).</li>
             <li><strong>Aliases, WWW, SSL, Basic Auth</strong> — the same flow as the CLI, plus force HTTPS and apex/www redirects.</li>
             <li><strong><code>.env</code>, <code>auth.json</code>, Artisan, App commands</strong> — editor and terminal output with Markdown copy (API <strong>1.14+</strong> / Cipi <strong>5.0.3+</strong>).</li>
             <li><strong>Multi-engine databases</strong> — pick MariaDB or PostgreSQL at create time; backup, restore and password rotation from the browser (API <strong>1.12+</strong> / Cipi <strong>4.8+</strong>).</li>
@@ -511,12 +521,13 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
         <h2 id="cockpit">Server cockpit</h2>
         <p>From API <strong>1.15+</strong> / Cipi <strong>5.0.6+</strong> the panel does not only manage apps: it manages the box.</p>
         <ul>
-            <li>Install, remove and set the system default PHP (8.3, 8.4, 8.5).</li>
+            <li>Install PHP 8.3, 8.4 or 8.5 (removing a version or switching the default stays on the CLI since API <strong>1.19</strong>).</li>
             <li>Add, rename and revoke SSH keys on the <code>cipi</code> user.</li>
             <li>List and restart system services.</li>
             <li>Configure, test, enable and disable SMTP notifications (the password is never returned on GET).</li>
             <li>Per-app HTTP healthchecks — create, run, remove.</li>
             <li>IP whitelist for the panel API / MCP: one address or CIDR per line, or <code>*</code> to allow all.</li>
+            <li>Since API <strong>1.31</strong>: Node runtimes, Meilisearch, the optional host packages catalog, the system monitor and Cloudflare Zero Trust — read-only, because installing software or changing a lock is an operator decision taken at the CLI.</li>
         </ul>
         <p>That is the piece that makes the GUI a real alternative to a SaaS panel, without moving the source of truth off the server.</p>
 

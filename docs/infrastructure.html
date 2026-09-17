@@ -227,6 +227,7 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
@@ -244,6 +245,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/docs/deploy#deploy-audit" class="sidebar-link">deploy audit ledger</a>
                 <a href="/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
@@ -263,6 +265,7 @@
                 <a href="/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
+                <a href="/docs/infrastructure#cli-node" class="sidebar-link"><code>node</code></a>
                 <a href="/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
@@ -497,6 +500,73 @@
                 </div>
             </div>
 
+            <div class="doc-section" id="cli-node">
+                <h2><code>cipi node</code></h2>
+                <p>Available since <strong>v5.4.0</strong>. Node runtimes for <a href="/docs/apps#cli-app-node">Node
+                    apps</a>, and a server-wide Node for Laravel asset builds too. Official nodejs.org builds (x64 and
+                    arm64) are checked against <code>SHASUMS256.txt</code>, unpacked to
+                    <code>/opt/cipi/node/v&lt;version&gt;</code> and exposed as <code>/opt/cipi/node/&lt;major&gt;</code>
+                    through an atomic symlink, with corepack enabled for pnpm and yarn. Even (LTS) majors only.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi node install 24             <span class="c"># official build, checksum-verified (default major: 22)</span>
+<span class="p">$</span> cipi node list                   <span class="c"># installed majors, the default, and the apps on each</span>
+<span class="p">$</span> cipi node upgrade 22 --restart   <span class="c"># latest patch; SSR apps restart blue/green</span>
+<span class="p">$</span> cipi node remove 20              <span class="c"># refused while an app or the default uses it</span>
+<span class="p">$</span> cipi node default 22             <span class="c"># server-wide Node for Laravel builds, app run, deploy.post</span>
+<span class="p">$</span> cipi node default system         <span class="c"># back to the NodeSource package</span>
+
+<span class="c"># per app</span>
+<span class="p">$</span> cipi node status &lt;app&gt;
+<span class="p">$</span> cipi node restart &lt;app&gt;          <span class="c"># zero-downtime (SSR)</span>
+<span class="p">$</span> cipi node logs &lt;app&gt; [--lines=100]</pre>
+                </div>
+
+                <h3>A server-wide Node for Laravel apps</h3>
+                <p><code>cipi node default &lt;major&gt;</code> installs the major if needed and links
+                    <code>node npm npx corepack pnpm pnpx yarn yarnpkg</code> from
+                    <code>/opt/cipi/node/&lt;major&gt;/bin</code> into <code>/usr/local/bin</code>, which comes before
+                    NodeSource's <code>/usr/bin</code> on the PATH of SSH sessions (Deployer), sudo
+                    (<code>secure_path</code>, <code>cipi app run</code>) and each app's <code>.bashrc</code>. Laravel
+                    <code>--node-build</code> asset builds, <code>cipi app run &lt;app&gt; npm …</code> and
+                    <code>cipi.yml</code> <code>deploy.post</code> all use it from their next run.</p>
+                <ul>
+                    <li>The links point at the major, not at a patch, so <code>cipi node upgrade</code> updates every app
+                        on the default.</li>
+                    <li><code>system</code> removes only Cipi's links and falls back to the NodeSource package, which is
+                        never removed.</li>
+                    <li>A file in <code>/usr/local/bin</code> that Cipi did not create — a global pnpm, a hand-installed
+                        node — is left alone and named in a warning.</li>
+                    <li>New Node apps start on the default unless <code>--node-version</code> says otherwise. The default
+                        major cannot be removed. Changing it sends the <code>node_default</code>
+                        <a href="/docs/advanced#cipi-smtp">notification</a>.</li>
+                    <li>One Laravel app can keep its own major with
+                        <a href="/docs/apps#cli-app-manage"><code>cipi app edit &lt;app&gt; --node-version=24</code></a>;
+                        <code>--node-version=default</code> follows the server again.</li>
+                </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Node 20 → 22.</strong> Node 20 reached end of life in April 2026. Fresh installs get
+                        Node 22 from NodeSource. On update, <a href="/docs/advanced#migration-5-4-0">migration
+                        5.4.0</a> switches servers still on 20 to <code>cipi node default 22</code>; the NodeSource
+                        package stays, so <code>cipi node default system</code> restores 20. Servers already on another
+                        major, or with no Node, are left alone.</div>
+                </div>
+
+                <p>The panel API (<strong>1.31+</strong>, Cipi <strong>5.4.1+</strong>) can list runtimes and read and
+                    restart Node apps (<code>node list|status|restart</code>). Installing, upgrading, removing runtimes
+                    and changing the default stay CLI-root: installing software on the server is not something a web
+                    panel should be able to do.</p>
+            </div>
+
             <div class="doc-section" id="cli-db">
                 <h2><code>cipi db</code></h2>
                 <p>Cipi creates a dedicated database for each <strong>Laravel</strong> app automatically during
@@ -699,7 +769,9 @@
                         refuses the new vhost, <code>apps.json</code> and the vhost are restored and the command exits
                         1. <code>cipi app show</code> lists the app redirect and path redirects; changes fire the
                         <code>redirect_change</code> <a href="/docs/advanced#cipi-smtp">notification</a> (on by
-                        default). CLI only for now — the panel API is unchanged.</div>
+                        default). Since Cipi <strong>5.4.1</strong> the panel API (<strong>1.31+</strong>) and the
+                        <a href="/docs/gui">GUI</a> can manage redirects too, with the CLI's own validation; an app can
+                        also declare them in <a href="/docs/deploy#cli-yml-routes"><code>cipi.yml</code></a>.</div>
                 </div>
             </div>
 
@@ -774,6 +846,12 @@
                 <p>As with redirects, <code>nginx -t</code> must pass or <code>apps.json</code> and the vhost are
                     restored and the command exits 1. <code>cipi app show</code> lists the proxy prefixes, and changes
                     fire <code>proxy_change</code> (on by default). See also <code>cipi help proxy</code>.</p>
+                <p>Since Cipi <strong>5.4.1</strong>, the panel API (<strong>1.31+</strong>) and the
+                    <a href="/docs/gui">GUI</a> can add, list and remove proxies — always <strong>without</strong>
+                    <code>--force</code>, so the loopback guard cannot be bypassed from the web. Proxies declared in
+                    <a href="/docs/deploy#cli-yml-routes"><code>cipi.yml</code></a> are stricter still: link-local and
+                    <code>0.0.0.0/8</code> upstreams, cloud metadata included, are refused, and resolved hostnames are
+                    checked as well as literal IPs.</p>
             </div>
 
             <div class="doc-section" id="cli-domains">
@@ -1191,6 +1269,26 @@
                     <code>/var/log/cipi/backups</code>), so existing archives and any hand-written cron line still
                     prune. New profiles use <code>--keep</code>, <code>--keep-days</code> or <code>--keep-weeks</code>
                     instead.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Fixed in v5.4.0: old backups were never deleted.</strong> Migration 5.1.0 removed the
+                        <code>cipi backup prune --weeks=N</code> cron line, which was the only thing pruning the pre-5.1
+                        layout — so archives written before the upgrade, archives of a removed profile and the dumps in
+                        <code>/var/log/cipi/backups/</code> (where <code>cipi deploy --snapshot</code> still writes) stayed
+                        forever. Every backup run and <code>cipi backup prune</code> now prune those orphans too, local
+                        and S3, keeping them as long as the <strong>longest</strong> age-based retention of any profile.
+                        With count-only retention (<code>keep: N</code>) there is no age to go by, and orphans are left
+                        alone; <code>--dry-run</code> lists them. S3 listing and delete errors are no longer swallowed:
+                        they are logged, send a <code>backup_fail</code> alert without failing the backup, and make
+                        <code>cipi backup prune</code> exit 1. Root's cron PATH now includes <code>/usr/local/bin</code>,
+                        where the AWS CLI lives.</div>
+                </div>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -2105,7 +2203,10 @@ Host ssh.example.com
                 <ul>
                     <li><code>report.md</code> — for the auditor;</li>
                     <li><code>report.json</code> — for tooling;</li>
-                    <li><code>evidence/&lt;control&gt;/…</code> — the raw command output behind each finding;</li>
+                    <li><code>evidence/&lt;control&gt;/…</code> — the raw command output behind each finding (since
+                        5.4.0 <code>deploys</code> adds <code>deploy-audit.jsonl</code>, <code>deploy-audit.tsv</code>,
+                        <code>deploy-audit-chain.txt</code>, <code>deploy-audit-hooks.txt</code> and
+                        <code>deploy-audit-unaudited.tsv</code> next to <code>deploys.tsv</code>);</li>
                     <li><code>SHA256SUMS</code>, plus a <code>.tar.gz</code> of the directory and its
                         <code>.sha256</code>.</li>
                 </ul>
@@ -2137,7 +2238,7 @@ Host ssh.example.com
                             <tr><td><code>api_tokens</code></td><td>No expiry, expired, unused for the period, <code>*</code> ability, IP allowlist <code>*</code></td></tr>
                             <tr><td><code>gui_2fa</code></td><td>Two-factor authentication on <a href="/docs/gui#gui-2fa">GUI</a> accounts</td></tr>
                             <tr><td><code>secrets</code></td><td>Encrypted, root-only config; key file modes</td></tr>
-                            <tr><td><code>deploys</code></td><td>Deploy log banners: trigger, branch, release, commit SHA (Deployer's <code>REVISION</code>), result, rollbacks</td></tr>
+                            <tr><td><code>deploys</code></td><td>Since 5.4.0, the <a href="/docs/deploy#deploy-audit">deploy audit ledger</a>: <strong>fails</strong> on a broken hash chain; <strong>warns</strong> when an app's <code>deploy.php</code> lacks the audit hook, its sudoers lacks the rule, or Deployer's <code>releases_log</code> has a release the ledger never saw. Only releases since auditing began count. Without the ledger (not yet updated) it warns instead of passing</td></tr>
                             <tr><td><code>backups</code></td><td>Schedule freshness, off-site copy, encryption</td></tr>
                             <tr><td><code>logging</code></td><td>Remote forwarding, <code>auth.log</code> history, journald, auditd</td></tr>
                             <tr><td><code>monitoring</code></td><td><a href="#cli-monitor">Monitor</a> cron, disabled checks, alert delivery, muted triggers</td></tr>
@@ -2162,8 +2263,10 @@ Host ssh.example.com
                     <div><strong>Honest about gaps.</strong> <code>secrets</code> is at best a warn: the
                         <a href="/docs/advanced#cipi-vault">vault</a> uses AES-256-CBC without a MAC, which is not
                         authenticated encryption, and the report says so before an auditor has to ask.
-                        <code>backups</code> notes that restore tests are not recorded. <code>deploys</code> notes that
-                        the person who ran a CLI deploy is in <code>auth.log</code>, not in the deploy log. Cipi's own
+                        <code>backups</code> notes that restore tests are not recorded. <code>deploys</code> states that
+                        the hash chain proves nothing before the newest record was changed or removed, but root can
+                        still rewrite the newest records or the whole file — the syslog copy forwarded off the server
+                        is the independent one. Cipi's own
                         design choices appear as notes, not failures: password SFTP login for <code>cipi-apps</code>
                         users, and nginx, databases and PHP kept off <code>unattended-upgrades</code>.</div>
                 </div>
@@ -2365,7 +2468,7 @@ Host ssh.example.com
                         is a 48 kB transitional package whose dependencies are <code>debconf</code> and
                         <strong><code>snapd</code></strong>. Installing it would add a daemon and a snap that
                         updates itself outside apt's control, which is precisely what this command exists not
-                        to do. For <code>spatie/browsershot</code>, use Puppeteer's own Chromium (Node 20 is
+                        to do. For <code>spatie/browsershot</code>, use Puppeteer's own Chromium (Node 22 is
                         already installed) or Google's apt repository — both deliberate choices, not a side
                         effect of an allowlist entry.</div>
                 </div>

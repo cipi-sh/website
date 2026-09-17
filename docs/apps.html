@@ -227,6 +227,7 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
@@ -244,6 +245,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/docs/deploy#deploy-audit" class="sidebar-link">deploy audit ledger</a>
                 <a href="/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
@@ -263,6 +265,7 @@
                 <a href="/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
+                <a href="/docs/infrastructure#cli-node" class="sidebar-link"><code>node</code></a>
                 <a href="/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
@@ -361,12 +364,15 @@
             <div class="doc-section" id="cli-app-create">
                 <p class="doc-section-label">Apps</p>
                 <h1><code>cipi app create</code></h1>
-                <p><code>cipi app create</code> supports two app types: <strong>Laravel</strong> (default) and
+                <p><code>cipi app create</code> supports three app types: <strong>Laravel</strong> (default),
+                    <strong>Node</strong> (<code>--node=spa|static|ssr</code>, since <strong>v5.4.0</strong>) and
                     <strong>Custom</strong> (<code>--custom</code>). Laravel apps get a fully isolated environment:
                     Linux user, PHP-FPM pool <em>or</em> <strong>Laravel Octane (FrankenPHP)</strong> since
                     <strong>v5.0</strong>, Nginx vhost, database (MariaDB by default; optional PostgreSQL since
                     <strong>v4.8.0</strong>), Supervisor worker, crontab entry, Deployer zero-downtime releases, SSH
-                    deploy key, and auto-compiled <code>.env</code>. Custom apps are simpler — see
+                    deploy key, and auto-compiled <code>.env</code>. Node apps build a React, Vue, Svelte, Next.js,
+                    Nuxt, SvelteKit, Astro or Remix project on every deploy — see
+                    <a href="/docs/apps#cli-app-node">Node apps</a>. Custom apps are simpler — see
                     <a href="/docs/apps#cli-app-custom">custom apps</a> for details.
                 </p>
 
@@ -504,6 +510,172 @@
                 </div>
             </div>
 
+            <div class="doc-section" id="cli-app-node">
+                <h2><code>cipi app create --node</code> — Node apps</h2>
+                <p>Available since <strong>v5.4.0</strong>. Until then a React or Vue SPA could only be a
+                    <a href="#cli-app-custom">custom app</a> serving a build committed to git: no build step, and
+                    client-side routes returned 404 on reload. SSR frameworks could not run at all. Node apps are an app
+                    type of their own, with the same lifecycle as Laravel apps — releases, rollback, webhook, SSL, basic
+                    auth, <a href="/docs/infrastructure#cli-redirect">redirects</a> and
+                    <a href="/docs/infrastructure#cli-proxy">proxies</a>, and the
+                    <a href="/docs/deploy#deploy-audit">deploy audit ledger</a>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># Vite + React/Vue/Svelte: build, then nginx serves dist/ with an /index.html fallback</span>
+<span class="p">$</span> cipi app create --user=web --domain=web.example.com \
+    --repository=git@github.com:you/web.git --node=spa --framework=vite
+
+<span class="c"># Pre-rendered site (Astro, Nuxt generate, Next export): real 404s</span>
+<span class="p">$</span> cipi app create --user=docs --domain=docs.example.com \
+    --repository=git@github.com:you/docs.git --node=static --output=dist
+
+<span class="c"># Node server with blue/green deploys</span>
+<span class="p">$</span> cipi app create --user=shop --domain=shop.example.com \
+    --repository=git@github.com:you/shop.git --node=ssr --framework=next --node-version=24</pre>
+                </div>
+
+                <h3>Modes</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Mode</th>
+                                <th>What nginx does</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>spa</code></td>
+                                <td>Serves <code>current/&lt;output&gt;</code>; unknown paths fall back to
+                                    <code>/index.html</code>, so client-side routes survive a reload.
+                                    <code>assets/</code>, <code>_astro/</code>, <code>_nuxt/</code>,
+                                    <code>_app/immutable/</code> and <code>static/</code> are cached as
+                                    <code>immutable</code>; <code>*.html</code> is <code>no-cache</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><code>static</code></td>
+                                <td>The same without the fallback: <code>$uri.html</code>, then a real 404 with
+                                    <code>/404.html</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><code>ssr</code></td>
+                                <td>Proxies to a Node process on localhost through an upstream
+                                    (<code>/etc/nginx/conf.d/cipi-node-&lt;app&gt;.conf</code>), with WebSocket upgrade and
+                                    <code>X-Forwarded-*</code> headers.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Options and framework presets</h3>
+                <div class="options-list">
+                    <div class="option-item"><code>--node=spa|static|ssr</code><span>The app type and mode.</span></div>
+                    <div class="option-item"><code>--framework=</code><span><code>next</code>, <code>nuxt</code>,
+                            <code>sveltekit</code>, <code>astro</code>, <code>remix</code> (all <code>ssr</code>) or
+                            <code>vite</code> (<code>spa</code>, output <code>dist</code>). A preset fills in the mode,
+                            build and start command; explicit flags win.</span></div>
+                    <div class="option-item"><code>--node-version=22|24</code><span>Node major (even, LTS majors only).
+                            Defaults to the <a href="/docs/infrastructure#cli-node">server default</a>.</span></div>
+                    <div class="option-item"><code>--build=</code><span>Build command, default
+                            <code>npm run build</code>.</span></div>
+                    <div class="option-item"><code>--start=</code><span>SSR start command — e.g.
+                            <code>node build</code> (SvelteKit), <code>node .output/server/index.mjs</code> (Nuxt). Next.js
+                            starts with <code>next start -H 127.0.0.1</code>. Only a Node runner (<code>node npm npx pnpm
+                            yarn bun</code>) plus plain arguments is accepted.</span></div>
+                    <div class="option-item"><code>--output=</code><span>Build directory for <code>spa</code> /
+                            <code>static</code>; the deploy fails if <code>&lt;output&gt;/index.html</code> is
+                            missing.</span></div>
+                    <div class="option-item"><code>--health-path=</code><span>SSR only: the path a new release must
+                            answer below 500 before it takes traffic (default <code>/</code>).</span></div>
+                </div>
+
+                <h3>The build</h3>
+                <p>The Deployer recipe installs dependencies from the lockfile — <code>npm ci</code>,
+                    <code>pnpm install --frozen-lockfile</code>, <code>yarn install --immutable</code> (or
+                    <code>--frozen-lockfile</code>), <code>bun install --frozen-lockfile</code>; <code>npm install</code>
+                    with a warning when there is no lockfile — then builds with <code>NODE_ENV=production</code> and
+                    telemetry off. <code>shared/.env</code> is a shared file, so frameworks read it at build time and SSR
+                    servers at runtime. Edit it with <a href="#cli-app-env"><code>cipi app env</code></a>.</p>
+
+                <h3>Blue/green deploys for SSR</h3>
+                <p>An SSR app has two Supervisor programs, <code>&lt;app&gt;-node-blue</code> and
+                    <code>&lt;app&gt;-node-green</code>, each on its own localhost port in <code>3100–3999</code>, in
+                    <code>/etc/supervisor/conf.d/&lt;app&gt;-node.conf</code> (so <code>cipi-worker restart</code> cannot
+                    bounce both). Before <code>deploy:symlink</code>, the recipe calls <code>cipi-node-switch</code>:</p>
+                <ol>
+                    <li>the new release starts on the idle slot;</li>
+                    <li>it must answer below 500 on the health path within 60 seconds;</li>
+                    <li>the upstream moves (<code>nginx -t</code>, reload) and the old slot stops after a short
+                        drain.</li>
+                </ol>
+                <p>A process that exits or never answers is stopped, the old slot keeps serving, and the deploy fails
+                    before <code>current</code> moves. <code>cipi deploy &lt;app&gt; --rollback</code> switches back the
+                    same way, and <code>cipi node restart &lt;app&gt;</code> is blue/green too — no downtime.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>What the app user cannot change.</strong> <code>cipi-node-switch</code> runs as root
+                        through one sudoers rule per app. Only the release path comes from the caller, and it must be a
+                        release of that app; ports, start command, Node version and health path come from
+                        <code>/var/lib/cipi/node/&lt;app&gt;.json</code>, which only root writes.
+                        <code>cipi-node-run</code> reads <code>.env</code> as <code>KEY=VALUE</code> data and never
+                        sources it: <code>PORT</code> and <code>HOST</code> cannot be overridden, <code>HOST</code>,
+                        <code>HOSTNAME</code> and <code>NITRO_HOST</code> are forced to <code>127.0.0.1</code>, and the
+                        start command runs as argv with no shell.</div>
+                </div>
+
+                <h3>Webhooks without <code>cipi/agent</code></h3>
+                <p>A Node app has no Laravel to install <a href="/docs/agent">Cipi Agent</a> into, so
+                    <code>/cipi/webhook</code> goes to a receiver Cipi ships
+                    (<code>/usr/local/share/cipi/webhook.php</code>) through an on-demand PHP-FPM pool running as the app
+                    user: <code>open_basedir</code> limited to the home and the receiver, <code>exec</code>-family
+                    functions disabled, 2 MB body, POST only, never behind basic auth. It verifies GitHub and Bitbucket
+                    HMAC-SHA256 and GitLab / Azure DevOps tokens, deploys only pushes to the app's branch, and records
+                    the pusher, delivery id and commit in the audit ledger under <code>claimed</code>. With a
+                    <a href="/docs/deploy#git-auto-setup">Git provider token</a> the webhook is registered for you, and
+                    <code>cipi git refresh</code> covers Node apps.</p>
+
+                <h3>Managing a Node app</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi node status shop           <span class="c"># mode, commands, blue/green slots</span>
+<span class="p">$</span> cipi node restart shop          <span class="c"># zero-downtime restart (SSR)</span>
+<span class="p">$</span> cipi node logs shop --lines=100 <span class="c"># log of the serving slot</span>
+<span class="p">$</span> cipi app edit shop --start=<span class="s">"node .output/server/index.mjs"</span> --health-path=/health
+<span class="p">$</span> cipi app edit web --node=static --output=dist
+<span class="p">$</span> cipi app edit shop --node-version=24</pre>
+                </div>
+                <p><code>cipi app edit</code> accepts <code>--build=</code>, <code>--start=</code>, <code>--output=</code>,
+                    <code>--health-path=</code>, <code>--node-version=</code> and <code>--node=spa|static|ssr</code>.
+                    <code>cipi app show</code> and <code>cipi app list</code> show the mode and slots;
+                    <code>cipi app delete</code> stops and removes both slots, the upstream and the state. The same
+                    settings can live in the repository as the <a href="/docs/deploy#cli-yml-node"><code>node:</code>
+                    section of <code>cipi.yml</code></a>, applied by the deploy itself. Runtimes are managed with
+                    <a href="/docs/infrastructure#cli-node"><code>cipi node</code></a>. From the panel: API
+                    <strong>1.31+</strong> and the <a href="/docs/gui">GUI</a> create, edit and restart Node apps.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Not yet:</strong> <code>cipi sync</code> skips Node apps with a message, and
+                        <code>cipi app clone</code> refuses them, as it does custom apps. No database is created with a
+                        Node app — add one with <a href="/docs/infrastructure#cli-db"><code>cipi db</code></a> or the
+                        <code>databases:</code> section of <code>cipi.yml</code>.</div>
+                </div>
+            </div>
+
             <div class="doc-section" id="cli-app-custom">
                 <h2><code>cipi app create --custom</code></h2>
                 <p>Creates a <strong>custom app</strong> with classic deploy (no zero-downtime): code is deployed into
@@ -585,7 +757,9 @@
                                             <tr>
                                                 <td>cipi app show &lt;app&gt;</td>
                                                 <td>Full details: domain, PHP, deploy key, workers, webhook, suspend state, and since 5.3.1
-                                                    the app redirect, path redirects and proxy prefixes. For custom apps:
+                                                    the app redirect, path redirects and proxy prefixes. Since 5.4.0: the Node mode,
+                                                    commands and blue/green slots of a Node app, and for a Laravel app whether its
+                                                    Node builds are pinned to a major or follow the server default. For custom apps:
                                                     type "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a
                                                     repository.
                                                 </td>
@@ -619,6 +793,17 @@
                                                     <strong>v5.0</strong>). Deployer executes
                                                     <code>.deployer/node-build.sh</code> (fail-closed; command is validated). Clear with
                                                     <code>--no-node-build</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --node-version=24|default</td>
+                                                <td>Pin one Laravel app's Node builds to its own major, whatever the
+                                                    <a href="/docs/infrastructure#cli-node">server default</a> is (since
+                                                    <strong>v5.4.0</strong>). <code>node-build.sh</code> exports that major's PATH, and
+                                                    <code>cipi app run</code> and <code>deploy.post</code> use it too.
+                                                    <code>--node-version=default</code> follows the server again. On a
+                                                    <a href="#cli-app-node">Node app</a> it changes the runtime; there
+                                                    <code>--build=</code>, <code>--start=</code>, <code>--output=</code>,
+                                                    <code>--health-path=</code> and <code>--node=</code> are accepted as well</td>
                                             </tr>
                                             <tr>
                                                 <td>cipi app edit &lt;app&gt; --predeploy-snapshot</td>
@@ -721,7 +906,8 @@
                     <code>fix-permissions</code> is the full home, on demand, after someone unpacked a zip as root or
                     chmod'd <code>.ssh</code> to 775. Available since <strong>v5.2.1</strong>. No migration:
                     <code>cipi self-update</code> copies the libs and refreshes shell completion. The panel sudoers
-                    file lists the new command so a future GUI can call it; existing servers pick that line up the next
+                    file lists the new command, and since API <strong>1.31</strong> the panel calls it
+                    (<code>POST /api/apps/{name}/fix-permissions</code>, and a button in the <a href="/docs/gui">GUI</a>); existing servers pick that line up the next
                     time sudoers is rewritten (the CLI runs as root and does not need it).</p>
             </div>
 

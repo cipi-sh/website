@@ -64,7 +64,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-11",
+      "dateModified": "2026-09-17",
       "headline": "Cipi Docs — Deploy & CI/CD",
       "name": "Deploy & CI/CD",
       "url": "https://cipi.sh/docs/deploy",
@@ -227,6 +227,7 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
@@ -244,6 +245,7 @@
             <div class="sidebar-group" data-chapter="deploy">
                 <a href="/docs/deploy" class="sidebar-group-label">deploy & ci/cd</a>
                 <a href="/docs/deploy#cli-deploy" class="sidebar-link"><code>deploy</code></a>
+                <a href="/docs/deploy#deploy-audit" class="sidebar-link">deploy audit ledger</a>
                 <a href="/docs/deploy#cli-deploy-config" class="sidebar-link"><code>deploy-config</code></a>
                 <a href="/docs/deploy#cli-yml" class="sidebar-link"><code>cipi.yml</code></a>
                 <a href="/docs/deploy#cli-auth" class="sidebar-link"><code>auth.json</code></a>
@@ -263,6 +265,7 @@
                 <a href="/docs/infrastructure" class="sidebar-group-label">infrastructure</a>
                 <a href="/docs/infrastructure#cli-php" class="sidebar-link"><code>php</code></a>
                 <a href="/docs/infrastructure#cli-ini" class="sidebar-link"><code>ini</code> (php.ini)</a>
+                <a href="/docs/infrastructure#cli-node" class="sidebar-link"><code>node</code></a>
                 <a href="/docs/infrastructure#cli-db" class="sidebar-link"><code>db</code></a>
                 <a href="/docs/infrastructure#cli-aliases" class="sidebar-link"><code>alias</code></a>
                 <a href="/docs/infrastructure#cli-www" class="sidebar-link"><code>www</code></a>
@@ -406,6 +409,7 @@
 <span class="p">$</span> cipi deploy myapp --releases   <span class="c"># list releases with date, commit and subject (v5.1.0+)</span>
 <span class="p">$</span> cipi deploy myapp --log        <span class="c"># timestamped deploy log (v5.1.0+)</span>
 <span class="p">$</span> cipi deploy myapp --log=200    <span class="c"># last 200 lines of it</span>
+<span class="p">$</span> cipi deploy myapp --audit      <span class="c"># v5.4.0+ who and what deployed each release [--days=90] [--json]</span>
 <span class="p">$</span> cipi deploy myapp --key        <span class="c"># show the SSH deploy key</span>
 <span class="p">$</span> cipi deploy myapp --webhook    <span class="c"># show webhook URL and token</span>
 <span class="p">$</span> cipi deploy myapp --unlock     <span class="c"># remove a stuck deploy lock</span>
@@ -464,6 +468,103 @@
                     </svg>
                     <div>If a deploy is interrupted (e.g. by a network error), Deployer may leave a lock file behind.
                         Use <code>cipi deploy myapp --unlock</code> to remove it before re-deploying.</div>
+                </div>
+            </div>
+
+            <div class="doc-section" id="deploy-audit">
+                <h2>Deploy audit ledger</h2>
+                <p>Available since <strong>v5.4.0</strong>. Before, only <code>cipi deploy</code> and the webhook
+                    wrapper wrote deploy banners — into a log the app user owns. A deploy started any other way left no
+                    record: <a href="/docs/agent">cipi/agent</a> running <code>dep</code> inside the app, the panel, or
+                    <code>dep deploy</code> typed over SSH. What all of them share is the app's Deployer recipe, so the
+                    record is written from there.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi deploy myapp --audit               <span class="c"># last 90 days</span>
+<span class="p">$</span> cipi deploy myapp --audit --days=365 --json
+<span class="p">$</span> cipi compliance deploys                 <span class="c"># chain check + gaps, as audit evidence</span></pre>
+                </div>
+
+                <h3>How a record is written</h3>
+                <p>The recipe calls <code>/usr/local/bin/cipi-deploy-audit</code> (root, through one per-app sudoers
+                    rule) after <code>deploy:symlink</code> (<em>published</em>), on <code>deploy:failed</code>
+                    (<em>failed</em>) and after <code>rollback</code>; custom apps after <code>deploy</code> and on its
+                    failure. The hook runs locally, so the process chain of whoever ran <code>dep</code> stays visible.
+                    A missing helper or rule never fails a deploy.</p>
+                <p><strong>Root does not take the caller's word for anything.</strong> From <code>/proc</code> it reads
+                    the release <code>current</code> points at, its commit (Deployer's <code>REVISION</code>, or
+                    <code>htdocs</code> HEAD for custom apps) and Deployer's own <code>releases_log</code> entry. From
+                    the process chain it reads:</p>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Values</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>origin</td>
+                                <td><code>cipi-cli</code> (trigger <code>cli</code>, <code>rollback</code>,
+                                    <code>auto-rollback</code>, <code>sync</code>), <code>panel</code> (<code>cipi
+                                    deploy</code> started by <code>www-data</code>), <code>webhook</code>,
+                                    <code>app-web</code> (PHP-FPM), <code>app-queue</code>, <code>ssh</code>,
+                                    <code>cron</code>, <code>root-shell</code></td>
+                            </tr>
+                            <tr>
+                                <td>operator</td>
+                                <td>The audit login uid, set by PAM and not changeable by the user</td>
+                            </tr>
+                            <tr>
+                                <td>ip / chain</td>
+                                <td>The SSH client IP, and the process chain itself</td>
+                            </tr>
+                            <tr>
+                                <td>claimed</td>
+                                <td>What only the app can say — e.g. who pressed deploy in an MCP client — kept apart
+                                    from what root verified</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>Claims come from the trigger file: the cron now moves <code>~/.deploy-trigger</code> to
+                    <code>~/.deploy-trigger.run</code> instead of deleting it, and the file may carry
+                    <code>source</code>, <code>actor</code>, <code>ip</code>, <code>ref</code> and
+                    <code>request_id</code> as JSON or <code>KEY=VALUE</code>. Code that runs <code>dep</code>
+                    in-process can set the same <code>CIPI_DEPLOY_*</code> environment variables. A known
+                    <code>source</code> also names the trigger in <code>deploy.log</code> (<code>trigger=mcp</code>).</p>
+
+                <h3>The ledger</h3>
+                <p><code>/var/log/cipi/deploys.jsonl</code> is root-only, one JSON line per event. Each line carries its
+                    sequence number and the SHA-256 of the line before it, and is also sent to syslog
+                    (<code>cipi-deploy</code>), so log forwarding keeps a copy off the server. Repeated calls for a
+                    release already recorded are ignored.</p>
+                <p><a href="/docs/infrastructure#cli-compliance"><code>cipi compliance deploys</code></a> uses the
+                    ledger: it <strong>fails</strong> when the hash chain is broken, and <strong>warns</strong> when an
+                    app's <code>deploy.php</code> lacks the hook (edited by hand), when its sudoers lacks the rule, or
+                    when Deployer's <code>releases_log</code> has a release the ledger never saw. The panel API reads
+                    the same records at <code>GET /api/apps/{name}/deploy/audit</code> (API <strong>1.31+</strong>),
+                    and the <a href="/docs/gui">GUI</a> shows them on the app page.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Honest about gaps.</strong> The chain proves that nothing before the newest record was
+                        changed or removed. Root can still rewrite the newest records or the whole file — the syslog copy
+                        forwarded off the server is the independent one. The ledger records deploys, not every file
+                        change: an app user can still edit <code>current/</code> over SFTP (covered by
+                        <a href="/docs/infrastructure#cli-scan"><code>cipi scan</code></a> integrity) or remove the hook
+                        from their own <code>deploy.php</code> (flagged by compliance and cross-checked against
+                        <code>releases_log</code>). Existing apps get the hooks from
+                        <a href="/docs/advanced#migration-5-4-0">migration 5.4.0</a>; only releases since auditing began
+                        count.</div>
                 </div>
             </div>
 
@@ -548,8 +649,12 @@
                         <strong>Horizon</strong>, <strong>Reverb</strong>, the
                     <strong>scheduler</strong>, its <strong>healthcheck</strong> and its <strong>backup
                         strategy</strong>. Since <strong>v5.2.3</strong> it can also declare
-                    <a href="#cli-yml-deploy-post"><strong>post-deploy steps</strong></a>. The file lives next to the
-                    code, so server configuration is reviewed, versioned and shipped like everything else.</p>
+                    <a href="#cli-yml-deploy-post"><strong>post-deploy steps</strong></a>, and since
+                    <strong>v5.4.0</strong> the <a href="#cli-yml-routes">www redirect, basic auth, redirects and
+                    proxies</a>, <a href="#cli-yml-more">Meilisearch, recipe options, limits, forced HTTPS, required
+                    <code>.env</code> names and crons</a>, and a <a href="#cli-yml-node">Node app's build</a>. The file
+                    lives next to the code, so server configuration is reviewed, versioned and shipped like everything
+                    else.</p>
 
                 <h3>Commands</h3>
                 <div class="code-block">
@@ -708,6 +813,159 @@ backup:
                         validates as-is.</div>
                 </div>
 
+                <h3 id="cli-yml-routes">www, basic auth, redirects and proxies (v5.4.0)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>app:
+  aliases: [ <span class="s">"www.myapp.com"</span> ]
+  www: to-root              <span class="c"># to-root | from-root | none</span>
+  basic_auth:
+    users:
+      - admin               <span class="c"># keeps the password already set on the server</span>
+      - name: preview
+        password_hash: <span class="s">"$2y$12$…"</span>   <span class="c"># bcrypt (cost 10+) or SHA-512 crypt only</span>
+
+redirect:                   <span class="c"># whole app, one hop; "redirect: {enabled: false}" removes it</span>
+  to: <span class="s">"https://new.example.com"</span>
+  code: 301
+  keep_path: true
+
+redirects:                  <span class="c"># the declared list replaces the current one</span>
+  - from: /old-page
+    to: /new-page
+  - from: /blog/            <span class="c"># trailing / = prefix</span>
+    to: <span class="s">"https://blog.myapp.com/"</span>
+    code: 308
+
+proxies:
+  - prefix: /api/
+    upstream: <span class="s">"http://127.0.0.1:3000"</span>
+    strip_prefix: true
+    <span class="c"># preserve_host: true   timeout: 60   buffering: false</span></pre>
+                </div>
+                <ul>
+                    <li><code>app.www</code>: when both are declared, the other name of the pair must be in
+                        <code>app.aliases</code>. An alias list that drops a name the current redirect needs is refused
+                        at plan time instead of failing halfway through the apply.</li>
+                    <li><code>app.basic_auth</code>: <strong>no password in the repository.</strong> A name-only user
+                        keeps the password already set with <code>cipi basicauth enable &lt;app&gt; --user=NAME</code>;
+                        a user the server does not know blocks the plan. apr1/MD5 hashes are refused. Server users not
+                        listed are removed, and <code>basic_auth: false</code> turns it off. <code>cipi yml
+                        generate</code> emits names only, never hashes.</li>
+                    <li><code>redirect</code>, <code>redirects[]</code> and <code>proxies[]</code> go through the same
+                        validation as <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a> and
+                        <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a>, checked against the whole
+                        declared set — a redirect and a proxy on the same prefix collide in the plan. The routes apply
+                        as one change: one vhost regeneration, one <code>nginx -t</code>, reverted as a whole if nginx
+                        refuses it.</li>
+                    <li><strong>Proxies are stricter than on the CLI</strong>, because anyone who can commit controls
+                        the file: there is no <code>--force</code>, so Cipi's own loopback ports are always refused, and
+                        link-local and <code>0.0.0.0/8</code> upstreams (cloud metadata included) are refused too, with
+                        resolved hostnames checked as well as literal IPs.</li>
+                </ul>
+
+                <h3 id="cli-yml-more">Search, recipe options, limits, HTTPS, env and crons (v5.4.0)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>app:
+  limits:
+    memory_limit: 512M
+    fpm_max_children: 10    <span class="c"># also octane_workers, worker_procs</span>
+
+search: true                <span class="c"># Meilisearch for Scout, like cipi search enable</span>
+
+deploy:
+  keep_releases: 5          <span class="c"># 1-20</span>
+  migrate: true
+  optimize: true
+  storage_link: true
+  queue_restart: true
+  horizon_terminate: false
+  extra_artisan: [ <span class="s">"view:clear"</span> ]
+  snapshot: true            <span class="c"># pre-deploy database snapshot</span>
+  post:
+    - artisan cache:clear
+
+ssl:
+  force_https: true
+
+env:
+  required: [ STRIPE_KEY, MAIL_HOST ]
+
+crons:
+  - every: 30m
+    run: artisan queue:prune-batches
+  - cron: <span class="s">"15 3 * * *"</span>
+    run: php scripts/cleanup.php</pre>
+                </div>
+                <ul>
+                    <li><code>search</code> mints a key scoped to <code>&lt;app&gt;-*</code> and writes the
+                        <code>SCOUT_*</code> / <code>MEILISEARCH_*</code> variables. The plan is blocked until root has run
+                        <code>cipi search install</code>; <code>false</code> never drops indexes. Refused on custom
+                        apps.</li>
+                    <li><code>deploy:</code> recipe options are the set of
+                        <a href="#cli-deploy-config"><code>cipi app deploy-config</code></a>
+                        (<code>extra_artisan</code> validated, <code>tinker</code> refused). Only declared keys are
+                        reconciled, and a change regenerates <code>deploy.php</code> once. Refused on custom apps; on Node
+                        apps only <code>keep_releases</code> and <code>snapshot</code> apply.</li>
+                    <li><code>app.limits</code> reapplies <a href="/docs/apps#cli-app-limits"><code>cipi app
+                        limits</code></a>, but a value outside the CLI's bounds <strong>blocks the plan instead of being
+                        clamped</strong> — nobody is watching an unattended apply.</li>
+                    <li><code>ssl.force_https: true</code> is <code>cipi ssl force</code>. The plan waits for the
+                        certificate (<code>cipi ssl install</code> stays with root), and it can only ever be turned
+                        <strong>on</strong> from the file: <code>false</code> against an app already forced is refused
+                        rather than silently ignored.</li>
+                    <li><code>env.required</code> lists names, never values. A missing or empty variable blocks the
+                        plan, so code that expects <code>STRIPE_KEY</code> is never deployed against a server that does
+                        not have it. Nothing is written.</li>
+                    <li><code>crons:</code> use the same allowlisted runners as <code>deploy.post</code> — no shell, no
+                        pipes — with <code>every:</code> or five cron fields. The list replaces only the crontab lines
+                        the file manages (tagged <code># cipi-yml</code>); the Laravel scheduler line and the rest of the
+                        app user's crontab are never touched. <code>artisan</code> entries on a non-Laravel app block the
+                        plan.</li>
+                </ul>
+
+                <h3 id="cli-yml-node"><code>node:</code> — a Node app's build, applied by the deploy (v5.4.0)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>node:
+  framework: next           <span class="c"># next nuxt sveltekit astro remix vite — fills the rest</span>
+  mode: ssr                 <span class="c"># spa | static | ssr</span>
+  version: 22
+  build: npm run build
+  start: npx next start -H 127.0.0.1
+  health_path: /
+  <span class="c"># output: dist            # spa/static</span></pre>
+                </div>
+                <p>Same presets and validation as <a href="/docs/apps#cli-app-node"><code>cipi app create
+                    --node</code></a>, but <strong>applied by the deploy itself, not by <code>cipi yml apply</code></strong>.
+                    Right after the checkout, the recipe's <code>node:config</code> runs <code>cipi yml node-sync
+                    &lt;app&gt; &lt;release&gt;</code> as root, which reads the section from <em>that release</em>, and
+                    the commit that changes the build or start command is built and started with it. A mode or output
+                    change moves nginx only after <code>current</code> has moved; a Node major that is not installed
+                    fails the deploy before the build (installing runtimes stays with root); an invalid file leaves the
+                    server's settings in place and sends <code>yml_fail</code>. It needs <code>cipi yml auto &lt;app&gt;
+                    on</code>, which is also what writes the sudo rule for <code>node-sync</code>, and <code>node:</code>
+                    on a Laravel app blocks the plan. <code>cipi yml plan</code> lists the changes the next deploy will
+                    make.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Fixed in v5.4.0:</strong> on a custom app, <code>workers.queues</code>,
+                        <code>workers.horizon: true</code> and <code>schedule: true</code> now block the plan instead of
+                        producing artisan workers the app cannot run; <code>cipi yml example</code> no longer prints
+                        <code>every:: command not found</code>. <code>cipi yml generate</code> and <code>cipi yml
+                        example</code> cover every new key.</div>
+                </div>
+
                 <h3>Deploys ignore the file until you opt in</h3>
                 <p>Nothing happens on deploy until you run <code>cipi yml auto &lt;app&gt; on</code>. With that opt-in
                     given, every <strong>successful</strong> deploy reconciles — from both <code>cipi deploy</code> and
@@ -833,8 +1091,9 @@ deploy:
                         the server's five-minute prober at an internal address and read the answer back out of the alert
                         emails.</li>
                     <li>Unknown keys are errors, and no field carries a shell command or a path to include.
-                        <code>deploy.post</code> (5.2.3+) is the one section that runs something, and it accepts only
-                        <a href="#cli-yml-deploy-post">allowlisted runners</a> — never a shell line.</li>
+                        <code>deploy.post</code> (5.2.3+) and <code>crons</code> (5.4.0+) are the sections that run
+                        something, and they accept only <a href="#cli-yml-deploy-post">allowlisted runners</a> — never a
+                        shell line. Basic auth takes password hashes, never passwords.</li>
                     <li>The parser implements a deliberately small YAML subset and refuses anchors, aliases, tags, merge
                         keys, block scalars and flow mappings outright.</li>
                 </ul>
@@ -847,7 +1106,8 @@ deploy:
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
                     <div>Once <code>yml auto</code> is on, anyone who can push to that repository can change the app's
-                        aliases, PHP settings, workers, healthcheck and backup profiles. That is the point of
+                        aliases, PHP settings, workers, healthcheck, backup profiles, basic auth users, redirects,
+                        proxies, crons and — on a Node app — its build and start commands. That is the point of
                         configuration-as-code — treat write access to the repo accordingly.</div>
                 </div>
             </div>
