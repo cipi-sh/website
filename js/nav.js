@@ -65,7 +65,7 @@
                     '</svg>' +
                 '</span>' +
                 '<span class="tg-chip-text">' +
-                    '<strong>Telegram</strong>' +
+                    '<strong>Join the channel</strong>' +
                     '<span>Cipi Cloud</span>' +
                 '</span>' +
             '</a>' +

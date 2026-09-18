@@ -1,4 +1,4 @@
-/* Floating Telegram chip — bottom-right, every page */
+/* Floating Telegram chip — plane lands, then the invite unfolds */
 
 .tg-chip {
     position: fixed;
@@ -8,50 +8,62 @@
     display: flex;
     align-items: stretch;
     max-width: calc(100vw - 2.2rem);
-    background: var(--nav-bg, rgba(244, 246, 249, 0.92));
+    background: var(--nav-bg, rgba(244, 246, 249, 0.94));
     border: 1px solid var(--line, #c8cfd9);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     color: var(--ink, #14171e);
-    animation: tgChipIn 0.4s ease both;
+    overflow: hidden;
 }
 
 .tg-chip-link {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0;
     min-width: 0;
-    padding: 0.52rem 0.75rem 0.52rem 0.55rem;
+    padding: 0.45rem;
     text-decoration: none;
     color: inherit;
-    transition: background 0.15s;
+    animation: tgLinkPad 0.4s 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .tg-chip-link:hover {
     background: color-mix(in srgb, #229ed9 10%, transparent);
 }
 
+.tg-chip-link:hover .tg-chip-icon svg {
+    transform: translate(1px, -2px) rotate(-12deg);
+}
+
 .tg-chip-icon {
     flex-shrink: 0;
-    width: 1.7rem;
-    height: 1.7rem;
+    width: 2.05rem;
+    height: 2.05rem;
     display: grid;
     place-items: center;
 }
 
 .tg-chip-icon svg {
-    width: 1.35rem;
-    height: 1.35rem;
+    width: 1.45rem;
+    height: 1.45rem;
     fill: #229ed9;
     display: block;
+    transform-origin: 40% 60%;
+    animation: tgPlaneIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .tg-chip-text {
     display: flex;
     flex-direction: column;
-    gap: 0.08rem;
-    min-width: 0;
+    justify-content: center;
+    gap: 0.05rem;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
     line-height: 1.15;
+    animation: tgTextOpen 0.5s 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .tg-chip-text strong {
@@ -68,20 +80,24 @@
 
 .tg-chip-close {
     flex-shrink: 0;
-    width: 2rem;
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
     border: 0;
-    border-left: 1px solid var(--line, #c8cfd9);
+    border-left: 1px solid transparent;
     background: transparent;
     color: var(--muted, #5c6575);
     cursor: pointer;
     display: grid;
     place-items: center;
     transition: color 0.15s, background 0.15s;
+    animation: tgCloseOpen 0.35s 1.15s ease forwards;
 }
 
 .tg-chip-close svg {
     width: 11px;
     height: 11px;
+    flex-shrink: 0;
 }
 
 .tg-chip-close:hover {
@@ -89,26 +105,69 @@
     background: color-mix(in srgb, var(--ink, #14171e) 5%, transparent);
 }
 
-@keyframes tgChipIn {
-    from {
+@keyframes tgPlaneIn {
+    0% {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translate(18px, 22px) rotate(-48deg) scale(0.35);
     }
-    to {
+    62% {
+        opacity: 1;
+        transform: translate(-2px, -3px) rotate(8deg) scale(1.08);
+    }
+    100% {
         opacity: 1;
         transform: none;
     }
 }
 
-@media (max-width: 480px) {
-    .tg-chip-text span {
-        display: none;
+@keyframes tgLinkPad {
+    to {
+        gap: 0.55rem;
+        padding: 0.5rem 0.7rem 0.5rem 0.5rem;
+    }
+}
+
+@keyframes tgTextOpen {
+    to {
+        max-width: 9.5rem;
+        opacity: 1;
+    }
+}
+
+@keyframes tgCloseOpen {
+    to {
+        width: 2rem;
+        opacity: 1;
+        border-left-color: var(--line, #c8cfd9);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .tg-chip {
+    .tg-chip-link,
+    .tg-chip-icon svg,
+    .tg-chip-text,
+    .tg-chip-close {
         animation: none;
+    }
+
+    .tg-chip-link {
+        gap: 0.55rem;
+        padding: 0.5rem 0.7rem 0.5rem 0.5rem;
+    }
+
+    .tg-chip-text {
+        max-width: 9.5rem;
+        opacity: 1;
+    }
+
+    .tg-chip-close {
+        width: 2rem;
+        opacity: 1;
+        border-left-color: var(--line, #c8cfd9);
+    }
+
+    .tg-chip-link:hover .tg-chip-icon svg {
+        transform: none;
     }
 }
 
