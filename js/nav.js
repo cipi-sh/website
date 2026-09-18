@@ -1,38 +1,89 @@
-/* Shared mobile navigation — one behaviour for every page.
-   No-ops on pages that render without the toggle or the overlay. */
+/* Shared mobile navigation + site-wide Telegram chip.
+   Nav no-ops on pages that render without the toggle or the overlay. */
 (function () {
     var toggle = document.getElementById('navToggle');
     var menu = document.getElementById('mobileMenu');
-    if (!toggle || !menu) return;
 
-    function close() {
-        toggle.classList.remove('active');
+    if (toggle && menu) {
+        function close() {
+            toggle.classList.remove('active');
+            toggle.setAttribute('aria-expanded', 'false');
+            menu.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
         toggle.setAttribute('aria-expanded', 'false');
-        menu.classList.remove('open');
-        document.body.style.overflow = '';
+        toggle.setAttribute('aria-controls', 'mobileMenu');
+
+        toggle.addEventListener('click', function () {
+            var open = !menu.classList.contains('open');
+            toggle.classList.toggle('active', open);
+            toggle.setAttribute('aria-expanded', String(open));
+            menu.classList.toggle('open', open);
+            document.body.style.overflow = open ? 'hidden' : '';
+        });
+
+        menu.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', close);
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') close();
+        });
+
+        // Leaving the mobile breakpoint must not strand the page in a locked state.
+        window.matchMedia('(min-width: 861px)').addEventListener('change', function (e) {
+            if (e.matches) close();
+        });
     }
 
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-controls', 'mobileMenu');
+    injectTelegramChip();
 
-    toggle.addEventListener('click', function () {
-        var open = !menu.classList.contains('open');
-        toggle.classList.toggle('active', open);
-        toggle.setAttribute('aria-expanded', String(open));
-        menu.classList.toggle('open', open);
-        document.body.style.overflow = open ? 'hidden' : '';
-    });
+    function injectTelegramChip() {
+        if (document.getElementById('tgChip')) return;
+        try {
+            if (localStorage.getItem('cipi-tg-chip') === 'off') return;
+        } catch (e) { /* private mode */ }
 
-    menu.querySelectorAll('a').forEach(function (link) {
-        link.addEventListener('click', close);
-    });
+        if (!document.getElementById('tgChipStyles')) {
+            var css = document.createElement('link');
+            css.id = 'tgChipStyles';
+            css.rel = 'stylesheet';
+            css.href = '/css/telegram.css';
+            document.head.appendChild(css);
+        }
 
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') close();
-    });
+        var chip = document.createElement('aside');
+        chip.id = 'tgChip';
+        chip.className = 'tg-chip';
+        chip.setAttribute('aria-label', 'Cipi Cloud on Telegram');
+        chip.innerHTML =
+            '<a class="tg-chip-link" href="https://t.me/cipicloud" target="_blank" rel="noopener">' +
+                '<span class="tg-chip-icon" aria-hidden="true">' +
+                    '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+                        '<path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>' +
+                    '</svg>' +
+                '</span>' +
+                '<span class="tg-chip-text">' +
+                    '<strong>Telegram</strong>' +
+                    '<span>Cipi Cloud</span>' +
+                '</span>' +
+            '</a>' +
+            '<button type="button" class="tg-chip-close" aria-label="Dismiss Telegram invite">' +
+                '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">' +
+                    '<path d="M2 2l8 8M10 2L2 10"/>' +
+                '</svg>' +
+            '</button>';
 
-    // Leaving the mobile breakpoint must not strand the page in a locked state.
-    window.matchMedia('(min-width: 861px)').addEventListener('change', function (e) {
-        if (e.matches) close();
-    });
+        document.body.appendChild(chip);
+
+        chip.querySelector('.tg-chip-close').addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            chip.remove();
+            try {
+                localStorage.setItem('cipi-tg-chip', 'off');
+            } catch (err) { /* private mode */ }
+        });
+    }
 })();
