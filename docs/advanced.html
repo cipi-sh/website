@@ -34,7 +34,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-17",
+      "dateModified": "2026-10-01",
       "headline": "Cipi Docs — Advanced",
       "name": "Advanced",
       "url": "https://cipi.sh/docs/advanced",
@@ -251,6 +251,7 @@
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
                 <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
+                <a href="/docs/infrastructure#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
@@ -2028,8 +2029,14 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     <li><strong><code>.env</code></strong> — Copies from archive, then <strong>overwrites</strong>
                         <code>DB_PASSWORD</code>, <code>DB_USERNAME</code>, <code>DB_DATABASE</code>,
                         <code>DB_HOST</code> with the new server's values. Everything else (<code>APP_KEY</code>,
-                        <code>MAIL_*</code>, <code>REDIS_*</code>, custom vars) stays as-is
+                        <code>MAIL_*</code>, <code>REDIS_*</code>, custom vars) stays as-is. Since
+                        <strong>v5.5.0</strong>, an <code>.env</code> exported by a server still on
+                        <code>LOG_CHANNEL=daily</code> is switched to <code>single</code>, and dated Laravel logs that
+                        arrive with <code>--with-storage</code> are folded into <code>laravel.log</code>
                     </li>
+                    <li><strong>App user SSH access</strong> — follows the target server's default for new apps
+                        (<a href="/docs/infrastructure#cli-ssh-apps"><code>cipi ssh apps</code></a>, v5.5.0+), and the
+                        app's soft disk limit travels with it</li>
                     <li><strong>PHP-FPM pool, Nginx vhost, Supervisor workers, Crontab, Deployer</strong> — Fully
                         configured from archive data</li>
                 </ol>
@@ -2083,7 +2090,9 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                         <code>SET FOREIGN_KEY_CHECKS=0</code>) and reimports. Uses local root credentials.
                     </li>
                     <li><strong>Storage</strong> — If the archive has storage, extracts over the existing directory (new
-                        files added, existing overwritten).</li>
+                        files added, existing overwritten). Since <strong>v5.5.0</strong>, dated Laravel logs that
+                        come with it are folded into <code>laravel.log</code>, and a synced <code>.env</code> still on
+                        <code>LOG_CHANNEL=daily</code> is switched to <code>single</code>.</li>
                     <li><strong>PHP version migration</strong> — If the source uses a different PHP version, the update
                         migrates FPM pool, supervisor, crontab, deployer, and <code>.env</code> automatically.</li>
                     <li><strong>Nginx vhost, Supervisor workers, Deployer config</strong> — Regenerated from archive
@@ -2753,6 +2762,21 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                         preserving enough history for debugging and security analysis. Application and security logs are
                         retained for 12 months to support audit trails and incident investigation.</div>
                 </div>
+
+                <h3>Laravel logs: fixed in 5.5.0</h3>
+                <p>Up to 5.4 the 12-month policy did not actually reach Laravel logs. Apps were created with
+                    <code>LOG_CHANNEL=daily</code>, so every day had its own file, and logrotate rotated each of those
+                    files exactly once: the content landed in <code>laravel-&lt;date&gt;.log.1</code>, which was never
+                    compressed (<code>delaycompress</code> waits for a second rotation that never came) and never
+                    deleted (<code>rotate 365</code> counts rotations per file, and every date is its own file).</p>
+                <p>Since <strong>v5.5.0</strong> Laravel apps write one <code>storage/logs/laravel.log</code>
+                    (<code>LOG_CHANNEL=single</code>), and the <code>cipi-app-logs</code> rule rotates it daily,
+                    compressed from the second day, for 365 rotations. The rule's Laravel pattern is now
+                    <code>storage/logs/*[!0-9].log</code>, so a log whose name ends in a date is left to Laravel: an app
+                    that sets <code>LOG_CHANNEL=daily</code> on purpose is pruned by Laravel itself after
+                    <code>LOG_DAILY_DAYS</code>. The <a href="#migration-5-5-0">5.5.0 migration</a> switches existing
+                    apps and folds their dated history into <code>laravel.log</code>, from where it leaves through the
+                    normal rotation.</p>
             </div>
 
             <div class="doc-section" id="valkey">
@@ -2914,6 +2938,60 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 <p><strong>5.4.1</strong> regenerates <code>/etc/sudoers.d/cipi-api</code> so the
                     <a href="#cipi-api-host">panel API</a> can drive redirects, proxies and Node apps. Neither
                     migration deploys, reloads or restarts anything.</p>
+
+                <h3 id="migration-5-5-0">Migration 5.5.0</h3>
+                <p>The <strong>5.5.0</strong> migration moves Laravel apps from dated log files to one
+                    <code>laravel.log</code> — see <a href="#cipi-log-retention">log retention</a>. It runs for every
+                    Laravel app; custom and Node apps are not touched:</p>
+                <ol>
+                    <li>Rewrites <code>/etc/logrotate.d/cipi-app-logs</code> with the new
+                        <code>storage/logs/*[!0-9].log</code> pattern.</li>
+                    <li>In <code>shared/.env</code>, <code>LOG_CHANNEL=daily</code> becomes <code>single</code>, and so
+                        does a <code>daily</code> inside <code>LOG_STACK</code>. Any other channel (<code>stack</code>,
+                        <code>stderr</code>, <code>slack</code>, …) is left as it is. The rewrite runs as the app user and
+                        goes through a copy that replaces the <code>.env</code> in one rename, with the same owner and
+                        mode: the file is never truncated in place, so a write that fails (a full disk) leaves it
+                        exactly as it was. An <code>.env</code> the app user cannot rewrite is reported with a
+                        warning.</li>
+                    <li>Where the <code>.env</code> changed, so that no process keeps the old channel in memory:
+                        <ul>
+                            <li><code>artisan config:cache</code> as the app user, if the current release has a cached
+                                config. Other <code>.env</code> edits that were waiting for a deploy become active with
+                                it.</li>
+                            <li>SIGTERM to the app's <strong>running</strong> Supervisor programs (queue workers,
+                                Horizon, Octane, Reverb). They finish the job in hand and Supervisor starts them again;
+                                stopped programs stay stopped. Octane and Reverb drop their connections for the few
+                                seconds of the restart, as on a deploy.</li>
+                            <li>One <code>systemctl reload</code> of PHP-FPM per PHP version in use by those apps.</li>
+                        </ul>
+                    </li>
+                    <li>Folds the dated files into <code>laravel.log</code>, oldest first:
+                        <code>laravel-&lt;date&gt;.log</code>, <code>.log.N</code>, <code>.log.N.gz</code> and the empty
+                        stubs. It runs as the app user. A file is removed only after its content is in
+                        <code>laravel.log</code>; an existing <code>laravel.log</code> is appended to, never replaced; a
+                        file a process still has open, or an archive that cannot be read, is left where it is and named
+                        in the output.</li>
+                </ol>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Unlike the 5.4 migrations, this one restarts processes: running workers, Horizon, Octane and
+                        Reverb get a graceful SIGTERM, and PHP-FPM is reloaded. The nightly <code>cipi self-update</code>
+                        (03:50) will apply it unattended — if you would rather watch Octane and Reverb reconnect, run
+                        <code>cipi self-update</code> yourself first. The migration also needs free disk space for one
+                        uncompressed copy of an app's dated logs while it folds them; if that fails, the app's files are
+                        left as they were. A second run finds nothing to do.</div>
+                </div>
+
+                <p>Everything else in 5.5.0 needs no migration step: <code>cipi disk</code>,
+                    <code>cipi firewall attempts</code>, <code>cipi ssh apps</code>, the named Cloudflare accounts and
+                    the soft disk limits change nothing until they are used, and the tab-completion fixes arrive with
+                    the completion files <code>self-update</code> rewrites on every run.</p>
 
                 <h3>When the update itself fails</h3>
                 <p>Up to 5.0.x, <code>cipi self-update</code> reported only “Download failed” — git's stderr was

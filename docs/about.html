@@ -33,7 +33,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-17",
+      "dateModified": "2026-10-01",
       "headline": "Cipi Docs — About Cipi",
       "name": "About Cipi",
       "url": "https://cipi.sh/docs/about",
@@ -250,6 +250,7 @@
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
                 <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
+                <a href="/docs/infrastructure#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
@@ -721,7 +722,7 @@
                     </div>
 
 
-                    <div class="timeline-item timeline-item--current">
+                    <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-body">
                             <span class="timeline-version">v5.4</span>
@@ -739,7 +740,31 @@
                                     <line x1="12" y1="8" x2="12" y2="12" />
                                     <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
-                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.4.1" target="_blank" rel="noopener">5.4.1</a> — opens redirects, proxies and Node app management to the panel: <code>www-data</code> may now run <code>cipi redirect</code>, <code>cipi proxy add|remove|list</code> and <code>cipi node list|status|restart</code>, each as an exact command line. Node runtime management, <code>cipi search install|upgrade|key-rotate</code>, <code>cipi package install|remove</code> and every <code>zt</code> change deliberately stay CLI-root. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.31.0" target="_blank" rel="noopener">1.31.0</a> covers Cipi 5.1.1 → 5.4.0 in one release — redirects, proxies, Node apps and runtimes, the deploy audit, Meilisearch, read-only packages / monitor / Zero Trust, fix-permissions and wildcard domains, 68 MCP tools — and the <a href="/docs/gui">web GUI</a> puts all of it in the browser. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.4.0" target="_blank" rel="noopener">5.4.0</a> — Node apps with blue/green SSR and a webhook receiver that needs no <code>cipi/agent</code>; <code>cipi node</code>; the deploy audit ledger in <code>/var/log/cipi/deploys.jsonl</code>, mirrored to syslog, read by <code>cipi deploy --audit</code> and <code>cipi compliance deploys</code>; twelve new <code>cipi.yml</code> keys. <strong>Fixed:</strong> old backups were never deleted — archives from before 5.1 and from removed profiles are now pruned, and S3 retention errors alert instead of failing silently; <code>cipi api update</code> no longer announces an update every night. Migration 5.4.0 adds the audit hooks without touching the rest of <code>deploy.php</code> and moves servers still on Node 20 to 22. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
+                                <div>In 5.4: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.4.1" target="_blank" rel="noopener">5.4.1</a> — opens redirects, proxies and Node app management to the panel: <code>www-data</code> may now run <code>cipi redirect</code>, <code>cipi proxy add|remove|list</code> and <code>cipi node list|status|restart</code>, each as an exact command line. Node runtime management, <code>cipi search install|upgrade|key-rotate</code>, <code>cipi package install|remove</code> and every <code>zt</code> change deliberately stay CLI-root. Panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.31.0" target="_blank" rel="noopener">1.31.0</a> covers Cipi 5.1.1 → 5.4.0 in one release — redirects, proxies, Node apps and runtimes, the deploy audit, Meilisearch, read-only packages / monitor / Zero Trust, fix-permissions and wildcard domains, 68 MCP tools — and the <a href="/docs/gui">web GUI</a> puts all of it in the browser. Previous: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.4.0" target="_blank" rel="noopener">5.4.0</a> — Node apps with blue/green SSR and a webhook receiver that needs no <code>cipi/agent</code>; <code>cipi node</code>; the deploy audit ledger in <code>/var/log/cipi/deploys.jsonl</code>, mirrored to syslog, read by <code>cipi deploy --audit</code> and <code>cipi compliance deploys</code>; twelve new <code>cipi.yml</code> keys. <strong>Fixed:</strong> old backups were never deleted — archives from before 5.1 and from removed profiles are now pruned, and S3 retention errors alert instead of failing silently; <code>cipi api update</code> no longer announces an update every night. Migration 5.4.0 adds the audit hooks without touching the rest of <code>deploy.php</code> and moves servers still on Node 20 to 22. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item timeline-item--current">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-body">
+                            <span class="timeline-version">v5.5</span>
+                            <span class="timeline-date">October 2026</span>
+                            <h3 class="timeline-title">Who is filling the disk, who may log in, and logs that finally expire</h3>
+                            <p>v5.5 answers the questions an operator asks at 2am. <code>cipi disk</code> prints every filesystem and then every app, largest first — files, database, total and share of the disk — and <code>cipi disk db</code> lists every MariaDB, PostgreSQL, Valkey and Meilisearch database in MB, including the ones no app owns. An app can get a soft disk limit that alerts at 90% and when passed, through the monitor and every chat channel, without ever blocking a write. <code>cipi ssh apps disable</code> keeps app users out of SSH and SFTP from other machines while deploys over <code>ssh localhost</code> keep working, and <code>cipi firewall attempts</code> sets how many failed SSH logins it takes for fail2ban to ban an address, in a drop-in no update resets. Wildcard certificates can now come from several Cloudflare accounts on one server, each renewing with its own token. And Laravel logs finally follow the 12-month retention: one <code>laravel.log</code>, rotated once, compressed and expired. See
+                                <a href="/docs/infrastructure#cli-disk"><code>cipi disk</code></a>,
+                                <a href="/docs/apps#cli-app-limits">soft disk limits</a>,
+                                <a href="/docs/infrastructure#cli-ssh-apps"><code>cipi ssh apps</code></a>,
+                                <a href="/docs/infrastructure#cli-firewall"><code>cipi firewall attempts</code></a>, and
+                                <a href="/docs/infrastructure#cli-ssl">Cloudflare accounts for DNS-01</a>.</p>
+                            <div class="callout info" style="margin-top:16px;">
+                                <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <div>Latest: <a href="https://github.com/cipi-sh/cipi/releases/tag/5.5.0" target="_blank" rel="noopener">5.5.0</a> — <a href="/docs/infrastructure#cli-disk"><code>cipi disk [--json]</code></a> and <code>cipi disk db</code>; <code>cipi app limits &lt;app&gt; --disk=&lt;GB&gt;|none</code> with the new <code>app_disk</code> monitor check (trigger <code>monitor_app_disk</code>), stored as <code>disk_limit_gb</code> outside the <code>limits</code> that <code>cipi.yml</code> reconciles, so a repository cannot raise its own quota; <a href="/docs/infrastructure#cli-firewall"><code>cipi firewall attempts</code></a> (1–100, default 3) in <code>/etc/fail2ban/jail.d/cipi-attempts.local</code>, checked with <code>fail2ban-client -t</code> and rolled back if refused; <a href="/docs/infrastructure#cli-ssh-apps"><code>cipi ssh apps</code></a> via the <code>cipi-nossh</code> group and one <code>sshd -t</code>-validated <code>Match</code> block; named Cloudflare accounts (<code>cipi ssl dns set --name=</code>, <code>ssl install --account=</code>, <code>ssl dns list|remove</code>). <strong>Fixed:</strong> Laravel logs were rotated twice and never expired — apps now use <code>LOG_CHANNEL=single</code>; tab-completion now works after <code>sudo cipi</code> without <code>bash-completion</code>, in <code>sudo -s</code>/<code>su</code>/tmux shells, and with app names for the <code>cipi</code> user; the installer names a container instead of reporting a wrong Ubuntu version. Migration 5.5.0 switches Laravel apps to <code>single</code>, folds dated logs into <code>laravel.log</code>, and gracefully restarts running workers, Horizon, Octane and Reverb and reloads PHP-FPM where the <code>.env</code> changed. All new commands are CLI-only (root); panel API <a href="https://github.com/cipi-sh/api/releases/tag/1.31.0" target="_blank" rel="noopener">1.31.0</a> and the <a href="/docs/gui">web GUI</a> are unchanged. Full changelog: <a href="https://github.com/cipi-sh/cipi/blob/latest/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a>.</div>
                             </div>
                         </div>
                     </div>
@@ -787,7 +812,10 @@
                     password generated at app creation. Admin access is via public-key as <code>cipi</code>. SSH keys
                     are managed with <code>cipi ssh list / add / remove</code> — see <a
                         href="/docs/infrastructure#cli-ssh">SSH Key
-                        Management</a>.
+                        Management</a>. Since v5.5.0, <a href="/docs/infrastructure#cli-ssh-apps"><code>cipi ssh apps
+                        disable</code></a> puts app users in the <code>cipi-nossh</code> group, which a
+                    <code>Match Group cipi-nossh Address *,!127.0.0.1,!::1</code> block denies from every non-local
+                    address — deploys over <code>ssh localhost</code> keep working.
                 </p>
 
                 <h3>SSH key management &amp; notifications</h3>
@@ -898,7 +926,9 @@
                 <h3>Network</h3>
                 <p>UFW blocks all ports by default except 22, 80, and 443. Fail2ban monitors SSH with
                     <strong>progressive banning</strong>: a 24-hour base ban that doubles on each repeat offence (7-day
-                    cap), with only 3 retries allowed before a ban. A dedicated <code>recidive</code> jail catches
+                    cap), with only 3 retries allowed before a ban — since v5.5.0,
+                    <a href="/docs/infrastructure#cli-firewall"><code>cipi firewall attempts</code></a> changes that
+                    number in a drop-in that updates never reset. A dedicated <code>recidive</code> jail catches
                     repeat offenders — 3 bans within 24 hours triggers a 7-day block. Use
                     <code>cipi ban list</code> and <code>cipi ban unban</code> to inspect and manage bans from the CLI.
                 </p>
@@ -949,8 +979,10 @@
                 <ul>
                     <li><strong>Reachable from the public internet</strong> — with a routable public IPv4 address, not
                         hidden behind NAT (home router, corporate firewall, or NAT-only cloud tiers)</li>
-                    <li><strong>Running on real hardware or full KVM</strong> — not on shared-kernel virtualization
-                        (OpenVZ, LXC) or desktop container runtimes that emulate a Linux VM on your machine</li>
+                    <li><strong>Running on real hardware or full virtualization</strong> (KVM, VMware, Hyper-V, Xen HVM)
+                        — not on shared-kernel virtualization (OpenVZ, LXC) or desktop container runtimes that emulate a
+                        Linux VM on your machine. Since v5.5.0 the installer detects those and stops with the name of
+                        what it found</li>
                     <li><strong>Accessible on ports 22, 80, and 443</strong> — Let's Encrypt HTTP validation, Nginx
                         vhosts, and SSH deploy workflows all assume inbound traffic can reach the host</li>
                 </ul>

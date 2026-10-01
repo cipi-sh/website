@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-17",
+      "dateModified": "2026-10-01",
       "headline": "Cipi Docs — Getting Started",
       "name": "Getting Started",
       "url": "https://cipi.sh/docs/getting-started",
@@ -248,6 +248,7 @@
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
                 <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
+                <a href="/docs/infrastructure#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
@@ -527,10 +528,20 @@ root@server:~# su - myapp</pre>
                     <li>A <strong>public internet-facing server</strong> with a routable <strong>public IPv4
                             address</strong> — NAT-only VPS, home networks behind a router, and hosts not reachable from
                         the internet are not supported</li>
-                    <li>Full KVM or bare-metal virtualization — <strong>not</strong> OpenVZ, LXC containers, or shared-kernel
-                        environments (including local Docker, Docker Desktop, OrbStack, Colima, WSL, and similar
-                        desktop container runtimes)</li>
+                    <li>A VPS or VM with <strong>full virtualization</strong> (KVM, VMware, Hyper-V, Xen HVM) or a
+                        bare-metal server — <strong>not</strong> OpenVZ, LXC containers, or shared-kernel
+                        environments (including local Docker, Docker Desktop, Podman, OrbStack, Colima, WSL, and similar
+                        desktop container runtimes). Cipi sets up the firewall, fail2ban, swap and kernel parameters,
+                        which needs a kernel of its own.</li>
                 </ul>
+
+                <p>Since <strong>v5.5.0</strong> the installer checks the environment before anything else. In a
+                    container it stops and names what it found — OpenVZ / Virtuozzo, LXC, Docker, Podman, WSL, OrbStack,
+                    systemd-nspawn, or the raw type — says why Cipi cannot run there, and what to use instead. (Before,
+                    a container image without <code>bc</code> failed the Ubuntu version check with a confusing
+                    <code>requires Ubuntu 24.04+ (found: 24.04)</code>; the version check no longer needs
+                    <code>bc</code>, so a minimal image of a supported release on a real VM passes.) Full VMs and bare
+                    metal are not affected.</p>
 
                 <div class="callout warning">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cipi Docs — Infrastructure</title>
-    <meta name="description" content="PHP, databases, SSL, backups, workers, firewall, Meilisearch, host packages, and server management with Cipi CLI.">
+    <meta name="description" content="PHP, databases, SSL, backups, workers, firewall, disk usage per app, Meilisearch, host packages, and server management with Cipi CLI.">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/docs/infrastructure">
@@ -15,7 +15,7 @@
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/docs/infrastructure">
     <meta property="og:title" content="Cipi Docs — Infrastructure">
-    <meta property="og:description" content="PHP, databases, SSL, backups, workers, firewall, and server management with Cipi CLI.">
+    <meta property="og:description" content="PHP, databases, SSL, backups, workers, firewall, disk usage, and server management with Cipi CLI.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -23,7 +23,7 @@
             <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Cipi Docs — Infrastructure">
-    <meta name="twitter:description" content="PHP, databases, SSL, backups, workers, firewall, and server management with Cipi CLI.">
+    <meta name="twitter:description" content="PHP, databases, SSL, backups, workers, firewall, disk usage, and server management with Cipi CLI.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <script type="application/ld+json">
@@ -31,11 +31,11 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-09-17",
+      "dateModified": "2026-10-01",
       "headline": "Cipi Docs — Infrastructure",
       "name": "Infrastructure",
       "url": "https://cipi.sh/docs/infrastructure",
-      "description": "PHP, databases, SSL, backups, workers, firewall, and server management with Cipi CLI.",
+      "description": "PHP, databases, SSL, backups, workers, firewall, disk usage, and server management with Cipi CLI.",
       "inLanguage": "en",
       "image": "https://cipi.sh/og.png",
       "about": { "@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/" },
@@ -248,6 +248,7 @@
                 <a href="/docs/infrastructure#cli-workers" class="sidebar-link"><code>worker</code> / Horizon</a>
                 <a href="/docs/infrastructure#cli-health" class="sidebar-link"><code>health</code></a>
                 <a href="/docs/infrastructure#cli-monitor" class="sidebar-link"><code>monitor</code></a>
+                <a href="/docs/infrastructure#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/infrastructure#cli-firewall" class="sidebar-link"><code>firewall</code></a>
                 <a href="/docs/infrastructure#cli-ban" class="sidebar-link"><code>ban</code></a>
                 <a href="/docs/infrastructure#cli-crowdsec" class="sidebar-link"><code>crowdsec</code></a>
@@ -921,7 +922,13 @@
 <span class="c"># DNS-01 via Cloudflare (v5.0+) — wildcard certs</span>
 <span class="p">$</span> cipi ssl dns set --provider=cloudflare --token=YOUR_CF_TOKEN
 <span class="p">$</span> cipi ssl install myapp --dns=cloudflare
-<span class="p">$</span> cipi ssl install myapp --dns=cloudflare --wildcard</pre>
+<span class="p">$</span> cipi ssl install myapp --dns=cloudflare --wildcard
+
+<span class="c"># Several Cloudflare accounts (v5.5.0+)</span>
+<span class="p">$</span> cipi ssl dns set --name=client-a --token=CLIENT_A_TOKEN
+<span class="p">$</span> cipi ssl install shop --dns=cloudflare --wildcard --account=client-a
+<span class="p">$</span> cipi ssl dns list [--json]      <span class="c"># accounts and the certificates that renew with each</span>
+<span class="p">$</span> cipi ssl dns remove client-a    <span class="c"># refused while a certificate still renews with it</span></pre>
                 </div>
 
                 <p>Since <strong>v4.8.0</strong>, <code>cipi ssl force &lt;app&gt;</code> re-applies the HTTP → HTTPS
@@ -935,6 +942,38 @@
                     with <code>cipi ssl dns set</code>, then pass <code>--dns=cloudflare</code> (and optionally
                     <code>--wildcard</code>) to <code>cipi ssl install</code>.
                 </p>
+
+                <h3>Domains in different Cloudflare accounts (v5.5.0+)</h3>
+                <p>A DNS-01 certificate needs an API token of the Cloudflare account that holds its zone. Up to 5.4 the
+                    server kept one token, in one file: a server hosting the domains of clients with their own
+                    Cloudflare accounts could serve only one of them, and setting a second token overwrote the first —
+                    the certificates issued with it then stopped renewing. Since <strong>v5.5.0</strong> every account
+                    has a name:</p>
+                <ul>
+                    <li><strong><code>cipi ssl dns set --name=NAME --token=TOKEN</code></strong> adds an account, any
+                        number of them. Without <code>--name</code> it is the <code>default</code> account, in the same
+                        file as before (<code>/etc/cipi/cloudflare.ini</code>), so a server with one token changes
+                        nothing. Named accounts live next to it, one root-only file each in
+                        <code>/etc/cipi/cloudflare/</code>. Running it again on an existing name replaces the token —
+                        that is how a token is rotated.</li>
+                    <li><strong><code>cipi ssl install &lt;app&gt; --dns=cloudflare --account=NAME</code></strong>
+                        issues with that account. Without <code>--account</code> an app keeps the account its
+                        certificate was last issued with, else <code>default</code>. An account that is not configured
+                        is refused before certbot runs, with the list of the ones that are.</li>
+                    <li><strong>Renewals need nothing.</strong> certbot records the credentials file in each
+                        certificate's renewal config, so every certificate renews with the token of its own
+                        account.</li>
+                    <li><strong><code>cipi ssl dns list</code></strong> shows every account with the certificates that
+                        renew with it (<code>--json</code> too); tokens are never printed.
+                        <code>cipi ssl status</code> names the account next to each DNS-01 certificate.</li>
+                    <li><strong><code>cipi ssl dns remove &lt;NAME&gt;</code></strong> refuses while a certificate
+                        still renews with that account: without its token the certificate would fail to renew,
+                        silently, until it expired.</li>
+                </ul>
+                <p>Account names are lowercase letters, digits, <code>-</code> and <code>_</code>. The credentials file
+                    is now written under a umask that keeps the token unreadable by other users even while it is being
+                    written — before 5.5.0 it was world-readable for an instant inside <code>/etc/cipi</code>. When
+                    issuance fails, the error says which account was used and that it must hold the zone.</p>
 
                 <p>Since <strong>v5.3.0</strong>, <code>cipi ssl</code> knows about
                     <a href="#cli-zt">Cloudflare Zero Trust</a>. HTTP-01 refuses while <code>cipi zt lock http</code>
@@ -1599,6 +1638,7 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi monitor disable load                  <span class="c"># turn one check off</span>
 <span class="p">$</span> cipi monitor enable load
 <span class="p">$</span> cipi monitor set disk --warn=85 --crit=95
+<span class="p">$</span> cipi monitor set app_disk --warn=90 --minutes=30   <span class="c"># v5.5.0+ — per-app soft disk limits</span>
 <span class="p">$</span> cipi monitor set ssl --days=21
 <span class="p">$</span> cipi monitor set http_5xx --count=50 --ratio=10
 <span class="p">$</span> cipi monitor set load --factor=6 --runs=3
@@ -1606,7 +1646,7 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi monitor test                          <span class="c"># sample alert through email and every channel</span></pre>
                 </div>
 
-                <h3>Seven checks, all on by default</h3>
+                <h3>Eight checks, all on by default</h3>
                 <div class="table-scroll">
                     <table class="cmd-table">
                         <thead>
@@ -1623,6 +1663,15 @@ myapp@server:~$ crontab -e</pre>
                                 <td>Every local filesystem</td>
                                 <td>warn at <strong>&ge;80%</strong>, crit at <strong>&ge;90%</strong></td>
                                 <td><code>monitor_disk</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>app_disk</code> (v5.5.0+)</td>
+                                <td>Files + database of every app that has a
+                                    <a href="/docs/apps#cli-app-limits">soft disk limit</a> — apps without one (the
+                                    default) are not measured</td>
+                                <td>warn at <strong>&ge;90%</strong> of the limit, crit once <strong>over</strong> it,
+                                    one alert state per app</td>
+                                <td><code>monitor_app_disk</code></td>
                             </tr>
                             <tr>
                                 <td><code>ssl</code></td>
@@ -1685,6 +1734,11 @@ myapp@server:~$ crontab -e</pre>
                             baseline</strong> — it never alerts on last week's errors.</li>
                     <li><code>load</code> needs <code>runs</code> consecutive runs over the limit: a single 5-minute
                         spike is noise, a sustained one is a problem.</li>
+                    <li><code>app_disk</code> walks app homes with <code>du</code>, so it measures only apps that have a
+                        limit and reuses a measurement for <code>minutes</code> (<strong>30</strong> by default): the
+                        5-minute cron does not walk every home each time. A manual <code>cipi monitor</code> measures
+                        afresh. Each app keeps its own alert state, so a second app going over is not hidden behind the
+                        first, and a recovery follows when an app is back under its limit.</li>
                     <li>A check that cannot run reports <code>crit</code> instead of crashing the runner.</li>
                     <li>Every check maps to its own trigger, so any of them can be muted like everything else:
                         <code>cipi notifications disable monitor_load</code>.</li>
@@ -1707,6 +1761,153 @@ myapp@server:~$ crontab -e</pre>
                 </div>
             </div>
 
+            <div class="doc-section" id="cli-disk">
+                <h2><code>cipi disk</code></h2>
+                <p>Available since <strong>v5.5.0</strong>. <a href="#cli-monitor"><code>cipi monitor</code></a> tells
+                    you the disk is filling up; <code>cipi disk</code> tells you <strong>who</strong> is filling it. It
+                    prints every local filesystem, then every app, largest first, in GB and as a share of the disk.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi disk                        <span class="c"># the server, then every app</span>
+<span class="p">$</span> cipi disk db                     <span class="c"># every database, engine by engine, in MB</span>
+<span class="p">$</span> cipi disk --json                 <span class="c"># same figures for scripts (also: cipi disk db --json)</span>
+<span class="p">$</span> cipi app limits shop --disk=10   <span class="c"># soft limit: alert at 90% and when over, block nothing</span></pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">output</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>  Server disk
+  MOUNT                          SIZE         USED         FREE     USE
+  /                         100.00 GB     40.00 GB     60.00 GB     40%
+
+  Apps (3) — % of the 100.00 GB on /
+  APP                           FILES     DATABASE        TOTAL    DISK  LIMIT
+  shop                        2.00 GB      1.00 GB      3.00 GB    3.0%  10 GB (30%)
+  blog                        0.50 GB     120.4 MB      0.62 GB    0.6%  —
+  front                       0.10 GB      0.00 GB      0.10 GB    0.1%  —
+  All apps                                              3.72 GB    3.7%
+  Everything else                                      36.28 GB   36.3%</pre>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>What it measures</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>FILES</strong></td>
+                                <td>The app's home: releases, shared storage, logs</td>
+                            </tr>
+                            <tr>
+                                <td><strong>DATABASE</strong></td>
+                                <td>The database named after the app and, when <code>shared/.env</code> points
+                                    <code>DB_DATABASE</code> at another one, that one too. The size is what the server
+                                    reports (<code>information_schema</code> for MariaDB, <code>pg_database_size</code>
+                                    for PostgreSQL); for MariaDB it is compared with the database's directory in the data
+                                    dir and the larger of the two is used. If the server does not answer, the directory
+                                    alone is measured. Custom and Node apps have no database and show 0.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>TOTAL</strong> / <strong>DISK</strong></td>
+                                <td>Files plus database, and that total as a percentage of the filesystem that holds
+                                    <code>/home</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>LIMIT</strong></td>
+                                <td>The app's soft disk limit and how much of it is used — <code>over</code> once
+                                    passed, <code>—</code> when the app has none</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Everything else</strong></td>
+                                <td>The rest of the used space: system, packages, logs, local backups, databases that
+                                    belong to no app</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>Sizes below 0.01 GB are printed in MB (<code>4.2 MB</code>), so a small database does not read as
+                    <code>0.00 GB</code>. <code>--json</code> carries the exact <code>files_kb</code>,
+                    <code>database_kb</code> and <code>total_kb</code> next to the rounded GB, plus
+                    <code>limit_gb</code>, <code>limit_percent</code> and <code>over_limit</code> for every app. Sizes
+                    are measured with <code>du</code> when the command runs — nothing is stored — so a server with large
+                    apps takes a few seconds. Read-only, root CLI; <code>cipi help server</code> and tab-completion
+                    know it.</p>
+
+                <h3><code>cipi disk db</code> — every database, in MB</h3>
+                <p>Next to the per-app figure, a listing of the databases themselves, for every engine installed on
+                    the server. It shows what the app table cannot: databases that belong to no app, and the engines
+                    that are not SQL.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">output</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>  MariaDB
+  DATABASE                                               SIZE
+  blog                                                 2.0 MB
+  shop                                               200.0 MB
+  On disk, whole engine                              500.0 MB
+
+  Valkey
+  DATABASE                                     KEYS      SIZE
+  db0                                          1204         —
+  Memory in use                                       12.3 MB
+  On disk, whole engine                                3.0 MB
+
+  Meilisearch
+  INDEX                                   DOCUMENTS      SIZE
+  shop-products                               12000    8.4 MB
+  On disk, whole engine                               45.0 MB</pre>
+                </div>
+
+                <ul>
+                    <li><strong>MariaDB</strong> — one row per database, empty ones included. The size is the larger of
+                        what the server reports and the database's directory in the data dir, since the files include
+                        space the server has not handed back. These are the figures the DATABASE column of
+                        <code>cipi disk</code> uses.</li>
+                    <li><strong>PostgreSQL</strong> — one row per database (<code>pg_database_size</code>).</li>
+                    <li><strong>Valkey</strong> — one row per logical database (<code>db0</code>, <code>db1</code>, …)
+                        with its number of keys. Valkey does not know the size of a single database, so the size is the
+                        instance's: memory in use and files on disk. The password reaches <code>valkey-cli</code>
+                        through the environment, not the command line.</li>
+                    <li><strong>Meilisearch</strong> — one row per index with its number of documents, and the size of
+                        its documents where the installed version reports it. The total is the <code>data.ms</code>
+                        directory.</li>
+                </ul>
+                <p>Every engine closes with its size on disk as a whole (data directory, logs included). An engine that
+                    is installed but does not answer gets a note and still shows that total; an engine that is not
+                    installed is left out.</p>
+
+                <h3>A soft disk limit per app</h3>
+                <p>No app has a limit until you give it one — the default is unlimited, on new and existing servers
+                    alike. A limit is a number of GB for files and database together (the TOTAL column), set with
+                    <a href="/docs/apps#cli-app-limits"><code>cipi app limits &lt;app&gt; --disk=&lt;GB&gt;</code></a>.
+                    It is <strong>soft</strong>: nothing is blocked when it is passed and the app keeps working. The
+                    limit is a threshold for the <a href="#cli-monitor"><code>app_disk</code></a> monitor check, which
+                    warns at 90% of it, goes critical once the app is over, and sends a recovery when it is back
+                    under — through email and every chat channel, trigger <code>monitor_app_disk</code>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>A hard limit (filesystem quotas) is deliberately not part of this: it cannot cover the
+                        database, needs quotas enabled on the filesystem, and takes a site down when it is reached. The
+                        whole-server alert did not change: the <code>disk</code> check has warned at 80% and gone
+                        critical at 90% of any filesystem since 5.3.0, on by default.</div>
+                </div>
+            </div>
+
             <div class="doc-section" id="cli-firewall">
                 <h2><code>cipi firewall</code></h2>
                 <p>Cipi installs UFW with ports 22, 80, and 443 open by default. Use the firewall commands to manage
@@ -1719,8 +1920,66 @@ myapp@server:~$ crontab -e</pre>
 <span class="p">$</span> cipi firewall allow 3306 --from=10.0.0.5  <span class="c"># allow from specific IP</span>
 <span class="p">$</span> cipi firewall allow 3306 --from=10.0.0.0/24 <span class="c"># allow from subnet</span>
 <span class="p">$</span> cipi firewall deny 8080                   <span class="c"># block a port</span>
-<span class="p">$</span> cipi firewall list                        <span class="c"># show all rules</span></pre>
+<span class="p">$</span> cipi firewall list                        <span class="c"># show all rules</span>
+
+<span class="c"># Failed SSH logins before fail2ban bans an address (v5.5.0+)</span>
+<span class="p">$</span> cipi firewall attempts                    <span class="c"># threshold, counting window, ban time, default or not</span>
+<span class="p">$</span> cipi firewall attempts 5                  <span class="c"># ban after 5 failed logins (1–100)</span>
+<span class="p">$</span> cipi firewall attempts default            <span class="c"># back to 3</span></pre>
                 </div>
+
+                <h3>Brute-force defaults</h3>
+                <p>UFW denies all inbound traffic except SSH, HTTP and HTTPS, and fail2ban bans the addresses that keep
+                    failing SSH logins. These are the defaults since 4.3.0:</p>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Default</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Failed SSH logins before a ban</td>
+                                <td><strong>3</strong> — <code>cipi firewall attempts</code> changes it</td>
+                            </tr>
+                            <tr>
+                                <td>Counted over</td>
+                                <td>1 hour</td>
+                            </tr>
+                            <tr>
+                                <td>Ban</td>
+                                <td>24 hours, longer for each repeat, up to 7 days</td>
+                            </tr>
+                            <tr>
+                                <td>Repeat offenders (<code>recidive</code>)</td>
+                                <td>3 bans in 24 hours → banned for 7 days</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3><code>cipi firewall attempts</code> (v5.5.0+)</h3>
+                <p>Up to 5.4 the only way to change the threshold was to edit <code>/etc/fail2ban/jail.local</code> by
+                    hand — a file Cipi owns. Now:</p>
+                <ul>
+                    <li>The value is written to <code>/etc/fail2ban/jail.d/cipi-attempts.local</code>
+                        (<code>[sshd] maxretry</code>). fail2ban reads <code>jail.d/*.local</code> after
+                        <code>jail.local</code>, so the value wins and no Cipi update resets it.
+                        <code>jail.local</code> itself is not edited.</li>
+                    <li>The configuration is checked with <code>fail2ban-client -t</code> before the reload. If fail2ban
+                        refuses it, the previous state is put back and nothing changes. With fail2ban stopped the value
+                        is saved and applies when it starts.</li>
+                    <li>Only the <code>sshd</code> jail changes. Window, ban time and the <code>recidive</code> jail stay
+                        as they are. <code>1</code> is accepted, with a warning: one mistyped password then bans its
+                        owner.</li>
+                    <li>CLI only (root), logged in <code>cipi.log</code>.
+                        <a href="#cli-compliance"><code>cipi compliance report</code></a> adds the drop-in to its
+                        fail2ban evidence.</li>
+                </ul>
+                <p>Servers keep the default of 3 until the command is used: the 5.5.0 migration does not touch
+                    fail2ban.</p>
                 <p>Since <strong>v5.3.0</strong>, once Cloudflare Tunnel carries the traffic,
                     <a href="#cli-zt"><code>cipi zt lock http</code></a> can close 80/443 (or allow only Cloudflare's
                     ranges) and <code>cipi zt lock ssh</code> can close 22. <code>cipi zt disable</code> puts the
@@ -1731,8 +1990,9 @@ myapp@server:~$ crontab -e</pre>
                 <h2><code>cipi ban</code></h2>
                 <p>Inspect and manage Fail2ban bans directly from the CLI. Cipi configures Fail2ban with progressive
                     banning: a 24-hour base ban that doubles on each repeat offence up to a 7-day cap, with max retries
-                    reduced to 3. A dedicated <code>recidive</code> jail bans repeat offenders for 7 days after 3 bans
-                    within 24 hours.</p>
+                    reduced to 3 (since <strong>v5.5.0</strong>,
+                    <a href="#cli-firewall"><code>cipi firewall attempts</code></a> changes that number). A dedicated
+                    <code>recidive</code> jail bans repeat offenders for 7 days after 3 bans within 24 hours.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -2474,23 +2734,51 @@ Host ssh.example.com
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi app &lt;TAB&gt;               <span class="c"># create  list  show  edit  clone  limits  …</span>
-<span class="p">$</span> cipi deploy my&lt;TAB&gt;          <span class="c"># app names, from /etc/cipi/apps-public.json</span>
+<span class="p">$</span> sudo cipi dep&lt;TAB&gt;           <span class="c"># → deploy</span>
+<span class="p">$</span> sudo cipi deploy sh&lt;TAB&gt;     <span class="c"># → shop  shop2 (your apps)</span>
+<span class="p">$</span> sudo cipi firewall &lt;TAB&gt;     <span class="c"># → allow  list  attempts</span>
 <span class="p">$</span> cipi help &lt;TAB&gt;              <span class="c"># help topics</span>
 
-<span class="c"># only needed for a non-login shell or a custom rc file</span>
+<span class="c"># only needed for another user or a custom rc file</span>
 <span class="p">$</span> cipi completion bash
 <span class="p">$</span> cipi completion zsh --print  <span class="c"># write the script to stdout, change nothing</span></pre>
                 </div>
 
-                <p>Three files are written: <code>/etc/bash_completion.d/cipi</code>,
-                    <code>/usr/share/zsh/vendor-completions/_cipi</code> (when that directory exists), and an
-                    <code>/etc/profile.d/cipi-completion.sh</code> loader that fires for every interactive bash and zsh
-                    shell — with or without the <code>bash-completion</code> package.</p>
-                <p>It completes the top-level verbs, each verb's sub-commands and flags, and
-                    <code>cipi help &lt;topic&gt;</code>. <strong>App names</strong> are filled in from
-                    <code>/etc/cipi/apps-public.json</code> when the shell's user can read it — a root session, or a
-                    member of the <code>cipi-api</code> group; everything else is a static word list that works for any
-                    user. <code>sudo cipi &lt;TAB&gt;</code> resolves through the stock sudo completion.</p>
+                <p>The files written: <code>/etc/bash_completion.d/cipi</code>,
+                    <code>/usr/share/zsh/vendor-completions/_cipi</code> (when that directory exists), an
+                    <code>/etc/profile.d/cipi-completion.sh</code> loader for every interactive login shell, and — since
+                    <strong>v5.5.0</strong> — a loader in the <code>~/.bashrc</code> of root and the <code>cipi</code>
+                    user, the two who can run cipi (added once, existing content untouched, interactive shells
+                    only).</p>
+                <p>It completes the top-level verbs, each verb's sub-commands and flags, <code>cipi help
+                        &lt;topic&gt;</code>, and <strong>app names</strong>: from
+                    <code>/etc/cipi/apps-public.json</code> when the shell's user can read it (root or the
+                    <code>cipi-api</code> group), otherwise from the members of the <code>cipi-apps</code> group, which
+                    every user can list.</p>
+
+                <h3>Where it did not work before 5.5.0</h3>
+                <p>Completion has been installed since 5.2.0, but in three everyday situations <code>&lt;Tab&gt;</code>
+                    did nothing. <strong>v5.5.0</strong> fixes all three:</p>
+                <ul>
+                    <li><strong><code>sudo cipi …</code></strong> — how the <code>cipi</code> user runs every command.
+                        It relied on the sudo completion of the <code>bash-completion</code> package; without the
+                        package <code>&lt;Tab&gt;</code> offered file names. The script now brings its own for that case
+                        (<code>_cipi_sudo_complete</code>): it skips sudo's options, completes <code>cipi</code> as the
+                        command even though the binary is root-only, and hands the rest of the line to the cipi
+                        completion. With <code>bash-completion</code> loaded nothing changes.</li>
+                    <li><strong>Non-login shells</strong> — <code>sudo -s</code>, <code>su</code>, tmux, screen. The
+                        loader lived only in <code>/etc/profile.d</code>, which those shells do not read; the new
+                        <code>~/.bashrc</code> loader covers them.</li>
+                    <li><strong>App names for the <code>cipi</code> user</strong> — they came only from
+                        <code>/etc/cipi/apps-public.json</code>, which the <code>cipi</code> user cannot read, so
+                        <code>sudo cipi deploy &lt;Tab&gt;</code> offered nothing. They now fall back to the
+                        <code>cipi-apps</code> group.</li>
+                </ul>
+                <p>New servers get this from <code>setup.sh</code>; existing servers from their next
+                    <code>cipi self-update</code>, which rewrites the completion files on every run — no migration step,
+                    no package to install. A shell that is already open needs to be reopened. All of the above holds
+                    for bash; zsh loads the same completion from its vendor directory and
+                    <code>/etc/profile.d</code>.</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -2646,7 +2934,8 @@ Host ssh.example.com
                 <p>Manage the authorized SSH keys for the <code>cipi</code> user — the admin SSH entry point. The
                     <code>cipi</code> user (group <code>cipi-ssh</code>) uses public-key only; root login is disabled.
                     App users (group <code>cipi-apps</code>) connect with password — see <a href="/docs/apps#cli-app-ssh">SSH as
-                        the app user</a>.
+                        the app user</a>. Since <strong>v5.5.0</strong>, <a href="#cli-ssh-apps"><code>cipi ssh
+                        apps</code></a> can keep app users out of SSH and SFTP, one app or all of them.
                 </p>
 
                 <h3>Commands</h3>
@@ -2689,6 +2978,43 @@ Host ssh.example.com
                 <p>When SMTP is configured, Cipi sends an email alert every time a key is added, removed, or renamed.
                     The notification includes the server hostname, IP address, key fingerprint, key comment, timestamp,
                     and remaining key count. Rename notifications also include the old and new key name.</p>
+
+                <h3 id="cli-ssh-apps"><code>cipi ssh apps</code> — SSH/SFTP access of app users (v5.5.0+)</h3>
+                <p>Every app has its own Linux user, which can log in over SSH and SFTP with its password. Up to 5.4
+                    there was no way to turn that off short of editing <code>sshd_config</code> by hand. Where nobody
+                    needs it, turn it off — for one app or for all of them:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi ssh apps                     <span class="c"># every app user: enabled or disabled, and what new apps get</span>
+<span class="p">$</span> cipi ssh apps --json
+<span class="p">$</span> cipi ssh apps disable shop        <span class="c"># no SSH/SFTP from outside for shop</span>
+<span class="p">$</span> cipi ssh apps enable shop
+<span class="p">$</span> cipi ssh apps disable --all       <span class="c"># every app user, and the apps created from now on</span>
+<span class="p">$</span> cipi ssh apps enable --all        <span class="c"># everyone back, whatever the single settings were</span></pre>
+                </div>
+                <ul>
+                    <li><strong>Disabled means no login from another machine.</strong> Logins from the server itself
+                        stay allowed, because Deployer reaches the app user over <code>ssh localhost</code>: deploys,
+                        webhooks and rollbacks keep working. Sessions already open stay open until they close.</li>
+                    <li><strong><code>--all</code></strong> changes every app user, whatever the single settings were,
+                        and sets what apps created afterwards get (<code>cipi app create</code>,
+                        <code>cipi sync import</code>). After a <code>disable --all</code>, single users can still be
+                        enabled one by one.</li>
+                    <li><strong>How.</strong> The state is membership of the group <code>cipi-nossh</code>. One rule at
+                        the end of <code>/etc/ssh/sshd_config</code> — <code>Match Group cipi-nossh Address
+                        *,!127.0.0.1,!::1</code> → <code>DenyUsers *</code> — denies that group from every non-local
+                        address. It is added the first time a user is disabled, on a copy that <code>sshd -t</code>
+                        validates before it replaces the live file, followed by a reload, not a restart; a rejected copy
+                        changes nothing. After that, enabling or disabling a user is only a group change, with no
+                        rewrite and no reload.</li>
+                    <li>After a <code>disable</code> the command asks sshd itself (<code>sshd -T -C</code>) whether the
+                        rule applies to the user from outside and not from localhost, and warns if it does not.</li>
+                    <li>The <code>cipi</code> user and <code>root</code> are refused by the command — the
+                        <code>cipi</code> user's access is managed with the key commands above.</li>
+                </ul>
+                <p>Default: every app user has access, on new and existing servers. Nothing changes until the command is
+                    used. Changes are logged and notified (trigger <code>app_ssh_access</code>). CLI only (root).</p>
             </div>
 
             <div class="doc-section" id="cli-cipi">
@@ -2699,6 +3025,7 @@ Host ssh.example.com
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi status              <span class="c"># CPU, RAM, disk, services, PHP versions, apps</span>
+<span class="p">$</span> cipi disk                <span class="c"># disk usage of the server and of every app (v5.5.0+)</span>
 <span class="p">$</span> cipi version             <span class="c"># show installed Cipi version</span>
 <span class="p">$</span> cipi self-update         <span class="c"># update Cipi to the latest version</span>
 <span class="p">$</span> cipi self-update --check <span class="c"># check for updates without installing</span></pre>
