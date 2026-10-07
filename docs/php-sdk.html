@@ -619,6 +619,18 @@ CIPI_ALLOW_HTTP=false</pre>
                     <li><code>GET</code> may retry <code>429</code> and <code>503</code> when <code>Retry-After</code> is at most 10 seconds. Writes are never retried.</li>
                     <li>Responses larger than 16 MiB are refused. Timeouts default to 30 seconds (10 seconds to connect).</li>
                 </ul>
+                <p>The third argument of <code>Cipi::connect()</code> changes those limits. On Laravel the package config reads <code>CIPI_TIMEOUT</code>, <code>CIPI_CONNECT_TIMEOUT</code>, <code>CIPI_MAX_RETRIES</code>, and <code>CIPI_ALLOW_HTTP</code>. A value out of range throws before any request is sent.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="nv">$cipi</span> = Cipi::connect(<span class="nv">$url</span>, <span class="nv">$token</span>, [
+    <span class="s">'timeout'</span> =&gt; <span class="mi">30</span>,                  <span class="c">// 1–300 seconds</span>
+    <span class="s">'connect_timeout'</span> =&gt; <span class="mi">10</span>,          <span class="c">// 1–60 seconds</span>
+    <span class="s">'max_retries'</span> =&gt; <span class="mi">2</span>,               <span class="c">// 0–5, reads only</span>
+    <span class="s">'max_response_bytes'</span> =&gt; <span class="mi">16777216</span>, <span class="c">// 1 KiB–64 MiB</span>
+    <span class="s">'allow_http'</span> =&gt; <span class="k">false</span>,
+]);</pre>
+                </div>
                 <p>Keep <code>CIPI_TOKEN</code> in the environment of the PHP host. Do not commit it. Create one token per application, with the smallest ability set that still works (<code>apps-view</code>, <code>deploy-manage</code>, <code>dbs-create</code>, …). A missing ability is HTTP 403, not a silent no-op.</p>
             </div>
 
@@ -668,6 +680,7 @@ CIPI_ALLOW_HTTP=false</pre>
                         </tbody>
                     </table>
                 </div>
+                <p>Without an HTTP status: <code>TransportException</code> when the connection or the TLS handshake fails, or a response is over the size limit; <code>ConfigurationException</code> for an invalid URL, token, path, or option, before anything is sent. <code>wait()</code> adds <code>JobFailedException</code> when the job ends <code>failed</code> and <code>TimeoutException</code> when it is still running at the timeout. <code>RateLimitException</code> carries <code>retryAfter</code> in seconds when the panel sent it.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">php</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>

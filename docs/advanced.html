@@ -34,7 +34,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-01",
+      "dateModified": "2026-10-07",
       "headline": "Cipi Docs — Advanced",
       "name": "Advanced",
       "url": "https://cipi.sh/docs/advanced",
@@ -3015,6 +3015,35 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <code>cipi firewall attempts</code>, <code>cipi ssh apps</code>, the named Cloudflare accounts and
                     the soft disk limits change nothing until they are used, and the tab-completion fixes arrive with
                     the completion files <code>self-update</code> rewrites on every run.</p>
+
+                <h3 id="migration-5-5-1">Migration 5.5.1</h3>
+                <p>From <strong>5.5.1</strong> Cipi writes the HTTPS server block of every vhost itself and certbot
+                    only issues and renews (<a href="#wildcard-domains">wildcard domains</a>). The migration brings
+                    existing servers in line:</p>
+                <ol>
+                    <li>Writes the certbot deploy hook
+                        <code>/etc/letsencrypt/renewal-hooks/deploy/cipi-reload-nginx</code>
+                        (<code>nginx -t -q &amp;&amp; systemctl reload nginx</code>), so nginx serves a renewed
+                        certificate whether certbot.timer or Cipi's weekly cron renewed it.</li>
+                    <li>Removes <code>--nginx</code> from the <code>certbot renew</code> line of root's crontab: on the
+                        command line it overrode how each certificate was issued, and would have renewed a DNS-01
+                        wildcard over HTTP-01.</li>
+                    <li>Writes <code>/etc/nginx/snippets/cipi-ssl.conf</code> (TLS 1.2/1.3, Mozilla intermediate
+                        ciphers), included by every HTTPS block Cipi writes.</li>
+                    <li>Apps whose certificate renews over DNS-01 but are not recorded as DNS-01 — the install stopped
+                        at the old <code>certbot install</code> step — get <code>ssl_dns_provider</code> and
+                        <code>ssl_dns_account</code>; a certificate issued with <code>--wildcard</code> gets
+                        <code>ssl_wildcard</code>. The next <code>cipi ssl install</code> keeps DNS-01 and the
+                        wildcard.</li>
+                    <li>Rewrites, with the HTTPS block written by Cipi, the vhost of every app that has a certificate
+                        and a wildcard name, a Cloudflare Origin CA certificate, or no HTTPS in its vhost at all. One app
+                        at a time, with <code>nginx -t</code> after each: the previous file is kept in
+                        <code>/var/lib/cipi/vhost-backup-5.5.1</code> and put back if nginx refuses the new one.</li>
+                </ol>
+                <p>Other apps keep their certbot-written vhost until it is next regenerated (any alias, www, basic
+                    auth, redirect or proxy change), which switches it. No certificate is requested or renewed, and
+                    nothing is deployed. <code>cipi ssl status</code> then shows, per app, what it is served with and
+                    which of its names the certificate does not cover.</p>
 
                 <h3>When the update itself fails</h3>
                 <p>Up to 5.0.x, <code>cipi self-update</code> reported only “Download failed” — git's stderr was
