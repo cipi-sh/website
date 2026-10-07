@@ -282,9 +282,24 @@
                 <a href="/docs/cli-client#cli-requirements" class="sidebar-link">requirements</a>
             </div>
 
+            <div class="sidebar-group" data-chapter="php-sdk">
+                <a href="/docs/php-sdk" class="sidebar-group-label">PHP SDK</a>
+                <a href="/docs/php-sdk#sdk-install" class="sidebar-link">installation</a>
+                <a href="/docs/php-sdk#sdk-client" class="sidebar-link">client</a>
+                <a href="/docs/php-sdk#sdk-laravel" class="sidebar-link">Laravel</a>
+                <a href="/docs/php-sdk#sdk-apps" class="sidebar-link">apps</a>
+                <a href="/docs/php-sdk#sdk-deploy" class="sidebar-link">deploy &amp; jobs</a>
+                <a href="/docs/php-sdk#sdk-domains" class="sidebar-link">domains &amp; SSL</a>
+                <a href="/docs/php-sdk#sdk-data" class="sidebar-link">env, auth, databases</a>
+                <a href="/docs/php-sdk#sdk-server" class="sidebar-link">server</a>
+                <a href="/docs/php-sdk#sdk-security" class="sidebar-link">security</a>
+                <a href="/docs/php-sdk#sdk-errors" class="sidebar-link">errors</a>
+            </div>
+
             <div class="sidebar-group" data-chapter="gui">
                 <a href="/docs/gui" class="sidebar-group-label">control panel (GUI)</a>
                 <a href="/docs/gui#gui-overview" class="sidebar-link">overview</a>
+                <a href="/docs/gui#gui-tour" class="sidebar-link">screenshot tour</a>
                 <a href="/docs/gui#gui-requirements" class="sidebar-link">requirements</a>
                 <a href="/docs/gui#gui-install" class="sidebar-link"><code>gui &lt;domain&gt;</code></a>
                 <a href="/docs/gui#gui-ssl" class="sidebar-link"><code>gui ssl</code></a>
@@ -306,7 +321,7 @@
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
-                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains</a>
+                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains &amp; SSL</a>
                 <a href="/docs/advanced#nginx-config" class="sidebar-link">edit Nginx config</a>
                 <a href="/docs/advanced#uninstall" class="sidebar-link">uninstall Cipi</a>
             </div>
@@ -2798,9 +2813,12 @@ DOMAIN="${BRANCH_SLUG}-${PROJECT_SLUG}-${HASH}.${DEPLOY_WILDCARD_DOMAIN}"</pre>
                         <strong>1. DNS wildcard</strong> — add an <code>A</code> record
                         <code>*.preview.domain.ltd → &lt;server-ip&gt;</code> in your DNS provider. All subdomains
                         resolve automatically; no per-branch DNS changes needed.<br><br>
-                        <strong>2. Wildcard SSL certificate</strong> — obtain a wildcard cert via DNS-01 challenge once
-                        and install it on the server. See the <a href="/docs/advanced#wildcard-domains">Wildcard domains</a> section
-                        for instructions. The cert path
+                        <strong>2. Wildcard SSL certificate</strong> — obtain a wildcard cert via DNS-01 challenge once,
+                        with the Cloudflare token Cipi already keeps (<code>cipi ssl dns set</code>):
+                        <code>certbot certonly --dns-cloudflare --dns-cloudflare-credentials /etc/cipi/cloudflare.ini
+                        -d preview.domain.ltd -d '*.preview.domain.ltd' --cert-name preview.domain.ltd</code>.
+                        It renews by itself and nginx reloads after each renewal (v5.5.1+). Without Cloudflare, see
+                        <a href="/docs/advanced#wildcard-without-cloudflare">Wildcard domains &amp; SSL</a>. The cert path
                         used by the pipeline examples below is
                         <code>/etc/letsencrypt/live/preview.domain.ltd/</code>.<br><br>
                         <strong>3. Repository access</strong> — the pipeline examples use an HTTPS URL with a personal

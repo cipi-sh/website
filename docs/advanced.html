@@ -285,9 +285,24 @@
                 <a href="/docs/cli-client#cli-requirements" class="sidebar-link">requirements</a>
             </div>
 
+            <div class="sidebar-group" data-chapter="php-sdk">
+                <a href="/docs/php-sdk" class="sidebar-group-label">PHP SDK</a>
+                <a href="/docs/php-sdk#sdk-install" class="sidebar-link">installation</a>
+                <a href="/docs/php-sdk#sdk-client" class="sidebar-link">client</a>
+                <a href="/docs/php-sdk#sdk-laravel" class="sidebar-link">Laravel</a>
+                <a href="/docs/php-sdk#sdk-apps" class="sidebar-link">apps</a>
+                <a href="/docs/php-sdk#sdk-deploy" class="sidebar-link">deploy &amp; jobs</a>
+                <a href="/docs/php-sdk#sdk-domains" class="sidebar-link">domains &amp; SSL</a>
+                <a href="/docs/php-sdk#sdk-data" class="sidebar-link">env, auth, databases</a>
+                <a href="/docs/php-sdk#sdk-server" class="sidebar-link">server</a>
+                <a href="/docs/php-sdk#sdk-security" class="sidebar-link">security</a>
+                <a href="/docs/php-sdk#sdk-errors" class="sidebar-link">errors</a>
+            </div>
+
             <div class="sidebar-group" data-chapter="gui">
                 <a href="/docs/gui" class="sidebar-group-label">control panel (GUI)</a>
                 <a href="/docs/gui#gui-overview" class="sidebar-link">overview</a>
+                <a href="/docs/gui#gui-tour" class="sidebar-link">screenshot tour</a>
                 <a href="/docs/gui#gui-requirements" class="sidebar-link">requirements</a>
                 <a href="/docs/gui#gui-install" class="sidebar-link"><code>gui &lt;domain&gt;</code></a>
                 <a href="/docs/gui#gui-ssl" class="sidebar-link"><code>gui ssl</code></a>
@@ -309,7 +324,7 @@
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
-                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains</a>
+                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains &amp; SSL</a>
                 <a href="/docs/advanced#nginx-config" class="sidebar-link">edit Nginx config</a>
                 <a href="/docs/advanced#uninstall" class="sidebar-link">uninstall Cipi</a>
             </div>
@@ -378,7 +393,7 @@
                     list as <code>cipi api token create</code> since Cipi <strong>4.6.3</strong>).</p>
                 <p>Source and changelog:
                     <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener">github.com/cipi-sh/api</a>
-                    (MIT). Client wrapper: <a href="/docs/cli-client">cipi-cli</a>.</p>
+                    (MIT). Client wrappers: <a href="/docs/cli-client">cipi-cli</a> and the <a href="/docs/php-sdk">PHP SDK</a> (<code>cipi/sdk</code>).</p>
 
                 <h3>Commands</h3>
                 <div class="code-block">
@@ -2836,15 +2851,23 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     already on Valkey skip it.</p>
 
                 <h3>Laravel integration</h3>
-                <p>Add these variables to your <code>.env</code> via <code>cipi app env myapp</code>. The variable names
-                    stay <code>REDIS_*</code> — that is what <code>phpredis</code> and Laravel's <code>redis</code>
-                    driver expect, and Valkey answers on the very same socket:</p>
+                <p>New apps use the database driver for cache, sessions and queues: Valkey is <strong>one instance with
+                    one password</strong> for every app of the server, and whoever has the password can read — and
+                    flush — every app's keys. The database driver keeps each app inside its own database and user.
+                    Switch an app to Valkey when you want it (faster cache and queues, Horizon, Reverb scaling) and
+                    trust every app on the server with that.</p>
+                <p>The password is in the installation summary; <code>cipi reset valkey-password</code> sets a new one
+                    and prints it (every app that uses Valkey then needs it). Add these variables with
+                    <code>cipi app env myapp</code>. The names stay <code>REDIS_*</code> — that is what
+                    <code>phpredis</code> and Laravel's <code>redis</code> driver expect, and Valkey answers on the very
+                    same socket:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">env</span><button class="code-copy-btn"
                             onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="n">REDIS_HOST</span><span class="o">=</span><span class="s">127.0.0.1</span>
-<span class="n">REDIS_PASSWORD</span><span class="o">=</span><span class="s">your-password-from-server-json</span>
-<span class="n">REDIS_PORT</span><span class="o">=</span><span class="s">6379</span></pre>
+<span class="n">REDIS_PASSWORD</span><span class="o">=</span><span class="s">the-valkey-password</span>
+<span class="n">REDIS_PORT</span><span class="o">=</span><span class="s">6379</span>
+<span class="n">REDIS_PREFIX</span><span class="o">=</span><span class="s">myapp_</span>   <span class="c"># one per app, so keys never collide</span></pre>
                 </div>
                 <p>Then set the drivers for each use case:</p>
                 <ul>
@@ -2855,8 +2878,8 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     </li>
                     <li><strong>Broadcasting</strong> — <code>BROADCAST_CONNECTION=redis</code></li>
                 </ul>
-                <p>Install the <code>phpredis</code> PHP extension for best performance, or use
-                    <code>predis/predis</code> as a pure-PHP fallback. Both talk to Valkey transparently.
+                <p>The <code>phpredis</code> extension is installed with every PHP version Cipi installs;
+                    <code>predis/predis</code> works too, as a pure-PHP fallback. Both talk to Valkey transparently.
                 </p>
             </div>
 
@@ -3058,80 +3081,242 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
             </div>
 
             <div class="doc-section" id="wildcard-domains">
-                <h2>Wildcard domains</h2>
-                <p>Cipi does <strong>not</strong> support wildcard domains (<code>*.myapp.com</code>) natively. The
-                    block is twofold and architectural — not a configuration detail.</p>
+                <h2>Wildcard domains &amp; certificates</h2>
+                <p><strong>Yes, Cipi does wildcards</strong> — one app answering on every
+                    <code>&lt;tenant&gt;.myapp.com</code>, with one certificate that covers all of them. It takes two
+                    separate things, and most problems come from having only one of them:</p>
+                <ul>
+                    <li><strong>Routing</strong> — Nginx sends <code>*.myapp.com</code> to the app when the pattern is
+                        one of its names: <code>cipi alias add myapp '*.myapp.com'</code> (or a wildcard primary
+                        domain). Works since <strong>v5.1.0</strong>, whatever DNS or certificate you use.</li>
+                    <li><strong>Certificate</strong> — Let's Encrypt validates a wildcard name over
+                        <strong>DNS-01 only</strong>: it asks for a TXT record in the zone. Cipi creates that record
+                        through the <strong>Cloudflare API</strong>, the only DNS provider it automates:
+                        <code>cipi ssl install myapp --dns=cloudflare</code>. HTTP-01 (the default, through port 80)
+                        can never issue a wildcard.</li>
+                </ul>
+                <p>Since <strong>v5.5.1</strong> Cipi writes the HTTPS server block of the vhost itself; certbot only
+                    issues and renews the certificate. Before that, a wildcard certificate was issued and then failed
+                    to install (<code>Which server blocks would you like to modify?</code> — certbot's nginx installer
+                    cannot be driven non-interactively for a wildcard name), and the next vhost change dropped HTTPS
+                    without a word. If that happened to you, <code>cipi self-update</code>: the 5.5.1 migration installs
+                    the certificate that is already on disk.</p>
 
-                <h3>Why wildcards are not supported</h3>
+                <h3>Which setup is yours</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>DNS of the zone</th>
+                                <th>Wildcard certificate</th>
+                                <th>Cloudflare SSL/TLS mode</th>
+                                <th>Commands</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Cloudflare, proxied</strong> (orange cloud) — recommended for a SaaS</td>
+                                <td>Let's Encrypt over DNS-01 (proxy can stay on) — or Cloudflare Origin CA</td>
+                                <td><strong>Full (strict)</strong></td>
+                                <td><a href="#wildcard-cloudflare">steps below</a></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cloudflare, DNS only</strong> (grey cloud)</td>
+                                <td>Let's Encrypt over DNS-01</td>
+                                <td>not used (traffic does not go through Cloudflare)</td>
+                                <td><a href="#wildcard-cloudflare">steps below</a>, skip the SSL/TLS mode</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Another DNS provider</strong></td>
+                                <td>not by Cipi — move the DNS to Cloudflare (free), list the subdomains, or bring your own
+                                    certificate</td>
+                                <td>—</td>
+                                <td><a href="#wildcard-without-cloudflare">without Cloudflare</a></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cloudflare Tunnel</strong> (<code>cipi zt hostname add</code>)</td>
+                                <td>not needed: Cloudflare terminates HTTPS, the tunnel talks HTTP to <code>:80</code></td>
+                                <td>set by the tunnel</td>
+                                <td><a href="/docs/infrastructure#cli-zt"><code>cipi zt</code></a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                <p><strong>1 — Domain validation rejects <code>*</code></strong><br>
-                    Every domain passed to <code>cipi alias add</code> (and <code>cipi app create</code>) is validated
-                    against a strict regex that requires the string to start with <code>[a-zA-Z0-9]</code>. The asterisk
-                    fails immediately, before nginx or certbot are ever touched.</p>
-
-                <p><strong>2 — Certbot uses HTTP-01 challenge, which cannot issue wildcard certs</strong><br>
-                    <code>cipi ssl install</code> calls <code>certbot --nginx</code>, which relies on the HTTP-01 (or
-                    TLS-ALPN-01) challenge — placing a verification file on disk and serving it over port 80. Let's
-                    Encrypt only issues wildcard certificates via the <strong>DNS-01 challenge</strong>, which requires
-                    programmatic access to your DNS provider's API. Cipi does not integrate with any DNS provider, so
-                    even if the validation were bypassed, certbot would refuse to issue the wildcard cert.
-                </p>
-
-                <h3>Recommended alternative — Multi-SAN certificate</h3>
-                <p>If your subdomains are fixed and enumerable (e.g. <code>api</code>, <code>admin</code>,
-                    <code>www</code>, <code>staging</code>), the correct approach is to add each one as an explicit
-                    alias and let Cipi issue a single SAN certificate covering all of them:
-                </p>
-
+                <h3 id="wildcard-cloudflare">With Cloudflare — step by step</h3>
+                <ol>
+                    <li><strong>DNS records</strong> in the Cloudflare dashboard: <code>A @ → &lt;server-ip&gt;</code>
+                        and <code>A * → &lt;server-ip&gt;</code> (<code>AAAA</code> too if the server has IPv6). The
+                        <code>*</code> record also covers <code>www</code>, <code>app</code>, <code>admin</code>… unless
+                        a record with that exact name exists. Proxied or DNS only: both work, wildcard records can be
+                        proxied on every plan.</li>
+                    <li><strong>API token</strong> — Cloudflare → My Profile → API Tokens → Create Token → template
+                        <em>Edit zone DNS</em>, Zone Resources: <em>Include → Specific zone → myapp.com</em>. The only
+                        permission needed is <strong>Zone → DNS → Edit</strong>.</li>
+                    <li><strong>Give it to Cipi</strong>, once per server (several accounts:
+                        <a href="/docs/infrastructure#cli-ssl"><code>--name=</code></a>).</li>
+                    <li><strong>Route the subdomains</strong> to the app with a wildcard alias. Quote it, so the shell
+                        does not expand the <code>*</code>.</li>
+                    <li><strong>Issue the certificate</strong> over DNS-01. Cipi asks for <code>myapp.com</code> +
+                        <code>*.myapp.com</code> + any other alias the wildcard does not cover, writes the HTTPS vhost
+                        and redirects every subdomain from HTTP to HTTPS. It takes about a minute (Cipi waits 30 seconds
+                        for the TXT record to propagate).</li>
+                    <li><strong>Proxied records only:</strong> Cloudflare → SSL/TLS → Overview → <strong>Full
+                        (strict)</strong>. Also check Rules → Configuration Rules / Page Rules: a rule that sets SSL to
+                        Flexible for a hostname wins over the global setting.</li>
+                    <li><strong>Check</strong> — <code>cipi ssl status</code> lists every app with the certificate it
+                        is served with and the names that certificate does <em>not</em> cover.</li>
+                </ol>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi alias add myapp api.myapp.com
-<span class="p">$</span> cipi alias add myapp admin.myapp.com
-<span class="p">$</span> cipi alias add myapp www.myapp.com
-<span class="p">$</span> cipi ssl install myapp   <span class="c"># single cert, SAN covers all domains</span></pre>
+                    <pre><span class="p">$</span> cipi ssl dns set --token=YOUR_CLOUDFLARE_TOKEN          <span class="c"># step 3</span>
+<span class="p">$</span> cipi alias add myapp <span class="s">'*.myapp.com'</span>                        <span class="c"># step 4</span>
+<span class="p">$</span> cipi ssl install myapp --dns=cloudflare                 <span class="c"># step 5</span>
+<span class="p">$</span> cipi ssl status                                          <span class="c"># step 7</span>
+<span class="p">$</span> curl -sI https://tenant1.myapp.com | head -1             <span class="c"># HTTP/2 200 (or your app's answer)</span></pre>
+                </div>
+                <p>Renewals need nothing: each certificate renews the way it was issued (certbot.timer twice a day,
+                    plus Cipi's weekly cron), with the Cloudflare token it was issued with, and nginx reloads after
+                    every renewal. A certificate issued over DNS-01 is always reissued over DNS-01 —
+                    <code>cipi ssl install myapp</code> without flags keeps it (<code>--http</code> goes back to
+                    HTTP-01 on purpose).</p>
+                <p><code>--wildcard</code> adds <code>myapp.com</code> + <code>*.myapp.com</code> to the certificate
+                    even when the app does not serve <code>*.myapp.com</code> — useful to cover many explicit aliases
+                    with one name. It does <em>not</em> route anything: subdomains reach the app only through the
+                    wildcard alias. The flag is remembered for later reissues; <code>--no-wildcard</code> drops it.</p>
+
+                <h3 id="wildcard-cloudflare-modes">Cloudflare proxy: the SSL/TLS mode decides everything</h3>
+                <p>With the orange cloud, the visitor talks HTTPS to Cloudflare, and Cloudflare opens a second
+                    connection to your server. The SSL/TLS mode says how:</p>
+                <ul>
+                    <li><strong>Flexible — never with Cipi.</strong> Cloudflare connects to <code>http://</code> on port
+                        80. As soon as the app has a certificate, Cipi answers port 80 with a redirect to HTTPS, which
+                        Cloudflare fetches again over HTTP: an endless loop (<code>ERR_TOO_MANY_REDIRECTS</code>).
+                        Without a certificate it "works", but Laravel sees plain HTTP and builds <code>http://</code>
+                        URLs.</li>
+                    <li><strong>Full</strong> — Cloudflare connects over HTTPS and accepts any certificate. Works, but
+                        does not protect the second hop.</li>
+                    <li><strong>Full (strict)</strong> — HTTPS with a valid certificate for the hostname: the Let's
+                        Encrypt certificate from Cipi, or a Cloudflare Origin CA one. The right setting.</li>
+                </ul>
+                <p>Order for a new site behind the proxy: issue the certificate first with <code>--dns=cloudflare</code>
+                    (DNS-01 does not care about the proxy, the firewall or port 80), then switch to Full (strict).
+                    HTTP-01 behind the proxy depends on Cloudflare settings (Always Use HTTPS, WAF rules, Under Attack
+                    mode, <code>cipi zt lock http</code>) — you do not need to turn the proxy off and on again if you
+                    use DNS-01. The edge certificate Cloudflare shows to visitors (Universal SSL, free) covers
+                    <code>myapp.com</code> and <code>*.myapp.com</code>: one level of subdomains. Deeper names
+                    (<code>a.b.myapp.com</code>) need Cloudflare's Advanced Certificate Manager at the edge, and their
+                    own wildcard at the origin.</p>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>You see</th>
+                                <th>What it means on a Cipi server</th>
+                                <th>Fix</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>ERR_TOO_MANY_REDIRECTS</code></td>
+                                <td>SSL/TLS mode Flexible (or a Configuration Rule setting it for that host)</td>
+                                <td>Full (strict)</td>
+                            </tr>
+                            <tr>
+                                <td>525 SSL handshake failed</td>
+                                <td>No app on the server has that hostname, or the app has no certificate: the catch-all
+                                    default server refuses the TLS handshake</td>
+                                <td><code>cipi alias add myapp '*.myapp.com'</code>, then
+                                    <code>cipi ssl install myapp --dns=cloudflare</code></td>
+                            </tr>
+                            <tr>
+                                <td>526 Invalid SSL certificate</td>
+                                <td>Full (strict) and the origin certificate does not cover that hostname (e.g. a tenant
+                                    with a certificate issued without the wildcard)</td>
+                                <td><code>cipi ssl status</code> → “not covered” →
+                                    <code>cipi ssl install myapp --dns=cloudflare</code></td>
+                            </tr>
+                            <tr>
+                                <td>520 / empty reply on a subdomain</td>
+                                <td>Flexible mode and the hostname matches no app: port 80's catch-all closes the
+                                    connection (444)</td>
+                                <td>wildcard alias, Full (strict)</td>
+                            </tr>
+                            <tr>
+                                <td>500 from the app on a tenant</td>
+                                <td>Nginx and the certificate are fine — the request reached Laravel (tenant resolver,
+                                    <code>.env</code>, logs: <code>cipi app logs myapp</code>)</td>
+                                <td>application side</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
-                <p>Certbot's <code>--expand</code> flag (used internally by Cipi) adds the new SANs to the existing
-                    certificate without issuing a new one. The SAN list has no meaningful limit for typical use.</p>
-
-                <h3>Manual wildcard certificate (outside Cipi)</h3>
-                <p>If you need dynamic subdomains (e.g. <code>&lt;tenant&gt;.saas.com</code>), you can obtain a wildcard
-                    certificate manually using a DNS plugin for certbot and place it on the server. Cipi will not
-                    manage, renew, or track it — you own the lifecycle entirely.</p>
-
+                <h3 id="wildcard-origin-ca">Alternative behind the proxy: Cloudflare Origin CA</h3>
+                <p>A certificate signed by Cloudflare, valid 15 years, trusted <strong>only by Cloudflare</strong>: fine
+                    for proxied records with Full (strict), a browser warning for a DNS-only record. It covers the app's
+                    names, wildcard alias included. It needs the
+                    <a href="/docs/infrastructure#cli-zt"><code>cipi zt</code></a> API token (Zone → SSL and
+                    Certificates → Edit), not the DNS-01 one. Since 5.5.1 it works on an app that never had HTTPS, and
+                    survives every vhost change.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="c"># example with the Cloudflare DNS plugin</span>
-<span class="p">$</span> pip install certbot-dns-cloudflare
-<span class="p">$</span> certbot certonly --dns-cloudflare \
-    --dns-cloudflare-credentials /root/.cloudflare.ini \
-    -d "*.myapp.com" -d "myapp.com"</pre>
+                    <pre><span class="p">$</span> cipi zt token set --token=ZT_TOKEN --account=ACCOUNT_ID
+<span class="p">$</span> cipi alias add myapp <span class="s">'*.myapp.com'</span>
+<span class="p">$</span> cipi zt origin-cert myapp       <span class="c"># reissue after adding names</span></pre>
                 </div>
 
-                <p>After obtaining the certificate, edit the nginx vhost for the app directly
-                    (<code>/etc/nginx/sites-available/myapp</code>) to reference the wildcard cert paths and add
-                    <code>server_name *.myapp.com myapp.com;</code>. Then reload nginx:
-                </p>
-
+                <h3 id="wildcard-without-cloudflare">Without Cloudflare</h3>
+                <p>When the zone is hosted elsewhere, Cipi cannot create the TXT record, so it cannot issue a wildcard
+                    certificate. Routing still works (<code>cipi alias add myapp '*.myapp.com'</code> plus a
+                    <code>*</code> record at your provider), but HTTPS needs one of these:</p>
+                <ol>
+                    <li><strong>Move the DNS to Cloudflare</strong> (recommended) — free plan, records set to
+                        <em>DNS only</em>: traffic does not change, only who answers DNS. Then follow the
+                        <a href="#wildcard-cloudflare">Cloudflare steps</a> and skip the SSL/TLS mode.</li>
+                    <li><strong>List the subdomains</strong> — when tenants are few and known, add each one as an alias
+                        (no wildcard) and let HTTP-01 issue one certificate for all of them:
+                        <code>cipi alias add myapp acme.myapp.com</code>, then <code>cipi ssl install myapp</code>.
+                        Every name needs its own DNS record (or the <code>*</code> record), port 80 must be reachable,
+                        a certificate holds at most 100 names, and every reissue counts toward Let's Encrypt's limit of
+                        50 certificates per domain per week — not a fit for self-service signup.</li>
+                    <li><strong>Bring your own certificate</strong> — issue it with the certbot DNS plugin of your
+                        provider (Route 53, DigitalOcean, OVH, Gandi, …) under the <strong>certificate name Cipi
+                        expects</strong>: the app's primary domain (without <code>*.</code> for a wildcard primary).
+                        Cipi finds it in <code>/etc/letsencrypt/live/&lt;name&gt;/</code> and serves it; certbot renews
+                        it with your plugin and Cipi's hook reloads nginx. Do not run <code>cipi ssl install</code> on
+                        that app afterwards: without <code>--dns=cloudflare</code> it reissues over HTTP-01, without
+                        the wildcard.</li>
+                </ol>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> nginx -t && systemctl reload nginx</pre>
+                    <pre><span class="c"># option 3, example with Route 53 (credentials as the plugin documents them)</span>
+<span class="p">$</span> apt install python3-certbot-dns-route53
+<span class="p">$</span> certbot certonly --dns-route53 -d myapp.com -d <span class="s">'*.myapp.com'</span> --cert-name myapp.com
+<span class="p">$</span> cipi alias add myapp <span class="s">'*.myapp.com'</span>      <span class="c"># rewrites the vhost with the certificate</span>
+<span class="p">$</span> cipi ssl force myapp                    <span class="c"># or this, if the alias was already there</span></pre>
                 </div>
 
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>Running <code>cipi ssl install myapp</code> after manual wildcard setup will overwrite your
-                        custom nginx SSL directives with a Let's Encrypt HTTP-01 certificate. If you manage a wildcard
-                        cert manually, avoid running <code>cipi ssl install</code> on that app.</div>
-                </div>
+                <h3>Multi-tenant apps: good to know</h3>
+                <ul>
+                    <li><strong>Other apps still win on their exact names.</strong> With <code>*.myapp.com</code> on
+                        one app, <code>api.myapp.com</code> can still be a separate app: Nginx prefers an exact
+                        <code>server_name</code> to a wildcard.</li>
+                    <li><strong>Unknown hosts are closed</strong> by <a href="/docs/infrastructure#cli-nginx"><code>cipi
+                        nginx default-server</code></a> (on by default) instead of reaching your tenant resolver.</li>
+                    <li><strong>Laravel</strong>: set <code>SESSION_DOMAIN=.myapp.com</code> only if a login must be
+                        shared across subdomains; resolve the tenant from the <code>Host</code> header.
+                        <code>APP_URL</code> is set to <code>https://www.myapp.com</code> for a wildcard primary.</li>
+                    <li><strong>Depth</strong>: Nginx's <code>*.myapp.com</code> also matches <code>a.b.myapp.com</code>,
+                        certificates do not — keep tenants one label deep.</li>
+                    <li><strong>One app per tenant</strong> is the alternative when tenants need isolation (own
+                        database, own backups, movable to another server): create each tenant as its own Cipi app with
+                        its exact domain through the <a href="#cipi-api">Cipi API</a>, and its DNS record through the
+                        Cloudflare API — every tenant then gets a plain HTTP-01 certificate.</li>
+                </ul>
             </div>
 
             <div class="doc-section" id="nginx-config">

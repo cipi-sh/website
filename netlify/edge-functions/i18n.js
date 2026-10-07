@@ -134,6 +134,7 @@ export const SLUGS_IT = {
   '/docs/deploy': '/docs/deploy',
   '/docs/infrastructure': '/docs/infrastruttura',
   '/docs/cli-client': '/docs/client-cli',
+  '/docs/php-sdk': '/docs/php-sdk',
   '/docs/gui': '/docs/gui',
   '/docs/advanced': '/docs/avanzato',
   '/docs/about': '/docs/informazioni',

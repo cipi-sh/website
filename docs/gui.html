@@ -282,9 +282,24 @@
                 <a href="/docs/cli-client#cli-requirements" class="sidebar-link">requirements</a>
             </div>
 
+            <div class="sidebar-group" data-chapter="php-sdk">
+                <a href="/docs/php-sdk" class="sidebar-group-label">PHP SDK</a>
+                <a href="/docs/php-sdk#sdk-install" class="sidebar-link">installation</a>
+                <a href="/docs/php-sdk#sdk-client" class="sidebar-link">client</a>
+                <a href="/docs/php-sdk#sdk-laravel" class="sidebar-link">Laravel</a>
+                <a href="/docs/php-sdk#sdk-apps" class="sidebar-link">apps</a>
+                <a href="/docs/php-sdk#sdk-deploy" class="sidebar-link">deploy &amp; jobs</a>
+                <a href="/docs/php-sdk#sdk-domains" class="sidebar-link">domains &amp; SSL</a>
+                <a href="/docs/php-sdk#sdk-data" class="sidebar-link">env, auth, databases</a>
+                <a href="/docs/php-sdk#sdk-server" class="sidebar-link">server</a>
+                <a href="/docs/php-sdk#sdk-security" class="sidebar-link">security</a>
+                <a href="/docs/php-sdk#sdk-errors" class="sidebar-link">errors</a>
+            </div>
+
             <div class="sidebar-group" data-chapter="gui">
                 <a href="/docs/gui" class="sidebar-group-label">control panel (GUI)</a>
                 <a href="/docs/gui#gui-overview" class="sidebar-link">overview</a>
+                <a href="/docs/gui#gui-tour" class="sidebar-link">screenshot tour</a>
                 <a href="/docs/gui#gui-requirements" class="sidebar-link">requirements</a>
                 <a href="/docs/gui#gui-install" class="sidebar-link"><code>gui &lt;domain&gt;</code></a>
                 <a href="/docs/gui#gui-ssl" class="sidebar-link"><code>gui ssl</code></a>
@@ -306,7 +321,7 @@
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
-                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains</a>
+                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains &amp; SSL</a>
                 <a href="/docs/advanced#nginx-config" class="sidebar-link">edit Nginx config</a>
                 <a href="/docs/advanced#uninstall" class="sidebar-link">uninstall Cipi</a>
             </div>
@@ -356,6 +371,15 @@
                     control plane. Anything you do in the browser, you can still do from the terminal, and vice versa.
                     A single panel can drive many servers, so it doubles as a lightweight multi-server cockpit.</p>
 
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/dashboard-light.webp" width="1440" height="900" alt="Cipi control panel dashboard with three connected servers, CPU, memory and disk" class="shot-light" fetchpriority="high" decoding="async">
+                        <img src="/img/gui/dashboard.webp" width="1440" height="900" alt="Cipi control panel dashboard with three connected servers, CPU, memory and disk" class="shot-dark" fetchpriority="high" decoding="async">
+                    </div>
+                    <figcaption>The dashboard queries every connected server at once — status, resources, services and Cipi version.</figcaption>
+                </figure>
+
                 <h3>What you can do from the panel</h3>
                 <ul>
                     <li>Manage <strong>apps</strong> — create, edit, deploy, suspend/unsuspend, fix permissions and
@@ -403,8 +427,166 @@
                         catalog, the <strong>system monitor</strong> and <strong>Cloudflare Zero Trust</strong> status
                         — read-only by design: installing software, changing monitor thresholds and every
                         <code>zt</code> change stay with the operator on the CLI.</li>
-                    <li>Register and switch between <strong>multiple servers</strong> from one login.</li>
+                    <li>Register and switch between <strong>multiple servers</strong> from one login — the current
+                        server is picked from the header on every page, and app links carry the server so they can be
+                        bookmarked and shared.</li>
+                    <li><strong>One-time credentials</strong> (SSH and database passwords, deploy key, webhook URL and
+                        token) are listed with copy buttons when a job returns them, instead of being buried in CLI
+                        output.</li>
+                    <li>Light and dark themes, a phone layout, and per-section fallbacks: a server whose API is older
+                        or whose token is narrower still works for everything it supports.</li>
                 </ul>
+                <p>Panel <strong>3.0</strong> (October 2026) redesigned every page around the same design system as
+                    this site — see the <a href="#gui-tour">screenshot tour</a> and the
+                    <a href="https://github.com/cipi-sh/gui/blob/main/CHANGELOG.md" target="_blank" rel="noopener">changelog</a>.</p>
+            </div>
+
+            <!-- ── Screenshot tour ── -->
+
+            <div class="doc-section" id="gui-tour">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Screenshot tour</h2>
+                <p>Every image below is a real screenshot of the panel, taken against its demo environment — a
+                    stand-in for <code>cipi api</code> 1.31 with three fictional servers that ships with the package
+                    (<code>./dev/demo.sh</code>). Domains and IPs are documentation ranges.</p>
+
+                <h3>Apps</h3>
+                <p>Laravel (PHP-FPM or Octane), Node (SPA, static, SSR) and custom PHP apps of the current server, with type filters, search and a deploy button on every row.</p>
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/apps-light.webp" width="1440" height="900" alt="Apps list with Laravel, Node and custom apps" class="shot-light" loading="lazy" decoding="async">
+                        <img src="/img/gui/apps.webp" width="1440" height="900" alt="Apps list with Laravel, Node and custom apps" class="shot-dark" loading="lazy" decoding="async">
+                    </div>
+                </figure>
+
+                <p>Creating an app starts with its type. Node framework presets (Next.js, Nuxt, SvelteKit, Astro, Remix, Vite) fill the mode and show the same defaults <code>cipi app create --node</code> uses.</p>
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/create-app.webp" width="1440" height="900" alt="Create app dialog with the Node type selected" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Create a Node SSR app with the Nuxt preset.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/job-credentials.webp" width="1440" height="900" alt="Job overlay with one-time credentials after creating an app" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Credentials returned by the job, with reveal and copy.</figcaption>
+                    </figure>
+                </div>
+
+                <h3>App detail</h3>
+                <p>A header with status, type, runtime and quick actions, then one tab per area. Tabs are part of the URL, so <code>?tab=deploy</code> can be bookmarked.</p>
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/app-overview.webp" width="1440" height="945" alt="App overview with details, configuration, healthcheck and search" loading="lazy" decoding="async">
+                    </div>
+                    <figcaption>Overview: details, configuration (PHP, Node pin, repository, branch, domain), HTTP healthcheck and Meilisearch.</figcaption>
+                </figure>
+
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/app-deploy-light.webp" width="1440" height="1240" alt="Deploy tab with deploy actions, the deploy audit ledger and the deploy pipeline options" class="shot-light" loading="lazy" decoding="async">
+                        <img src="/img/gui/app-deploy.webp" width="1440" height="1240" alt="Deploy tab with deploy actions, the deploy audit ledger and the deploy pipeline options" class="shot-dark" loading="lazy" decoding="async">
+                    </div>
+                    <figcaption>Deploy: actions, Git webhook, the hash-chained deploy audit and the structured deploy.php pipeline.</figcaption>
+                </figure>
+
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-routing.webp" width="1440" height="1006" alt="Routing tab with whole-app redirect, path redirects and reverse proxies" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Routing: whole-app and path redirects, prefix proxies.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-domains.webp" width="1440" height="907" alt="Domains and SSL tab" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Domains, Let&rsquo;s Encrypt and www &harr; apex.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-env.webp" width="1440" height="960" alt="Environment editor with masked secrets and one unsaved change" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>.env editing with masked secrets and change tracking.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-logs.webp" width="1440" height="960" alt="Laravel log viewer with errors highlighted" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Logs by type, paginated, with live refresh.</figcaption>
+                    </figure>
+                </div>
+
+                <h3>Jobs</h3>
+                <p>Deploys, SSL, app and database operations run as async jobs on the server. The overlay polls <code>GET /api/jobs/{id}</code>, shows the elapsed time and colour-codes the CLI output; closing it leaves the job running.</p>
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/job-deploy.webp" width="1440" height="900" alt="Completed deploy job with Deployer output" loading="lazy" decoding="async">
+                    </div>
+                </figure>
+
+                <h3>Databases and server</h3>
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/databases.webp" width="1440" height="900" alt="Databases page with backup, restore and password actions" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Databases: create, back up, restore, rotate passwords.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/server-monitor.webp" width="1440" height="900" alt="System monitor checks with states and thresholds" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Monitor checks with thresholds and last alert.</figcaption>
+                    </figure>
+                </div>
+
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/server-overview-light.webp" width="1440" height="1000" alt="Server overview with system, resources, attention list, services and PHP-FPM pools" class="shot-light" loading="lazy" decoding="async">
+                        <img src="/img/gui/server-overview.webp" width="1440" height="1000" alt="Server overview with system, resources, attention list, services and PHP-FPM pools" class="shot-dark" loading="lazy" decoding="async">
+                    </div>
+                    <figcaption>Server overview: system, resources, monitor and healthcheck alerts, services with restart, PHP-FPM pools.</figcaption>
+                </figure>
+
+                <h3>Connections, security and phones</h3>
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/connections.webp" width="1440" height="900" alt="Connections page with the server switcher open" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Connections, token rotation and the header server switcher.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/settings-2fa.webp" width="1440" height="1040" alt="Settings page during two-factor setup" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Profile, password and TOTP two-factor setup.</figcaption>
+                    </figure>
+                </div>
+
+                <div class="gui-shot-phones">
+                    <img src="/img/gui/mobile-apps.webp" width="585" height="1266" alt="Apps list on a phone" loading="lazy" decoding="async">
+                    <img src="/img/gui/mobile-app.webp" width="585" height="1266" alt="App detail on a phone" loading="lazy" decoding="async">
+                    <img src="/img/gui/mobile-nav.webp" width="585" height="1266" alt="Navigation drawer on a phone" loading="lazy" decoding="async">
+                </div>
             </div>
 
             <!-- ── Requirements ── -->
@@ -618,7 +800,7 @@ cipi gui remove --force</pre>
             <div class="doc-section" id="gui-architecture">
                 <p class="doc-section-label">Control Panel (GUI)</p>
                 <h2>Architecture</h2>
-                <p>The panel is a standard <strong>Laravel 12</strong> application distributed as the
+                <p>The panel is a standard <strong>Laravel</strong> application (12 or 13, Livewire 3.6+ or 4) distributed as the
                     <code>cipi/gui</code> package from its own repository
                     (<a href="https://github.com/cipi-sh/gui" target="_blank">cipi-sh/gui</a>) and installed via a
                     Composer VCS entry tracking <code>dev-main</code>. It lives at <code>/opt/cipi/gui</code>, mirroring
@@ -630,7 +812,7 @@ cipi gui remove --force</pre>
                                                 <tr><th>Aspect</th><th>Detail</th></tr>
                                             </thead>
                                             <tbody>
-                                                <tr><td>Framework</td><td>Laravel 12</td></tr>
+                                                <tr><td>Framework</td><td>Laravel 12 or 13, Livewire 3.6+ or 4 — no asset build step</td></tr>
                                                 <tr><td>Package</td><td><code>cipi/gui</code> (GitHub <code>cipi-sh/gui</code>, Composer VCS <code>dev-main</code>)</td></tr>
                                                 <tr><td>Install path</td><td><code>/opt/cipi/gui</code></td></tr>
                                                 <tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr>
@@ -647,7 +829,10 @@ cipi gui remove --force</pre>
                     managed server.</p>
 
                 <h3>API coverage</h3>
-                <p>The GUI consumes the full Cipi API OpenAPI surface. Keep the panel and each managed server's
+                <p>The GUI consumes the full Cipi API 1.31 surface. What Cipi 5.5 added on the CLI only —
+                    <code>cipi disk</code>, per-app disk limits, <code>cipi ssh apps</code>,
+                    <code>cipi firewall attempts</code>, Cloudflare DNS accounts — is not part of the API, so the
+                    panel points to the command instead. Keep the panel and each managed server's
                     <code>cipi/api</code> package current (<code>cipi gui update</code> /
                     <code>cipi api update</code>) so create forms and list fields match the server.</p>
                                 <div class="table-scroll">
@@ -734,13 +919,20 @@ cipi gui remove --force</pre>
                                             </tr>
                                             <tr>
                                                 <td>Databases</td>
-                                                <td>Engines + list (sync); create/backup/restore/password with optional
-                                                    <code>engine</code> (async; API <strong>1.12+</strong>). Database
+                                                <td>Engines + list (sync); create, backup, restore and password with
+                                                    optional <code>engine</code> (async; API <strong>1.12+</strong>) —
+                                                    backup and restore have their own buttons since panel 3.0. Database
                                                     deletion is host-CLI only since API <strong>1.19</strong></td>
                                             </tr>
                                             <tr>
+                                                <td>Health</td>
+                                                <td>Server-wide list (<code>GET /api/health</code>) on the Server page;
+                                                    per-app set, unset and check now (API <strong>1.16+</strong>)</td>
+                                            </tr>
+                                            <tr>
                                                 <td>Jobs</td>
-                                                <td>Poll status and CLI output</td>
+                                                <td>Poll status, CLI output and the parsed <code>result</code> (credentials,
+                                                    backup file, webhook token)</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -761,9 +953,9 @@ cipi gui remove --force</pre>
             </div>
 
             <div class="page-nav">
-                <a href="/docs/cli-client" class="page-nav-link page-nav-link--prev">
+                <a href="/docs/php-sdk" class="page-nav-link page-nav-link--prev">
                     <span class="page-nav-label">Previous</span>
-                    <span class="page-nav-title">CLI Client</span>
+                    <span class="page-nav-title">PHP SDK</span>
                 </a>
                 <a href="/docs/advanced" class="page-nav-link page-nav-link--next">
                     <span class="page-nav-label">Next</span>

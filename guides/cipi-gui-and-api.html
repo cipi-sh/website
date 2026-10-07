@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cipi control panel and API — what the two optional extensions unlock</title>
     <meta name="description" content="A practical guide to Cipi's two optional extensions: the REST API (cipi/api) and the web control panel (cipi/gui). REST, MCP, Swagger, multi-server dashboard, server cockpit and automation — without leaving the CLI behind.">
-    <meta name="keywords" content="cipi api, cipi gui, cipi control panel, laravel rest api, cipi mcp, cipi dashboard, cipi-cli, laravel server panel">
+    <meta name="keywords" content="cipi api, cipi gui, cipi control panel, laravel rest api, cipi mcp, cipi dashboard, cipi-cli, cipi/sdk, php sdk, laravel server panel">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/guides/cipi-gui-and-api">
@@ -137,10 +137,10 @@
     },
     {
       "@type": "Question",
-      "name": "What is the difference between REST, MCP and cipi-cli?",
+      "name": "What is the difference between REST, MCP, cipi-cli and the PHP SDK?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "The same API, three clients. REST is for scripts, CI and WHMCS. MCP is for AI agents (Cursor, VS Code, Claude). cipi-cli is the laptop terminal. The GUI is the fourth client, built for humans."
+        "text": "The same API, several clients. REST is the wire. cipi/sdk is that wire from PHP and Laravel. MCP is for AI agents (Cursor, VS Code, Claude). cipi-cli is the laptop terminal. The GUI is the client built for humans. WHMCS provisions hosting on the same routes."
       }
     },
     {
@@ -321,7 +321,7 @@
 
         <span class="cmp-eyebrow">GUI · API · MCP</span>
         <h1>Cipi control panel and API: what the two <em>optional extensions</em> unlock</h1>
-        <p class="cmp-updated">By <a href="https://web.ap.it" target="_blank" rel="author">Andrea Pollastri</a> · Last updated: <time datetime="2026-08-22">August 22, 2026</time> · free to read, no paywall</p>
+        <p class="cmp-updated">By <a href="https://web.ap.it" target="_blank" rel="author">Andrea Pollastri</a> · Last updated: <time datetime="2026-10-07">October 7, 2026</time> · free to read, no paywall</p>
         <p class="lead"><a class="inline" href="/">Cipi</a> is, and stays, CLI-first. Everything a server needs — apps, databases, SSL, deploys, backups — is one <code>cipi</code> command over SSH. Since v4.7.0 you can add two optional packages: <strong>cipi/api</strong> and <strong>cipi/gui</strong>. This guide is about what they unlock together, and why neither is required.</p>
 
         <div class="toc">
@@ -339,7 +339,8 @@
                 <li><a href="#install">How to install them</a></li>
                 <li><a href="#security">SSL, 2FA and IP whitelist</a></li>
                 <li><a href="#use-cases">Use cases: teams, agencies, hosting, AI</a></li>
-                <li><a href="#clients">cipi-cli and WHMCS on the same wire</a></li>
+                <li><a href="#php-sdk">PHP SDK for Laravel and other frameworks</a></li>
+                <li><a href="#clients">cipi-cli, the PHP SDK, and WHMCS</a></li>
                 <li><a href="#faq">FAQ</a></li>
             </ol>
         </div>
@@ -466,8 +467,16 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
         <p>VS Code (Copilot) uses the same HTTP transport; Claude Code adds the server with <code>claude mcp add --transport http</code>; Claude Desktop goes through <code>mcp-remote</code>. Log tools redact common secrets before they return. The same protocol, on the app side, is what the <a class="inline" href="/guides/spec-driven-development-ai-laravel">in-app Agent MCP</a> exposes — two surfaces, one standard.</p>
 
         <h2 id="gui">The UI panel as a multi-server cockpit</h2>
-        <p>The GUI is a thin visual layer on top of the API. It lives in <code>/opt/cipi/gui</code>, it is Laravel 12, and it keeps no local queue workers: it authenticates to each server's API, dispatches jobs and polls their status. Tear the panel down and rebuild it elsewhere without touching a managed server.</p>
-        <p>One login, many servers. Register endpoint + token for production, staging and client boxes, then switch between them. It is the cockpit you want when you have more than one VPS and you do not want ten SSH sessions open.</p>
+        <p>The GUI is a thin visual layer on top of the API. It lives in <code>/opt/cipi/gui</code>, it is Laravel (12 or 13) with Livewire, and it keeps no local queue workers: it authenticates to each server's API, dispatches jobs and polls their status. Tear the panel down and rebuild it elsewhere without touching a managed server.</p>
+        <p>One login, many servers. Register endpoint + token for production, staging and client boxes, then switch between them from the header on any page. It is the cockpit you want when you have more than one VPS and you do not want ten SSH sessions open.</p>
+        <figure class="gui-shot">
+            <div class="gui-shot-frame">
+                <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                <img src="/img/gui/dashboard-light.webp" width="1440" height="900" alt="Cipi control panel dashboard with three servers" class="shot-light" loading="lazy" decoding="async">
+                <img src="/img/gui/dashboard.webp" width="1440" height="900" alt="Cipi control panel dashboard with three servers" class="shot-dark" loading="lazy" decoding="async">
+            </div>
+            <figcaption>The dashboard checks every server in parallel: resources, services, apps and Cipi version.</figcaption>
+        </figure>
         <div class="note">
             <p>The panel needs the API on <em>every</em> server you want to manage, with a full-ability Bearer token (include <code>www-manage</code>, <code>status-view</code> and, for app tooling, <code>apps-env</code>, <code>apps-auth</code>, <code>apps-artisan</code>, <code>apps-run</code>, <code>apps-deploy-config</code>). Without the API, the GUI is an empty shell.</p>
         </div>
@@ -481,21 +490,59 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
             <li><strong><code>.env</code>, <code>auth.json</code>, Artisan, App commands</strong> — editor and terminal output with Markdown copy (API <strong>1.14+</strong> / Cipi <strong>5.0.3+</strong>).</li>
             <li><strong>Multi-engine databases</strong> — pick MariaDB or PostgreSQL at create time; backup, restore and password rotation from the browser (API <strong>1.12+</strong> / Cipi <strong>4.8+</strong>).</li>
             <li><strong>Logs</strong> — nginx, PHP-FPM, Laravel, worker, deploy: type filter, pagination, auto-refresh. Common secrets are redacted.</li>
-            <li><strong>Job overlay</strong> — spinner and CLI output while the panel polls <code>GET /api/jobs/{id}</code>.</li>
+            <li><strong>Job overlay</strong> — live status, elapsed time and CLI output while the panel polls <code>GET /api/jobs/{id}</code>; one-time credentials (SSH and database passwords, deploy key, webhook token) come back with copy buttons.</li>
             <li><strong>Live dashboard</strong> — CPU, memory, disk, services and app count via <code>GET /api/status</code>.</li>
         </ul>
+        <div class="gui-shot-grid">
+            <figure class="gui-shot">
+                <div class="gui-shot-frame">
+                    <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                    <img src="/img/gui/apps.webp" width="1440" height="900" alt="Apps list with Laravel, Node and custom PHP apps" loading="lazy" decoding="async">
+                </div>
+                <figcaption>Apps of the current server, filtered by type.</figcaption>
+            </figure>
+            <figure class="gui-shot">
+                <div class="gui-shot-frame">
+                    <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                    <img src="/img/gui/app-deploy.webp" width="1440" height="1240" alt="Deploy tab with the deploy audit ledger" loading="lazy" decoding="async">
+                </div>
+                <figcaption>Deploy actions, the audit ledger and the deploy.php pipeline.</figcaption>
+            </figure>
+            <figure class="gui-shot">
+                <div class="gui-shot-frame">
+                    <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                    <img src="/img/gui/app-env.webp" width="1440" height="960" alt="Environment editor with masked secrets" loading="lazy" decoding="async">
+                </div>
+                <figcaption>.env with masked secrets and change tracking.</figcaption>
+            </figure>
+            <figure class="gui-shot">
+                <div class="gui-shot-frame">
+                    <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                    <img src="/img/gui/job-credentials.webp" width="1440" height="900" alt="Job overlay with one-time credentials after creating an app" loading="lazy" decoding="async">
+                </div>
+                <figcaption>A finished app create: credentials to save once.</figcaption>
+            </figure>
+        </div>
 
         <h2 id="cockpit">Server cockpit</h2>
         <p>From API <strong>1.15+</strong> / Cipi <strong>5.0.6+</strong> the panel does not only manage apps: it manages the box.</p>
         <ul>
             <li>Install PHP 8.3, 8.4 or 8.5 (removing a version or switching the default stays on the CLI since API <strong>1.19</strong>).</li>
-            <li>Add, rename and revoke SSH keys on the <code>cipi</code> user.</li>
+            <li>Add and revoke SSH keys on the <code>cipi</code> user.</li>
             <li>List and restart system services.</li>
             <li>Configure, test, enable and disable SMTP notifications (the password is never returned on GET).</li>
             <li>Per-app HTTP healthchecks — create, run, remove.</li>
             <li>IP whitelist for the panel API / MCP: one address or CIDR per line, or <code>*</code> to allow all.</li>
             <li>Since API <strong>1.31</strong>: Node runtimes, Meilisearch, the optional host packages catalog, the system monitor and Cloudflare Zero Trust — read-only, because installing software or changing a lock is an operator decision taken at the CLI.</li>
         </ul>
+        <figure class="gui-shot">
+            <div class="gui-shot-frame">
+                <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                <img src="/img/gui/server-overview-light.webp" width="1440" height="1000" alt="Server overview: system, resources, monitor alerts, services and PHP-FPM" class="shot-light" loading="lazy" decoding="async">
+                <img src="/img/gui/server-overview.webp" width="1440" height="1000" alt="Server overview: system, resources, monitor alerts, services and PHP-FPM" class="shot-dark" loading="lazy" decoding="async">
+            </div>
+            <figcaption>The Server page: overview plus PHP, Node, databases, services, health, monitor, email, SSH, search, packages, Zero Trust and API access.</figcaption>
+        </figure>
         <p>That is the piece that makes the GUI a real alternative to a SaaS panel, without moving the source of truth off the server.</p>
 
         <h2 id="install">How to install them</h2>
@@ -521,20 +568,30 @@ $ cipi api ip-whitelist show --json</code></pre>
 
         <h2 id="use-cases">Use cases: teams, agencies, hosting, AI</h2>
         <ul>
-            <li><strong>Freelancer with two VPS</strong> — API + <code>cipi-cli</code> from the laptop. The GUI is optional; a <code>prod</code> and a <code>staging</code> profile are enough.</li>
+            <li><strong>Freelancer with two VPS</strong> — API + <code>cipi-cli</code> from the laptop, or <code>cipi/sdk</code> inside a Laravel app. The GUI is optional; a <code>prod</code> and a <code>staging</code> profile are enough.</li>
             <li><strong>A team that does not live in SSH</strong> — one panel, 2FA, live dashboard, Artisan and logs without handing root to everyone.</li>
             <li><strong>Multi-client agency</strong> — one login, N servers. Each box has its own token; dropping a client is revoking a token, not uninstalling Cipi.</li>
             <li><strong>Hosting with billing</strong> — the <a class="inline" href="/docs/advanced#whmcs">WHMCS module</a> speaks the same REST API: create, SSL, deploy, delete on the product lifecycle.</li>
             <li><strong>AI agents</strong> — server MCP for infrastructure; in-app Agent MCP for the codebase. Specs and guardrails in the <a class="inline" href="/guides/spec-driven-development-ai-laravel">spec-driven guide</a>.</li>
         </ul>
 
-        <h2 id="clients">cipi-cli and WHMCS on the same wire</h2>
-        <p>The <a class="inline" href="/docs/cli-client">CLI client</a> is a Go binary that talks REST from your laptop: apps, aliases, deploy, SSL, databases, global status, jobs. Same tokens, same multi-server profiles. Prefer the terminal? You do not need the GUI. Prefer the browser? You do not need <code>cipi-cli</code>. Need both on different days? Same API.</p>
+        <h2 id="php-sdk">PHP SDK for Laravel and other frameworks</h2>
+        <p>Until now the official clients of this API were the terminal (<code>cipi-cli</code>), the browser (the GUI), MCP, and WHMCS. <a class="inline" href="/docs/php-sdk"><code>cipi/sdk</code></a> is the PHP client: the same token, the same routes, from a Laravel app or any other PHP process. It does not SSH and it does not run <code>cipi</code> locally. Install it where your code runs:</p>
+        <pre class="code-pre"><code>$ composer require cipi/sdk</code></pre>
+        <pre class="code-pre"><code>use Cipi\Sdk\Cipi;
+
+$cipi = Cipi::connect('https://api.example.com', getenv('CIPI_TOKEN'));
+$cipi->apps()->list();
+$cipi->wait($cipi->deploys()->start('shop'));</code></pre>
+        <p>On Laravel 11, 12, or 13 the service provider is discovered for you. Set <code>CIPI_BASE_URL</code> and <code>CIPI_TOKEN</code>, then call the <code>Cipi</code> facade or inject <code>Cipi\Sdk\Cipi</code>. Symfony and plain scripts use <code>Cipi::connect()</code> and pass the instance through their own container. HTTPS is required, redirects are not followed, and the token stays out of logs and exception messages. Full method list, job polling, and the error map: <a class="inline" href="/docs/php-sdk">PHP SDK</a>.</p>
+
+        <h2 id="clients">cipi-cli, the PHP SDK, and WHMCS</h2>
+        <p>The <a class="inline" href="/docs/cli-client">CLI client</a> is a Go binary that talks REST from your laptop: apps, aliases, deploy, SSL, databases, global status, jobs. Same tokens, same multi-server profiles. Prefer the terminal? You do not need the GUI. Prefer PHP? Use <a class="inline" href="/docs/php-sdk"><code>cipi/sdk</code></a>. Prefer the browser? You do not need either. Need all of them on different days? Same API.</p>
         <pre class="code-pre"><code>$ cipi-cli api token add prod
 $ cipi-cli prod apps list
 $ cipi-cli prod deploy myapp
 $ cipi-cli status</code></pre>
-        <p>WHMCS is the third official client: hosting provisioning with no Composer, drop-in to the modules folder. None of the three replaces <code>cipi</code> on the server — they remote it.</p>
+        <p>WHMCS is another official client: hosting provisioning with no Composer, drop-in to the modules folder. None of these replaces <code>cipi</code> on the server — they remote it.</p>
 
         <div class="cta-box">
             <h2>Try both extensions on a Cipi VPS</h2>
@@ -551,13 +608,14 @@ $ cipi-cli status</code></pre>
         <div class="faq-item"><h3>Do I need the UI panel to use Cipi?</h3><p>No. Cipi is CLI-first. Without <code>cipi api</code> and without <code>cipi gui</code> the server still does the same work: apps, deploys, SSL, backups, firewall. Both packages are opt-in extensions since v4.7.0.</p></div>
         <div class="faq-item"><h3>Can I use the GUI without the API?</h3><p>No. The panel is an HTTP client of the REST API. Every managed server needs <code>cipi api</code> and a Bearer token with the abilities you want to expose. Without the API there is nothing to show.</p></div>
         <div class="faq-item"><h3>Does the GUI replace the CLI on the server?</h3><p>No. Every browser action is the same <code>cipi</code> command executed via sudo by the panel API. You can keep working over SSH in parallel, with no split-brain state.</p></div>
-        <div class="faq-item"><h3>What is the difference between REST, MCP and cipi-cli?</h3><p>The same API, three clients. REST is for scripts, CI and WHMCS. MCP is for AI agents (Cursor, VS Code, Claude). <code>cipi-cli</code> is the laptop terminal. The GUI is the fourth client, built for humans.</p></div>
+        <div class="faq-item"><h3>What is the difference between REST, MCP, cipi-cli and the PHP SDK?</h3><p>The same API, several clients. REST is the wire. <a class="inline" href="/docs/php-sdk"><code>cipi/sdk</code></a> is that wire from PHP and Laravel. MCP is for AI agents (Cursor, VS Code, Claude). <code>cipi-cli</code> is the laptop terminal. The GUI is the client built for humans. WHMCS provisions hosting on the same routes.</p></div>
         <div class="faq-item"><h3>Can I manage several servers from one panel?</h3><p>Yes. Register endpoint and token for each box and switch between them with the same login. The panel is stateless relative to your infrastructure: it does not store server state, it reads it from the API.</p></div>
 
         <h2>Keep reading</h2>
         <div class="related">
             <a href="/docs/gui">Docs: GUI panel</a>
             <a href="/docs/advanced#cipi-api">Docs: cipi api</a>
+            <a href="/docs/php-sdk">PHP SDK</a>
             <a href="/docs/cli-client">CLI client</a>
             <a href="/guides/spec-driven-development-ai-laravel">Spec-driven AI development</a>
             <a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on Ubuntu</a>

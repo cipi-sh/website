@@ -282,9 +282,24 @@
                 <a href="/docs/cli-client#cli-requirements" class="sidebar-link">requirements</a>
             </div>
 
+            <div class="sidebar-group" data-chapter="php-sdk">
+                <a href="/docs/php-sdk" class="sidebar-group-label">PHP SDK</a>
+                <a href="/docs/php-sdk#sdk-install" class="sidebar-link">installation</a>
+                <a href="/docs/php-sdk#sdk-client" class="sidebar-link">client</a>
+                <a href="/docs/php-sdk#sdk-laravel" class="sidebar-link">Laravel</a>
+                <a href="/docs/php-sdk#sdk-apps" class="sidebar-link">apps</a>
+                <a href="/docs/php-sdk#sdk-deploy" class="sidebar-link">deploy &amp; jobs</a>
+                <a href="/docs/php-sdk#sdk-domains" class="sidebar-link">domains &amp; SSL</a>
+                <a href="/docs/php-sdk#sdk-data" class="sidebar-link">env, auth, databases</a>
+                <a href="/docs/php-sdk#sdk-server" class="sidebar-link">server</a>
+                <a href="/docs/php-sdk#sdk-security" class="sidebar-link">security</a>
+                <a href="/docs/php-sdk#sdk-errors" class="sidebar-link">errors</a>
+            </div>
+
             <div class="sidebar-group" data-chapter="gui">
                 <a href="/docs/gui" class="sidebar-group-label">control panel (GUI)</a>
                 <a href="/docs/gui#gui-overview" class="sidebar-link">overview</a>
+                <a href="/docs/gui#gui-tour" class="sidebar-link">screenshot tour</a>
                 <a href="/docs/gui#gui-requirements" class="sidebar-link">requirements</a>
                 <a href="/docs/gui#gui-install" class="sidebar-link"><code>gui &lt;domain&gt;</code></a>
                 <a href="/docs/gui#gui-ssl" class="sidebar-link"><code>gui ssl</code></a>
@@ -306,7 +321,7 @@
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
-                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains</a>
+                <a href="/docs/advanced#wildcard-domains" class="sidebar-link">wildcard domains &amp; SSL</a>
                 <a href="/docs/advanced#nginx-config" class="sidebar-link">edit Nginx config</a>
                 <a href="/docs/advanced#uninstall" class="sidebar-link">uninstall Cipi</a>
             </div>
@@ -593,10 +608,11 @@
 
             <div class="doc-section" id="cli-aliases">
                 <h2><code>cipi alias</code></h2>
-                <p>Add multiple domains or subdomains to any app. After adding aliases, run
-                    <code>cipi ssl install</code> to provision or renew the certificate with SAN coverage for all
-                    domains. Since <strong>v4.8.0</strong>, <code>cipi alias add|remove</code> regenerates the vhost
-                    and re-applies SSL with <code>certbot install --redirect</code> so HTTPS is not dropped.
+                <p>Add multiple domains or subdomains to any app. <code>cipi alias add|remove</code> regenerates the
+                    vhost, which keeps serving the app's certificate (since <strong>v5.5.1</strong> Cipi writes the
+                    HTTPS block itself), and <code>cipi alias add</code> tells you whether the new name is already
+                    covered by that certificate or which command adds it — usually <code>cipi ssl install</code>, which
+                    reissues one SAN certificate for all the domains.
                 </p>
 
                 <div class="code-block">
@@ -610,10 +626,11 @@
                 </div>
                 <p>Since <strong>v5.1.0</strong>, <strong>wildcard aliases</strong> such as
                     <code>*.example.com</code> are accepted — Nginx matches a wildcard <code>server_name</code>
-                    natively, and multi-tenant apps need it. Quote the pattern so the shell does not expand it, and
-                    issue the certificate with
-                    <code>cipi ssl install myapp --dns=cloudflare --wildcard</code>: HTTP-01 cannot validate a
-                    wildcard.</p>
+                    natively, and multi-tenant apps need it. Quote the pattern so the shell does not expand it. The
+                    alias routes the subdomains; the certificate comes from
+                    <code>cipi ssl install myapp --dns=cloudflare</code>, which includes the wildcard alias: HTTP-01
+                    cannot validate a wildcard. With or without Cloudflare, proxy on or off, the whole procedure is in
+                    <a href="/docs/advanced#wildcard-domains">Wildcard domains &amp; SSL</a>.</p>
                 <p>For www ↔ apex canonical redirects, prefer <a href="/docs/infrastructure#cli-www"><code>cipi www</code></a>
                     instead of managing the counterpart host by hand.</p>
             </div>
@@ -906,9 +923,13 @@
 
             <div class="doc-section" id="cli-ssl">
                 <h2><code>cipi ssl</code></h2>
-                <p>Certbot manages Let's Encrypt certificates. Certificates auto-renew via a weekly cron.
-                    <code>cipi ssl status</code> shows expiry dates with color-coded warnings: green (>30 days), yellow
-                    (14–30 days), red (&lt;14 days).
+                <p>Certbot issues and renews Let's Encrypt certificates; since <strong>v5.5.1</strong> Cipi writes the
+                    HTTPS server block of the vhost itself (certbot never edits an app vhost), so every vhost change —
+                    alias, www, basic auth, redirects, Octane, Reverb, suspend — keeps HTTPS, wildcard certificates
+                    included. Certificates renew through certbot.timer and a weekly cron, each the way it was issued,
+                    and nginx reloads after every renewal. <code>cipi ssl status</code> lists the certificates with
+                    their expiry and, per app, what it is served with and which of its names the certificate does not
+                    cover.
                 </p>
 
                 <div class="code-block">
@@ -917,12 +938,14 @@
                     <pre><span class="p">$</span> cipi ssl install myapp   <span class="c"># provision / renew — includes all aliases (SAN)</span>
 <span class="p">$</span> cipi ssl force myapp     <span class="c"># re-apply HTTP→HTTPS redirect (no new issuance)</span>
 <span class="p">$</span> cipi ssl renew            <span class="c"># force renewal of all certificates</span>
-<span class="p">$</span> cipi ssl status           <span class="c"># show all certs with expiry dates</span>
+<span class="p">$</span> cipi ssl status           <span class="c"># certificates + per app: served with, names not covered</span>
 
 <span class="c"># DNS-01 via Cloudflare (v5.0+) — wildcard certs</span>
-<span class="p">$</span> cipi ssl dns set --provider=cloudflare --token=YOUR_CF_TOKEN
-<span class="p">$</span> cipi ssl install myapp --dns=cloudflare
-<span class="p">$</span> cipi ssl install myapp --dns=cloudflare --wildcard
+<span class="p">$</span> cipi ssl dns set --token=YOUR_CF_TOKEN               <span class="c"># Zone → DNS → Edit</span>
+<span class="p">$</span> cipi ssl install myapp --dns=cloudflare              <span class="c"># includes a '*.myapp.com' alias</span>
+<span class="p">$</span> cipi ssl install myapp --dns=cloudflare --wildcard   <span class="c"># adds myapp.com + *.myapp.com anyway</span>
+<span class="p">$</span> cipi ssl install myapp --dns=cloudflare --no-wildcard
+<span class="p">$</span> cipi ssl install myapp --http                        <span class="c"># back from DNS-01 to HTTP-01 (v5.5.1+)</span>
 
 <span class="c"># Several Cloudflare accounts (v5.5.0+)</span>
 <span class="p">$</span> cipi ssl dns set --name=client-a --token=CLIENT_A_TOKEN
@@ -940,8 +963,23 @@
                 <p>Since <strong>v5.0</strong>, optional <strong>DNS-01</strong> challenges via Cloudflare replace the
                     default HTTP-01 flow when you need wildcard certificates or cannot expose port 80. Configure once
                     with <code>cipi ssl dns set</code>, then pass <code>--dns=cloudflare</code> (and optionally
-                    <code>--wildcard</code>) to <code>cipi ssl install</code>.
-                </p>
+                    <code>--wildcard</code>) to <code>cipi ssl install</code>. Since <strong>v5.5.1</strong>:</p>
+                <ul>
+                    <li>An app whose certificate was issued over DNS-01 is <strong>reissued over DNS-01</strong> by a
+                        plain <code>cipi ssl install &lt;app&gt;</code> (and by the panel API), with the same account and
+                        wildcard. Before, it fell back to HTTP-01, which replaced the certificate's names and dropped
+                        the wildcard. <code>--http</code> goes back to HTTP-01 on purpose.</li>
+                    <li>The certificate names are primary + aliases (plus <code>&lt;apex&gt;</code> +
+                        <code>*.&lt;apex&gt;</code> with <code>--wildcard</code>), without the names a wildcard already
+                        covers: Let's Encrypt refuses <code>*.example.com</code> and <code>www.example.com</code> in the
+                        same order. <code>--wildcard</code> is remembered; <code>--no-wildcard</code> drops it, and
+                        <code>--wildcard</code> without <code>--dns</code> is an error.</li>
+                    <li>A wildcard certificate does not route anything: when <code>*.&lt;apex&gt;</code> is not one of
+                        the app's names, the install says <code>cipi alias add &lt;app&gt; '*.&lt;apex&gt;'</code>.</li>
+                </ul>
+                <p>Behind the <strong>Cloudflare proxy</strong>, use SSL/TLS mode <strong>Full (strict)</strong> —
+                    Flexible loops on Cipi's HTTPS redirect. Error codes, Origin CA and the setup without Cloudflare:
+                    <a href="/docs/advanced#wildcard-domains">Wildcard domains &amp; SSL</a>.</p>
 
                 <h3>Domains in different Cloudflare accounts (v5.5.0+)</h3>
                 <p>A DNS-01 certificate needs an API token of the Cloudflare account that holds its zone. Up to 5.4 the
@@ -990,10 +1028,10 @@
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <div>After adding domain aliases with <code>cipi alias add</code>, always run
-                        <code>cipi ssl install</code> again to provision a new SAN certificate covering all domains.
-                        If HTTPS redirect was lost after a vhost change, use <code>cipi ssl force</code> instead of
-                        re-issuing.
+                    <div>After <code>cipi alias add</code>, run the command it prints — <code>cipi ssl install</code> for a
+                        new name, <code>--dns=cloudflare</code> for a wildcard — unless it says the name is already
+                        covered (a <code>*.example.com</code> certificate covers every new tenant subdomain).
+                        <code>cipi ssl force</code> turns the HTTP → HTTPS redirect back on without reissuing.
                     </div>
                 </div>
             </div>
