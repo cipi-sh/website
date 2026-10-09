@@ -185,6 +185,7 @@
                 <a href="/docs/agent#agent-webhook" class="sidebar-link">webhook</a>
                 <a href="/docs/agent#agent-health" class="sidebar-link">health check</a>
                 <a href="/docs/agent#agent-mcp" class="sidebar-link">MCP server</a>
+                <a href="/docs/agent#agent-yml" class="sidebar-link">cipi.yml tooling</a>
                 <a href="/docs/agent#agent-anonymizer" class="sidebar-link">database anonymizer</a>
                 <a href="/docs/agent#agent-security" class="sidebar-link">security</a>
                 <a href="/docs/agent#agent-env" class="sidebar-link">ENV variables</a>
@@ -664,6 +665,21 @@
                     <code>shared/cipi.yml</code> — and, since <strong>v5.2.3</strong>, in <code>htdocs/</code>, which
                     is where a <a href="/docs/apps#cli-app-custom">custom app</a>'s repository actually lives.
                     Override with <code>--file=&lt;path&gt;</code>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Validate before you push.</strong> <a href="/docs/agent#agent-yml"><code>cipi/agent</code>
+                        2.0</a> ships the same validator: <code>php artisan cipi:yml validate</code> gives the server's
+                        verdict and messages locally and in CI (<code>--json</code>), checks <code>env.required</code>
+                        against the local <code>.env</code>, and <code>cipi:yml generate --write</code> infers a first
+                        file from the Laravel app (Horizon, Reverb, Scout, scheduler, <code>/up</code>). A JSON Schema
+                        for editors comes with <code>cipi:yml schema --write</code>.</div>
+                </div>
 
                 <div class="callout warning">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -1914,7 +1930,11 @@ task('deploy', [
                     Since <strong>v5.2.3</strong> that covers GitHub, GitLab, <strong>Bitbucket Cloud</strong>
                     (<code>repo:push</code> with an HMAC <code>secret</code>) and <strong>Azure DevOps</strong>
                     (a <code>git.push</code> service hook sending <code>X-Gitlab-Token</code>) — the agent's existing
-                    checks accept both unchanged.
+                    checks accept both unchanged; <strong>cipi/agent 2.0</strong> adds Gitea / Forgejo
+                    (<code>X-Gitea-Signature</code>), answers GitHub <code>ping</code> with <code>pong</code>, ignores
+                    non-push events with <code>202</code>, and writes the pusher, commit, delivery id and client IP into
+                    the trigger file so they land as <code>claimed</code> fields in the
+                    <a href="#deploy-audit">deploy audit ledger</a>.
                 </p>
 
                 <h3>How the webhook flow works</h3>

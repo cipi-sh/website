@@ -43,7 +43,7 @@
   "inLanguage": "en",
   "image": "https://cipi.sh/og.png",
   "datePublished": "2026-08-22",
-  "dateModified": "2026-08-22",
+  "dateModified": "2026-10-09",
   "author": {
     "@type": "Person",
     "name": "Andrea Pollastri",
@@ -124,7 +124,7 @@
       "name": "What is the difference between the agent MCP and the Cipi API MCP?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "The agent MCP is inside one Laravel app (six tools: health, logs, SQL, Artisan, deploy). The panel API MCP manages the whole VPS — create apps, SSL, databases, PHP. Use the agent for debug and seeders; use the API to provision."
+        "text": "The agent MCP is inside one Laravel app (eleven tools: health, deploy status, logs, SQL and schema, Artisan, env check, cipi.yml, anonymizer, deploy — plus panel tools via cipi/sdk). The panel API MCP manages the whole VPS — create apps, SSL, databases, PHP. Use the agent for debug and seeders; use the API to provision."
       }
     },
     {
@@ -132,7 +132,7 @@
       "name": "Can I run db:seed on production through MCP?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Technically yes — db:seed is not blocked. Practically, only run a named, reviewed seeder, and never migrate:fresh --seed on live data. Prefer staging, then confirm with db_query."
+        "text": "db:seed is not blocked, so yes. migrate:fresh, migrate:reset and db:wipe are blocked since cipi/agent 2.0. Practically, only run a named, reviewed seeder, prefer staging, then confirm with db_query."
       }
     },
     {
@@ -140,7 +140,7 @@
       "name": "Which Artisan commands are blocked?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "serve, tinker, queue:work, queue:listen, schedule:work, horizon, octane:start, reverb:start. Long-running and interactive processes do not belong on an HTTP tool call."
+        "text": "serve, tinker, pail, queue:work, queue:listen, schedule:work, horizon, horizon:work, horizon:supervisor, octane:start, reverb:start, db, db:wipe, migrate:fresh, migrate:reset. Long-running, interactive and data-destroying processes do not belong on an HTTP tool call."
       }
     },
     {
@@ -148,7 +148,7 @@
       "name": "Does cipi/agent work without a Cipi server?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Health check and MCP yes, on any Laravel 12+ host. Webhook-triggered Deployer deploys and the extra log types expect the Cipi layout under /home/<app>/."
+        "text": "Health check, MCP, cipi:yml validate and the anonymizer yes, on any Laravel 12 or 13 host. Webhook-triggered Deployer deploys, release information and the extra log types expect the Cipi layout under /home/<app>/."
       }
     },
     {
@@ -393,9 +393,9 @@
 
         <h2 id="why">Why an agent inside the app</h2>
         <p><a class="inline" href="/">Cipi</a> already owns the server: Nginx, PHP, databases, SSL, zero-downtime deploys. That is infrastructure. A Laravel app still has its own world — Eloquent models, seeders, Horizon queues, daily log rotation, the current migration set. An AI that only sees the repo guesses. An AI that can call tools on the <em>running</em> app stops guessing.</p>
-        <p>That is what the project MCP is for. It lives at <code>POST /cipi/mcp</code> on the app domain, talks MCP 2024-11-05 over HTTPS, and exposes six tools scoped to <strong>that</strong> application. No root SSH. No shared deploy key in the IDE. The assistant asks for health, tails <code>laravel.log</code>, runs <code>db:seed --class=RoleSeeder</code> on staging, and checks the row count with <code>db_query</code>.</p>
+        <p>That is what the project MCP is for. It lives at <code>POST /cipi/mcp</code> on the app domain, talks every current MCP revision (2024-11-05 through 2026-07-28) over HTTPS, and exposes eleven tools scoped to <strong>that</strong> application — plus five panel tools when <a class="inline" href="/docs/php-sdk">cipi/sdk</a> is configured. No root SSH. No shared deploy key in the IDE. The assistant asks for health, tails <code>laravel.log</code>, runs <code>db:seed --class=RoleSeeder</code> on staging, and checks the row count with <code>db_query</code>.</p>
         <div class="note">
-            <p>Health check and MCP work on any Laravel 12+ host. Webhook deploys and the full log set (<code>nginx</code>, <code>php</code>, <code>worker</code>, <code>deploy</code>) expect a <a class="inline" href="/docs/getting-started">Cipi-managed</a> environment. The reference lives in the <a class="inline" href="/docs/agent">Cipi Agent docs</a>.</p>
+            <p>Health check and MCP work on any Laravel 12+ host. Webhook deploys and the full log set (<code>nginx</code>, <code>php</code>, <code>worker</code>, <code>horizon</code>, <code>reverb</code>, <code>deploy</code>) expect a <a class="inline" href="/docs/getting-started">Cipi-managed</a> environment. The reference lives in the <a class="inline" href="/docs/agent">Cipi Agent docs</a>.</p>
         </div>
 
         <h2 id="install">Install cipi/agent</h2>
@@ -403,7 +403,7 @@
         <div class="code-pre"><code>$ composer require cipi/agent
 $ php artisan cipi:status   <span class="c"># config + live DB connectivity</span></code></div>
         <p>On a Cipi VPS, <code>cipi app create</code> already injects <code>CIPI_APP_USER</code>, <code>CIPI_WEBHOOK_TOKEN</code> and the deploy paths. You only enable the optional services you want. Off Cipi, publish the config if you need different defaults:</p>
-        <div class="code-pre"><code>$ php artisan vendor:publish --tag=cipi-config</code></div>
+        <div class="code-pre"><code>$ php artisan vendor:publish --tag=cipi-agent-config</code></div>
         <p>Commit and push. The next deploy picks the package up. Nothing else to wire on the panel side.</p>
 
         <h2 id="features">What the package actually does</h2>
@@ -411,10 +411,11 @@ $ php artisan cipi:status   <span class="c"># config + live DB connectivity</spa
             <table class="cmp-table">
                 <thead><tr><th>Feature</th><th>Endpoint</th><th>When you use it</th></tr></thead>
                 <tbody>
-                    <tr><td>Webhook deploy</td><td><code>POST /cipi/webhook</code></td><td>GitHub / GitLab push writes <code>.deploy-trigger</code>; Deployer runs as the app user within a minute</td></tr>
-                    <tr><td>Health check</td><td><code>GET /cipi/health</code></td><td>UptimeRobot / Grafana: app, database, cache, queue backlog, last commit</td></tr>
-                    <tr><td>Project MCP</td><td><code>POST /cipi/mcp</code></td><td>Cursor / VS Code / Claude: health, logs, SQL, Artisan, deploy — this guide</td></tr>
-                    <tr><td>DB anonymizer</td><td><code>POST /cipi/db</code></td><td>GDPR-safe dumps for local/QA, Faker transforms, signed 15-minute download — from a laptop: <code>cipi-cli db anonymize</code></td></tr>
+                    <tr><td>Webhook deploy</td><td><code>POST /cipi/webhook</code></td><td>GitHub / GitLab / Bitbucket / Gitea / Azure push writes <code>.deploy-trigger</code> (with audit-ledger claims); Deployer runs as the app user within a minute</td></tr>
+                    <tr><td>Health check</td><td><code>GET /cipi/health</code></td><td>UptimeRobot / Grafana: app, database, cache, queue backlog and failed jobs, storage, live release and commit</td></tr>
+                    <tr><td>Project MCP</td><td><code>POST /cipi/mcp</code></td><td>Cursor / VS Code / Claude: health, deploy status, logs, SQL and schema, Artisan, env check, cipi.yml, anonymizer, deploy — this guide</td></tr>
+                    <tr><td>cipi.yml tooling</td><td><code>php artisan cipi:yml</code></td><td>Validate, inspect or generate the <a class="inline" href="/cipi-yml">cipi.yml</a> with the server's own rules, locally and in CI (2.0)</td></tr>
+                    <tr><td>DB anonymizer</td><td><code>POST /cipi/db</code></td><td>GDPR-safe MySQL/PostgreSQL dumps for local/QA, consistent Faker transforms, signed 15-minute download — from a laptop: <code>cipi-cli db anonymize</code></td></tr>
                 </tbody>
             </table>
         </div>
@@ -425,7 +426,7 @@ $ php artisan cipi:status   <span class="c"># config + live DB connectivity</spa
         <div class="code-pre"><code>$ php artisan cipi:service mcp --enable
 $ php artisan cipi:generate-token mcp
 $ php artisan cipi:mcp</code></div>
-        <p><code>cipi:mcp</code> prints the six tools and ready-to-paste JSON for Cursor (native HTTP), VS Code / Copilot, and Claude Desktop (via <code>mcp-remote</code>). The token lands in <code>.env</code> as <code>CIPI_MCP_TOKEN</code>. Do not reuse the webhook secret.</p>
+        <p><code>cipi:mcp</code> prints the tools, the resources and ready-to-paste snippets for Cursor (native HTTP), VS Code / Copilot (token prompted once), Claude Code (<code>claude mcp add</code>) and Claude Desktop (via <code>mcp-remote</code>). The token lands in <code>.env</code> as <code>CIPI_MCP_TOKEN</code>. Do not reuse the webhook secret.</p>
 
         <h2 id="connect">Connect Cursor, VS Code or Claude</h2>
         <p>For Cursor, put this in <code>~/.cursor/mcp.json</code> (or Settings → MCP). Replace the domain and the token from your <code>.env</code>:</p>
@@ -448,17 +449,17 @@ $ php artisan cipi:mcp</code></div>
         <h2 id="debug">Debug without SSH</h2>
         <p>This is the part that changes the daily rhythm. You stay in the IDE. The assistant talks to the live app.</p>
         <h3>health — is it even up?</h3>
-        <p>Same payload as <code>GET /cipi/health</code>: Laravel version, <code>APP_DEBUG</code>, database name, cache, queue driver, pending jobs, last deploy commit. Ask: <em>“Is production healthy? Any queue backlog?”</em> If <code>checks.app.debug</code> is <code>true</code> on a public host, you just found a problem without opening <code>.env</code>.</p>
+        <p>Same payload as <code>GET /cipi/health</code>: Laravel version, <code>APP_DEBUG</code>, maintenance mode, database name, cache, queue driver, pending and failed jobs, storage, live release and commit. <code>deploy_status</code> adds the releases kept for rollback, whether a deploy is queued or running, and the last automatic deploy's outcome. Ask: <em>“Is production healthy? Any queue backlog?”</em> If <code>checks.app.debug</code> is <code>true</code> on a public host, you just found a problem without opening <code>.env</code>.</p>
         <h3>logs — last errors, not the whole file</h3>
         <p>The <code>logs</code> tool reads the last N lines (default 50, max 500) and keeps stack traces intact. Filters:</p>
         <ul>
-            <li><code>type</code> — <code>laravel</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>, <code>deploy</code></li>
+            <li><code>type</code> — <code>laravel</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>, <code>horizon</code>, <code>reverb</code>, <code>deploy</code>, <code>all</code></li>
             <li><code>level</code> — <code>error</code>, <code>warning</code>, … (Laravel only)</li>
             <li><code>search</code> — case-insensitive keyword, e.g. <code>PaymentFailed</code> or a job class</li>
         </ul>
-        <p>Daily rotation (<code>laravel-YYYY-MM-DD.log</code>) is detected automatically. A useful first prompt after a 500: <em>“Show the last 100 Laravel errors, then the matching nginx lines.”</em></p>
+        <p>Daily rotation (<code>laravel-YYYY-MM-DD.log</code>) is detected automatically, and since 2.0 common secrets (tokens, passwords, DSNs, <code>APP_KEY</code>) are redacted before the text reaches the model. A useful first prompt after a 500: <em>“Show the last 100 Laravel errors, then the matching nginx lines.”</em></p>
         <h3>db_query — look, don’t wreck</h3>
-        <p>Read: <code>SELECT</code>, <code>SHOW</code>, <code>DESCRIBE</code>, <code>EXPLAIN</code>. Write: <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>. Blocked: <code>DROP</code>, <code>TRUNCATE</code>, <code>GRANT</code>, <code>REVOKE</code>, file I/O. Results come back as an ASCII table, capped at 100 rows — enough to confirm a seeder, not enough to dump the users table.</p>
+        <p>Read: <code>SELECT</code>, <code>WITH</code>, <code>SHOW</code>, <code>DESCRIBE</code>, <code>EXPLAIN</code>. Write: <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> — or nothing, with <code>CIPI_MCP_DB_WRITE=false</code>. Blocked: DDL (<code>DROP</code>, <code>ALTER</code>, <code>TRUNCATE</code>, <code>CREATE</code>), <code>GRANT</code>, <code>REVOKE</code>, file I/O, multi-statement input. Results come back as a table or JSON, capped at 100 rows (reads without <code>LIMIT</code> are capped automatically) — enough to confirm a seeder, not enough to dump the users table. <code>db_schema</code> shows tables, row counts, columns and which columns look like personal data before you write the query.</p>
         <div class="code-pre"><code><span class="c"># after a RoleSeeder on staging</span>
 SELECT id, name, created_at FROM roles ORDER BY id;
 
@@ -466,7 +467,7 @@ SELECT id, name, created_at FROM roles ORDER BY id;
 SELECT COUNT(*) FROM users WHERE created_at &gt;= CURRENT_DATE;</code></div>
 
         <h2 id="seeders">Seeders, migrate and cache via artisan</h2>
-        <p>The <code>artisan</code> tool is the reason this package earns a slot in a Laravel repo. It runs any Artisan command except the long-running / interactive ones (<code>serve</code>, <code>tinker</code>, <code>queue:work</code>, <code>queue:listen</code>, <code>schedule:work</code>, <code>horizon</code>, <code>octane:start</code>, <code>reverb:start</code>). Everything else — including seeders — is fair game.</p>
+        <p>The <code>artisan</code> tool is the reason this package earns a slot in a Laravel repo. It runs any Artisan command except the long-running / interactive ones (<code>serve</code>, <code>tinker</code>, <code>pail</code>, <code>queue:work</code>, <code>queue:listen</code>, <code>schedule:work</code>, <code>horizon</code>, <code>horizon:work</code>, <code>octane:start</code>, <code>reverb:start</code>) and, since 2.0, the data-destroying ones (<code>db:wipe</code>, <code>migrate:fresh</code>, <code>migrate:reset</code>). Everything else — including seeders — is fair game.</p>
         <p>Prompts that actually save a hop to SSH:</p>
         <ul>
             <li><em>“Run <code>migrate:status</code> on staging.”</em></li>
@@ -476,7 +477,7 @@ SELECT COUNT(*) FROM users WHERE created_at &gt;= CURRENT_DATE;</code></div>
             <li><em>“<code>cache:clear</code> and <code>optimize:clear</code> after the config change.”</em></li>
         </ul>
         <div class="note">
-            <p><strong>Do not</strong> point this at production and say “run the DatabaseSeeder”. <code>migrate:fresh --seed</code> is <em>not</em> in the blocked list — the package will execute it. Use named seeders, on staging, and confirm with <code>db_query</code>. Production data is not a playground just because the transport is MCP instead of SSH.</p>
+            <p><strong>Do not</strong> point this at production and say “run the DatabaseSeeder”. <code>migrate:fresh</code> is blocked since 2.0, but <code>db:seed</code> is not — the package will execute it. Use named seeders, on staging, and confirm with <code>db_query</code>. Production data is not a playground just because the transport is MCP instead of SSH.</p>
         </div>
         <p>A safe staging pattern: one seeder class per fixture, idempotent where you can, called by name. The assistant runs the class, reads the table, and only then do you promote the same seeder through CI. That is the opposite of “dump production and pray”.</p>
         <p>Pair it with the <a class="inline" href="/docs/agent#agent-anonymizer">anonymizer</a> when local needs volume without PII: anonymize a production-shaped dump (<code>cipi-cli db anonymize myapp --email you@example.com</code> from your terminal), load it locally, keep MCP seeders for the small reference tables (roles, plans, feature flags) that change every sprint.</p>
@@ -492,8 +493,8 @@ SELECT COUNT(*) FROM users WHERE created_at &gt;= CURRENT_DATE;</code></div>
 <span class="c">You:</span>    migrate:status. Is 2026_08_22_add_paid_at pending?
 <span class="c">Agent:</span>  artisan migrate:status → yes, pending
 
-<span class="c">You:</span>    After I deploy, seed InvoiceStatusSeeder only.
-<span class="c">Agent:</span>  deploy → queued
+<span class="c">You:</span>    After I deploy, seed InvoiceStatusSeeder only. Record that I asked.
+<span class="c">Agent:</span>  deploy actor=you@example.com → queued (audit ledger: claimed.actor)
           artisan db:seed --class=InvoiceStatusSeeder
           db_query SELECT id, name FROM invoice_statuses
           → 4 rows</code></div>
@@ -507,8 +508,8 @@ SELECT COUNT(*) FROM users WHERE created_at &gt;= CURRENT_DATE;</code></div>
                 <tbody>
                     <tr><td>Where</td><td><code>POST /cipi/mcp</code> on the <em>app</em> domain</td><td><code>POST /mcp</code> on the API vhost</td></tr>
                     <tr><td>Scope</td><td>One Laravel app: its DB, logs, Artisan, deploy flag</td><td>The whole server: apps, SSL, databases, PHP, workers</td></tr>
-                    <tr><td>Tools</td><td>6 — health, app_info, deploy, logs, db_query, artisan</td><td>50+ — create apps, issue certs, edit <code>.env</code>, run as app user</td></tr>
-                    <tr><td>Use it for</td><td>Debug, seeders, migrate:status, queue peek</td><td>Provision, SSL, list every database, server cockpit</td></tr>
+                    <tr><td>Tools</td><td>11 — health, app_info, deploy, deploy_status, logs, artisan, db_query, db_schema, env_check, cipi_yml, anonymizer (+5 <code>panel_*</code> via cipi/sdk)</td><td>71 — create apps, issue certs, edit <code>.env</code>, run as app user</td></tr>
+                    <tr><td>Use it for</td><td>Debug, seeders, migrate:status, queue peek, cipi.yml drafts, anonymizer audits</td><td>Provision, SSL, list every database, server cockpit</td></tr>
                 </tbody>
             </table>
         </div>
@@ -516,7 +517,7 @@ SELECT COUNT(*) FROM users WHERE created_at &gt;= CURRENT_DATE;</code></div>
 
         <h2 id="security">Tokens, blocks and least privilege</h2>
         <ul>
-            <li><strong>Dedicated token.</strong> <code>CIPI_MCP_TOKEN</code> is not the webhook secret and not the health token. If it leaks, <code>php artisan cipi:generate-token mcp</code> and restart. Anyone with the token can run Artisan and write SQL (within the 100-row cap).</li>
+            <li><strong>Dedicated token.</strong> <code>CIPI_MCP_TOKEN</code> is not the webhook secret and not the health token. If it leaks, <code>php artisan cipi:generate-token mcp</code> and restart. Anyone with the token can run Artisan and write SQL (within the 100-row cap) — set <code>CIPI_MCP_DB_WRITE=false</code> for a read-only server. Logs and command output are redacted before they leave the server.</li>
             <li><strong>Off means 404.</strong> <code>php artisan cipi:service mcp --disable</code> or <code>CIPI_MCP=false</code>. Prefer this on production until you actually need the IDE connected.</li>
             <li><strong>Blocked Artisan:</strong> <code>serve</code>, <code>tinker</code>, <code>queue:work</code>, <code>queue:listen</code>, <code>schedule:work</code>, <code>horizon</code>, <code>octane:start</code>, <code>reverb:start</code>.</li>
             <li><strong>Blocked SQL:</strong> <code>DROP</code>, <code>TRUNCATE</code>, <code>GRANT</code>, <code>REVOKE</code>, file I/O.</li>
@@ -536,11 +537,11 @@ SELECT COUNT(*) FROM users WHERE created_at &gt;= CURRENT_DATE;</code></div>
 
         <h2 id="faq">Frequently asked questions</h2>
         <div class="faq-item"><h3>Do I need SSH to use the project MCP?</h3><p>No. Once the package is deployed and <code>CIPI_MCP</code> is on, the IDE talks to <code>https://yourdomain.com/cipi/mcp</code> with the Bearer token. That is the point for teammates who should never log in as root.</p></div>
-        <div class="faq-item"><h3>What is the difference between the agent MCP and the Cipi API MCP?</h3><p>The agent MCP is inside one Laravel app (six tools: health, logs, SQL, Artisan, deploy). The panel API MCP manages the whole VPS — create apps, SSL, databases, PHP. Use the agent for debug and seeders; use the API to provision.</p></div>
-        <div class="faq-item"><h3>Can I run db:seed on production through MCP?</h3><p>Technically yes — <code>db:seed</code> is not blocked. Practically, only run a named, reviewed seeder, and never <code>migrate:fresh --seed</code> on live data. Prefer staging, then confirm with <code>db_query</code>.</p></div>
-        <div class="faq-item"><h3>Which Artisan commands are blocked?</h3><p><code>serve</code>, <code>tinker</code>, <code>queue:work</code>, <code>queue:listen</code>, <code>schedule:work</code>, <code>horizon</code>, <code>octane:start</code>, <code>reverb:start</code>. Long-running and interactive processes do not belong on an HTTP tool call.</p></div>
-        <div class="faq-item"><h3>Does cipi/agent work without a Cipi server?</h3><p>Health check and MCP yes, on any Laravel 12+ host. Webhook-triggered Deployer deploys and the extra log types expect the Cipi layout under <code>/home/&lt;app&gt;/</code>.</p></div>
-        <div class="faq-item"><h3>How do I rotate a leaked MCP token?</h3><p><code>php artisan cipi:generate-token mcp</code>, restart the app (or reload PHP-FPM / Octane), update <code>~/.cursor/mcp.json</code>. The old token dies with the <code>.env</code> rewrite.</p></div>
+        <div class="faq-item"><h3>What is the difference between the agent MCP and the Cipi API MCP?</h3><p>The agent MCP is inside one Laravel app (eleven tools: health, deploy status, logs, SQL and schema, Artisan, env check, cipi.yml, anonymizer, deploy — plus panel tools via <code>cipi/sdk</code>). The panel API MCP manages the whole VPS — create apps, SSL, databases, PHP. Use the agent for debug and seeders; use the API to provision.</p></div>
+        <div class="faq-item"><h3>Can I run db:seed on production through MCP?</h3><p><code>db:seed</code> is not blocked, so yes. <code>migrate:fresh</code>, <code>migrate:reset</code> and <code>db:wipe</code> are blocked since cipi/agent 2.0. Practically, only run a named, reviewed seeder, prefer staging, then confirm with <code>db_query</code>.</p></div>
+        <div class="faq-item"><h3>Which Artisan commands are blocked?</h3><p><code>serve</code>, <code>tinker</code>, <code>pail</code>, <code>queue:work</code>, <code>queue:listen</code>, <code>schedule:work</code>, <code>horizon</code>, <code>horizon:work</code>, <code>horizon:supervisor</code>, <code>octane:start</code>, <code>reverb:start</code>, <code>db</code>, <code>db:wipe</code>, <code>migrate:fresh</code>, <code>migrate:reset</code>. Long-running, interactive and data-destroying processes do not belong on an HTTP tool call; extend the list with <code>cipi.mcp_blocked_artisan</code>.</p></div>
+        <div class="faq-item"><h3>Does cipi/agent work without a Cipi server?</h3><p>Health check, MCP, <code>cipi:yml validate</code> and the anonymizer yes, on any Laravel 12 or 13 host. Webhook-triggered Deployer deploys, release information and the extra log types expect the Cipi layout under <code>/home/&lt;app&gt;/</code>.</p></div>
+        <div class="faq-item"><h3>How do I rotate a leaked MCP token?</h3><p><code>php artisan cipi:generate-token mcp</code> (it rebuilds the configuration cache), reload Octane or the workers if you run them, update <code>~/.cursor/mcp.json</code>. The old token dies with the <code>.env</code> rewrite.</p></div>
 
         <h2>Keep reading</h2>
         <div class="related">
