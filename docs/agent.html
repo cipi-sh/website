@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cipi Docs — Cipi Agent</title>
-    <meta name="description" content="Laravel package for webhooks, health checks, MCP server, database anonymizer, and ENV variables.">
+    <meta name="description" content="Laravel package for webhook deploys, health checks, an MCP server for AI assistants, cipi.yml tooling, a MySQL/PostgreSQL database anonymizer and the panel SDK bridge.">
     <meta name="author" content="Andrea Pollastri">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/docs/agent">
@@ -15,7 +15,7 @@
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/docs/agent">
     <meta property="og:title" content="Cipi Docs — Cipi Agent">
-    <meta property="og:description" content="Laravel package for webhooks, health checks, MCP server, database anonymizer, and ENV variables.">
+    <meta property="og:description" content="Laravel package for webhook deploys, health checks, an MCP server for AI assistants, cipi.yml tooling, a MySQL/PostgreSQL database anonymizer and the panel SDK bridge.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -23,7 +23,7 @@
             <meta property="og:locale" content="en_US">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Cipi Docs — Cipi Agent">
-    <meta name="twitter:description" content="Laravel package for webhooks, health checks, MCP server, database anonymizer, and ENV variables.">
+    <meta name="twitter:description" content="Laravel package for webhook deploys, health checks, an MCP server for AI assistants, cipi.yml tooling, a MySQL/PostgreSQL database anonymizer and the panel SDK bridge.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
 
     <script type="application/ld+json">
@@ -31,11 +31,11 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-07",
+      "dateModified": "2026-10-09",
       "headline": "Cipi Docs — Cipi Agent",
       "name": "Cipi Agent",
       "url": "https://cipi.sh/docs/agent",
-      "description": "Laravel package for webhooks, health checks, MCP server, database anonymizer, and ENV variables.",
+      "description": "Laravel package for webhook deploys, health checks, an MCP server for AI assistants, cipi.yml tooling, a MySQL/PostgreSQL database anonymizer and the panel SDK bridge.",
       "inLanguage": "en",
       "image": "https://cipi.sh/og.png",
       "about": { "@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/" },
@@ -185,6 +185,7 @@
                 <a href="/docs/agent#agent-webhook" class="sidebar-link">webhook</a>
                 <a href="/docs/agent#agent-health" class="sidebar-link">health check</a>
                 <a href="/docs/agent#agent-mcp" class="sidebar-link">MCP server</a>
+                <a href="/docs/agent#agent-yml" class="sidebar-link">cipi.yml tooling</a>
                 <a href="/docs/agent#agent-anonymizer" class="sidebar-link">database anonymizer</a>
                 <a href="/docs/agent#agent-security" class="sidebar-link">security</a>
                 <a href="/docs/agent#agent-env" class="sidebar-link">ENV variables</a>
@@ -283,6 +284,7 @@
                 <a href="/docs/cli-client#cli-ip-whitelist" class="sidebar-link"><code>ip-whitelist</code></a>
                 <a href="/docs/cli-client#cli-insights" class="sidebar-link">server insights</a>
                 <a href="/docs/cli-client#cli-status" class="sidebar-link"><code>status</code></a>
+                <a href="/docs/cli-client#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
                 <a href="/docs/cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="/docs/cli-client#cli-completion" class="sidebar-link"><code>completion</code></a>
@@ -360,14 +362,38 @@
                     <a href="https://cipi.sh/">Cipi</a>. It bridges your application and the server control panel with:
                 </p>
                 <ul>
-                    <li>Webhook-triggered deploys from GitHub and GitLab</li>
-                    <li>Health monitoring (app, database, cache, queue, deploy commit)</li>
-                    <li>An in-app <strong>MCP server</strong> for AI assistants (Cursor, VS Code, Claude Desktop)</li>
-                    <li>A GDPR-oriented <strong>database anonymizer</strong></li>
+                    <li>Webhook-triggered deploys from GitHub, GitLab, Bitbucket, Gitea and Azure DevOps, recorded in
+                        the <a href="/docs/deploy#deploy-audit">deploy audit ledger</a></li>
+                    <li>Health monitoring (app, database, cache, queue with failed jobs, storage, live release and
+                        commit)</li>
+                    <li>An in-app <strong>MCP server</strong> for AI assistants (Cursor, VS Code, Claude Code, Claude
+                        Desktop, any MCP client) — <a href="#agent-mcp">11 tools</a> plus optional panel tools</li>
+                    <li><a href="#agent-yml"><strong><code>cipi.yml</code> tooling</strong></a> — validate, inspect and
+                        generate the declarative server configuration with the server's own rules</li>
+                    <li>A GDPR-oriented <strong>database anonymizer</strong> for MySQL/MariaDB <em>and</em> PostgreSQL</li>
+                    <li>An optional bridge to the panel API through <a href="/docs/php-sdk"><code>cipi/sdk</code></a>
+                        (rollback, audit ledger, database backups)</li>
                 </ul>
                 <p>On a Cipi-managed server, <code>cipi app create</code> injects the required <code>.env</code>
-                    variables automatically. Health check and MCP can work on any Laravel host; full deploy and log
-                    access expect a Cipi-managed environment.</p>
+                    variables automatically. Health check, MCP, <code>cipi.yml</code> validation and the anonymizer work
+                    on any Laravel host; automated deploys, infrastructure logs and release information expect a
+                    Cipi-managed environment.</p>
+
+                <div class="callout success">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <div><strong>New in cipi/agent 2.0</strong> (October 2026): MCP revisions up to
+                        <strong>2026-07-28</strong> with tool annotations and structured results, five new tools
+                        (<code>deploy_status</code>, <code>db_schema</code>, <code>env_check</code>,
+                        <code>cipi_yml</code>, <code>anonymizer</code>), resources, secret redaction,
+                        <code>php artisan cipi:yml</code>, a PostgreSQL anonymizer that actually works, consistent and
+                        unique fake values, <code>--scan</code> and an audit for the anonymization config, more Git
+                        providers, audit-ledger claims on every deploy, and the <code>panel_*</code> tools via
+                        <code>cipi/sdk</code>. Wire-compatible with 1.x — see <a href="#agent-upgrade">Upgrading from
+                        1.x</a>.</div>
+                </div>
 
                 <h3>Requirements</h3>
                                 <div class="table-scroll">
@@ -385,15 +411,19 @@
                                             </tr>
                                             <tr>
                                                 <td>Laravel</td>
-                                                <td>12+ or 13+ (package <strong>1.5.2+</strong>)</td>
+                                                <td>12 or 13</td>
                                             </tr>
                                             <tr>
                                                 <td>Database (anonymizer)</td>
-                                                <td>MySQL or PostgreSQL</td>
+                                                <td>MySQL / MariaDB or PostgreSQL</td>
                                             </tr>
                                             <tr>
                                                 <td>CLI tools (anonymizer)</td>
-                                                <td><code>mysqldump</code> or <code>pg_dump</code> on the server</td>
+                                                <td><code>mysqldump</code> (or <code>mariadb-dump</code>) / <code>pg_dump</code> on the server</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Optional</td>
+                                                <td><code>cipi/sdk</code> ^1.0 for the <a href="#agent-mcp-panel">panel tools</a>, <code>ext-zlib</code> for gzip dumps</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -412,8 +442,8 @@
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> php artisan vendor:publish --tag=cipi-config
-<span class="p">$</span> php artisan cipi:status   <span class="c"># verify config and DB connectivity</span></pre>
+                    <pre><span class="p">$</span> php artisan vendor:publish --tag=cipi-agent-config   <span class="c"># cipi-config still works; cipi/sdk shares that tag</span>
+<span class="p">$</span> php artisan cipi:status   <span class="c"># verify config, release, features and DB connectivity</span></pre>
                 </div>
 
                 <div class="callout info">
@@ -450,50 +480,79 @@
                                         <tbody>
                                             <tr>
                                                 <td>php artisan cipi:status</td>
-                                                <td>Show Cipi config values and connectivity status</td>
+                                                <td>Agent configuration, live release and commit, feature state, <code>cipi.yml</code> validity, database connectivity</td>
                                             </tr>
                                             <tr>
                                                 <td>php artisan cipi:deploy-key</td>
                                                 <td>Print the SSH deploy key for this app</td>
                                             </tr>
                                             <tr>
-                                                <td>php artisan cipi:mcp</td>
-                                                <td>Show the MCP endpoint URL and setup snippets for Cursor, VS Code, and Claude Desktop
-                                                </td>
+                                                <td>php artisan cipi:mcp [--json]</td>
+                                                <td>MCP endpoint, tools, resources and setup snippets for Cursor, VS Code, Claude Code and Claude Desktop</td>
                                             </tr>
                                             <tr>
                                                 <td>php artisan cipi:generate-token {type}</td>
-                                                <td>Generate a secure token. Type can be <code>mcp</code>, <code>health</code>, or
-                                                    <code>anonymize</code>
-                                                </td>
+                                                <td>Generate a secure token and write it to <code>.env</code>. Type: <code>mcp</code>, <code>health</code> or <code>anonymize</code></td>
                                             </tr>
                                             <tr>
                                                 <td>php artisan cipi:service {type} --enable|--disable</td>
-                                                <td>Toggle a service on or off. Updates <code>.env</code> in place. Type:
-                                                    <code>mcp</code>, <code>health</code>, or <code>anonymize</code>
-                                                </td>
+                                                <td>Toggle a service in <code>.env</code> (the configuration cache is rebuilt when one exists). Type: <code>mcp</code>, <code>health</code> or <code>anonymize</code></td>
                                             </tr>
                                             <tr>
-                                                <td>php artisan cipi:init-anonymize</td>
-                                                <td>Scaffold the anonymization config at
-                                                    <code>/home/{app_user}/.db/anonymization.json</code>
-                                                </td>
+                                                <td>php artisan cipi:yml validate|show|generate|example|schema</td>
+                                                <td><a href="#agent-yml">Validate, inspect or generate <code>cipi.yml</code></a> with the server's rules (2.0)</td>
                                             </tr>
                                             <tr>
-                                                <td>php artisan cipi:anonymize {config} {output}</td>
-                                                <td>Run an anonymized database dump directly from the CLI (no HTTP)</td>
+                                                <td>php artisan cipi:init-anonymize [--scan]</td>
+                                                <td>Create <code>/home/{app_user}/.db/anonymization.json</code> from the example, or propose it from the live database schema (2.0)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>php artisan cipi:anonymize-audit [config]</td>
+                                                <td>Check the anonymization config against the database: missing tables/columns, unknown transformations, uncovered personal data (2.0)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>php artisan cipi:anonymize [config] [output] [--gzip] [--check]</td>
+                                                <td>Run an anonymized database dump directly on the server (no HTTP)</td>
                                             </tr>
                                         </tbody>
                                     </table>
                 </div>
+
+                <h3 id="agent-upgrade">Upgrading from 1.x</h3>
+                <p><code>composer require cipi/agent:^2.0</code>. Existing MCP clients, webhooks, health monitors and
+                    the anonymizer API keep working unchanged. Behaviour that did change:</p>
+                <ul>
+                    <li><strong><code>password</code> transformation</strong> now sets every row to the hash of
+                        <code>options.password</code> (default <code>password</code>), computed once, instead of
+                        re-hashing the stored hash — the anonymized copy is finally usable for login. Set
+                        <code>options.password</code> if you relied on a specific value.</li>
+                    <li><strong>Health</strong> no longer reports <code>degraded</code> when deploy metadata is missing
+                        or the last automatic deploy failed (the previous release is still live); the information is in
+                        <code>checks.deploy</code>.</li>
+                    <li><strong>Deploy trigger file</strong> gained <code>source</code>, <code>actor</code>,
+                        <code>ip</code>, <code>ref</code> and <code>request_id</code> for the audit ledger; the 1.x keys
+                        are still written.</li>
+                    <li><strong><code>db_query</code></strong> additionally blocks <code>ALTER</code>,
+                        <code>RENAME</code>, <code>CREATE …</code>, administrative statements and multi-statement
+                        input; <code>CIPI_MCP_DB_WRITE=false</code> makes it read-only. <strong><code>artisan</code></strong>
+                        additionally blocks <code>db:wipe</code>, <code>migrate:fresh</code>,
+                        <code>migrate:reset</code>, <code>pail</code> and <code>horizon:*</code>.</li>
+                    <li><strong>PostgreSQL dumps</strong> switch from <code>custom</code> to <code>plain</code> format
+                        so that they can actually be transformed.</li>
+                    <li><strong>Publishing</strong> — <code>--tag=cipi-agent-config</code> publishes only this package's
+                        config; <code>cipi-config</code> is shared with <code>cipi/sdk</code> and still works.</li>
+                </ul>
             </div>
 
             <div class="doc-section" id="agent-webhook">
                 <h2>Webhook — Automatic Deploys</h2>
                 <p>The agent exposes a POST endpoint at <code>/cipi/webhook</code>. When your Git provider sends a push
-                    event, the agent verifies the signature and writes a <code>.deploy-trigger</code> flag file. A cron
-                    job running every minute as the app user detects this file, removes it, and runs Deployer in the
-                    background.</p>
+                    event, the agent verifies the signature and writes a <code>.deploy-trigger</code> file. The app
+                    user's crontab (installed by Cipi) picks it up within a minute, moves it aside and runs
+                    <code>cipi-app-deploy</code>, which wraps Deployer: clone, <code>composer install</code>, migrations,
+                    symlink swap, worker restart, <code>cipi.yml</code> reconciliation, post-deploy steps and the
+                    post-deploy healthcheck. A GitHub <code>ping</code> answers <code>pong</code>; events that are not a
+                    push (pull requests, tags on Bitbucket, …) are acknowledged with <code>202 ignored</code>.</p>
 
                 <p>This design means the webhook response is instant (no HTTP timeout waiting for deployment to
                     complete) and Deployer runs with the correct user permissions — no <code>sudo</code> required.</p>
@@ -506,22 +565,45 @@
                                                 <th>Provider</th>
                                                 <th>Webhook URL</th>
                                                 <th>Authentication</th>
+                                                <th>Push event</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
                                                 <td>GitHub</td>
                                                 <td>https://yourdomain.com/cipi/webhook</td>
-                                                <td><code>X-Hub-Signature-256</code> HMAC — use <code>CIPI_WEBHOOK_TOKEN</code> as Secret</td>
+                                                <td><code>X-Hub-Signature-256</code> HMAC-SHA256 — use <code>CIPI_WEBHOOK_TOKEN</code> as Secret</td>
+                                                <td><code>push</code> (<code>ping</code> → <code>pong</code>)</td>
                                             </tr>
                                             <tr>
                                                 <td>GitLab</td>
                                                 <td>https://yourdomain.com/cipi/webhook</td>
                                                 <td><code>X-Gitlab-Token</code> header — same token value</td>
+                                                <td><code>Push Hook</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Bitbucket Cloud</td>
+                                                <td>https://yourdomain.com/cipi/webhook</td>
+                                                <td><code>X-Hub-Signature</code> <code>sha256=</code> HMAC with the token as secret</td>
+                                                <td><code>repo:push</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Gitea / Forgejo</td>
+                                                <td>https://yourdomain.com/cipi/webhook</td>
+                                                <td><code>X-Gitea-Signature</code> HMAC-SHA256</td>
+                                                <td><code>push</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Azure DevOps</td>
+                                                <td>https://yourdomain.com/cipi/webhook</td>
+                                                <td><code>X-Gitlab-Token</code> header (Cipi registers the service hook that way)</td>
+                                                <td><code>git.push</code></td>
                                             </tr>
                                         </tbody>
                                     </table>
                 </div>
+                <p>On Cipi-managed servers <code>cipi app create</code> / <code>cipi git</code> register the webhook
+                    for you. Custom setups can also send <code>?token=</code> or a Bearer token.</p>
 
                 <p>The token to use is stored in <code>.env</code> as <code>CIPI_WEBHOOK_TOKEN</code>. You can also
                     retrieve it any time with:</p>
@@ -541,15 +623,29 @@
                 </div>
                 <p>Pushes to any other branch will receive a <code>skipped</code> response and no deploy will be
                     triggered.</p>
+
+                <h3>What the audit ledger records</h3>
+                <p>Since 2.0 the trigger file carries what the payload said about the push — provider, actor
+                    (pusher), commit, delivery id and the client IP — in the format <code>cipi-app-deploy</code> reads:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span></div>
+                    <pre>{"source":"github","actor":"octocat","ip":"140.82.115.3","ref":"main@abcdef123456","request_id":"8d2f…"}</pre>
+                </div>
+                <p>Cipi stores these under <code>claimed</code> in the root-owned, hash-chained
+                    <a href="/docs/deploy#deploy-audit">deploy audit ledger</a> (<code>cipi deploy &lt;app&gt; --audit</code>),
+                    next to the facts root establishes on its own (release, commit, process chain). The MCP
+                    <code>deploy</code> tool writes the same file with <code>source: mcp</code> and the <code>actor</code> the
+                    assistant was given, so every deploy says who asked for it.</p>
             </div>
 
             <div class="doc-section" id="agent-health">
                 <h2>Health Check</h2>
                 <p>The agent also exposes a GET endpoint at <code>/cipi/health</code> that returns a JSON payload with
-                    the status of the app, database, cache, queue, and the currently deployed Git commit hash. Useful
-                    for external monitoring services such as UptimeRobot. Protected by the
-                    <code>CIPI_HEALTH_TOKEN</code> Bearer token — generate one with
-                    <code>php artisan cipi:generate-token health</code>.
+                    the status of the app (debug, maintenance mode), database, cache, queue (pending <em>and failed</em>
+                    jobs), writable storage with disk usage, and the deploy state: live release, commit, whether a deploy
+                    is queued or running and how the last automatic deploy ended. Useful for external monitoring
+                    services such as UptimeRobot. Protected by the <code>CIPI_HEALTH_TOKEN</code> Bearer token —
+                    generate one with <code>php artisan cipi:generate-token health</code>.
                 </p>
 
                 <div class="code-block">
@@ -565,26 +661,41 @@
   <span class="s">"status"</span>: <span class="s">"healthy"</span>,
   <span class="s">"app_user"</span>: <span class="s">"myapp"</span>,
   <span class="s">"php"</span>: <span class="s">"8.5"</span>,
-  <span class="s">"laravel"</span>: <span class="s">"12.0.0"</span>,
+  <span class="s">"laravel"</span>: <span class="s">"13.35.0"</span>,
   <span class="s">"environment"</span>: <span class="s">"production"</span>,
   <span class="s">"checks"</span>: {
-    <span class="s">"app"</span>:      { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"version"</span>: <span class="s">"2.1.0"</span>, <span class="s">"debug"</span>: <span class="k">false</span> },
-    <span class="s">"database"</span>: { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"database"</span>: <span class="s">"myapp_prod"</span> },
-    <span class="s">"cache"</span>:    { <span class="s">"ok"</span>: <span class="k">true</span> },
-    <span class="s">"queue"</span>:    { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"pending_jobs"</span>: 0 },
-    <span class="s">"deploy"</span>:   { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"commit"</span>: <span class="s">"a1b2c3d4…"</span>, <span class="s">"short_commit"</span>: <span class="s">"a1b2c3d"</span> }
+    <span class="s">"app"</span>:      { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"version"</span>: <span class="s">"2.1.0"</span>, <span class="s">"debug"</span>: <span class="k">false</span>, <span class="s">"maintenance"</span>: <span class="k">false</span> },
+    <span class="s">"database"</span>: { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"driver"</span>: <span class="s">"mysql"</span>, <span class="s">"database"</span>: <span class="s">"myapp"</span> },
+    <span class="s">"cache"</span>:    { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"driver"</span>: <span class="s">"database"</span> },
+    <span class="s">"queue"</span>:    { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"connection"</span>: <span class="s">"database"</span>, <span class="s">"pending_jobs"</span>: 0, <span class="s">"failed_jobs"</span>: 0 },
+    <span class="s">"storage"</span>:  { <span class="s">"ok"</span>: <span class="k">true</span>, <span class="s">"disk_free_gb"</span>: 31.2, <span class="s">"disk_used_percent"</span>: 41 },
+    <span class="s">"deploy"</span>:   {
+      <span class="s">"ok"</span>: <span class="k">true</span>,
+      <span class="s">"release"</span>: <span class="s">"20261009103000"</span>,
+      <span class="s">"commit"</span>: <span class="s">"0123456789abcdef0123456789abcdef01234567"</span>,
+      <span class="s">"short_commit"</span>: <span class="s">"0123456"</span>,
+      <span class="s">"commit_source"</span>: <span class="s">"REVISION"</span>,
+      <span class="s">"in_progress"</span>: <span class="k">false</span>,
+      <span class="s">"pending"</span>: <span class="k">false</span>,
+      <span class="s">"last_deploy"</span>: { <span class="s">"status"</span>: <span class="s">"ok"</span>, <span class="s">"trigger"</span>: <span class="s">"webhook"</span>, <span class="s">"branch"</span>: <span class="s">"main"</span>, <span class="s">"duration_seconds"</span>: 42 }
+    }
   },
-  <span class="s">"timestamp"</span>: <span class="s">"2026-06-10T14:22:01.000000Z"</span>
+  <span class="s">"timestamp"</span>: <span class="s">"2026-10-09T10:00:00+00:00"</span>
 }</pre>
                 </div>
 
-                <p>The deploy commit is resolved from the first available source:</p>
+                <p><code>status</code> is <code>degraded</code> (HTTP 503) when the database, cache, queue or storage check
+                    fails. Deploy metadata is informational: a failed last deploy is reported under
+                    <code>checks.deploy.attention</code> without degrading the status — the previous release is still
+                    serving — and the MCP <code>health</code> / <code>deploy_status</code> tools expose the same fields.</p>
+                <p>The deployed commit is resolved from the first available source:</p>
                 <ol>
-                    <li><code>/home/{app_user}/.cipi/deploy.json</code> (Cipi deploy metadata)</li>
-                    <li><code>/home/{app_user}/.cipi/last_commit</code></li>
-                    <li><code>/home/{app_user}/logs/deploy.log</code></li>
-                    <li><code>.git/HEAD</code> or <code>git rev-parse HEAD</code></li>
+                    <li>Deployer's <code>REVISION</code> file in the live release (<code>/home/{app_user}/current/REVISION</code>)</li>
+                    <li><code>/home/{app_user}/.cipi/deploy.json</code> or <code>.cipi/last_commit</code></li>
+                    <li><code>.git/HEAD</code> or <code>git rev-parse HEAD</code> (apps not deployed by Cipi)</li>
                 </ol>
+                <p><code>last_deploy</code> comes from the banners <code>cipi-app-deploy</code> writes to
+                    <code>/home/{app_user}/logs/deploy.log</code> (trigger, branch, release, duration, exit code).</p>
 
                 <h3>Authentication</h3>
                 <p>The Bearer token is resolved in order: <code>CIPI_HEALTH_TOKEN</code> (dedicated), then
@@ -595,17 +706,29 @@
                 <h3>Monitoring integrations</h3>
                 <p>The health endpoint works with any HTTP checker that supports Bearer tokens — e.g.
                     <strong>UptimeRobot</strong>, <strong>Better Stack</strong>, <strong>Grafana</strong>, or custom
-                    cron + <code>curl</code>. Poll <code>checks.queue.pending_jobs</code> for queue backlog alerts.</p>
+                    cron + <code>curl</code>. Poll <code>checks.queue.pending_jobs</code> for queue backlog alerts,
+                    <code>checks.queue.failed_jobs</code> for stuck jobs and <code>checks.storage.disk_used_percent</code>
+                    next to Cipi's own <a href="/docs/infrastructure#cli-disk">soft disk limits</a>.</p>
             </div>
 
             <div class="doc-section" id="agent-mcp">
                 <h2>MCP Server</h2>
                 <p><strong>cipi-agent</strong> includes a built-in <strong>MCP server</strong> (Model Context Protocol)
                     that exposes your application to AI assistants such as <strong>Cursor</strong>,
-                    <strong>VS Code</strong> (with GitHub Copilot), and <strong>Claude Desktop</strong>. The endpoint
-                    implements MCP 2024-11-05 over HTTP using JSON-RPC 2.0
-                    and is protected by the <code>CIPI_MCP_TOKEN</code> Bearer token.
-                </p>
+                    <strong>VS Code</strong> (with GitHub Copilot), <strong>Claude Code</strong> and <strong>Claude
+                    Desktop</strong> — or any MCP client. The endpoint speaks Streamable HTTP with JSON-RPC 2.0 and is
+                    protected by the <code>CIPI_MCP_TOKEN</code> Bearer token.</p>
+
+                <p>Since 2.0 it speaks <strong>every current MCP revision</strong>: the handshake-based revisions
+                    <code>2024-11-05</code>, <code>2025-03-26</code>, <code>2025-06-18</code> and <code>2025-11-25</code>
+                    (<code>initialize</code>, what today's clients use) and the stateless revision
+                    <code>2026-07-28</code> (<code>server/discover</code>, per-request <code>_meta</code>,
+                    <code>resultType</code>, <code>Mcp-Method</code> / <code>Mcp-Name</code> header validation). Every tool
+                    declares a title, behaviour annotations (<code>readOnlyHint</code>, <code>destructiveHint</code>, …)
+                    and a JSON Schema, returns text <em>and</em> <code>structuredContent</code>, and reports failures with
+                    <code>isError</code>. <code>GET</code> and <code>DELETE</code> answer <code>405</code> (no SSE stream, no
+                    sessions), notifications get <code>202</code>, and the <code>Origin</code> header is validated against
+                    the app host.</p>
 
                 <p>The MCP endpoint is available at <code>POST /cipi/mcp</code> and is disabled by default. To enable
                     it:</p>
@@ -614,62 +737,84 @@
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> php artisan cipi:service mcp --enable
-<span class="p">$</span> php artisan cipi:generate-token mcp</pre>
+<span class="p">$</span> php artisan cipi:generate-token mcp
+<span class="p">$</span> php artisan cipi:mcp          <span class="c"># endpoint, tools, resources and client snippets</span></pre>
                 </div>
 
                 <h3>Available tools</h3>
-                <p>The MCP server exposes six tools that an AI assistant can invoke by name:</p>
+                <p>The server exposes eleven tools scoped to <em>this</em> application, plus five
+                    <a href="#agent-mcp-panel">panel tools</a> when <code>cipi/sdk</code> is configured. Tools are listed
+                    in a fixed order so clients can cache the list:</p>
 
                                 <div class="table-scroll">
                     <table class="cmd-table">
                                         <thead>
                                             <tr>
                                                 <th>Tool</th>
-                                                <th>Description</th>
+                                                <th>Mode</th>
+                                                <th>What it does</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td>health</td>
-                                                <td>App, database, cache, and queue status — same data as the
-                                                    <code>/cipi/health</code> endpoint
-                                                </td>
+                                                <td><code>health</code></td>
+                                                <td>read-only</td>
+                                                <td>Same report as <code>GET /cipi/health</code>: app, database, cache, queue (pending and failed jobs), storage, deploy state</td>
                                             </tr>
                                             <tr>
-                                                <td>app_info</td>
-                                                <td>Full application configuration: app user, PHP version, Laravel version, environment,
-                                                    queue/cache/session drivers, deploy branch, and all Cipi URLs</td>
+                                                <td><code>app_info</code></td>
+                                                <td>read-only</td>
+                                                <td>Versions, drivers, Cipi endpoints, enabled features, live release and commit, whether a <code>cipi.yml</code> exists — never secrets</td>
                                             </tr>
                                             <tr>
-                                                <td>deploy</td>
-                                                <td>Trigger a new zero-downtime deployment — writes the
-                                                    <code>.deploy-trigger</code> file; Deployer picks it up within 1 minute
-                                                </td>
+                                                <td><code>deploy</code></td>
+                                                <td>action</td>
+                                                <td>Queue a zero-downtime deploy; records <code>actor</code>, <code>ref</code> and <code>request_id</code> as <a href="/docs/deploy#deploy-audit">audit-ledger</a> claims; refuses while a deploy is running</td>
                                             </tr>
                                             <tr>
-                                                <td>logs</td>
-                                                <td>Read the last N lines (default 50, max 500) from application logs. Supports
-                                                    <code>type</code> (<code>laravel</code>, <code>nginx</code>, <code>php</code>,
-                                                    <code>worker</code>, <code>deploy</code>), <code>level</code> for Laravel severity
-                                                    filtering (e.g. <code>error</code>), and <code>search</code> for keyword filtering.
-                                                    Laravel daily rotation (<code>laravel-YYYY-MM-DD.log</code>) is auto-detected.
-                                                </td>
+                                                <td><code>deploy_status</code></td>
+                                                <td>read-only</td>
+                                                <td>Live release and commit, the releases kept for rollback, queued/running state, outcome of the last automatic deploy, optional tail of the deploy log</td>
                                             </tr>
                                             <tr>
-                                                <td>db_query</td>
-                                                <td>Execute SQL queries against the application database — equivalent to
-                                                    <code>cipi app tinker</code>. Supports SELECT, SHOW, DESCRIBE, EXPLAIN (read) and
-                                                    INSERT, UPDATE, DELETE (write). Results formatted as ASCII table, capped at 100 rows.
-                                                    Destructive DDL (DROP TABLE/DATABASE, TRUNCATE, GRANT/REVOKE, file I/O) is blocked.
-                                                </td>
+                                                <td><code>logs</code></td>
+                                                <td>read-only</td>
+                                                <td><code>laravel</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>, <code>horizon</code>, <code>reverb</code>, <code>deploy</code> or <code>all</code>; severity and keyword filters; stack traces intact; secrets redacted</td>
                                             </tr>
                                             <tr>
-                                                <td>artisan</td>
-                                                <td>Run any Artisan command (e.g. <code>migrate:status</code>,
-                                                    <code>queue:size</code>, <code>cache:clear</code>). Long-running and interactive
-                                                    commands like <code>serve</code>, <code>queue:work</code>, and
-                                                    <code>tinker</code> are blocked
-                                                </td>
+                                                <td><code>artisan</code></td>
+                                                <td>can change data</td>
+                                                <td>Run an Artisan command (<code>--no-interaction</code> is added); interactive, long-running and data-destroying commands are blocked</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>db_query</code></td>
+                                                <td>configurable</td>
+                                                <td><code>SELECT</code> / <code>WITH</code> / <code>SHOW</code> / <code>DESCRIBE</code> / <code>EXPLAIN</code> as table or JSON, auto-capped; <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code> unless <code>CIPI_MCP_DB_WRITE=false</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>db_schema</code></td>
+                                                <td>read-only</td>
+                                                <td>Tables with row counts, or one table's columns, indexes, foreign keys and the columns that look like personal data</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>env_check</code></td>
+                                                <td>read-only</td>
+                                                <td>Which <code>.env</code> keys are set or empty, compared with <code>.env.example</code> and the <code>env.required</code> of <code>cipi.yml</code> — names only, never values</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi_yml</code></td>
+                                                <td>read-only</td>
+                                                <td><code>validate</code>, <code>show</code>, <code>generate</code> or <code>example</code> for <code>cipi.yml</code>; validates a draft passed as <code>content</code> before you commit it</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>anonymizer</code></td>
+                                                <td>action</td>
+                                                <td><code>audit</code>, <code>config</code>, <code>scan</code>, <code>transformations</code>, or <code>start</code> an anonymized dump (e-mail required)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_*</code></td>
+                                                <td>see below</td>
+                                                <td>Rollback, deploy audit ledger, database backup, job status, app and server status — <a href="#agent-mcp-panel">through the panel API</a></td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -688,42 +833,60 @@
                                         <tbody>
                                             <tr>
                                                 <td><code>type</code></td>
-                                                <td><code>laravel</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>,
-                                                    <code>deploy</code></td>
-                                                <td>Log file to read (Laravel daily rotation auto-detected)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>level</code></td>
-                                                <td><code>debug</code> … <code>emergency</code></td>
-                                                <td>Minimum severity — Laravel logs only</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>search</code></td>
-                                                <td>any string</td>
-                                                <td>Case-insensitive keyword filter; stack traces stay intact</td>
+                                                <td><code>laravel</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>, <code>horizon</code>, <code>reverb</code>, <code>deploy</code>, <code>all</code></td>
+                                                <td>Log file(s) to read — the same types as <code>cipi app logs</code>, plus Horizon and Reverb</td>
                                             </tr>
                                             <tr>
                                                 <td><code>lines</code></td>
                                                 <td>1–500 (default 50)</td>
-                                                <td>Number of lines to return</td>
+                                                <td>Lines per file before filtering</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>level</code></td>
+                                                <td><code>debug</code> … <code>emergency</code></td>
+                                                <td>Minimum severity — Laravel entries only (<code>error</code> = error, critical, alert, emergency)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>search</code></td>
+                                                <td>any string</td>
+                                                <td>Case-insensitive keyword filter; multi-line entries stay intact</td>
                                             </tr>
                                         </tbody>
                                     </table>
                 </div>
 
+                <h4>Resources</h4>
+                <p>Files the assistant benefits from reading whole, exposed as MCP resources:
+                    <code>cipi://cipi.yml</code> (the committed file), <code>cipi://cipi.yml/schema</code> (JSON Schema),
+                    <code>cipi://cipi.yml/example</code> (the commented template in the app's namespace),
+                    <code>cipi://anonymization.json</code> and <code>cipi://anonymization.json/schema</code>.</p>
+
                 <h4>Blocked operations (MCP safety)</h4>
                 <ul>
-                    <li><strong>Artisan:</strong> <code>serve</code>, <code>tinker</code>, <code>queue:work</code>,
-                        <code>queue:listen</code>, <code>schedule:work</code>, <code>horizon</code>,
-                        <code>octane:start</code>, <code>reverb:start</code>
-                    </li>
-                    <li><strong>SQL:</strong> <code>DROP</code>, <code>TRUNCATE</code>, <code>GRANT</code>,
-                        <code>REVOKE</code>, file I/O — read/write capped at <strong>100 rows</strong></li>
+                    <li><strong>Artisan:</strong> <code>serve</code>, <code>tinker</code>, <code>pail</code>,
+                        <code>queue:work</code>, <code>queue:listen</code>, <code>schedule:work</code>,
+                        <code>horizon</code>, <code>horizon:work</code>, <code>horizon:supervisor</code>,
+                        <code>octane:start</code>, <code>reverb:start</code>, <code>db</code>, <code>db:wipe</code>,
+                        <code>migrate:fresh</code>, <code>migrate:reset</code> — extend the list with
+                        <code>cipi.mcp_blocked_artisan</code> in the published config</li>
+                    <li><strong>SQL:</strong> DDL (<code>DROP</code>, <code>ALTER</code>, <code>TRUNCATE</code>,
+                        <code>CREATE …</code>, <code>RENAME</code>), <code>GRANT</code> / <code>REVOKE</code>, file I/O,
+                        <code>SET GLOBAL</code>, <code>KILL</code> / <code>SHUTDOWN</code>, PostgreSQL file functions and
+                        multi-statement input; reads without <code>LIMIT</code> are capped at
+                        <code>CIPI_MCP_MAX_ROWS</code> (default 100, max 500); <code>CIPI_MCP_DB_WRITE=false</code>
+                        makes the tool read-only</li>
+                    <li><strong>Redaction:</strong> logs and command output are prefixed with a production-content
+                        warning and common secrets (env assignments, bearer tokens, DSNs, <code>APP_KEY</code>,
+                        provider keys, Cipi tokens) are masked — the same guard as the panel API MCP
+                        (<code>CIPI_MCP_REDACT</code>)</li>
+                    <li><strong>Origin:</strong> a browser <code>Origin</code> that is not the app host is refused with
+                        <code>403</code> (DNS-rebinding guard); extend with <code>CIPI_MCP_ALLOWED_ORIGINS</code></li>
                 </ul>
 
                 <h3>Setup instructions</h3>
                 <p>Run the <code>cipi:mcp</code> Artisan command to get the endpoint URL and ready-to-paste
-                    configuration snippets for your AI client:</p>
+                    configuration snippets for your AI client (<code>--json</code> prints just the Cursor/VS Code
+                    configuration):</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -731,13 +894,9 @@
                     <pre><span class="p">$</span> php artisan cipi:mcp</pre>
                 </div>
 
-                <p>The command prints the available tools and the JSON configuration for Cursor, VS Code, and Claude
-                    Desktop.</p>
-
                 <h4>Cursor</h4>
                 <p>Add the following to <code>~/.cursor/mcp.json</code> (or go to Cursor &rarr; Settings &rarr; MCP):
                 </p>
-
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">json</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -753,44 +912,44 @@
   }
 }</pre>
                 </div>
-
                 <p>Replace <code>cipi-myapp</code> with your app user name, <code>yourdomain.com</code> with your
                     actual domain, and <code>YOUR_CIPI_MCP_TOKEN</code> with the token from your
-                    <code>.env</code>. Cursor connects natively over HTTP — no bridge needed.
-                </p>
+                    <code>.env</code>. Cursor connects natively over HTTP — no bridge needed.</p>
 
                 <h4>VS Code</h4>
                 <p>VS Code (with GitHub Copilot) supports MCP natively since version 1.102. Add the following to
                     <code>.vscode/mcp.json</code> in your project (or run <strong>MCP: Open User Configuration</strong>
-                    for a global setup):
-                </p>
-
+                    for a global setup). The token is asked once and stored by VS Code — nothing to commit:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">json</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre>{
+  <span class="s">"inputs"</span>: [
+    { <span class="s">"type"</span>: <span class="s">"promptString"</span>, <span class="s">"id"</span>: <span class="s">"cipi-token"</span>, <span class="s">"description"</span>: <span class="s">"Cipi MCP token for myapp"</span>, <span class="s">"password"</span>: <span class="k">true</span> }
+  ],
   <span class="s">"servers"</span>: {
     <span class="s">"cipi-myapp"</span>: {
       <span class="s">"type"</span>: <span class="s">"http"</span>,
       <span class="s">"url"</span>: <span class="s">"https://yourdomain.com/cipi/mcp"</span>,
       <span class="s">"headers"</span>: {
-        <span class="s">"Authorization"</span>: <span class="s">"Bearer YOUR_CIPI_MCP_TOKEN"</span>
+        <span class="s">"Authorization"</span>: <span class="s">"Bearer ${input:cipi-token}"</span>
       }
     }
   }
 }</pre>
                 </div>
 
-                <p>Replace <code>cipi-myapp</code>, <code>yourdomain.com</code>, and
-                    <code>YOUR_CIPI_MCP_TOKEN</code>
-                    as above. Use <strong>MCP: Add Server</strong> from the Command Palette for a guided setup. VS Code
-                    connects over HTTP — no bridge needed.
-                </p>
+                <h4>Claude Code</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> claude mcp add --transport http cipi-myapp https://yourdomain.com/cipi/mcp \
+    --header <span class="s">"Authorization: Bearer YOUR_CIPI_MCP_TOKEN"</span></pre>
+                </div>
 
                 <h4>Claude Desktop</h4>
                 <p>Claude Desktop requires the <strong>mcp-remote</strong> bridge to convert stdio to HTTP. Add the
                     following to <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
-
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">json</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -809,7 +968,6 @@
   }
 }</pre>
                 </div>
-
                 <p>Install <code>mcp-remote</code> globally once with:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -820,41 +978,92 @@
                 <h3>What you can do with it</h3>
                 <p>Once connected, your AI assistant can interact with the Cipi-managed application in natural
                     language. For example:</p>
-
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">conversation</span></div>
-                    <pre><span class="c">User:</span>  Is the app healthy? Any pending jobs in the queue?
+                    <pre><span class="c">User:</span>  Is production healthy, and what commit is live?
 
-<span class="c">Claude:</span> Calling health tool...
-         Status: healthy — database, cache, and queue all OK.
-         Queue: 0 pending jobs.
+<span class="c">Claude:</span> Calling health and deploy_status...
+         Status: healthy — database, cache, queue (0 pending, 0 failed) and storage OK.
+         Live release 20261009103000, commit 0123456 (webhook deploy, 42 s, OK).
 
-<span class="c">User:</span>  Show me the last errors from the log.
+<span class="c">User:</span>  Show me the last errors and tell me which job is failing.
 
-<span class="c">Claude:</span> Calling logs tool (lines: 100)...
-         Found 2 errors in the last 100 lines:
-         [2026-03-04 14:22:01] production.ERROR: Connection refused [...]
-         [2026-03-04 14:23:15] production.ERROR: Redis timeout [...]
+<span class="c">Claude:</span> Calling logs (type: laravel, level: error, lines: 200)...
+         3 entries: InvoiceJob — SQLSTATE[42S22]: column invoices.paid_at not found.
+         Calling artisan (migrate:status)... 2026_10_08_add_paid_at is pending.
 
-<span class="c">User:</span>  Clear the cache and deploy the latest version.
+<span class="c">User:</span>  Which columns of the users table look like personal data?
 
-<span class="c">Claude:</span> Calling artisan tool (cache:clear)...
-         Cache cleared successfully.
-         Calling deploy tool...
-         Deploy queued — Deployer will run within 1 minute.
+<span class="c">Claude:</span> Calling db_schema (table: users)...
+         email → fakeEmail, phone → fakePhoneNumber, remember_token → null, password → password.
 
-<span class="c">User:</span>  What's the current migration status?
+<span class="c">User:</span>  Validate this cipi.yml draft, then queue a deploy and record that Jane asked.
 
-<span class="c">Claude:</span> Calling artisan tool (migrate:status)...
-         All 47 migrations have been run.
-
-<span class="c">User:</span>  How many users signed up in the last 7 days?
-
-<span class="c">Claude:</span> Calling db_query tool (SELECT COUNT(*) FROM users WHERE created_at >= ...)...
-         | count |
-         |-------|
-         | 23    |</pre>
+<span class="c">Claude:</span> Calling cipi_yml (validate, content: …)... valid, 0 warnings.
+         Calling deploy (actor: jane@example.com)... queued — Deployer runs within 1 minute.</pre>
                 </div>
+
+                <h3 id="agent-mcp-panel">Panel tools via cipi/sdk</h3>
+                <p>The agent only knows the app it runs in. With the <a href="/docs/php-sdk">PHP SDK</a> installed and
+                    a Sanctum token created on the server with the abilities you want to allow, the same MCP server
+                    gains tools that no in-app process could offer — rolling a release back, reading the deploy audit
+                    ledger, taking a server-side database backup:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> composer require cipi/sdk
+<span class="c"># on the server, once:</span>
+<span class="p">#</span> cipi api token create     <span class="c"># abilities: apps-view, deploy-manage, dbs-manage, status-view</span></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
+                    <pre>CIPI_BASE_URL=https://api.myserver.com
+CIPI_TOKEN=your-sanctum-token
+<span class="c"># CIPI_PANEL_APP=myapp      # app name on the panel, default: CIPI_APP_USER</span></pre>
+                </div>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tool</th>
+                                                <th>Panel operation</th>
+                                                <th>Token ability</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>panel_status</code></td>
+                                                <td>The app as the panel sees it (domain, PHP, repository, branch, workers, aliases, limits) plus the server snapshot</td>
+                                                <td><code>apps-view</code>, <code>status-view</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_deploy_audit</code></td>
+                                                <td>The hash-chained deploy audit ledger (<code>cipi deploy --audit</code>)</td>
+                                                <td><code>deploy-manage</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_rollback</code></td>
+                                                <td><code>cipi deploy --rollback</code> — code symlink only, migrations stay; <code>wait=true</code> blocks until the job ends</td>
+                                                <td><code>deploy-manage</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_db_backup</code></td>
+                                                <td><code>cipi db backup</code> server-side snapshot, e.g. right before a risky data fix</td>
+                                                <td><code>dbs-manage</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_job</code></td>
+                                                <td>Status, structured result and CLI output of an asynchronous panel job</td>
+                                                <td>any</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+                <p>The tools appear automatically when the SDK is installed and <code>CIPI_BASE_URL</code> /
+                    <code>CIPI_TOKEN</code> are set (<code>CIPI_PANEL=false</code> hides them). Both packages read
+                    <code>config/cipi.php</code>; publish the agent's copy with <code>--tag=cipi-agent-config</code>.
+                    Scope the panel token to exactly these abilities — it is the one credential that reaches beyond
+                    this app.</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -863,9 +1072,9 @@
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <div>The MCP server does not require SSH access to the VPS. It works entirely over HTTPS using
-                        the same Bearer token used by the webhook and health check endpoints. This makes it ideal for
-                        teams where developers should be able to monitor and deploy without root access.</div>
+                    <div>The MCP server does not require SSH access to the VPS. It works entirely over HTTPS with its
+                        own Bearer token. This makes it ideal for teams where developers should be able to monitor,
+                        debug and deploy without root access.</div>
                 </div>
 
                 <div class="callout warning">
@@ -877,8 +1086,8 @@
                     </svg>
                     <div>Keep your <code>CIPI_MCP_TOKEN</code> secret. Anyone with the token can trigger deploys,
                         read logs, run database queries, and run Artisan commands through the MCP endpoint. If you
-                        suspect a leak, regenerate
-                        the token with <code>php artisan cipi:generate-token mcp</code> and restart the application.
+                        suspect a leak, regenerate the token with <code>php artisan cipi:generate-token mcp</code> —
+                        the configuration cache is rebuilt for you; Octane and workers need a restart.
                     </div>
                 </div>
 
@@ -890,10 +1099,91 @@
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                     <div><strong>Two MCP servers in Cipi:</strong> <em>Agent MCP</em> (<code>POST /cipi/mcp</code> on
-                        the app domain, 6 tools, one app's DB/logs) vs <em>panel API MCP</em>
-                        (<code>POST /mcp</code> on the API domain, 46 tools, whole server). Use Agent MCP for
-                        app-specific debugging; use <a href="/docs/advanced#cipi-api">panel API MCP</a> to create apps, manage
-                        SSL, or list all databases.</div>
+                        the app domain, 11 tools + 5 panel tools, one app's DB, logs, Artisan and <code>cipi.yml</code>)
+                        vs <em>panel API MCP</em> (<code>POST /mcp</code> on the API domain, 73 tools in
+                        <code>cipi/api</code> 1.31, whole server). Use Agent MCP for app-specific debugging; use
+                        <a href="/docs/advanced#cipi-api">panel API MCP</a> to create apps, manage SSL, or list all
+                        databases.</div>
+                </div>
+            </div>
+
+            <div class="doc-section" id="agent-yml">
+                <h2><code>cipi.yml</code> tooling</h2>
+                <p><a href="/cipi-yml"><code>cipi.yml</code></a> is the declarative file committed with the app that
+                    drives its server configuration: PHP version, aliases, php.ini overrides, limits, basic auth, extra
+                    databases, workers (queues, Horizon, Reverb), scheduler, healthcheck, deploy recipe and post-deploy
+                    steps, redirects, proxies, SSL, required <code>.env</code> names, crons and backup profiles. On the
+                    server, <a href="/docs/deploy#cli-yml"><code>cipi yml validate | plan | apply</code></a> reconcile
+                    it.</p>
+                <p>Since 2.0 the agent ships <strong>the same parser and validator</strong> — a line-for-line port of the
+                    server's YAML-subset parser and schema checks, verified against the server's Python on a corpus of
+                    valid and invalid files — so you get the server's verdict, and the server's exact error messages,
+                    locally and in CI before anything is committed.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:yml validate              <span class="c"># ./cipi.yml, then the server locations; exit 1 on errors</span>
+<span class="p">$</span> php artisan cipi:yml validate --json       <span class="c"># machine-readable, for CI</span>
+<span class="p">$</span> php artisan cipi:yml validate --strict     <span class="c"># warnings (env.required missing in .env) also fail</span>
+<span class="p">$</span> php artisan cipi:yml show                  <span class="c"># the normalized document, server defaults applied</span>
+<span class="p">$</span> php artisan cipi:yml generate --write      <span class="c"># a cipi.yml inferred from this Laravel app</span>
+<span class="p">$</span> php artisan cipi:yml example --write       <span class="c"># the commented template, in the app's namespace</span>
+<span class="p">$</span> php artisan cipi:yml schema --write        <span class="c"># JSON Schema for editor autocompletion</span></pre>
+                </div>
+
+                <h3>Generate from the application</h3>
+                <p><code>cipi yml generate &lt;app&gt;</code> on the server prints what is configured <em>today</em>.
+                    <code>php artisan cipi:yml generate</code> is the other direction — a starting point derived from
+                    the code for an app that has never run on Cipi: Horizon or plain queue workers
+                    (<code>QUEUE_CONNECTION</code>), Reverb, Scout with Meilisearch, scheduled tasks, the <code>/up</code>
+                    health route, <code>CIPI_PHP_VERSION</code>, extra databases in the app's namespace and the
+                    credential-looking keys of <code>.env.example</code> for <code>env.required</code>. Everything else is
+                    left as commented examples. The output is run through the validator before it is returned, so it is
+                    never a file the server would reject.</p>
+
+                <h3>Validate before the server does</h3>
+                <p>Unknown keys, values outside their bounds, databases or backup profiles outside the app's namespace,
+                    forbidden runners in <code>deploy.post</code> — every rule the server applies is applied here, with
+                    the same <code>path: message</code> output. The validator also reads the local <code>.env</code> and
+                    warns about each <code>env.required</code> name that is missing or empty, because the server blocks
+                    the plan while one is. Namespace rules need the app name: <code>CIPI_APP_USER</code>, or
+                    <code>--app=&lt;name&gt;</code> outside the server.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span></div>
+                    <pre><span class="p">$</span> php artisan cipi:yml validate
+<span class="s">INFO</span>  cipi.yml is valid (/var/www/shop/cipi.yml)
+<span class="s">WARN</span>  env.required: STRIPE_KEY is not set in .env — the server blocks the plan while it is missing
+  See what applying it would change on the server: cipi yml plan shop</pre>
+                </div>
+
+                <h3>Editor support</h3>
+                <p><code>cipi:yml schema --write</code> publishes <code>cipi.schema.json</code> (JSON Schema 2020-12,
+                    also available with <code>vendor:publish --tag=cipi-schemas</code>). Point the YAML language server
+                    at it with a first-line comment and get completion and inline errors while you type:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span></div>
+                    <pre><span class="c"># yaml-language-server: $schema=./cipi.schema.json</span>
+version: 1</pre>
+                </div>
+
+                <h3>From the assistant</h3>
+                <p>The MCP <code>cipi_yml</code> tool runs the same actions (<code>validate</code>, <code>show</code>,
+                    <code>generate</code>, <code>example</code>) and accepts a draft as <code>content</code>, so an AI
+                    assistant can propose a change, validate it and hand you a file the server accepts — without
+                    writing to the repository itself. The <code>env_check</code> tool reports which
+                    <code>env.required</code> names are missing on the server, with no values.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>The local validator and the server validator are the same schema. When a Cipi release adds a
+                        <code>cipi.yml</code> key, update <code>cipi/agent</code> as well so <code>php artisan cipi:yml
+                        validate</code> knows it; until then the server remains authoritative.</div>
                 </div>
             </div>
 
@@ -901,9 +1191,13 @@
                 <h2>Database Anonymizer</h2>
                 <p><strong>cipi-agent</strong> includes a built-in database anonymizer that creates sanitized copies of
                     your production database — ideal for sharing with developers, QA teams, or staging environments
-                    without exposing real user data. It supports both <strong>MySQL</strong> and <strong>PostgreSQL</strong>,
-                    uses <strong>Faker</strong>-based transformations configured via a JSON file, and runs as a
-                    background job so large databases do not block HTTP requests.</p>
+                    without exposing real user data. It supports <strong>MySQL / MariaDB</strong> and
+                    <strong>PostgreSQL</strong> (since 2.0 the <code>pg_dump</code> output is streamed through its
+                    <code>COPY</code> blocks and <code>INSERT</code> statements), uses <strong>Faker</strong>-based
+                    transformations configured via a JSON file, and runs as a background job so large databases do not
+                    block HTTP requests. The real data never lingers: the original dump is deleted as soon as it has
+                    been processed, outputs are <code>0600</code>, and database passwords travel in the environment,
+                    never on the command line.</p>
 
                 <p>This feature lives inside your <strong>Laravel application</strong> (the <code>cipi/agent</code>
                     package). It is separate from the server-level database backup API exposed by
@@ -962,8 +1256,10 @@
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td><code>mysqldump</code> or <code>pg_dump</code></td>
-                                                <td>The command shells out to the native dump tool for your DB driver</td>
+                                                <td><code>mysqldump</code> (or <code>mariadb-dump</code>) / <code>pg_dump</code></td>
+                                                <td>The native dump tool for your DB driver, found on <code>PATH</code> or set with
+                                                    <code>CIPI_MYSQLDUMP</code> / <code>CIPI_PG_DUMP</code>; <code>ext-zlib</code> for
+                                                    <code>gzip</code> output</td>
                                             </tr>
                                             <tr>
                                                 <td>Laravel mail (<code>MAIL_*</code> in app <code>.env</code>)</td>
@@ -1043,20 +1339,26 @@
 
                 <h3>How it works</h3>
                 <ol>
-                    <li>An authenticated <code>POST /cipi/db</code> request (with a recipient <code>email</code>)
-                        queues <code>AnonymizeDatabaseJob</code></li>
-                    <li>The job runs <code>php artisan cipi:anonymize</code>, which:
+                    <li>An authenticated <code>POST /cipi/db</code> request (with a recipient <code>email</code>, optionally
+                        <code>gzip</code>) validates <code>anonymization.json</code> and queues
+                        <code>AnonymizeDatabaseJob</code></li>
+                    <li>The job
                         <ul>
-                            <li>dumps the database with <code>mysqldump</code> or <code>pg_dump</code></li>
-                    <li>streams through <code>INSERT</code> statements and rewrites only the columns listed in
-                                <code>anonymization.json</code></li>
-                    <li>writes the result to <code>storage/cipi/anonymized_{jobId}.sql</code></li>
+                            <li>dumps the database with <code>mysqldump</code> or <code>pg_dump --format=plain</code>
+                                (password via <code>MYSQL_PWD</code> / <code>PGPASSWORD</code>, never on the command line)</li>
+                            <li>streams the dump: MySQL extended <code>INSERT</code>s are tokenized value by value,
+                                PostgreSQL <code>COPY … FROM stdin</code> blocks field by field — only the columns listed
+                                in <code>anonymization.json</code> are rewritten, the rows of <code>truncate</code> tables
+                                are dropped, everything else is copied byte for byte</li>
+                            <li>deletes the original dump, writes <code>storage/cipi/anonymized_{jobId}.sql</code>
+                                (<code>.sql.gz</code> with gzip) with permissions <code>0600</code></li>
                         </ul>
                     </li>
                     <li>On success, Laravel sends an email with a <strong>time-limited download URL</strong>
-                        (15 minutes)</li>
-                    <li><code>GET /cipi/db/{token}</code> serves the file — no Bearer token; the URL itself is the
-                        credential</li>
+                        (<code>CIPI_ANONYMIZER_TTL</code>, default 15 minutes) and a summary: size, rows transformed per
+                        table, tables emptied, warnings</li>
+                    <li><code>GET /cipi/db/{token}</code> serves the file — no Bearer token; the signed URL itself is
+                        the credential</li>
                     <li>On failure, a plain-text error email is sent to the same address</li>
                 </ol>
                 <p>The sequence is the same whichever client sends the request — <code>curl</code>, a CI job, or
@@ -1162,20 +1464,36 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
 <span class="p">$</span> php artisan cipi:generate-token anonymize</pre>
                 </div>
 
-                <p><strong>3. Scaffold the configuration file:</strong></p>
+                <p><strong>3. Create the configuration file</strong> — from the live schema (recommended) or from the
+                    built-in example:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> php artisan cipi:init-anonymize</pre>
+                    <pre><span class="p">$</span> php artisan cipi:init-anonymize --scan    <span class="c"># proposes a config from your tables and columns</span>
+<span class="p">$</span> php artisan cipi:init-anonymize           <span class="c"># or: the generic example to edit by hand</span></pre>
                 </div>
 
-                <p>This creates <code>/home/{app_user}/.db/anonymization.json</code> (permissions <code>0640</code>)
-                    from the built-in template. The file lives <strong>outside the Git repository</strong> — it is never
-                    deployed with your code. Use <code>--force</code> to overwrite an existing file.</p>
+                <p>This creates <code>/home/{app_user}/.db/anonymization.json</code> (permissions <code>0640</code>).
+                    With <code>--scan</code> the agent reads the schema and proposes a transformation for every column
+                    that looks like personal data — e-mails, names, phones, addresses, IPs, tokens, passwords, tax ids,
+                    card data, free-text notes — and empties the usual operational tables (<code>sessions</code>,
+                    <code>jobs</code>, <code>failed_jobs</code>, <code>password_reset_tokens</code>,
+                    <code>personal_access_tokens</code>, Telescope, Pulse…). Foreign keys and timestamps are never
+                    touched. The file lives <strong>outside the Git repository</strong> — it is never deployed with your
+                    code. Use <code>--force</code> to overwrite, <code>--stdout</code> to print, <code>--path</code> for
+                    another location.</p>
 
-                <p><strong>4. Edit the config</strong> to match your real tables and sensitive columns (see
-                    <a href="#agent-anonymizer-config">Configuration</a>).
-                </p>
+                <p><strong>4. Review the config and audit it</strong> against the database (see
+                    <a href="#agent-anonymizer-config">Configuration</a>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> php artisan cipi:anonymize-audit</pre>
+                </div>
+                <p>The audit fails on tables or columns that do not exist and on unknown transformations, warns about
+                    password columns not using <code>password</code>, and lists every column that looks like personal
+                    data but is not covered — with a suggested transformation for each. Run it again whenever a
+                    migration adds a column.</p>
 
                 <p><strong>5. Verify queue and mail:</strong> confirm the worker runs jobs and Laravel can send to the
                     address you will pass in <code>POST /cipi/db</code> (see
@@ -1196,13 +1514,15 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
                 <h3 id="agent-anonymizer-config">Configuration</h3>
                 <p>Valid paths (first match wins):</p>
                 <ul>
+                    <li><code>CIPI_ANONYMIZER_CONFIG</code> — an explicit path, when set</li>
                     <li><code>/home/{app_user}/.db/anonymization.json</code> — recommended</li>
                     <li><code>/home/{app_user}/.cipi/anonymization.json</code> — alternative</li>
                 </ul>
 
-                <p>The JSON file has two top-level keys: <code>transformations</code> (required) and
-                    <code>options</code> (optional).
-                </p>
+                <p>The JSON file has three top-level keys: <code>transformations</code> (required),
+                    <code>truncate</code> (optional) and <code>options</code> (optional). A JSON Schema is published
+                    with <code>vendor:publish --tag=cipi-schemas</code> and served to assistants as
+                    <code>cipi://anonymization.json/schema</code>.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">json</span><button
@@ -1211,85 +1531,133 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
   <span class="s">"transformations"</span>: {
     <span class="s">"users"</span>: {
       <span class="s">"name"</span>: <span class="s">"fakeName"</span>,
-      <span class="s">"email"</span>: <span class="s">"fakeEmail"</span>,
+      <span class="s">"email"</span>: { <span class="s">"type"</span>: <span class="s">"fakeEmail"</span>, <span class="s">"unique"</span>: <span class="k">true</span>, <span class="s">"consistent"</span>: <span class="k">true</span> },
       <span class="s">"password"</span>: <span class="s">"password"</span>,
-      <span class="s">"phone"</span>: <span class="s">"fakePhoneNumber"</span>,
-      <span class="s">"address"</span>: <span class="s">"fakeAddress"</span>
+      <span class="s">"remember_token"</span>: <span class="s">"null"</span>,
+      <span class="s">"phone"</span>: <span class="s">"mask:3,2"</span>
     },
     <span class="s">"orders"</span>: {
-      <span class="s">"customer_notes"</span>: <span class="s">"fakeParagraph"</span>,
-      <span class="s">"shipping_address"</span>: <span class="s">"fakeAddress"</span>
-    },
-    <span class="s">"support_tickets"</span>: {
-      <span class="s">"user_message"</span>: <span class="s">"fakeParagraph"</span>,
-      <span class="s">"agent_response"</span>: <span class="s">"fakeParagraph"</span>
+      <span class="s">"customer_email"</span>: { <span class="s">"type"</span>: <span class="s">"fakeEmail"</span>, <span class="s">"consistent"</span>: <span class="k">true</span> },
+      <span class="s">"card_last_four"</span>: <span class="s">"numerify:####"</span>,
+      <span class="s">"internal_notes"</span>: <span class="s">"fakeParagraph"</span>
     }
   },
+  <span class="s">"truncate"</span>: [<span class="s">"sessions"</span>, <span class="s">"jobs"</span>, <span class="s">"failed_jobs"</span>, <span class="s">"password_reset_tokens"</span>, <span class="s">"personal_access_tokens"</span>],
   <span class="s">"options"</span>: {
     <span class="s">"hash_algorithm"</span>: <span class="s">"auto"</span>,
-    <span class="s">"preserve_ids"</span>: <span class="k">true</span>,
-    <span class="s">"faker_locale"</span>: <span class="s">"en_US"</span>
+    <span class="s">"password"</span>: <span class="s">"password"</span>,
+    <span class="s">"faker_locale"</span>: <span class="s">"en_US"</span>,
+    <span class="s">"consistent"</span>: <span class="k">true</span>,
+    <span class="s">"gzip"</span>: <span class="k">false</span>
   }
 }</pre>
                 </div>
 
                 <p>Under <code>transformations</code>, each key is a <strong>table name</strong>. Nested keys are
-                    <strong>column names</strong>; values are transformation types (not raw Faker method names — see
-                    table below). Columns <em>not</em> listed keep their original values, so you can anonymize PII while
-                    preserving foreign keys, enums, and business logic fields.</p>
+                    <strong>column names</strong>; a value is a transformation name (<code>"fakeEmail"</code>), a name
+                    with an argument after a colon (<code>"fixed:ACME"</code>, <code>"numerify:###"</code>,
+                    <code>"mask:1,2"</code>, <code>"hash:32"</code>), or an object with <code>type</code> plus the
+                    <code>unique</code> / <code>consistent</code> flags. Columns <em>not</em> listed keep their original
+                    values, so you can anonymize PII while preserving foreign keys, enums and business-logic fields.
+                    <code>NULL</code> stays <code>NULL</code> (except with <code>fixed</code>).</p>
+                <ul>
+                    <li><strong><code>consistent</code></strong> — the same original value becomes the same fake value in
+                        every table and every run with the same <code>seed</code>, so denormalized e-mails and names
+                        still join (<code>users.email</code> ↔ <code>orders.customer_email</code> above).</li>
+                    <li><strong><code>unique</code></strong> — no two rows of a column receive the same value; on by
+                        default for <code>fakeEmail</code>, <code>fakeSafeEmail</code>, <code>fakeUserName</code>,
+                        <code>fakeUuid</code>, <code>fakeToken</code> and <code>fakeIban</code>, the columns that usually
+                        carry a unique index.</li>
+                    <li><strong><code>truncate</code></strong> — the table structure is kept, its rows are dropped from
+                        the dump: sessions, queue tables, tokens, Telescope and Pulse data.</li>
+                    <li><strong><code>password</code></strong> — every row gets the hash of <code>options.password</code>
+                        (default <code>password</code>), computed once, so developers can log in to the anonymized copy.
+                        <code>hash_algorithm: auto</code> uses the app's Hash driver.</li>
+                </ul>
 
                 <h4>Supported transformations</h4>
+                <p><code>php artisan cipi:anonymize --transformations</code> prints the catalogue. The MCP
+                    <code>anonymizer</code> tool (action <code>transformations</code>) returns the same list.</p>
                                 <div class="table-scroll">
                     <table class="cmd-table">
                                         <thead>
                                             <tr>
                                                 <th>Transformation</th>
-                                                <th>Example output</th>
+                                                <th>Output</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td><code>fakeName</code></td>
-                                                <td>Full name (e.g. "Jane Cooper")</td>
+                                                <td><code>fakeName</code> / <code>fakeFirstName</code> / <code>fakeLastName</code></td>
+                                                <td>Person names</td>
                                             </tr>
                                             <tr>
-                                                <td><code>fakeFirstName</code> / <code>fakeLastName</code></td>
-                                                <td>First or last name only</td>
+                                                <td><code>fakeUserName</code></td>
+                                                <td>User name (unique)</td>
                                             </tr>
                                             <tr>
-                                                <td><code>fakeEmail</code></td>
-                                                <td>Random email address</td>
+                                                <td><code>fakeEmail</code> / <code>fakeSafeEmail</code></td>
+                                                <td>E-mail address (unique); <code>fakeSafeEmail</code> uses example.com/net/org</td>
                                             </tr>
                                             <tr>
-                                                <td><code>fakeCompany</code></td>
-                                                <td>Company name</td>
+                                                <td><code>fakeCompany</code> / <code>fakeJobTitle</code></td>
+                                                <td>Company name, job title</td>
                                             </tr>
                                             <tr>
-                                                <td><code>fakeAddress</code> / <code>fakeCity</code> / <code>fakePostcode</code></td>
-                                                <td>Street address, city, postal code</td>
+                                                <td><code>fakeAddress</code> / <code>fakeStreetAddress</code> / <code>fakeCity</code> / <code>fakeState</code> / <code>fakePostcode</code></td>
+                                                <td>Postal address pieces</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>fakeCountry</code> / <code>fakeCountryCode</code></td>
+                                                <td>Country name / ISO code</td>
                                             </tr>
                                             <tr>
                                                 <td><code>fakePhoneNumber</code></td>
                                                 <td>Phone number</td>
                                             </tr>
                                             <tr>
-                                                <td><code>fakeDate</code></td>
-                                                <td>Random date string</td>
+                                                <td><code>fakeDate</code> / <code>fakeDateTime</code></td>
+                                                <td><code>Y-m-d</code> / <code>Y-m-d H:i:s</code></td>
                                             </tr>
                                             <tr>
-                                                <td><code>fakeUrl</code></td>
-                                                <td>URL</td>
+                                                <td><code>fakeUrl</code> / <code>fakeDomain</code></td>
+                                                <td>URL, domain name</td>
                                             </tr>
                                             <tr>
-                                                <td><code>fakeParagraph</code></td>
-                                                <td>Lorem-style paragraph (notes, bios, ticket bodies)</td>
+                                                <td><code>fakeParagraph</code> / <code>fakeSentence</code> / <code>fakeText[:len]</code> / <code>fakeWord</code></td>
+                                                <td>Lorem-style text (notes, bios, ticket bodies)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>fakeIban[:CC]</code> / <code>fakeCreditCardNumber</code></td>
+                                                <td>Banking data in test ranges</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>fakeIpv4</code> / <code>fakeIpv6</code> / <code>fakeMacAddress</code> / <code>fakeUserAgent</code></td>
+                                                <td>Network identifiers, browser user agent</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>fakeUuid</code> / <code>fakeToken[:length]</code> / <code>fakeIdentifier</code></td>
+                                                <td>UUID v4 (unique), random hex token (unique), alphanumeric id for tax ids and passports</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>fakeLatitude</code> / <code>fakeLongitude</code> / <code>fakeNumber[:digits]</code> / <code>fakeBoolean</code></td>
+                                                <td>Coordinates, random integer, random true/false — numeric when the column is numeric</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>numerify:###</code> / <code>lexify:???</code> / <code>bothify:?#</code></td>
+                                                <td>Patterns: <code>#</code> → digit, <code>?</code> → letter</td>
                                             </tr>
                                             <tr>
                                                 <td><code>password</code></td>
-                                                <td>Re-hashes the value using <code>hash_algorithm</code> (bcrypt, argon, or Laravel
-                                                    <code>auto</code>) — use on <code>users.password</code> so login still works with a
-                                                    known test password if you set one before dump, or accept random hashes
-                                                </td>
+                                                <td>Hash of <code>options.password</code> (bcrypt, argon2 or the app's Hash driver), computed once</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>null</code> / <code>empty</code> / <code>fixed:value</code> / <code>redact</code></td>
+                                                <td><code>NULL</code>, empty string, a constant, the string <code>[REDACTED]</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>hash[:len]</code> / <code>mask:first,last</code> / <code>keep</code></td>
+                                                <td>SHA-256 of the original (seeded), keep the first/last characters (<code>j*******om</code>), leave untouched</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1309,23 +1677,47 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
                                             <tr>
                                                 <td><code>hash_algorithm</code></td>
                                                 <td><code>auto</code></td>
-                                                <td><code>auto</code> (Laravel default), <code>bcrypt</code>, <code>argon</code>,
-                                                    <code>argon2i</code>, <code>argon2d</code>
-                                                </td>
+                                                <td><code>auto</code> (the app's Hash driver), <code>bcrypt</code>, <code>argon</code> / <code>argon2id</code>, <code>argon2i</code>, <code>argon2d</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>password</code></td>
+                                                <td><code>password</code></td>
+                                                <td>Plaintext every <code>password</code> column is set to (hashed once)</td>
                                             </tr>
                                             <tr>
                                                 <td><code>faker_locale</code></td>
                                                 <td><code>en_US</code></td>
-                                                <td>Faker locale for names, addresses, etc. (e.g. <code>it_IT</code>,
-                                                    <code>de_DE</code>)
-                                                </td>
+                                                <td>Faker locale for names, addresses, phone formats (e.g. <code>it_IT</code>, <code>de_DE</code>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>consistent</code></td>
+                                                <td><code>false</code></td>
+                                                <td>Default for every column: same original → same fake, across tables and runs with the same <code>seed</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>seed</code></td>
+                                                <td><code>null</code></td>
+                                                <td>Seed for consistent mode and <code>hash</code>; change it to get a different, still consistent, dataset</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>gzip</code></td>
+                                                <td><code>false</code></td>
+                                                <td>Compress the output (<code>.sql.gz</code>); <code>POST /cipi/db</code> and <code>cipi:anonymize --gzip</code> can override it</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>connection</code></td>
+                                                <td><code>null</code></td>
+                                                <td>A <code>config/database.php</code> connection to dump instead of the default one</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>dump_args</code></td>
+                                                <td><code>[]</code></td>
+                                                <td>Extra flags for <code>mysqldump</code> / <code>pg_dump</code> (one flag per entry, e.g. <code>--skip-triggers</code>)</td>
                                             </tr>
                                             <tr>
                                                 <td><code>preserve_ids</code></td>
                                                 <td><code>true</code></td>
-                                                <td>Reserved for future use — IDs are kept unless you add an <code>id</code> column under
-                                                    transformations
-                                                </td>
+                                                <td>Accepted for compatibility — ids are never transformed</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1359,7 +1751,8 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
                                                 <td>POST</td>
                                                 <td><code>/cipi/db</code></td>
                                                 <td>Bearer <code>CIPI_ANONYMIZER_TOKEN</code></td>
-                                                <td>Queue anonymization job; email sent when complete</td>
+                                                <td>Queue an anonymization job (<code>{"email": …, "gzip": true|false}</code>); the config is
+                                                    validated first; email sent when complete</td>
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
@@ -1371,7 +1764,8 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
                                                 <td>GET</td>
                                                 <td><code>/cipi/db/{token}</code></td>
                                                 <td>Signed URL (from email)</td>
-                                                <td>Download the <code>.sql</code> dump; expires in 15 minutes</td>
+                                                <td>Download the <code>.sql</code> (or <code>.sql.gz</code>) dump; expires after
+                                                    <code>CIPI_ANONYMIZER_TTL</code> minutes (default 15)</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1408,7 +1802,8 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
                     <pre>{
   <span class="s">"status"</span>: <span class="s">"queued"</span>,
   <span class="s">"message"</span>: <span class="s">"Database anonymization job has been queued. You will receive an email with download instructions when complete."</span>,
-  <span class="s">"email"</span>: <span class="s">"developer@example.com"</span>
+  <span class="s">"email"</span>: <span class="s">"developer@example.com"</span>,
+  <span class="s">"link_valid_minutes"</span>: 15
 }</pre>
                 </div>
 
@@ -1498,8 +1893,9 @@ mysql -u root -p myapp_local &lt; anonymized.sql</pre>
                                             </tr>
                                             <tr>
                                                 <td>400</td>
-                                                <td>Invalid JSON or empty <code>transformations</code></td>
-                                                <td>Validate <code>anonymization.json</code> syntax and content</td>
+                                                <td>Invalid <code>anonymization.json</code> — the response lists every error (unknown
+                                                    transformation, bad option, table both truncated and transformed, …)</td>
+                                                <td>Fix the file; <code>php artisan cipi:anonymize-audit</code> prints the same list</td>
                                             </tr>
                                             <tr>
                                                 <td>500</td>
@@ -1642,17 +2038,23 @@ mysql -u root -p myapp_local &lt; anonymized.sql</pre>
                 </div>
 
                 <h3>Artisan — run on the server without HTTP</h3>
-                <p>For scripts, cron, or one-off exports on the server:</p>
+                <p>For scripts, cron, or one-off exports on the server. Without arguments the command uses the server
+                    config and writes to <code>storage/cipi/anonymized_&lt;timestamp&gt;.sql</code>:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> php artisan cipi:anonymize \
-    /home/myapp/.db/anonymization.json \
-    /home/myapp/anonymized_export.sql</pre>
+                    <pre><span class="p">$</span> php artisan cipi:anonymize                                   <span class="c"># server config → storage/cipi/</span>
+<span class="p">$</span> php artisan cipi:anonymize --gzip                            <span class="c"># .sql.gz</span>
+<span class="p">$</span> php artisan cipi:anonymize /home/myapp/.db/anonymization.json /home/myapp/export.sql
+<span class="p">$</span> php artisan cipi:anonymize --check                           <span class="c"># validate + audit, no dump</span>
+<span class="p">$</span> php artisan cipi:anonymize --transformations                 <span class="c"># list the catalogue</span>
+<span class="p">$</span> php artisan cipi:anonymize-audit [--json]                    <span class="c"># config vs live schema</span></pre>
                 </div>
 
-                <p>The command prints three steps (dump → transform → save) and exits non-zero on failure. It does not
-                    send email — copy the file via SCP or your own secure channel.</p>
+                <p>The command reports the dump dialect, output size, rows transformed per table, tables emptied,
+                    duration and any warnings (for example an <code>INSERT</code> it could not parse, left unchanged), and
+                    exits non-zero on failure. It does not send email — copy the file via SCP or your own secure
+                    channel.</p>
 
                 <h3>Comparison curl: Cipi API raw backup</h3>
                 <p>For reference, a <strong>non-anonymized</strong> server backup via
@@ -1683,7 +2085,14 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span
                     <li>Disable when not needed:
                         <code>php artisan cipi:service anonymize --disable</code> (endpoints return 404)
                     </li>
-                    <li>Download links expire in <strong>15 minutes</strong> — forward emails carefully</li>
+                    <li>Download links expire after <strong><code>CIPI_ANONYMIZER_TTL</code> minutes</strong> (default
+                        15) — forward emails carefully</li>
+                    <li>Every password in the dump is the hash of <code>options.password</code> — tell the recipients, and
+                        never reuse a real password there</li>
+                    <li>Prefer <code>consistent: true</code> with a private <code>seed</code>: the dataset stays joinable
+                        without the fake values being guessable from the real ones</li>
+                    <li>Run <code>cipi:anonymize-audit</code> after every migration — a new <code>email</code> or
+                        <code>phone</code> column is copied verbatim until it is listed</li>
                     <li>With <code>cipi-cli</code> nothing is stored on the laptop: the client reads
                         <code>CIPI_ANONYMIZER_TOKEN</code> through the Cipi API on every run (<code>apps-env</code>
                         ability) — so any Sanctum token holding <code>apps-env</code> can read it; scope those tokens
@@ -1744,14 +2153,48 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span
                                                 <td><code>CIPI_ANONYMIZER_TOKEN</code></td>
                                                 <td><code>POST /cipi/db</code>, <code>POST /cipi/db/user</code></td>
                                             </tr>
+                                            <tr>
+                                                <td>Panel tools (optional)</td>
+                                                <td><code>CIPI_TOKEN</code> — Sanctum token from <code>cipi api token create</code></td>
+                                                <td>Outbound, to the panel API via <code>cipi/sdk</code></td>
+                                            </tr>
                                         </tbody>
                                     </table>
                 </div>
 
                 <h3>Webhook verification</h3>
                 <ul>
-                    <li><strong>GitHub</strong> — <code>X-Hub-Signature-256</code> HMAC-SHA256</li>
-                    <li><strong>GitLab</strong> — <code>X-Gitlab-Token</code> header comparison</li>
+                    <li><strong>GitHub</strong> — <code>X-Hub-Signature-256</code> HMAC-SHA256 (<code>X-Hub-Signature</code>
+                        SHA-1 legacy)</li>
+                    <li><strong>Bitbucket</strong> — <code>X-Hub-Signature</code> <code>sha256=</code> HMAC</li>
+                    <li><strong>GitLab</strong> and <strong>Azure DevOps</strong> — <code>X-Gitlab-Token</code> header
+                        comparison</li>
+                    <li><strong>Gitea</strong> — <code>X-Gitea-Signature</code> HMAC-SHA256</li>
+                </ul>
+                <p>All comparisons are constant-time. What the agent writes about a deploy (actor, commit, delivery id,
+                    IP) is recorded by Cipi as a <em>claim</em> in the audit ledger, never as a fact.</p>
+
+                <h3>MCP safety</h3>
+                <ul>
+                    <li>Blocked Artisan commands and SQL statements (see <a href="#agent-mcp">MCP server</a>), one
+                        statement per call, reads capped at <code>CIPI_MCP_MAX_ROWS</code>, optional read-only mode
+                        (<code>CIPI_MCP_DB_WRITE=false</code>)</li>
+                    <li>Secret redaction in logs and command output (<code>CIPI_MCP_REDACT</code>)</li>
+                    <li><code>Origin</code> validation against the app host (<code>CIPI_MCP_ALLOWED_ORIGINS</code>),
+                        <code>405</code> on <code>GET</code>/<code>DELETE</code>, no sessions to hijack</li>
+                    <li>Tool failures are reported with <code>isError</code>, protocol errors with the JSON-RPC codes the
+                        clients expect; the file paths <code>cipi_yml</code> may read are confined to the app and its
+                        home</li>
+                </ul>
+
+                <h3>Anonymizer safety</h3>
+                <ul>
+                    <li>Config outside the repository (<code>/home/{app_user}/.db/</code>, <code>0640</code>), validated
+                        before a job is queued</li>
+                    <li>Database passwords via <code>MYSQL_PWD</code> / <code>PGPASSWORD</code>, never on the command
+                        line; the original dump is deleted right after processing; outputs are <code>0600</code></li>
+                    <li>Signed, time-limited download links (<code>signed</code> middleware); downloads confined to
+                        <code>storage/cipi</code></li>
                 </ul>
 
                 <p>Source code and releases:
@@ -1777,17 +2220,22 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span
                                         <tbody>
                                             <tr>
                                                 <td>CIPI_WEBHOOK_TOKEN</td>
-                                                <td>Secret for webhook authentication (GitHub HMAC / GitLab token)</td>
+                                                <td>Secret for webhook authentication (GitHub / Bitbucket / Gitea HMAC, GitLab / Azure token)</td>
                                                 <td>auto-generated</td>
                                             </tr>
                                             <tr>
                                                 <td>CIPI_APP_USER</td>
-                                                <td>Linux username for this app (paths, deploy script)</td>
+                                                <td>Linux username for this app (paths, deploy trigger, logs)</td>
                                                 <td>auto-set</td>
                                             </tr>
                                             <tr>
+                                                <td>CIPI_HOME</td>
+                                                <td>Override the app home directory</td>
+                                                <td><code>/home/&lt;app_user&gt;</code></td>
+                                            </tr>
+                                            <tr>
                                                 <td>CIPI_PHP_VERSION</td>
-                                                <td>PHP version reported in health check</td>
+                                                <td>PHP version reported in the health check and used by <code>cipi:yml generate</code></td>
                                                 <td>system PHP</td>
                                             </tr>
                                             <tr>
@@ -1831,6 +2279,26 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span
                                                 <td><em>none</em></td>
                                             </tr>
                                             <tr>
+                                                <td>CIPI_MCP_ALLOWED_ORIGINS</td>
+                                                <td>Browser origins allowed on the MCP endpoint, comma-separated (<code>*</code> = any)</td>
+                                                <td>the app host</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_MCP_DB_WRITE</td>
+                                                <td>Allow <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code> through <code>db_query</code></td>
+                                                <td><code>true</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_MCP_MAX_ROWS</td>
+                                                <td>Default row cap for <code>db_query</code> (max 500)</td>
+                                                <td><code>100</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_MCP_REDACT</td>
+                                                <td>Redact common secrets in logs and command output sent over MCP</td>
+                                                <td><code>true</code></td>
+                                            </tr>
+                                            <tr>
                                                 <td>CIPI_ANONYMIZER</td>
                                                 <td>Enable anonymizer at <code>/cipi/db</code></td>
                                                 <td><code>false</code></td>
@@ -1838,6 +2306,36 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span
                                             <tr>
                                                 <td>CIPI_ANONYMIZER_TOKEN</td>
                                                 <td>Bearer token for anonymizer</td>
+                                                <td><em>none</em></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_ANONYMIZER_CONFIG</td>
+                                                <td>Explicit path of <code>anonymization.json</code></td>
+                                                <td><code>~/.db/anonymization.json</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_ANONYMIZER_TTL</td>
+                                                <td>Minutes a download link stays valid</td>
+                                                <td><code>15</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_MYSQLDUMP / CIPI_PG_DUMP</td>
+                                                <td>Dump binaries, when not on <code>PATH</code></td>
+                                                <td>from <code>PATH</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_PANEL</td>
+                                                <td>Expose the <code>panel_*</code> MCP tools when <code>cipi/sdk</code> is installed and configured</td>
+                                                <td><code>true</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_PANEL_APP</td>
+                                                <td>App name on the panel</td>
+                                                <td><code>CIPI_APP_USER</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_BASE_URL / CIPI_TOKEN</td>
+                                                <td>Panel API URL and Sanctum token, read by <code>cipi/sdk</code></td>
                                                 <td><em>none</em></td>
                                             </tr>
                                         </tbody>

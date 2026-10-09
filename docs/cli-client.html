@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-07",
+      "dateModified": "2026-10-09",
       "headline": "Cipi Docs — CLI Client",
       "name": "CLI Client",
       "url": "https://cipi.sh/docs/cli-client",
@@ -284,6 +284,7 @@
                 <a href="/docs/cli-client#cli-ip-whitelist" class="sidebar-link"><code>ip-whitelist</code></a>
                 <a href="/docs/cli-client#cli-insights" class="sidebar-link">server insights</a>
                 <a href="/docs/cli-client#cli-status" class="sidebar-link"><code>status</code></a>
+                <a href="/docs/cli-client#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
                 <a href="/docs/cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="/docs/cli-client#cli-completion" class="sidebar-link"><code>completion</code></a>
@@ -360,7 +361,7 @@
                 <h1>Installing cipi-cli</h1>
                 <p><code>cipi-cli</code> is a standalone Go binary that talks to the Cipi REST API from your local
                     machine. No SSH required — manage apps, deployments, SSL, databases (including anonymized dumps),
-                    PHP versions, services, SSH keys, SMTP and healthchecks from any terminal. Binaries are
+                    PHP versions, services, SSH keys, SMTP, healthchecks and disk usage from any terminal. Binaries are
                     available for Linux and macOS (amd64 and arm64).</p>
 
                 <div class="callout info">
@@ -400,7 +401,7 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli version
-<span class="c">cipi-cli v1.5.0 (linux/amd64)</span></pre>
+<span class="c">cipi-cli v1.6.0 (linux/amd64)</span></pre>
                 </div>
             </div>
 
@@ -1736,6 +1737,123 @@ sudo make install</pre>
 
             <hr class="doc-divider">
 
+            <!-- ── Disk ── -->
+
+            <div class="doc-section" id="cli-disk">
+                <p class="doc-section-label">CLI Client</p>
+                <h2><code>disk</code></h2>
+                <p>Who is filling the disk — the same figures as
+                    <a href="/docs/infrastructure#cli-disk"><code>cipi disk</code></a> on the host, read from
+                    <code>GET /api/disk</code> and <code>GET /api/disk/dbs</code>. An app is its home (releases, shared
+                    storage, logs) plus its database, largest first. The server measures sizes when asked, so the CLI
+                    waits up to three minutes. Requires <code>cipi-cli</code> <strong>1.6.0+</strong>, Cipi
+                    <strong>5.5.2+</strong> (API sudoers; the host command exists since 5.5.0), API
+                    <strong>1.33+</strong> and the <code>disk-view</code> ability.</p>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Command</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>cipi-cli disk</td>
+                                <td>The filesystem <code>/home</code> is on, then every app (GB and %)</td>
+                            </tr>
+                            <tr>
+                                <td>cipi-cli disk db</td>
+                                <td>Every database per engine, in MB (aliases: <code>dbs</code>, <code>databases</code>)</td>
+                            </tr>
+                            <tr>
+                                <td>cipi-cli disk --json</td>
+                                <td>The same figures for scripts (<code>disk db --json</code> too)</td>
+                            </tr>
+                            <tr>
+                                <td>cipi-cli &lt;profile&gt; disk</td>
+                                <td>Same reading, on one server</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi-cli disk
+<span class="p">$</span> cipi-cli prod disk db
+<span class="p">$</span> cipi-cli disk --json</pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">output</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>  Server disk
+  MOUNT                          SIZE         USED         FREE     USE
+  /                         100.00 GB     40.00 GB     60.00 GB     40%
+
+  Apps (3) — % of the 100.00 GB on /
+  APP                           FILES     DATABASE        TOTAL    DISK  LIMIT
+  shop                        2.00 GB      1.00 GB      3.00 GB    3.0%  10 GB (30%)
+  blog                        0.50 GB     120.4 MB      0.62 GB    0.6%  —
+  front                       0.10 GB      0.00 GB      0.10 GB    0.1%  —
+  All apps                                              3.72 GB    3.7%
+  Everything else                                      36.28 GB   36.3%</pre>
+                </div>
+
+                <p><strong>FILES</strong> is the app home. <strong>DATABASE</strong> is the database named after the
+                    app and, when <code>shared/.env</code> points <code>DB_DATABASE</code> at another one, that one
+                    too. <strong>TOTAL</strong> is both; <strong>DISK</strong> is that total as a percentage of the
+                    filesystem. <strong>LIMIT</strong> is the soft limit set on the host with
+                    <a href="/docs/apps#cli-app-limits"><code>cipi app limits &lt;app&gt; --disk=&lt;GB&gt;</code></a>
+                    — alerts only, nothing is blocked — and reads <code>over</code> once passed,
+                    <code>—</code> when the app has none. <strong>Everything else</strong> is the rest of the used
+                    space: system, packages, logs, local backups, databases that belong to no app. Sizes below 0.01 GB
+                    are printed in MB. <code>--json</code> carries <code>files_kb</code>, <code>database_kb</code> and
+                    <code>total_kb</code> next to the rounded GB, plus <code>limit_gb</code>,
+                    <code>limit_percent</code> and <code>over_limit</code>.</p>
+
+                <h3><code>disk db</code> — every database, in MB</h3>
+                <p>MariaDB and PostgreSQL report one size per database. Valkey only knows how many keys each logical
+                    database holds, and Meilisearch how many documents each index has: for those two the size is the
+                    engine's, in memory and on disk. An engine that is not installed is left out. How each engine is
+                    measured is on the <a href="/docs/infrastructure#cli-disk">host command</a>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">output</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>  MariaDB — sizes in MB
+  DATABASE                                               SIZE
+  blog                                                 2.0 MB
+  shop                                               200.0 MB
+  On disk                                          500.0 MB (whole engine)
+
+  Valkey — sizes in MB
+  DATABASE                                     KEYS      SIZE
+  db0                                          1204         —
+  Memory in use                                    12.3 MB
+  On disk                                        3.0 MB (whole engine)</pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>Requires the API token ability <code>disk-view</code>. A token created before API
+                        <strong>1.33</strong> does not have it — run <code>cipi api token create</code> on the host and
+                        include <code>disk-view</code>. HTTP 503, or <code>terminal is required</code>, means the
+                        server is older than Cipi <strong>5.5.2</strong>: <code>cipi self-update</code> so the API
+                        sudoers allow <code>cipi disk</code>.</span>
+                </div>
+            </div>
+
+            <hr class="doc-divider">
+
             <!-- ── Jobs ── -->
 
             <div class="doc-section" id="cli-jobs">
@@ -1815,8 +1933,8 @@ sudo make install</pre>
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi-cli update
-<span class="s">Downloading cipi-cli v1.5.0...</span>
-<span class="s">Checksum verified. Updated to v1.5.0.</span>
+<span class="s">Downloading cipi-cli v1.6.0...</span>
+<span class="s">Checksum verified. Updated to v1.6.0.</span>
 
 <span class="c"># Aliases work the same</span>
 <span class="p">$</span> cipi-cli self-update
@@ -2050,6 +2168,11 @@ sudo make install</pre>
                                                 <td>Node apps / <code>deploy audit</code></td>
                                                 <td>5.4.0</td>
                                                 <td>1.31+</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Disk usage (<code>disk</code>, <code>disk db</code>, cipi-cli 1.6.0+)</td>
+                                                <td>5.5.2 (API sudoers)</td>
+                                                <td>1.33+ and <code>disk-view</code></td>
                                             </tr>
                                             <tr>
                                                 <td>Anonymized dumps (<code>db anonymize</code>, cipi-cli 1.5.0+)</td>

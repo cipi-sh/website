@@ -43,7 +43,7 @@
   "inLanguage": "en",
   "image": "https://cipi.sh/og.png",
   "datePublished": "2026-08-22",
-  "dateModified": "2026-10-07",
+  "dateModified": "2026-10-09",
   "author": {
     "@type": "Person",
     "name": "Andrea Pollastri",
@@ -321,7 +321,7 @@
 
         <span class="cmp-eyebrow">GUI · API · MCP</span>
         <h1>Cipi control panel and API: what the two <em>optional extensions</em> unlock</h1>
-        <p class="cmp-updated">By <a href="https://web.ap.it" target="_blank" rel="author">Andrea Pollastri</a> · Last updated: <time datetime="2026-10-07">October 7, 2026</time> · free to read, no paywall</p>
+        <p class="cmp-updated">By <a href="https://web.ap.it" target="_blank" rel="author">Andrea Pollastri</a> · Last updated: <time datetime="2026-10-09">October 9, 2026</time> · free to read, no paywall</p>
         <p class="lead"><a class="inline" href="/">Cipi</a> is, and stays, CLI-first. Everything a server needs — apps, databases, SSL, deploys, backups — is one <code>cipi</code> command over SSH. Since v4.7.0 you can add two optional packages: <strong>cipi/api</strong> and <strong>cipi/gui</strong>. This guide is about what they unlock together, and why neither is required.</p>
 
         <div class="toc">
@@ -348,7 +348,7 @@
         <h2 id="two-extensions">Two extensions, zero lock-in</h2>
         <p>Cipi is not a panel that hides a CLI. It is a CLI that, if you want, exposes an API and a dashboard. Skip both packages and the server runs exactly as before — no extra daemon, no web surface, nothing listening. Install only what you need.</p>
         <ul>
-            <li><strong><code>cipi/api</code></strong> — a Laravel package (current release <strong>1.31.0</strong>, for Cipi <strong>5.4.1+</strong>) that exposes REST at <code>/api/*</code>, an MCP server at <code>/mcp</code> and Swagger UI at <code>/docs</code>.</li>
+            <li><strong><code>cipi/api</code></strong> — a Laravel package (current release <strong>1.33.0</strong>; disk usage needs Cipi <strong>5.5.2+</strong>, the 1.31 surface still needs <strong>5.4.1+</strong>) that exposes REST at <code>/api/*</code>, an MCP server at <code>/mcp</code> (73 tools) and Swagger UI at <code>/docs</code>.</li>
             <li><strong><code>cipi/gui</code></strong> — a self-hosted Laravel 12 dashboard that talks to one or more servers <em>only</em> through that REST API. It has no proprietary control plane and stores no managed-server state.</li>
         </ul>
         <p>Anything you do in the browser, you can do from the shell. Anything you do from the shell, you can automate over HTTP. Both packages are clients of the same surface, not a second Cipi.</p>
@@ -451,7 +451,7 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
         <p>Since Cipi <strong>4.6.3</strong> the API package soft-updates every night at 04:30 (<code>cipi api update</code>), so REST endpoints and MCP tools stay current without a manual step.</p>
 
         <h2 id="mcp">MCP: Cipi inside Cursor, VS Code and Claude</h2>
-        <p>The MCP server at <code>/mcp</code> (Streamable HTTP) exposes <strong>68 tools</strong>: apps, aliases, www, redirects, proxies, Node, databases, deploy and deploy audit, SSL, Basic Auth, search, server cockpit, packages, monitor, Zero Trust, <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, jobs, logs and <code>ServerStatus</code>. From API <strong>1.11.1+</strong> a token with only <code>mcp-access</code> is enough for every MCP tool — per-endpoint REST abilities are not checked on <code>/mcp</code>.</p>
+        <p>The MCP server at <code>/mcp</code> (Streamable HTTP) exposes <strong>73 tools</strong>: apps, aliases, www, redirects, proxies, Node, databases, deploy and deploy audit, SSL, Basic Auth, search, limits, disk usage, server cockpit, packages, monitor, Zero Trust, <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, jobs, logs and <code>ServerStatus</code>. From API <strong>1.11.1+</strong> a token with only <code>mcp-access</code> is enough for every MCP tool — per-endpoint REST abilities are not checked on <code>/mcp</code>.</p>
         <p>Cursor config in <code>~/.cursor/mcp.json</code>:</p>
         <pre class="code-pre"><code>{
   "mcpServers": {
@@ -534,6 +534,7 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
             <li>Per-app HTTP healthchecks — create, run, remove.</li>
             <li>IP whitelist for the panel API / MCP: one address or CIDR per line, or <code>*</code> to allow all.</li>
             <li>Since API <strong>1.31</strong>: Node runtimes, Meilisearch, the optional host packages catalog, the system monitor and Cloudflare Zero Trust — read-only, because installing software or changing a lock is an operator decision taken at the CLI.</li>
+            <li>Since API <strong>1.33</strong> / Cipi <strong>5.5.2</strong> / panel <strong>3.1</strong>: Server → Disk, the figures of <code>cipi disk</code> and <code>cipi disk db</code> (ability <code>disk-view</code>). The soft limit is shown; setting it is still <code>cipi app limits</code> on the host (API 1.32).</li>
         </ul>
         <figure class="gui-shot">
             <div class="gui-shot-frame">
@@ -541,7 +542,7 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
                 <img src="/img/gui/server-overview-light.webp" width="1440" height="1000" alt="Server overview: system, resources, monitor alerts, services and PHP-FPM" class="shot-light" loading="lazy" decoding="async">
                 <img src="/img/gui/server-overview.webp" width="1440" height="1000" alt="Server overview: system, resources, monitor alerts, services and PHP-FPM" class="shot-dark" loading="lazy" decoding="async">
             </div>
-            <figcaption>The Server page: overview plus PHP, Node, databases, services, health, monitor, email, SSH, search, packages, Zero Trust and API access.</figcaption>
+            <figcaption>The Server page: overview plus PHP, Node, databases, services, health, monitor, disk, email, SSH, search, packages, Zero Trust and API access.</figcaption>
         </figure>
         <p>That is the piece that makes the GUI a real alternative to a SaaS panel, without moving the source of truth off the server.</p>
 

@@ -34,7 +34,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-07",
+      "dateModified": "2026-10-09",
       "headline": "Cipi Docs — Advanced",
       "name": "Advanced",
       "url": "https://cipi.sh/docs/advanced",
@@ -287,6 +287,7 @@
                 <a href="/docs/cli-client#cli-ip-whitelist" class="sidebar-link"><code>ip-whitelist</code></a>
                 <a href="/docs/cli-client#cli-insights" class="sidebar-link">server insights</a>
                 <a href="/docs/cli-client#cli-status" class="sidebar-link"><code>status</code></a>
+                <a href="/docs/cli-client#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
                 <a href="/docs/cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="/docs/cli-client#cli-completion" class="sidebar-link"><code>completion</code></a>
@@ -362,23 +363,28 @@
                 <p>Cipi can optionally enable a REST API layer on the server via <code>cipi api
                     &lt;domain&gt;</code>. It is powered by the Laravel package
                     <a href="https://github.com/cipi-sh/api" target="_blank" rel="noopener"><code>cipi/api</code></a>
-                    (current release <strong>1.31.0</strong>, which needs Cipi <strong>5.4.1+</strong> for its newest
-                    endpoints), which exposes:
+                    (current release <strong>1.33.0</strong>. Disk usage needs Cipi <strong>5.5.2+</strong> so the
+                    API sudoers allow <code>cipi disk</code>; soft disk limits and Cloudflare DNS-01 accounts need
+                    <strong>5.5.0+</strong>, and <code>http</code> / <code>wildcard: false</code> on SSL install need
+                    <strong>5.5.1+</strong>. Redirects, proxies and Node restart still need
+                    <strong>5.4.1+</strong>), which exposes:
                 </p>
                 <ul>
                     <li><strong>REST API</strong> — apps (including Octane and Node create, <code>.env</code>,
                         <code>auth.json</code>, Artisan, whitelisted <code>app run</code>, deploy-config,
-                        fix-permissions), aliases, www redirects, app and path redirects, prefix proxies, Node runtimes,
-                        deploy and the deploy audit ledger, SSL, multi-engine databases, Meilisearch, app logs, server
-                        status (<code>/api/*</code>)</li>
-                    <li><strong>MCP server</strong> — 68 tools at <code>/mcp</code> (Streamable HTTP)</li>
+                        fix-permissions, resource limits and the soft disk limit), aliases, www redirects, app and path
+                        redirects, prefix proxies, Node runtimes, deploy and the deploy audit ledger, SSL (HTTP-01 or
+                        Cloudflare DNS-01 / wildcard), multi-engine databases, Meilisearch, app logs, disk usage,
+                        server status (<code>/api/*</code>)</li>
+                    <li><strong>MCP server</strong> — 73 tools at <code>/mcp</code> (Streamable HTTP)</li>
                     <li><strong>Read-only host insights</strong> — optional packages, system monitor, Cloudflare Zero
-                        Trust status (API <strong>1.31+</strong>)</li>
+                        Trust status (API <strong>1.31+</strong>) and disk usage per app and per database (API
+                        <strong>1.33+</strong> / Cipi <strong>5.5.2+</strong>)</li>
                     <li><strong>Server cockpit</strong> — PHP install/switch, SSH keys, services, SMTP, healthchecks,
                         IP whitelist (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>)</li>
                     <li><strong>Swagger UI</strong> — interactive reference at <code>/docs</code></li>
                 </ul>
-                <p>Requires <strong>PHP 8.2+</strong> and <strong>Laravel 12+</strong> on the panel host. This is
+                <p>Requires <strong>PHP 8.3+</strong> and <strong>Laravel 12.41+</strong> or <strong>13</strong> on the panel host (API <strong>1.32+</strong>). This is
                     <strong>server-level</strong> automation — distinct from the per-app
                     <a href="/docs/agent">Cipi Agent</a> package (<code>cipi/agent</code> on each Laravel app).</p>
 
@@ -499,6 +505,9 @@
                         search per Laravel app (API <strong>1.31.0+</strong> / Cipi <strong>5.2.2+</strong>)</li>
                     <li><code>packages-view</code>, <code>monitor-view</code>, <code>zt-view</code> — read-only host
                         package catalog, system monitor and Cloudflare Zero Trust status (API <strong>1.31.0+</strong>)</li>
+                    <li><code>disk-view</code> — disk usage of the server, every app and every database (API
+                        <strong>1.33.0+</strong> / Cipi <strong>5.5.2+</strong>). A token created before 1.33 does not
+                        have it.</li>
                     <li><code>apps-delete</code> — delete apps</li>
                     <li><code>deploy-manage</code> — deploy, rollback, unlock, and read the deploy audit ledger (API
                         <strong>1.31.0+</strong> / Cipi <strong>5.4.0+</strong>)</li>
@@ -535,6 +544,11 @@
                     (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>), and the API <strong>1.31.0</strong>
                     additions — redirects, proxies, <code>GET /api/node</code>, the deploy audit, search,
                     packages, monitor and Zero Trust — are synchronous.
+                    Since API <strong>1.32.0</strong>, <code>GET /api/apps/{name}/limits</code> and
+                    <code>GET|PUT|DELETE /api/ssl/dns</code> are synchronous too (<code>PUT</code> on limits is the
+                    async job <code>app-limits</code>). Since API <strong>1.33.0</strong>,
+                    <code>GET /api/disk</code> and <code>GET /api/disk/dbs</code> are synchronous and measured on
+                    request.
                     <code>POST /api/apps</code> accepts optional <code>custom</code> (boolean) and
                     <code>docroot</code> (string) parameters for creating
                     <a href="/docs/apps#cli-app-custom">custom apps</a> with classic deployment.
@@ -724,6 +738,61 @@
                     <code>GET /api/monitor</code> (<code>monitor-view</code>, checks with config, state and last alert)
                     and <code>GET /api/zt</code> (<code>zt-view</code>, parsed <code>cipi zt status</code> plus raw
                     output). MCP: <code>PackageList</code>, <code>MonitorList</code>, <code>ZtStatus</code>.</p>
+                <p><strong>App type</strong> (API <strong>1.32.0+</strong>) — <code>GET /api/apps</code> and
+                    <code>GET /api/apps/{name}</code> return <code>custom</code> and a <code>type</code> of
+                    <code>laravel</code>, <code>custom</code> or <code>node</code>. Cipi stores
+                    <code>custom: true</code> on Node apps too, so <code>type</code> is the field that tells them
+                    apart. The list also returns <code>docroot</code>. MCP <code>AppList</code> and
+                    <code>AppShow</code> return the same fields, plus <code>node</code>, <code>node_mode</code> and
+                    <code>node_version</code>.</p>
+                <p><strong>Limits</strong> (API <strong>1.32.0+</strong>) —
+                    <code>GET /api/apps/{name}/limits</code> (<code>apps-view</code>) returns
+                    <code>fpm_max_children</code>, <code>memory_limit</code>, <code>octane_workers</code> and
+                    <code>worker_procs</code> (null is the CLI default), the defaults, and
+                    <code>disk_limit_gb</code>. <code>PUT</code> with any of those fields is the async job
+                    <code>app-limits</code> (<code>apps-edit</code>); the result reports <code>disk_used_gb</code>,
+                    <code>disk_percent</code> and <code>over_limit</code>. Node apps accept only
+                    <code>disk_limit_gb</code>. <code>null</code> removes the soft disk limit. The limit is soft
+                    (Cipi <strong>5.5.0+</strong>): the monitor check <code>app_disk</code> warns at 90% and alerts
+                    when over; nothing is blocked. See
+                    <a href="/docs/apps#cli-app-limits"><code>cipi app limits</code></a>. MCP:
+                    <code>AppLimitsShow</code>, <code>AppLimitsUpdate</code>. The
+                    <a href="/docs/gui">control panel</a> shows the limit and still sets it on the host.</p>
+                <p><strong>DNS-01 and wildcard certificates</strong> (API <strong>1.32.0+</strong>, ability
+                    <code>ssl-manage</code>) — <code>POST /api/apps/{name}/ssl</code> accepts an optional body
+                    <code>{ "dns": "cloudflare", "account", "wildcard", "http" }</code>. With no body, Cipi
+                    <strong>5.5.1+</strong> reissues a DNS-01 certificate over DNS-01 with its own account.
+                    <code>http: true</code> goes back to HTTP-01; <code>wildcard: false</code> drops a remembered
+                    <code>*.&lt;apex&gt;</code>. Both need Cipi <strong>5.5.1+</strong>; naming an account or issuing
+                    a wildcard needs <strong>5.5.0+</strong>. <code>GET /api/ssl/dns</code> lists Cloudflare accounts
+                    and the certificates that renew with each. <code>PUT /api/ssl/dns</code> with
+                    <code>{ "name"?, "token" }</code> adds an account or rotates its token. That call is synchronous,
+                    so the token is never queued or stored by the API, and it is never returned.
+                    <code>DELETE /api/ssl/dns/{account}</code> answers 409 while a certificate still renews with that
+                    account. The <code>ssl-install</code> job result includes <code>challenge</code>
+                    (<code>http-01</code> / <code>dns-01</code>), <code>dns</code> and <code>account</code>. MCP:
+                    <code>SslDnsList</code>; <code>SslInstall</code> accepts <code>dns</code>, <code>account</code>,
+                    <code>wildcard</code> and <code>http</code>. Account tokens are not settable over MCP.</p>
+                <p><strong>Disk usage</strong> (API <strong>1.33.0+</strong>, ability <code>disk-view</code>) —
+                    <code>GET /api/disk</code> is what
+                    <a href="/docs/infrastructure#cli-disk"><code>cipi disk --json</code></a> prints: the filesystem
+                    <code>/home</code> is on (<code>mount</code>, <code>size_gb</code>, <code>used_gb</code>,
+                    <code>free_gb</code>, <code>used_percent</code>), then every app largest first with
+                    <code>files_gb</code>, <code>database_gb</code>, <code>total_gb</code>, <code>percent</code>, the
+                    KiB figures, the soft limit (<code>limit_gb</code>, <code>limit_percent</code>,
+                    <code>over_limit</code>), and the totals <code>apps_total_gb</code>, <code>apps_percent</code>,
+                    <code>other_gb</code>, <code>other_percent</code>. <code>GET /api/disk/dbs</code> is one entry per
+                    installed engine (<code>mariadb</code>, <code>pgsql</code>, <code>valkey</code>,
+                    <code>meilisearch</code>): <code>databases</code> (<code>name</code>, <code>size_mb</code>, plus
+                    <code>keys</code> for Valkey and <code>documents</code> for Meilisearch),
+                    <code>on_disk_mb</code>, <code>memory_mb</code> (Valkey) and <code>note</code> when the engine did
+                    not answer. Both are measured when asked, so a server with large apps takes a few seconds. They
+                    need Cipi <strong>5.5.2+</strong> (<code>cipi self-update</code>,
+                    <a href="#migration-5-5-2">migration 5.5.2</a>) so <code>/etc/sudoers.d/cipi-api</code> allows
+                    <code>cipi disk</code>. Older servers answer 503; every other route stays as in 1.32.0. The host
+                    command itself exists since 5.5.0. MCP: <code>DiskUsage</code>, <code>DiskDatabases</code>. From a
+                    laptop, <a href="/docs/cli-client#cli-disk"><code>cipi-cli disk</code></a> (1.6.0+). The
+                    <a href="/docs/gui">control panel</a> shows the same figures on Server → Disk (panel 3.1).</p>
                 <p><strong>Fix permissions</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.1+</strong>) —
                     <code>POST /api/apps/{name}/fix-permissions</code> restores the app home permission model
                     (<a href="/docs/apps#cli-app-fix-permissions"><code>cipi app fix-permissions</code></a>). Async job
@@ -1086,6 +1155,31 @@
                                                 <td>zt-view</td>
                                             </tr>
                                             <tr>
+                                                <td>GET|PUT</td>
+                                                <td><code>/api/apps/{name}/limits</code></td>
+                                                <td>apps-view / apps-edit</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET|PUT</td>
+                                                <td><code>/api/ssl/dns</code></td>
+                                                <td>ssl-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/ssl/dns/{account}</code></td>
+                                                <td>ssl-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/disk</code></td>
+                                                <td>disk-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/disk/dbs</code></td>
+                                                <td>disk-view</td>
+                                            </tr>
+                                            <tr>
                                                 <td>GET</td>
                                                 <td><code>/api/status</code></td>
                                                 <td>status-view</td>
@@ -1353,7 +1447,9 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     aliases, deploy and deploy audit, SSL (install + force HTTPS), databases (engines list + optional
                     <code>engine</code> on mutations), search, packages, monitor, Zero Trust, server status, job polling
                     with structured <code>result</code> types, and MCP tool schemas. Current API package version:
-                    <strong>1.31.0</strong> (1.30.0 was published in error from an old commit — skip it).</p>
+                    <strong>1.33.0</strong> (1.30.0 was published in error from an old commit — skip it). 1.32.0 adds
+                    app <code>type</code>, <code>/api/apps/{name}/limits</code> and <code>/api/ssl/dns</code>. 1.33.0
+                    adds <code>/api/disk</code> and <code>/api/disk/dbs</code>.</p>
 
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
@@ -1361,8 +1457,8 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     <code>mcp-access</code> ability is sufficient for <strong>all</strong> MCP tools — per-endpoint REST
                     abilities (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>,
                     <code>www-manage</code>, etc.) are not checked on <code>/mcp</code>. The server exposes
-                    <strong>68 tools</strong> (one <code>tools/list</code> page) for app, alias, www, redirects,
-                    proxies, Node, database, deploy and deploy audit, SSL, HTTP Basic Auth, search, server management
+                    <strong>73 tools</strong> (one <code>tools/list</code> page; MCP server 1.3.0) for app, alias, www, redirects,
+                    proxies, Node, database, deploy and deploy audit, SSL, HTTP Basic Auth, search, limits, disk usage, server management
                     (PHP, SSH, services, SMTP, health, IP whitelist, packages, monitor, Zero Trust),
                     <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, job polling,
                     logs, Artisan, and server monitoring. Write operations that dispatch async jobs return a
@@ -1381,7 +1477,9 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                         <code>AppDeployConfigShow</code>, <code>AppDeployConfigUpdate</code>,
                         <code>AppWebhookRecreate</code> (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>;
                         earlier app tooling requires API <strong>1.14.0+</strong> / Cipi <strong>5.0.3+</strong>),
-                        <code>AppFixPermissions</code> (API <strong>1.31.0+</strong>)
+                        <code>AppFixPermissions</code> (API <strong>1.31.0+</strong>),
+                        <code>AppLimitsShow</code>, <code>AppLimitsUpdate</code> (API <strong>1.32.0+</strong>;
+                        <code>disk_limit_gb</code> needs Cipi <strong>5.5.0+</strong>)
                     </li>
                     <li><strong>Redirects &amp; proxies:</strong> <code>RedirectList</code>, <code>RedirectSet</code>,
                         <code>RedirectToggle</code>, <code>RedirectUnset</code>, <code>RedirectAdd</code>,
@@ -1399,7 +1497,9 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     </li>
                     <li><strong>Server management:</strong> <code>PhpList</code>, <code>IpWhitelistShow</code>
                         (API <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>); <code>PackageList</code>,
-                        <code>MonitorList</code>, <code>ZtStatus</code> — read-only (API <strong>1.31.0+</strong>)
+                        <code>MonitorList</code>, <code>ZtStatus</code> — read-only (API <strong>1.31.0+</strong>);
+                        <code>DiskUsage</code>, <code>DiskDatabases</code> — read-only (API <strong>1.33.0+</strong> /
+                        Cipi <strong>5.5.2+</strong>)
                     </li>
                     <li><strong>HTTP Basic Auth:</strong> <code>AppBasicAuthStatus</code>,
                         <code>AppBasicAuthEnable</code>, <code>AppBasicAuthDisable</code>
@@ -1416,8 +1516,10 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                         (optional <code>engine</code> on list/mutations; API <strong>1.12.0+</strong>;
                         <code>DbDelete</code> removed in <strong>1.19.0</strong>)
                     </li>
-                    <li><strong>SSL:</strong> <code>SslInstall</code>, <code>SslForce</code>
-                        (API <strong>1.12.0+</strong>)</li>
+                    <li><strong>SSL:</strong> <code>SslInstall</code> (optional <code>dns</code>, <code>account</code>,
+                        <code>wildcard</code>, <code>http</code> since API <strong>1.32.0+</strong>),
+                        <code>SslForce</code> (API <strong>1.12.0+</strong>), <code>SslDnsList</code> (API
+                        <strong>1.32.0+</strong>; account tokens stay off MCP)</li>
                     <li><strong>Jobs &amp; logs:</strong> <code>JobShow</code> (poll async job status, parsed
                         <code>result</code>, and CLI output), <code>AppLogs</code> (recent app logs by type:
                         <code>all</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>,
@@ -3053,6 +3155,15 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     auth, redirect or proxy change), which switches it. No certificate is requested or renewed, and
                     nothing is deployed. <code>cipi ssl status</code> then shows, per app, what it is served with and
                     which of its names the certificate does not cover.</p>
+
+                <h3 id="migration-5-5-2">Migration 5.5.2</h3>
+                <p>From <strong>5.5.2</strong> the panel API can run <code>cipi disk</code>. The migration regenerates
+                    <code>/etc/sudoers.d/cipi-api</code> so <code>www-data</code> may run <code>cipi disk</code> and
+                    <code>cipi disk *</code> (<code>--json</code>, <code>db --json</code>). Nothing else on the server
+                    changes, and nothing is deployed. <code>cipi disk</code> itself has existed since 5.5.0; until this
+                    sudoers line, <code>GET /api/disk</code> and <code>GET /api/disk/dbs</code> (API
+                    <strong>1.33.0+</strong>, ability <code>disk-view</code>) answer 503. Setting a soft limit was
+                    already on the API in 1.32.0.</p>
 
                 <h3>When the update itself fails</h3>
                 <p>Up to 5.0.x, <code>cipi self-update</code> reported only “Download failed” — git's stderr was

@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-07",
+      "dateModified": "2026-10-09",
       "headline": "Cipi Docs — Control Panel (GUI)",
       "name": "Control Panel (GUI)",
       "url": "https://cipi.sh/docs/gui",
@@ -284,6 +284,7 @@
                 <a href="/docs/cli-client#cli-ip-whitelist" class="sidebar-link"><code>ip-whitelist</code></a>
                 <a href="/docs/cli-client#cli-insights" class="sidebar-link">server insights</a>
                 <a href="/docs/cli-client#cli-status" class="sidebar-link"><code>status</code></a>
+                <a href="/docs/cli-client#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
                 <a href="/docs/cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="/docs/cli-client#cli-completion" class="sidebar-link"><code>completion</code></a>
@@ -435,7 +436,11 @@
                         <strong>Node runtimes</strong>, Meilisearch, the optional <strong>host packages</strong>
                         catalog, the <strong>system monitor</strong> and <strong>Cloudflare Zero Trust</strong> status
                         — read-only by design: installing software, changing monitor thresholds and every
-                        <code>zt</code> change stay with the operator on the CLI.</li>
+                        <code>zt</code> change stay with the operator on the CLI. Since API <strong>1.33</strong>
+                        (panel <strong>3.1</strong>, Cipi <strong>5.5.2+</strong>) the same page has a
+                        <strong>Disk</strong> tab: who is filling the disk, the figures of
+                        <a href="/docs/infrastructure#cli-disk"><code>cipi disk</code></a> and
+                        <code>cipi disk db</code>.</li>
                     <li>Register and switch between <strong>multiple servers</strong> from one login — the current
                         server is picked from the header on every page, and app links carry the server so they can be
                         bookmarked and shared.</li>
@@ -446,7 +451,8 @@
                         or whose token is narrower still works for everything it supports.</li>
                 </ul>
                 <p>Panel <strong>3.0</strong> (October 2026) redesigned every page around the same design system as
-                    this site — see the <a href="#gui-tour">screenshot tour</a> and the
+                    this site. Panel <strong>3.1</strong> adds Server → Disk. See the
+                    <a href="#gui-tour">screenshot tour</a> and the
                     <a href="https://github.com/cipi-sh/gui/blob/main/CHANGELOG.md" target="_blank" rel="noopener">changelog</a>.</p>
             </div>
 
@@ -456,8 +462,9 @@
                 <p class="doc-section-label">Control Panel (GUI)</p>
                 <h2>Screenshot tour</h2>
                 <p>Every image below is a real screenshot of the panel, taken against its demo environment — a
-                    stand-in for <code>cipi api</code> 1.31 with three fictional servers that ships with the package
-                    (<code>./dev/demo.sh</code>). Domains and IPs are documentation ranges.</p>
+                    stand-in for the panel API with three fictional servers that ships with the package
+                    (<code>./dev/demo.sh</code>; <code>--reset</code> picks up the API 1.33 disk fixtures). Domains and
+                    IPs are documentation ranges.</p>
 
                 <h3>Apps</h3>
                 <p>Laravel (PHP-FPM or Octane), Node (SPA, static, SSR) and custom PHP apps of the current server, with type filters, search and a deploy button on every row.</p>
@@ -628,7 +635,8 @@
                         <code>apps-run</code>, <code>apps-deploy-config</code>). For Node apps, redirects and proxies,
                         managed servers need API <strong>1.31+</strong> and Cipi <strong>5.4.1+</strong> (the
                         5.4.1 migration opens those commands to the panel sudoers); the deploy audit needs Cipi
-                        <strong>5.4.0+</strong>. For server cockpit (PHP, SSH,
+                        <strong>5.4.0+</strong>. Server → Disk needs API <strong>1.33+</strong>, the
+                        <code>disk-view</code> ability and Cipi <strong>5.5.2+</strong> (migration 5.5.2). For server cockpit (PHP, SSH,
                         services, SMTP, health, IP whitelist), managed servers need API <strong>1.15+</strong> and Cipi
                         <strong>5.0.6+</strong>. For <code>.env</code> /
                         <code>auth.json</code> / Artisan / App commands, managed servers need API
@@ -637,11 +645,11 @@
                         multi-engine MariaDB/PostgreSQL and www redirects, API <strong>1.12+</strong> and Cipi
                         <strong>4.8+</strong>.</li>
                 </ul>
-                <p>A token covering everything the panel uses (API <strong>1.31</strong>):</p>
+                <p>A token covering everything the panel uses (API <strong>1.33</strong>):</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre>cipi api token create --name=gui --abilities=apps-view,apps-create,apps-edit,apps-delete,apps-suspend,apps-basicauth,apps-env,apps-auth,apps-artisan,apps-run,apps-deploy-config,aliases-view,aliases-create,aliases-delete,www-manage,redirects-view,redirects-manage,proxies-view,proxies-manage,node-view,node-manage,search-view,search-manage,deploy-manage,ssl-manage,dbs-view,dbs-create,dbs-manage,php-view,php-manage,ssh-view,ssh-manage,services-view,services-manage,smtp-view,smtp-manage,health-view,health-manage,packages-view,monitor-view,zt-view,ip-whitelist-view,ip-whitelist-manage,status-view</pre>
+                    <pre>cipi api token create --name=gui --abilities=apps-view,apps-create,apps-edit,apps-delete,apps-suspend,apps-basicauth,apps-env,apps-auth,apps-artisan,apps-run,apps-deploy-config,aliases-view,aliases-create,aliases-delete,www-manage,redirects-view,redirects-manage,proxies-view,proxies-manage,node-view,node-manage,search-view,search-manage,deploy-manage,ssl-manage,dbs-view,dbs-create,dbs-manage,php-view,php-manage,ssh-view,ssh-manage,services-view,services-manage,smtp-view,smtp-manage,health-view,health-manage,packages-view,monitor-view,zt-view,disk-view,ip-whitelist-view,ip-whitelist-manage,status-view</pre>
                 </div>
                 <p>PHP, the FPM pool, the Nginx vhost and the scheduler are all provisioned for you by the installer —
                     you do not set up a Laravel environment by hand.</p>
@@ -838,12 +846,20 @@ cipi gui remove --force</pre>
                     managed server.</p>
 
                 <h3>API coverage</h3>
-                <p>The GUI consumes the full Cipi API 1.31 surface. What Cipi 5.5 added on the CLI only —
-                    <code>cipi disk</code>, per-app disk limits, <code>cipi ssh apps</code>,
-                    <code>cipi firewall attempts</code>, Cloudflare DNS accounts — is not part of the API, so the
-                    panel points to the command instead. Keep the panel and each managed server's
-                    <code>cipi/api</code> package current (<code>cipi gui update</code> /
-                    <code>cipi api update</code>) so create forms and list fields match the server.</p>
+                <p>The GUI consumes the Cipi API through <strong>1.33</strong>. Panel <strong>3.1</strong> adds
+                    <strong>Server → Disk</strong>: the filesystem <code>/home</code> is on, every app largest first
+                    (files, database, total, share of the disk, soft limit — flagged once over the limit or past 90%
+                    of it) and every database per engine. It reads <code>GET /api/disk</code> and
+                    <code>GET /api/disk/dbs</code> (API <strong>1.33+</strong>, Cipi <strong>5.5.2+</strong>, ability
+                    <code>disk-view</code>). Sizes are measured when the tab opens, so those two requests use their own
+                    timeout (180 seconds, <code>CIPI_GUI_HTTP_DISK_TIMEOUT</code>). An older server shows “not
+                    available” for that tab. Soft disk limits and Cloudflare DNS accounts have been on the API since
+                    <strong>1.32</strong> (the <a href="/docs/php-sdk">PHP SDK</a> calls them); the panel shows the
+                    limit and points at <code>cipi app limits</code> and <code>cipi ssl dns</code> on the host to
+                    change them. <code>cipi ssh apps</code> and <code>cipi firewall attempts</code> stay on the host
+                    CLI. Keep the panel and each managed server's <code>cipi/api</code> package current
+                    (<code>cipi gui update</code> / <code>cipi api update</code>) so create forms and list fields match
+                    the server.</p>
                                 <div class="table-scroll">
                     <table class="cmd-table">
                                         <thead>
@@ -860,8 +876,11 @@ cipi gui remove --force</pre>
                                                     search (<code>GET /api/search</code>), packages
                                                     (<code>GET /api/packages</code>), monitor
                                                     (<code>GET /api/monitor</code>), Zero Trust
-                                                    (<code>GET /api/zt</code>), IP whitelist (API
-                                                    <strong>1.15–1.31</strong>)</td>
+                                                    (<code>GET /api/zt</code>), disk usage
+                                                    (<code>GET /api/disk</code>, <code>GET /api/disk/dbs</code>,
+                                                    Server → Disk, panel <strong>3.1</strong> / API
+                                                    <strong>1.33+</strong> / Cipi <strong>5.5.2+</strong>), IP whitelist
+                                                    (API <strong>1.15–1.33</strong>)</td>
                                             </tr>
                                             <tr>
                                                 <td>Apps</td>
