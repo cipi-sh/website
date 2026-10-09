@@ -116,7 +116,7 @@
       "name": "Do I have to write cipi.yml by hand?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. cipi yml generate prints the app's current server configuration as a ready-to-commit file. cipi yml example prints a blank commented template if you prefer to start from scratch."
+        "text": "No. cipi yml generate prints the app's current server configuration as a ready-to-commit file. Since 5.5.2, cipi yml generate --save writes /home/<app>/cipi.yml; apply still reads the copy committed in the release. cipi yml example prints a blank commented template if you prefer to start from scratch."
       }
     },
     {
@@ -132,7 +132,7 @@
       "name": "What happens to things the file does not mention?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "They are left alone. Only the sections you declare are reconciled, with one exception: the alias list is authoritative, so removing an alias from the file removes it from Nginx."
+        "text": "They are left alone. Only the sections you declare are reconciled. Two lists are authoritative: aliases, so removing an alias removes it from Nginx, and since 5.5.2 the backup profiles this file created, so renaming or dropping one removes it from the schedule. Archives stay until cipi backup prune ages them out."
       }
     },
     {
@@ -349,10 +349,10 @@
         </div>
 
         <h2 id="generate">Start from the live server</h2>
-        <p>You do not have to write the file by hand. On a Cipi 5.1+ box, print the app's current configuration — aliases, PHP version and per-app settings, extra databases, queue workers read back out of Supervisor, Horizon, Reverb, the scheduler and the backup profiles the app owns — as a ready-to-commit file:</p>
-        <pre class="code-pre"><code>$ cipi yml generate myapp &gt; cipi.yml
+        <p>You do not have to write the file by hand. On a Cipi 5.1+ box, print the app's current configuration — aliases, PHP version and per-app settings, extra databases, queue workers read back out of Supervisor, Horizon, Reverb, the scheduler and the backup profiles the app owns — as a ready-to-commit file. Since 5.5.2, <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code>:</p>
+        <pre class="code-pre"><code>$ cipi yml generate myapp --save        <span class="c"># /home/myapp/cipi.yml</span>
 $ cipi yml plan myapp                  <span class="c"># reports nothing to do</span></code></pre>
-        <p>Commit that file at the repository root. Cipi looks it up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then <code>shared/cipi.yml</code> — override with <code>--file=&lt;path&gt;</code> if you keep it elsewhere.</p>
+        <p>Commit that file at the repository root. Apply reads the committed copy: <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then <code>htdocs/cipi.yml</code>, then <code>shared/cipi.yml</code> — override with <code>--file=&lt;path&gt;</code> if you keep it elsewhere. A file written only under <code>/home/&lt;app&gt;</code> is not what a deploy reconciles.</p>
         <p>Prefer a blank, fully commented template? <code>cipi yml example myapp</code> prints one with placeholder databases and profiles already inside that app's namespace, so the template validates as-is.</p>
 
         <h2 id="commands">The commands you will use</h2>
@@ -367,7 +367,7 @@ $ cipi yml plan myapp                  <span class="c"># reports nothing to do</
                 <tbody>
                     <tr>
                         <td><code>cipi yml generate</code></td>
-                        <td>Prints the app's configuration as it stands on the server, ready to commit</td>
+                        <td>Prints the app's configuration as it stands on the server, ready to commit. Since 5.5.2, <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code></td>
                     </tr>
                     <tr>
                         <td><code>cipi yml example</code></td>
@@ -397,6 +397,7 @@ $ cipi yml plan myapp                  <span class="c"># reports nothing to do</
             </table>
         </div>
         <pre class="code-pre"><code>$ cipi yml generate myapp
+$ cipi yml generate myapp --save
 $ cipi yml example myapp
 $ cipi yml validate myapp
 $ cipi yml plan myapp
@@ -455,9 +456,10 @@ health:
   expect: 200
 
 deploy:
-  post:
+  predeploy_snapshot: true          # snapshot: true still accepted
+  node_build: "npm ci && npm run build"   # before go-live (5.5.2); false clears
+  post:                             # after the release is live (5.2.3)
     - artisan cache:clear
-    - npm run build
     - composer dump-autoload -o
   # post_on_failure: abort
 
@@ -503,12 +505,12 @@ $ cipi yml apply myapp --yes           <span class="c"># scripts and CI</span></
         <pre class="code-pre"><code>$ cipi yml auto myapp on       <span class="c"># reconcile after every successful deploy</span>
 $ cipi yml auto myapp status
 $ cipi yml auto myapp off      <span class="c"># back to manual apply</span></code></pre>
-        <p>With the opt-in given, every <strong>successful</strong> deploy reconciles — from both <code>cipi deploy</code> and the Git webhook. A release that carries no <code>cipi.yml</code> is a quiet no-op. A file that fails validation is reported by email (<code>yml_fail</code>) and never applied halfway. A successful reconcile fires <code>yml_apply</code>.</p>
+        <p>With the opt-in given, every <strong>successful</strong> deploy reconciles — from both <code>cipi deploy</code> and the Git webhook. A release that carries no <code>cipi.yml</code> is a quiet no-op. A file that fails validation is reported by email (<code>yml_fail</code>) and never applied halfway. A successful reconcile fires <code>yml_apply</code>. Since 5.5.2 the deploy-success mail quotes one line for the result — applied, unchanged, no file, blocked, invalid or failed — whenever auto is on. The deploy itself still succeeds when the file is blocked or invalid.</p>
 
         <h2 id="left-alone">What the file will not touch</h2>
         <ul>
             <li>It can only <strong>configure</strong> an app that already exists — never create, rename or delete one.</li>
-            <li>Sections you omit are left alone. The one deliberate exception is the alias list: it is authoritative.</li>
+            <li>Sections you omit are left alone. Two lists are authoritative: aliases, and since 5.5.2 the backup profiles this file created. Rename or drop one of those profiles and it leaves the schedule. Archives stay until <code>cipi backup prune</code>. Profiles added by hand stay unless the file names them.</li>
             <li>The app's own primary database and server-wide backup profiles stay yours. <code>generate</code> leaves them out on purpose.</li>
             <li>Databases are created, never dropped. Removing a database entry from the file does not delete the database.</li>
             <li>No field carries a shell command or a path to include. Unknown keys are errors.</li>
@@ -537,7 +539,7 @@ $ cipi yml auto myapp off      <span class="c"># back to manual apply</span></co
         </div>
 
         <h2 id="faq">Frequently asked questions</h2>
-        <div class="faq-item"><h3>Do I have to write cipi.yml by hand?</h3><p>No. <code>cipi yml generate &lt;app&gt;</code> prints the app's current server configuration as a ready-to-commit file, and <code>cipi yml example</code> prints a blank commented template if you would rather start from scratch.</p></div>
+        <div class="faq-item"><h3>Do I have to write cipi.yml by hand?</h3><p>No. <code>cipi yml generate &lt;app&gt;</code> prints the app's current server configuration as a ready-to-commit file. Since 5.5.2, <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code>; apply still reads the copy committed in the release. <code>cipi yml example</code> prints a blank commented template if you would rather start from scratch.</p></div>
         <div class="faq-item"><h3>Does a deploy apply the file automatically?</h3><p>Only after you opt in with <code>cipi yml auto &lt;app&gt; on</code>. Until then deploys ignore the file and you reconcile manually with <code>plan</code> and <code>apply</code>. The exception is <code>deploy.post</code> (since 5.2.3): those steps run on every successful deploy without the opt-in, because they accept allowlisted runners only and never a shell line.</p></div>
         <div class="faq-item"><h3>What happens to things the file does not mention?</h3><p>They are left alone. Only the sections you declare are reconciled — with one deliberate exception: the alias list is authoritative, so removing an alias from the file removes it from the server.</p></div>
         <div class="faq-item"><h3>Can a commit break my server?</h3><p>The schema carries no shell commands and no include paths, an app can only touch its own databases and backup profiles, and a file that fails validation is rejected as a whole rather than applied halfway. Deploys ignore the file entirely until you turn <code>yml auto</code> on.</p></div>

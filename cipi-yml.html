@@ -53,12 +53,12 @@
         {
           "@type": "Question",
           "name": "Do I have to write cipi.yml by hand?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No. cipi yml generate <app> prints the app's current server configuration as a ready-to-commit cipi.yml, and cipi yml example prints a blank commented template if you prefer to start from scratch." }
+          "acceptedAnswer": { "@type": "Answer", "text": "No. cipi yml generate <app> prints the app's current server configuration as a ready-to-commit cipi.yml. Since 5.5.2, cipi yml generate <app> --save writes /home/<app>/cipi.yml; apply still reads the copy committed in the release. cipi yml example prints a blank commented template if you prefer to start from scratch." }
         },
         {
           "@type": "Question",
           "name": "What can cipi.yml configure?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, Laravel Reverb for WebSockets, the Laravel scheduler, an HTTP healthcheck with optional rollback, the app's backup profiles, post-deploy steps, and since Cipi 5.4 the www redirect, basic auth users, app and path redirects, reverse proxy prefixes, Meilisearch, Deployer recipe options, resource limits, forced HTTPS, required .env names, crons and a Node app's build settings." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, Laravel Reverb for WebSockets, the Laravel scheduler, an HTTP healthcheck with optional rollback, the app's backup profiles, post-deploy steps, and since Cipi 5.4 the www redirect, basic auth users, app and path redirects, reverse proxy prefixes, Meilisearch, Deployer recipe options, resource limits, forced HTTPS, required .env names, crons and a Node app's build settings. Since 5.5.2, deploy.node_build is the Laravel asset build that runs before the release goes live, deploy.predeploy_snapshot is the pre-deploy database snapshot (the name snapshot is still accepted), and backup profiles this file created are removed from the schedule when the file drops them." }
         },
         {
           "@type": "Question",
@@ -266,7 +266,8 @@
         <h2 class="cmp-h2-lg" id="commands">The commands</h2>
         <div class="code-block">
             <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <pre><span class="p">$</span> cipi yml generate myapp          <span class="c"># this app's current config, as a cipi.yml</span>
+            <pre><span class="p">$</span> cipi yml generate myapp          <span class="c"># print this app's current config</span>
+<span class="p">$</span> cipi yml generate myapp --save   <span class="c"># write /home/myapp/cipi.yml (5.5.2+)</span>
 <span class="p">$</span> cipi yml example myapp           <span class="c"># blank commented template, in myapp's namespace</span>
 <span class="p">$</span> cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
 <span class="p">$</span> cipi yml plan myapp              <span class="c"># show exactly what would change</span>
@@ -288,7 +289,10 @@
                         <td>Prints the app's configuration <em>as it stands on the server</em> — aliases, PHP version
                             and per-app settings, extra databases, queue workers read back out of Supervisor, the
                             scheduler, the backup profiles the app owns and, since 5.4.0, the new keys below (basic auth
-                            user names only, never hashes) — as a ready-to-commit file.</td>
+                            user names only, never hashes) — as a ready-to-commit file. Since 5.5.2,
+                            <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code>
+                            (<code>--save=&lt;path&gt;</code>, <code>--force</code> to overwrite). Apply still reads
+                            the copy committed in the release.</td>
                     </tr>
                     <tr>
                         <td><code>cipi yml example</code></td>
@@ -329,10 +333,10 @@
             </table>
         </div>
         <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
-            <code>shared/cipi.yml</code> — and, since <strong>5.2.3</strong>, in <code>htdocs/</code>, where a custom
-            app's repository lives. Override with <code>--file=&lt;path&gt;</code>. Since 5.2.3 every app vhost also
-            denies <code>/cipi.yml</code> and <code>/cipi.yaml</code>, so the file is never downloadable from the
-            site it configures.</p>
+            <code>htdocs/cipi.yml</code> and <code>htdocs/cipi.yaml</code> (since <strong>5.2.3</strong>, where a custom
+            app's repository lives), then <code>shared/cipi.yml</code>. Override with <code>--file=&lt;path&gt;</code>.
+            Since 5.2.3 every app vhost also denies <code>/cipi.yml</code> and <code>/cipi.yaml</code>, so the file is
+            never downloadable from the site it configures.</p>
 
         <h2 class="cmp-h2-lg" id="what-it-configures">What the file can configure</h2>
         <div class="alt-grid">
@@ -399,16 +403,19 @@
                 <h3>Backup <span>profiles</span></h3>
                 <p>Per-app profiles with their own scope, schedule, retention, destinations and encryption — a cheap
                     database run every 30 minutes, a complete encrypted copy to S3 at night. Profile names are scoped
-                    to the app.</p>
+                    to the app. Since 5.5.2 the list is authoritative for profiles this file created: rename or drop
+                    one and it leaves the schedule. Archives stay until <code>cipi backup prune</code>.</p>
                 <span class="go">Backups in the docs →</span>
             </a>
             <a class="alt-card" href="/docs/deploy#cli-yml-deploy-post">
                 <span class="alt-tag">deploy.post</span>
                 <h3>Post-deploy <span>steps</span></h3>
-                <p>New in 5.2.3. A declared list of allowlisted commands — <code>artisan</code>, <code>npm</code>,
-                    <code>composer</code>, a <code>php</code> or <code>node</code> script — run from the live release
-                    after every successful deploy. No free shell, and the one section that does not need
-                    <code>yml auto</code>.</p>
+                <p>New in 5.2.3. They run after the release is live: a declared list of allowlisted commands —
+                    <code>artisan</code>, <code>npm</code>, <code>composer</code>, a <code>php</code> or
+                    <code>node</code> script — with no free shell, and the one section that does not need
+                    <code>yml auto</code>. The Laravel asset build is <code>deploy.node_build</code> (5.5.2), the same
+                    command as <code>cipi app deploy-config --node-build</code>, and it runs inside the release before
+                    it goes live.</p>
                 <span class="go">deploy.post in the docs →</span>
             </a>
             <a class="alt-card" href="/docs/deploy#cli-yml-routes">
@@ -431,7 +438,8 @@
                 <span class="alt-tag">search · deploy · app.limits</span>
                 <h3>Search, recipe and <span>limits</span></h3>
                 <p>New in 5.4.0. Meilisearch for Scout, the <code>deploy-config</code> options (releases kept, migrate,
-                    optimize, extra artisan, snapshot) and per-app memory, FPM, Octane and worker limits — out of bounds
+                    optimize, extra artisan, <code>predeploy_snapshot</code>) and, since 5.5.2,
+                    <code>deploy.node_build</code> for the asset build before go-live. Per-app memory, FPM, Octane and worker limits — out of bounds
                     blocks the plan instead of being clamped. The 5.5 disk limit stays server-side, out of the
                     repository's reach.</p>
                 <span class="go">More keys in the docs →</span>
@@ -463,10 +471,12 @@
 
         <h2 class="cmp-h2-lg" id="example">A complete file</h2>
         <p>You do not have to write it by hand. <code>cipi yml generate &lt;app&gt;</code> prints what the server
-            already has; commit that and <code>cipi yml plan</code> reports nothing to do.</p>
+            already has. Since 5.5.2, <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code>; commit that
+            file at the repository root and <code>cipi yml plan</code> reports nothing to do. Apply reads the committed
+            copy, so a file left only in the home directory is not what a deploy reconciles.</p>
         <div class="code-block">
             <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <pre><span class="p">$</span> cipi yml generate myapp &gt; cipi.yml   <span class="c"># then commit it</span>
+            <pre><span class="p">$</span> cipi yml generate myapp --save      <span class="c"># writes /home/myapp/cipi.yml — commit it at the repo root</span>
 <span class="p">$</span> cipi yml plan myapp                  <span class="c"># reports nothing to do</span></pre>
         </div>
         <div class="code-block">
@@ -534,19 +544,18 @@ health:
   # rollback_on_unhealthy: true   # undo a release that fails the check
   #                               # (the code symlink only — migrations are NOT undone)</span>
 
-<span class="c"># Post-deploy steps (5.2.3+). Allowlisted runners only — artisan, npm/npx/yarn/pnpm,
-# composer, or one relative php/node script under the release. No free shell.
-# This is the one section that runs WITHOUT `cipi yml auto` being on.</span>
+<span class="c"># node_build (5.5.2+) runs inside the release, before it goes live.
+# deploy.post (5.2.3+) runs after, and does not need `cipi yml auto`.
+# snapshot is still accepted and stored as predeploy_snapshot.</span>
 deploy:
+  predeploy_snapshot: true
+  node_build: <span class="s">"npm ci &amp;&amp; npm run build"</span>
   post:
     - artisan cache:clear
     - artisan scout:import --force
-    - npm run build
     - composer dump-autoload -o
   <span class="c"># post_on_failure: abort   # default warn: log + email, release stays live</span>
-  <span class="c"># 5.4.0+: the cipi app deploy-config options, e.g.</span>
-  <span class="c"># keep_releases: 5
-  # snapshot: true</span>
+  <span class="c"># keep_releases: 5</span>
 
 <span class="c"># 5.4.0+: Meilisearch for Scout (the engine is installed by root first)</span>
 search: false
@@ -656,8 +665,9 @@ backup:
         <div class="faq-item">
             <h3>Do I have to write the file by hand?</h3>
             <p>No. <code>cipi yml generate &lt;app&gt;</code> prints the app's current server configuration as a
-                ready-to-commit <code>cipi.yml</code>, and <code>cipi yml example</code> prints a blank commented
-                template if you would rather start from scratch.</p>
+                ready-to-commit <code>cipi.yml</code>. Since 5.5.2, <code>--save</code> writes
+                <code>/home/&lt;app&gt;/cipi.yml</code>; apply still reads the copy committed in the release.
+                <code>cipi yml example</code> prints a blank commented template if you would rather start from scratch.</p>
         </div>
         <div class="faq-item">
             <h3>Can a commit break my server?</h3>
@@ -669,8 +679,10 @@ backup:
         </div>
         <div class="faq-item">
             <h3>What happens to things the file does not mention?</h3>
-            <p>They are left alone. Only the sections you declare are reconciled — with one deliberate exception:
-                the alias list is authoritative, so removing an alias from the file removes it from the server.</p>
+            <p>They are left alone. Only the sections you declare are reconciled. Two lists are authoritative:
+                aliases, so removing an alias removes it from the server, and since 5.5.2 the backup profiles this
+                file created, so renaming or dropping one removes it from the schedule. Archives stay until
+                <code>cipi backup prune</code> ages them out. Profiles added by hand stay unless the file names them.</p>
         </div>
         <div class="faq-item">
             <h3>Does it work with the Git webhook?</h3>

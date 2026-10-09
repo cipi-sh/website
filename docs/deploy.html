@@ -653,7 +653,8 @@
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi yml generate myapp          <span class="c"># this app's current config, as a cipi.yml</span>
+                    <pre><span class="p">$</span> cipi yml generate myapp          <span class="c"># print this app's current config</span>
+<span class="p">$</span> cipi yml generate myapp --save   <span class="c"># write /home/myapp/cipi.yml (5.5.2+)</span>
 <span class="p">$</span> cipi yml example myapp           <span class="c"># blank commented template, in myapp's namespace</span>
 <span class="p">$</span> cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
 <span class="p">$</span> cipi yml plan myapp              <span class="c"># show exactly what would change</span>
@@ -663,9 +664,9 @@
                 </div>
 
                 <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
-                    <code>shared/cipi.yml</code> — and, since <strong>v5.2.3</strong>, in <code>htdocs/</code>, which
-                    is where a <a href="/docs/apps#cli-app-custom">custom app</a>'s repository actually lives.
-                    Override with <code>--file=&lt;path&gt;</code>.</p>
+                    <code>htdocs/cipi.yml</code> and <code>htdocs/cipi.yaml</code> (since <strong>v5.2.3</strong>, where
+                    a <a href="/docs/apps#cli-app-custom">custom app</a>'s repository actually lives), then
+                    <code>shared/cipi.yml</code>. Override with <code>--file=&lt;path&gt;</code>.</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -705,6 +706,12 @@
                     owns — as a ready-to-commit file. Declaring <code>horizon: false</code> or
                     <code>reverb: false</code> is now a real plan (also 5.1.2): previously <code>false</code> was
                     treated like a missing key.</p>
+
+                <p>Since <strong>v5.5.2</strong>, <code>cipi yml generate &lt;app&gt; --save</code> writes
+                    <code>/home/&lt;app&gt;/cipi.yml</code> (or <code>--save=&lt;path&gt;</code>; <code>--force</code>
+                    overwrites). Apply still reads the copy committed in the release —
+                    <code>current/cipi.yml</code>, <code>htdocs/cipi.yml</code> or <code>shared/cipi.yml</code> — so
+                    commit that file and deploy it. Without <code>--save</code> the command only prints.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -778,13 +785,17 @@ health:
   # rollback_on_unhealthy: true   # undo a release that fails the check
   #                               # (the code symlink only — migrations are NOT undone)</span>
 
-<span class="c"># Post-deploy steps (5.2.3+). Allowlisted runners only — no free shell.
-# Unlike every other section, this one does NOT need `cipi yml auto` on.</span>
+<span class="c"># node_build (5.5.2+) is the Laravel asset build, the same command as
+# `cipi app deploy-config --node-build`. It runs inside the release, before
+# the symlink. deploy.post (5.2.3+) runs after the release is live and does
+# not need `cipi yml auto`. false clears node_build. Node apps use node.build.
+# snapshot is still accepted and stored as predeploy_snapshot.</span>
 deploy:
+  predeploy_snapshot: true
+  node_build: <span class="s">"npm ci &amp;&amp; npm run build"</span>
   post:
     - artisan cache:clear
     - artisan scout:import --force
-    - npm run build
     - composer dump-autoload -o
   <span class="c"># post_on_failure: abort   # default warn</span>
 
@@ -892,7 +903,8 @@ deploy:
   queue_restart: true
   horizon_terminate: false
   extra_artisan: [ <span class="s">"view:clear"</span> ]
-  snapshot: true            <span class="c"># pre-deploy database snapshot</span>
+  predeploy_snapshot: true  <span class="c"># snapshot: true still accepted</span>
+  node_build: <span class="s">"npm ci &amp;&amp; npm run build"</span>  <span class="c"># before go-live; false clears</span>
   post:
     - artisan cache:clear
 
@@ -917,7 +929,13 @@ crons:
                         <a href="#cli-deploy-config"><code>cipi app deploy-config</code></a>
                         (<code>extra_artisan</code> validated, <code>tinker</code> refused). Only declared keys are
                         reconciled, and a change regenerates <code>deploy.php</code> once. Refused on custom apps; on Node
-                        apps only <code>keep_releases</code> and <code>snapshot</code> apply.</li>
+                        apps only <code>keep_releases</code> and <code>predeploy_snapshot</code> apply.
+                        <code>deploy.node_build</code> (v5.5.2) is the Laravel asset build: it runs inside the release,
+                        before the symlink, and it is the same command as <code>cipi app deploy-config
+                        --node-build</code>. <code>false</code> or an empty string removes it. On a Node app it blocks
+                        the plan, because that build is <code>node.build</code>. A custom app has no recipe, so its
+                        build stays in <code>deploy.post</code>. The name <code>snapshot</code> is still read and stored
+                        as <code>predeploy_snapshot</code>; declaring both is an error.</li>
                     <li><code>app.limits</code> reapplies <a href="/docs/apps#cli-app-limits"><code>cipi app
                         limits</code></a>, but a value outside the CLI's bounds <strong>blocks the plan instead of being
                         clamped</strong> — nobody is watching an unattended apply. The soft disk limit
@@ -983,13 +1001,22 @@ crons:
                     the Git webhook, the latter through one narrowly scoped sudoers rule. A release that carries no
                     <code>cipi.yml</code> is a quiet no-op, and a file that fails validation is reported by email
                     (<code>yml_fail</code>) and <strong>never partially applied</strong>. A successful reconcile fires
-                    <code>yml_apply</code>.</p>
+                    <code>yml_apply</code>. Since <strong>v5.5.2</strong> the deploy-success mail quotes one line for
+                    that result — applied, unchanged, no file, blocked, invalid or failed — whenever auto is on, from
+                    both <code>cipi deploy</code> and the webhook. The deploy itself still succeeds when the file is
+                    blocked or invalid.</p>
 
                 <h3 id="cli-yml-deploy-post"><code>deploy.post</code> — post-deploy steps that travel with the
                     code</h3>
                 <p>Available since <strong>v5.2.3</strong>. After every successful deploy, Cipi can run a declared
                     list of allowlisted commands from the live release directory — on both <code>cipi deploy</code>
                     and the Git webhook.</p>
+                <p>Since <strong>v5.5.2</strong> the Laravel asset build is <code>deploy.node_build</code>, the same
+                    command as <code>cipi app deploy-config --node-build</code>. It runs inside the release, before the
+                    symlink, so the built files are part of the release that goes live. <code>deploy.post</code> runs
+                    after that. <code>node_build: false</code> removes the command. On a Node app the build is
+                    <code>node.build</code>, and <code>deploy.node_build</code> blocks the plan. A custom app has no
+                    Deployer recipe, so its build stays here.</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -1050,9 +1077,10 @@ deploy:
                     <code>cipi app run</code>.</p>
 
                 <h4>Where it sits in the deploy</h4>
-                <p>After Deployer finishes (migrate, symlink, worker restart, …), then the optional
-                    <code>cipi yml apply</code> (only if auto-apply is on), then <code>deploy.post</code>, then the
-                    post-deploy healthcheck, then the success notification.</p>
+                <p>On a Laravel app, <code>deploy.node_build</code> has already run inside Deployer, after Composer
+                    and before the symlink. After Deployer finishes (migrate, symlink, worker restart, …), then the
+                    optional <code>cipi yml apply</code> (only if auto-apply is on), then <code>deploy.post</code>,
+                    then the post-deploy healthcheck, then the success notification.</p>
 
                 <h4><code>deploy.post_on_failure</code></h4>
                 <div class="table-scroll">
@@ -1098,6 +1126,14 @@ deploy:
                         delete one.</li>
                     <li>Its databases must be named <code>&lt;app&gt;</code> or <code>&lt;app&gt;_*</code>, and its
                         backup profiles <code>&lt;app&gt;</code> or <code>&lt;app&gt;-*</code>.</li>
+                    <li>Since <strong>v5.5.2</strong> the <code>backup.profiles</code> list is authoritative for the
+                        profiles this file created (recorded on the app as <code>backup_profiles</code>). A profile you
+                        rename or drop is removed from the schedule. Archives stay on disk until
+                        <code>cipi backup prune</code> ages them out. Profiles added by hand with
+                        <code>cipi backup profile add</code> stay unless the file names them. A new profile with no
+                        <code>destinations</code> uses S3 when a bucket is configured, and local otherwise. If backup
+                        was never configured and every profile is local, apply writes a local-only
+                        <code>backup.json</code>.</li>
                     <li>Its healthcheck URL must resolve to one of the app's own domains — otherwise a commit could aim
                         the server's five-minute prober at an internal address and read the answer back out of the alert
                         emails.</li>
