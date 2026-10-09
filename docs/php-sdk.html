@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-07",
+      "dateModified": "2026-10-09",
       "headline": "Cipi Docs — PHP SDK",
       "name": "PHP SDK",
       "url": "https://cipi.sh/docs/php-sdk",
@@ -284,6 +284,7 @@
                 <a href="/docs/cli-client#cli-ip-whitelist" class="sidebar-link"><code>ip-whitelist</code></a>
                 <a href="/docs/cli-client#cli-insights" class="sidebar-link">server insights</a>
                 <a href="/docs/cli-client#cli-status" class="sidebar-link"><code>status</code></a>
+                <a href="/docs/cli-client#cli-disk" class="sidebar-link"><code>disk</code></a>
                 <a href="/docs/cli-client#cli-jobs" class="sidebar-link"><code>jobs</code></a>
                 <a href="/docs/cli-client#cli-update" class="sidebar-link"><code>update</code></a>
                 <a href="/docs/cli-client#cli-completion" class="sidebar-link"><code>completion</code></a>
@@ -482,8 +483,15 @@ CIPI_ALLOW_HTTP=false</pre>
 <span class="nv">$cipi</span>-&gt;apps()-&gt;unsuspend(<span class="s">'shop'</span>);
 <span class="nv">$cipi</span>-&gt;apps()-&gt;fixPermissions(<span class="s">'shop'</span>);
 <span class="nv">$cipi</span>-&gt;apps()-&gt;recreateWebhook(<span class="s">'shop'</span>, rotateSecret: <span class="k">true</span>);
-<span class="nv">$cipi</span>-&gt;apps()-&gt;delete(<span class="s">'shop'</span>);</pre>
+<span class="nv">$cipi</span>-&gt;apps()-&gt;delete(<span class="s">'shop'</span>);
+
+<span class="nv">$cipi</span>-&gt;limits()-&gt;get(<span class="s">'shop'</span>);
+<span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;limits()-&gt;update(<span class="s">'shop'</span>, [
+    <span class="s">'fpm_max_children'</span> =&gt; <span class="mi">10</span>,
+    <span class="s">'disk_limit_gb'</span> =&gt; <span class="mi">5</span>,
+]));</pre>
                 </div>
+                <p><code>limits()</code> reads and sets FPM children, <code>memory_limit</code>, Octane workers, queue workers, and the soft disk limit (<code>disk_limit_gb</code>, files plus database). The update is a job. Pass <code>disk_limit_gb</code> as <code>null</code> to remove it. Node apps accept only that key. The disk limit needs Cipi CLI 5.5.0+; it warns, it does not block the app.</p>
                 <p>HTTP Basic Auth, Artisan, and whitelisted app commands:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">php</span><button
@@ -550,8 +558,14 @@ CIPI_ALLOW_HTTP=false</pre>
 );
 
 <span class="nv">$cipi</span>-&gt;ssl()-&gt;install(<span class="s">'shop'</span>);
-<span class="nv">$cipi</span>-&gt;ssl()-&gt;force(<span class="s">'shop'</span>);</pre>
+<span class="nv">$cipi</span>-&gt;ssl()-&gt;install(<span class="s">'shop'</span>, dns: <span class="s">'cloudflare'</span>, account: <span class="s">'prod'</span>, wildcard: <span class="k">true</span>);
+<span class="nv">$cipi</span>-&gt;ssl()-&gt;force(<span class="s">'shop'</span>);
+
+<span class="nv">$cipi</span>-&gt;ssl()-&gt;dnsAccounts();
+<span class="nv">$cipi</span>-&gt;ssl()-&gt;setDnsAccount(<span class="nv">$cloudflareToken</span>, <span class="s">'prod'</span>);
+<span class="nv">$cipi</span>-&gt;ssl()-&gt;removeDnsAccount(<span class="s">'prod'</span>);</pre>
                 </div>
+                <p><code>ssl()-&gt;install()</code> with no options reissues the certificate as it was last issued. DNS-01 (<code>dns: 'cloudflare'</code>), <code>wildcard</code>, and <code>http: true</code> (back to HTTP-01) need Cipi CLI 5.5.0+; reissuing DNS-01 with an empty body needs 5.5.1. <code>setDnsAccount()</code> is synchronous, so the token is not queued and is never returned. <code>removeDnsAccount()</code> returns 409 while a certificate still renews with that account.</p>
                 <p>Redirect and proxy writes are synchronous on the panel: Nginx is tested and the previous vhost is restored if the test fails. The proxy loopback guard cannot be bypassed from the API. Node apps use <code>node()-&gt;runtimes()</code>, <code>node()-&gt;status($app)</code>, and <code>node()-&gt;restart($app)</code> (restart is a job).</p>
             </div>
 
@@ -611,9 +625,12 @@ CIPI_ALLOW_HTTP=false</pre>
 
 <span class="nv">$cipi</span>-&gt;packages()-&gt;list();
 <span class="nv">$cipi</span>-&gt;monitor()-&gt;list();
-<span class="nv">$cipi</span>-&gt;zeroTrust()-&gt;status();</pre>
+<span class="nv">$cipi</span>-&gt;zeroTrust()-&gt;status();
+
+<span class="nv">$cipi</span>-&gt;disk()-&gt;usage();
+<span class="nv">$cipi</span>-&gt;disk()-&gt;databases();</pre>
                 </div>
-                <p>Packages, the system monitor, and Cloudflare Zero Trust are read-only here, matching the panel API. Installing those pieces stays on the host CLI.</p>
+                <p>Packages, the system monitor, Cloudflare Zero Trust, and disk usage are read-only here, matching the panel API. Installing those pieces stays on the host CLI. <code>disk()</code> needs Cipi CLI 5.5.2 (older hosts return 503). Sizes are measured on request. The per-app soft limit is <code>limits()</code>, not <code>disk()</code>.</p>
                 <p>The API allowlist defaults to <code>*</code>. Restrict it without locking yourself out — <code>ensure_client_ip: true</code> keeps the caller on the list:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">php</span><button
