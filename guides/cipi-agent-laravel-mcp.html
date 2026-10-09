@@ -414,7 +414,7 @@ $ php artisan cipi:status   <span class="c"># config + live DB connectivity</spa
                     <tr><td>Webhook deploy</td><td><code>POST /cipi/webhook</code></td><td>GitHub / GitLab push writes <code>.deploy-trigger</code>; Deployer runs as the app user within a minute</td></tr>
                     <tr><td>Health check</td><td><code>GET /cipi/health</code></td><td>UptimeRobot / Grafana: app, database, cache, queue backlog, last commit</td></tr>
                     <tr><td>Project MCP</td><td><code>POST /cipi/mcp</code></td><td>Cursor / VS Code / Claude: health, logs, SQL, Artisan, deploy — this guide</td></tr>
-                    <tr><td>DB anonymizer</td><td><code>POST /cipi/db</code></td><td>GDPR-safe dumps for local/QA, Faker transforms, signed 15-minute download</td></tr>
+                    <tr><td>DB anonymizer</td><td><code>POST /cipi/db</code></td><td>GDPR-safe dumps for local/QA, Faker transforms, signed 15-minute download — from a laptop: <code>cipi-cli db anonymize</code></td></tr>
                 </tbody>
             </table>
         </div>
@@ -479,7 +479,7 @@ SELECT COUNT(*) FROM users WHERE created_at &gt;= CURRENT_DATE;</code></div>
             <p><strong>Do not</strong> point this at production and say “run the DatabaseSeeder”. <code>migrate:fresh --seed</code> is <em>not</em> in the blocked list — the package will execute it. Use named seeders, on staging, and confirm with <code>db_query</code>. Production data is not a playground just because the transport is MCP instead of SSH.</p>
         </div>
         <p>A safe staging pattern: one seeder class per fixture, idempotent where you can, called by name. The assistant runs the class, reads the table, and only then do you promote the same seeder through CI. That is the opposite of “dump production and pray”.</p>
-        <p>Pair it with the <a class="inline" href="/docs/agent#agent-anonymizer">anonymizer</a> when local needs volume without PII: anonymize a production-shaped dump, load it locally, keep MCP seeders for the small reference tables (roles, plans, feature flags) that change every sprint.</p>
+        <p>Pair it with the <a class="inline" href="/docs/agent#agent-anonymizer">anonymizer</a> when local needs volume without PII: anonymize a production-shaped dump (<code>cipi-cli db anonymize myapp --email you@example.com</code> from your terminal), load it locally, keep MCP seeders for the small reference tables (roles, plans, feature flags) that change every sprint.</p>
 
         <h2 id="loop">A daily loop you can copy</h2>
         <div class="code-pre"><code><span class="c">You:</span>    Staging healthy? Any pending jobs?

@@ -917,11 +917,10 @@
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <div>From your laptop, <a href="/docs/cli-client#cli-db-anonymize"><code>cipi-cli db anonymize
-                            myapp --email dev@example.com</code></a> (cipi-cli <strong>1.5.0+</strong>) wraps this
-                        flow: it reads the app URL and <code>CIPI_ANONYMIZER_TOKEN</code> through the Cipi API and
-                        queues the job, and <code>cipi-cli db anonymize download "&lt;signed url&gt;" -o myapp.sql</code>
-                        saves the dump from the link you receive by email.</div>
+                    <div>Prefer the terminal? <a href="#agent-anonymizer-cli"><code>cipi-cli db anonymize</code></a> (cipi-cli
+                        <strong>1.5.0+</strong>) drives this whole flow from your laptop through the Cipi API — no SSH,
+                        no token to paste. See <a href="#agent-anonymizer-cli">From your laptop with cipi-cli</a>
+                        below.</div>
                 </div>
 
                 <h3>Use cases</h3>
@@ -934,6 +933,9 @@
                     </li>
                     <li><strong>Vendor or contractor access</strong> — share a SQL dump when a full VPN + production
                         access is not acceptable</li>
+                    <li><strong>Developer laptops</strong> — <code>cipi-cli db anonymize myapp --email you@example.com</code>
+                        requests a dump through the Cipi API, with no SSH session and no token to copy around (see
+                        <a href="#agent-anonymizer-cli">From your laptop with cipi-cli</a>)</li>
                     <li><strong>CI pipelines</strong> — run <code>cipi:anonymize</code> on the server or trigger
                         <code>POST /cipi/db</code> from a secure automation step</li>
                 </ul>
@@ -1057,6 +1059,9 @@
                         credential</li>
                     <li>On failure, a plain-text error email is sent to the same address</li>
                 </ol>
+                <p>The sequence is the same whichever client sends the request — <code>curl</code>, a CI job, or
+                    <a href="#agent-anonymizer-cli"><code>cipi-cli db anonymize</code></a>: the client only changes
+                    who assembles the URL and the token.</p>
 
                 <h3 id="agent-anonymizer-email">Email notifications</h3>
                 <p>The HTTP API does not return the download URL in the JSON response — <strong>email is the only
@@ -1127,6 +1132,19 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
                     <code>ssh myapp@your-server</code> or <code>sudo su - myapp</code> as root — see
                     <a href="/docs/apps#cli-app-ssh">SSH as the app user</a>):
                 </p>
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>No SSH?</strong> Steps 2 and 3 are Artisan commands, so they also run from your laptop through
+                        the Cipi API: <code>cipi-cli apps artisan myapp cipi:service anonymize --enable</code>,
+                        <code>… cipi:generate-token anonymize</code>, <code>… cipi:init-anonymize</code> (token ability
+                        <code>apps-artisan</code>). Only editing <code>anonymization.json</code> still happens on the
+                        server — see <a href="#agent-anonymizer-cli">From your laptop with cipi-cli</a>.</div>
+                </div>
 
                 <p><strong>1. Install the agent</strong> (if not already in <code>composer.json</code>):</p>
                 <div class="code-block">
@@ -1172,7 +1190,8 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
 <span class="p">$</span> php artisan tinker --execute=<span class="s">"Mail::raw('Mail test', fn (\$m) => \$m->to('you@example.com')->subject('Mail test'));"</span></pre>
                 </div>
 
-                <p><strong>6. Trigger your first anonymized export</strong> via HTTP or CLI (see examples below).</p>
+                <p><strong>6. Trigger your first anonymized export</strong> via HTTP,
+                    <a href="#agent-anonymizer-cli">cipi-cli</a> or Artisan (see examples below).</p>
 
                 <h3 id="agent-anonymizer-config">Configuration</h3>
                 <p>Valid paths (first match wins):</p>
@@ -1500,7 +1519,129 @@ mysql -u root -p myapp_local &lt; anonymized.sql</pre>
                                     </table>
                 </div>
 
-                <h3>CLI — run without HTTP</h3>
+                                <h3 id="agent-anonymizer-cli">From your laptop with cipi-cli</h3>
+                <p><a href="/docs/cli-client#cli-db-anonymize"><code>cipi-cli db anonymize</code></a> (cipi-cli
+                    <strong>1.5.0+</strong>) is the same <code>POST /cipi/db</code> flow driven from your terminal
+                    through the <a href="/docs/advanced#cipi-api">Cipi API</a>: you name the app, the CLI finds the
+                    URL and the token, the agent does the rest. No SSH session, nothing exported, no Bearer token in
+                    your shell history.</p>
+
+                <h4>How it works</h4>
+                <ol>
+                    <li><strong>Resolve the app</strong> — <code>GET /api/apps/{app}</code> on the Cipi API (ability
+                        <code>apps-view</code>). Custom and Node apps are refused: the anonymizer needs a Laravel app
+                        with <code>cipi/agent</code> installed.</li>
+                    <li><strong>Read the app <code>.env</code></strong> — <code>GET /api/apps/{app}/env</code>
+                        (<code>apps-env</code>): <code>CIPI_ANONYMIZER</code> must be <code>true</code>,
+                        <code>CIPI_ANONYMIZER_TOKEN</code> becomes the Bearer token, <code>CIPI_ROUTE_PREFIX</code>
+                        (default <code>cipi</code>) and <code>APP_URL</code> build the endpoint. Anything missing stops
+                        here, with the exact command that fixes it.</li>
+                    <li><strong>Build the endpoint</strong> — <code>&lt;APP_URL&gt;/&lt;prefix&gt;/db</code>, falling
+                        back to <code>https://&lt;primary domain&gt;</code> when <code>APP_URL</code> is not set.
+                        <code>--url</code> and <code>--token</code> override either value.</li>
+                    <li><strong>Call the agent</strong> — <code>POST</code> with <code>Authorization: Bearer</code>,
+                        <code>Accept: application/json</code> and <code>{"email": …}</code>. Redirects are never
+                        followed (a 301 would turn the POST into a GET on another host): the CLI reports the
+                        <code>Location</code> and asks for <code>--url</code>.</li>
+                    <li><strong>Queued</strong> — the agent answers <code>status: queued</code>. From here the worker,
+                        the email and the 15-minute link behave exactly as described above. The CLI does not poll:
+                        the agent has no job-status endpoint, <a href="#agent-anonymizer-email">email is the only
+                            channel</a>.</li>
+                    <li><strong>Download</strong> — <code>cipi-cli db anonymize download "&lt;signed url&gt;"</code>
+                        fetches the link from the email: the file name comes from the server, <code>-o</code> picks
+                        another, <code>-o -</code> streams to stdout, an existing file is never overwritten without
+                        <code>--force</code>, and an expired link (<code>410</code>) or unknown token
+                        (<code>404</code>) tells you to request a new dump.</li>
+                </ol>
+
+                <h4>Commands</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># One-time setup: the Artisan steps above, run remotely through the Cipi API</span>
+<span class="p">$</span> cipi-cli apps artisan myapp cipi:service anonymize --enable
+<span class="p">$</span> cipi-cli apps artisan myapp cipi:generate-token anonymize
+<span class="p">$</span> cipi-cli apps artisan myapp cipi:init-anonymize
+<span class="c"># then edit /home/myapp/.db/anonymization.json on the server (it never leaves it)</span>
+
+<span class="c"># Request a dump: the agent emails the signed link</span>
+<span class="p">$</span> cipi-cli prod db anonymize myapp --email dev@example.com
+<span class="c">→ Requesting anonymized dump of 'myapp' via https://myapp.example.com/cipi/db</span>
+<span class="s">✓ Anonymization job queued for 'myapp'</span>
+
+<span class="c"># Download it from the link in the email</span>
+<span class="p">$</span> cipi-cli db anonymize download "https://myapp.example.com/cipi/db/AbCdEf...?expires=...&amp;signature=..." -o myapp.sql
+<span class="s">✓ Saved myapp.sql (24.5 MB)</span>
+
+<span class="c"># Or straight into a local database</span>
+<span class="p">$</span> cipi-cli db anonymize download "&lt;signed url&gt;" -o - | mysql -u root myapp_local</pre>
+                </div>
+
+                <h4>What the CLI tells you</h4>
+                <p>Every failure names the fix. The messages map to the HTTP errors in the table above:</p>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Message</th>
+                                                <th>Fix</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>The anonymizer is disabled on 'myapp' (CIPI_ANONYMIZER is not true)</code></td>
+                                                <td><code>cipi-cli apps artisan myapp cipi:service anonymize --enable</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>CIPI_ANONYMIZER_TOKEN is not set on 'myapp'</code></td>
+                                                <td><code>cipi-cli apps artisan myapp cipi:generate-token anonymize</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>'myapp' is a custom app</code> / <code>is a Node app</code></td>
+                                                <td>The anonymizer needs a Laravel app with <code>cipi/agent</code> installed</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>Invalid anonymizer token</code> (403)</td>
+                                                <td>Regenerate the token, or pass <code>--token</code> when the server <code>.env</code> is stale</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>Configuration file not found</code> (404)</td>
+                                                <td><code>cipi-cli apps artisan myapp cipi:init-anonymize</code>, then edit
+                                                    <code>/home/myapp/.db/anonymization.json</code> on the server</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>HTTP 404 — the anonymizer endpoint is not exposed by the app</code></td>
+                                                <td>Install <code>cipi/agent</code> and enable the service. If <code>.env</code> was edited by hand the
+                                                    cached config may still say <code>false</code>: run <code>cipi:service anonymize
+                                                    --enable</code>, which rebuilds the configuration cache (agent 1.5.4+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>the app redirected (HTTP 301) to …</code></td>
+                                                <td>Pass <code>--url</code> with the canonical URL (for example the <code>www</code> host)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>the download link has expired</code> (410)</td>
+                                                <td>Request a new dump — links last 15 minutes</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Requirements: Cipi <strong>5.0.3+</strong> / API <strong>1.14+</strong> (for <code>apps env</code>), a
+                        Sanctum token with <code>apps-view</code> and <code>apps-env</code> (plus
+                        <code>apps-artisan</code> for the setup commands) and <code>cipi/agent</code>
+                        <strong>1.1.1+</strong>. <code>--json</code> prints the result for scripts. Full reference:
+                        <a href="/docs/cli-client#cli-db-anonymize">CLI client → db</a>.</div>
+                </div>
+
+                <h3>Artisan — run on the server without HTTP</h3>
                 <p>For scripts, cron, or one-off exports on the server:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -1543,6 +1684,10 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span
                         <code>php artisan cipi:service anonymize --disable</code> (endpoints return 404)
                     </li>
                     <li>Download links expire in <strong>15 minutes</strong> — forward emails carefully</li>
+                    <li>With <code>cipi-cli</code> nothing is stored on the laptop: the client reads
+                        <code>CIPI_ANONYMIZER_TOKEN</code> through the Cipi API on every run (<code>apps-env</code>
+                        ability) — so any Sanctum token holding <code>apps-env</code> can read it; scope those tokens
+                        too</li>
                     <li>Document which columns are transformed for your DPA / privacy policy</li>
                     <li>Test the dump: grep for a known production email — it should not appear if
                         <code>fakeEmail</code> was set on that column
