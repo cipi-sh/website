@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-09",
+      "dateModified": "2026-10-15",
       "headline": "Cipi Docs — PHP SDK",
       "name": "PHP SDK",
       "url": "https://cipi.sh/docs/php-sdk",
@@ -463,7 +463,7 @@ CIPI_ALLOW_HTTP=false</pre>
             <div class="doc-section" id="sdk-apps">
                 <p class="doc-section-label">PHP SDK</p>
                 <h2>Apps</h2>
-                <p>App creates accept the same fields as <code>POST /api/apps</code>: <code>user</code> and <code>domain</code> are required. Add <code>repository</code> and <code>branch</code> for Git, <code>php</code>, <code>custom</code>, <code>octane</code>, <code>engine</code>, or the Node fields <code>node</code>, <code>framework</code>, <code>node_version</code>, <code>build</code>, <code>start</code>, <code>output</code>, and <code>health_path</code>.</p>
+                <p>App creates accept the same fields as <code>POST /api/apps</code>: <code>user</code> and <code>domain</code> are required. Add <code>repository</code> and <code>branch</code> for Git, <code>php</code>, <code>custom</code>, <code>octane</code>, <code>engine</code>, <code>node_build</code> (Laravel asset build), or the Node fields <code>node</code>, <code>framework</code>, <code>node_version</code>, <code>build</code>, <code>start</code>, <code>output</code>, and <code>health_path</code>.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">php</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -476,6 +476,7 @@ CIPI_ALLOW_HTTP=false</pre>
     <span class="s">'repository'</span> =&gt; <span class="s">'git@github.com:acme/shop.git'</span>,
     <span class="s">'branch'</span> =&gt; <span class="s">'main'</span>,
     <span class="s">'php'</span> =&gt; <span class="s">'8.4'</span>,
+    <span class="s">'node_build'</span> =&gt; <span class="s">'npm ci &amp;&amp; npm run build'</span>,
 ]));
 
 <span class="nv">$cipi</span>-&gt;apps()-&gt;update(<span class="s">'shop'</span>, [<span class="s">'php'</span> =&gt; <span class="s">'8.4'</span>]);
@@ -491,6 +492,20 @@ CIPI_ALLOW_HTTP=false</pre>
     <span class="s">'disk_limit_gb'</span> =&gt; <span class="mi">5</span>,
 ]));</pre>
                 </div>
+                <p><code>node_build</code> is the asset build Cipi runs inside every deploy of a Laravel app, before the release goes live. It starts with <code>npm</code>, <code>npx</code>, <code>yarn</code>, <code>pnpm</code>, <code>bun</code>, or <code>node</code>, allows <code>&amp;&amp;</code> and <code>;</code>, refuses pipes, redirects, backticks, and <code>$( )</code>, and is at most 200 characters. The panel answers 422 (<code>ValidationException</code>) on a bad command or on a custom or Node app; Node apps take <code>build</code>. Needs cipi/api 1.34.0+ and Cipi CLI 5.6.0+.</p>
+                <p>The same versions check that the app's deploy key can read its repository. The <code>app-create</code> result, and the <code>app-edit</code> result when the repository or branch changed, carry <code>repository_access</code>; <code>app-create</code> also carries <code>build</code>. The check never fails the job, so read it after <code>wait()</code>:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="nv">$job</span> = <span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;apps()-&gt;create(<span class="nv">$attributes</span>));
+<span class="nv">$access</span> = <span class="nv">$job</span>[<span class="s">'data'</span>][<span class="s">'result'</span>][<span class="s">'repository_access'</span>] ?? <span class="k">null</span>;
+
+<span class="k">if</span> (<span class="nv">$access</span> !== <span class="k">null</span> &amp;&amp; <span class="nv">$access</span>[<span class="s">'status'</span>] !== <span class="s">'ok'</span>) {
+    <span class="c">// $access['error']: the git line. $access['hint']: the CLI fix, e.g.</span>
+    <span class="c">// cipi git github-token &lt;token&gt; &amp;&amp; cipi git refresh shop</span>
+}</pre>
+                </div>
+                <p><code>status</code> is <code>ok</code> (readable, the branch exists), <code>nobranch</code> (readable, no such branch), or <code>denied</code> (the key cannot read it). <code>branch</code>, <code>error</code>, and <code>hint</code> are optional. On older servers, and on apps without a repository, <code>repository_access</code> is absent.</p>
                 <p><code>limits()</code> reads and sets FPM children, <code>memory_limit</code>, Octane workers, queue workers, and the soft disk limit (<code>disk_limit_gb</code>, files plus database). The update is a job. Pass <code>disk_limit_gb</code> as <code>null</code> to remove it. Node apps accept only that key. The disk limit needs Cipi CLI 5.5.0+; it warns, it does not block the app.</p>
                 <p>HTTP Basic Auth, Artisan, and whitelisted app commands:</p>
                 <div class="code-block">

@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-09",
+      "dateModified": "2026-10-15",
       "headline": "Cipi Docs — CLI Client",
       "name": "CLI Client",
       "url": "https://cipi.sh/docs/cli-client",
@@ -781,7 +781,8 @@ sudo make install</pre>
 
 <span class="c"># Create a Laravel app</span>
 <span class="p">$</span> cipi-cli apps create --user=myapp --domain=myapp.com \
-    --php=8.5 --repository=git@github.com:acme/myapp.git --branch=main
+    --php=8.5 --repository=git@github.com:acme/myapp.git --branch=main \
+    --node-build=<span class="s">'npm ci &amp;&amp; npm run build'</span>   <span class="c"># asset build on every deploy (1.7.0+)</span>
 
 <span class="c"># Create a custom (non-Laravel) app</span>
 <span class="p">$</span> cipi-cli apps create --user=landing --domain=landing.acme.com \
@@ -814,6 +815,14 @@ sudo make install</pre>
 <span class="c"># Delete an app (skip confirmation)</span>
 <span class="p">$</span> cipi-cli apps delete myapp -y</pre>
                 </div>
+                <p>Since <strong>1.7.0</strong> (Cipi <strong>5.6.0</strong>, API <strong>1.34+</strong>),
+                    <code>apps create</code> prints the app's credentials, deploy key and build when the job finishes,
+                    and both <code>apps create</code> and <code>apps edit</code> (new repository or branch) report
+                    whether the deploy key can read the repository. When it cannot, the output names git's error and
+                    the command to run on the server — for example
+                    <code>cipi git github-token &lt;token&gt; &amp;&amp; cipi git refresh myapp</code>. Interactive
+                    <code>apps create</code> also asks for the build command of a Laravel app; Enter skips it.
+                    <code>--json</code> returns the job result, <code>repository_access</code> included.</p>
             </div>
 
             <hr class="doc-divider">
@@ -2173,6 +2182,11 @@ sudo make install</pre>
                                                 <td>Disk usage (<code>disk</code>, <code>disk db</code>, cipi-cli 1.6.0+)</td>
                                                 <td>5.5.2 (API sudoers)</td>
                                                 <td>1.33+ and <code>disk-view</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>apps create --node-build</code>, repository check on create/edit (cipi-cli 1.7.0+)</td>
+                                                <td>5.6.0</td>
+                                                <td>1.34+</td>
                                             </tr>
                                             <tr>
                                                 <td>Anonymized dumps (<code>db anonymize</code>, cipi-cli 1.5.0+)</td>
