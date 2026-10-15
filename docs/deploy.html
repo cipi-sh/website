@@ -1463,12 +1463,17 @@ deploy:
                                             <tr>
                                                 <td><code>app create</code></td>
                                                 <td>Adds deploy key + creates webhook on the repository via API. The summary shows
-                                                    <em>"auto-configured &#10003;"</em> instead of manual instructions.
+                                                    <em>"auto-configured &#10003;"</em> instead of manual instructions. Since
+                                                    <strong>v5.6.0</strong> the key is then <strong>tested</strong> against the
+                                                    repository (<code>git ls-remote</code> as the app user, the branch included).
+                                                    When it cannot read it, the summary says so and — on a terminal — Cipi offers
+                                                    to save or replace the forge token, registers the key and checks again.
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <td><code>app edit --repository=...</code></td>
-                                                <td>Removes deploy key + webhook from the old repository, then adds them to the new one.
+                                                <td>Removes deploy key + webhook from the old repository, then adds them to the new one,
+                                                    and tests the key the same way (also after <code>--branch=</code>).
                                                 </td>
                                             </tr>
                                             <tr>
@@ -1502,6 +1507,12 @@ deploy:
                                                     supported forge. Custom/SFTP apps get the key only. Flags:
                                                     <code>--rotate-keys</code>, <code>--rotate-secret</code>,
                                                     <code>--force</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git check [app]</code></td>
+                                                <td>Can the deploy key read the repository, and does the branch exist? One app
+                                                    (with the token offer on a terminal) or every app with a repository; exits 1
+                                                    when one cannot be read (<strong>v5.6.0</strong>)</td>
                                             </tr>
                                             <tr>
                                                 <td><code>cipi git github-token &lt;token&gt;</code></td>

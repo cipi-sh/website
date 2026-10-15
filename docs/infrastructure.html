@@ -586,8 +586,8 @@
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi db create                              <span class="c"># interactive</span>
-<span class="p">$</span> cipi db create --name=analytics             <span class="c"># non-interactive (default engine)</span>
+                    <pre><span class="p">$</span> cipi db create                              <span class="c"># interactive: engine menu, then the name</span>
+<span class="p">$</span> cipi db create --name=analytics             <span class="c"># engine menu on a terminal; default engine in a script</span>
 <span class="p">$</span> cipi db create --name=analytics --engine=pgsql
 <span class="p">$</span> cipi db list [--engine=mariadb|pgsql]       <span class="c"># list databases with sizes</span>
 <span class="p">$</span> cipi db backup myapp [--engine=…]
@@ -595,6 +595,17 @@
 <span class="p">$</span> cipi db password myapp [--engine=…]         <span class="c"># regenerate password</span>
 <span class="p">$</span> cipi db delete analytics [--engine=…]</pre>
                 </div>
+                <p>Since <strong>v5.6.0</strong>, with both engines installed and no <code>--engine</code>,
+                    <code>cipi db create</code> on a terminal opens a menu — MariaDB or PostgreSQL, the server default
+                    (<code>cipi db default</code>) pre-selected, Enter to take it. A script, or a server with one
+                    engine, gets the default without a prompt.</p>
+                <p>Since <strong>v5.6.0</strong>, <code>cipi db restore</code> stops at the first failed statement on
+                    both engines and says what failed (<code>PostgreSQL restore: ERROR: relation "users" already
+                    exists</code>), exiting 1 — before, a PostgreSQL restore could leave the database empty and still
+                    print <em>restored</em>. A <code>.gz</code> that does not uncompress fails too. A dump taken on a
+                    newer PostgreSQL (e.g. <code>pg_dump</code> 17 into PostgreSQL 16 on Ubuntu 24.04) still restores:
+                    preamble <code>SET</code> lines for parameters this server does not have are dropped. The same
+                    applies to <code>cipi app clone --with-db</code> and <code>cipi sync import</code>.</p>
                 <p>Laravel apps store the chosen engine in app metadata; backup, sync, and
                     <code>cipi app reset-db-password</code> follow it. Use
                     <code>cipi app create --engine=pgsql</code> (or the interactive prompt) to provision a Laravel app
@@ -1102,9 +1113,9 @@
                 </div>
 
                 <h3>1 — Destinations</h3>
-                <p><code>cipi backup configure</code> stores the S3 credentials shared by every profile. Since
-                    <strong>v5.1.0</strong> you may leave the bucket <strong>empty</strong> for local-only backups,
-                    which land under <code>/var/backups/cipi</code>.</p>
+                <p><code>cipi backup configure</code> stores the <strong>default bucket</strong> — the one a profile
+                    names as <code>s3</code>. Since <strong>v5.1.0</strong> you may leave the bucket
+                    <strong>empty</strong> for local-only backups, which land under <code>/var/backups/cipi</code>.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -1160,6 +1171,33 @@
                     </table>
                 </div>
 
+                <h4>Several buckets — named destinations</h4>
+                <p>Since <strong>v5.6.0</strong> a server can ship to more than one bucket: another provider, another
+                    region, a customer's own account. Each extra bucket is a <strong>named destination</strong> with
+                    its own keys, region and endpoint; a profile then lists any of them next to <code>local</code> and
+                    <code>s3</code>. On a server that already had a bucket nothing changes: that bucket stays the
+                    default, <code>s3</code> in every profile.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi backup destination add offsite \
+      --bucket=acme-backups --key=AKIA... --secret=... \
+      --region=eu-central-1 --endpoint=https://eu-central-1.your-objectstorage.com
+<span class="c"># the bucket is listed before anything is saved; without flags the values are asked</span>
+
+<span class="p">$</span> cipi backup destination list              <span class="c"># local, s3 (default) and every named one, with the profiles using it</span>
+<span class="p">$</span> cipi backup destination show offsite
+<span class="p">$</span> cipi backup destination test              <span class="c"># reach every bucket with its own credentials</span>
+<span class="p">$</span> cipi backup destination edit offsite --endpoint=https://...
+<span class="p">$</span> cipi backup destination remove offsite    <span class="c"># refused while a profile still uses it; archives stay</span>
+
+<span class="p">$</span> cipi backup profile edit nightly --dest=local,s3,offsite</pre>
+                </div>
+                <p>Every run uploads the same layout to each bucket; retention, <code>cipi backup list</code>,
+                    <code>verify</code> and <code>fetch</code> look at all of them. In <code>cipi.yml</code>:
+                    <code>destinations: [s3, offsite]</code> — a name not configured on the server blocks the
+                    plan.</p>
+
                 <h3>2 — Backup profiles</h3>
                 <p>Create a profile once; it then runs on its own schedule. Two typical ones:</p>
                 <div class="code-block">
@@ -1202,7 +1240,9 @@
                             PostgreSQL.</span></div>
                     <div class="option-item"><code>--every=30m|6h|1d</code> or
                         <code>--cron='0 2 * * *'</code><span>How often it runs.</span></div>
-                    <div class="option-item"><code>--dest=local|s3|local,s3</code><span>Where the run goes.</span></div>
+                    <div class="option-item"><code>--dest=local,s3,&lt;name&gt;</code><span>Where the run goes:
+                            <code>local</code>, <code>s3</code> (the default bucket) and, since <strong>v5.6.0</strong>,
+                            any named destination (<code>cipi backup destination add</code>).</span></div>
                     <div class="option-item"><code>--keep=N</code> / <code>--keep-days=N</code> /
                         <code>--keep-weeks=N</code><span>Retention — <strong>at least one is mandatory</strong>. A
                             profile that would grow without bound is refused.</span></div>
@@ -1301,7 +1341,8 @@
         └── myapp.sql.gz
 
 # local  → /var/backups/cipi/&lt;profile&gt;/&lt;timestamp&gt;/
-# s3     → s3://&lt;bucket&gt;/cipi/&lt;profile&gt;/&lt;timestamp&gt;/</pre>
+# s3     → s3://&lt;bucket&gt;/cipi/&lt;profile&gt;/&lt;timestamp&gt;/
+# &lt;name&gt; → the same prefix in that destination's bucket</pre>
                 </div>
                 <p>Backup staging defaults to <code>/var/tmp</code> (disk) rather than <code>/tmp</code> (often a small
                     RAM-backed tmpfs), so large apps do not fail mid-backup when tmpfs fills up. Override with

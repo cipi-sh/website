@@ -375,6 +375,22 @@
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi app create</pre>
                 </div>
+                <p>Since <strong>v5.6.0</strong> the wizard opens with numbered menus, the default pre-selected
+                    (press Enter to take it): the <strong>app type</strong> — Laravel, custom, or a Node
+                    <code>spa</code> / <code>static</code> / <code>ssr</code> app — then, for Laravel,
+                    <strong>PHP-FPM or Octane</strong> and the <strong>database engine</strong> (MariaDB or
+                    PostgreSQL, when both are installed). The details follow: username, domain, repository, branch,
+                    PHP version and an optional <strong>asset build</strong> such as
+                    <code>npm ci &amp;&amp; npm run build</code>, which runs inside every deploy before the release
+                    goes live (the same setting as <code>cipi app edit --node-build</code>; non-interactive:
+                    <code>--node-build=</code>). A Node app asks for its framework (or build/output for a static site).
+                    Any type flag (<code>--custom</code>, <code>--octane</code>, <code>--node=</code>,
+                    <code>--framework=</code>) skips the menus, and without a terminal every default applies.</p>
+                <p>Before the summary, the deploy key is <strong>tested against the repository</strong>
+                    (<code>git ls-remote</code> as the app user, branch included). When it cannot read it, the summary
+                    says so and, on a terminal, Cipi offers to save or replace the forge token, registers the key
+                    and checks again — see <a href="/docs/deploy#git-auto-setup">Git auto-setup</a>.
+                    <code>cipi git check &lt;app&gt;</code> repeats the test later.</p>
 
                 <h3>Laravel Octane (FrankenPHP)</h3>
                 <div class="code-block">
@@ -429,6 +445,13 @@
                             <code>cipi db install pgsql</code>). Interactive create prompts when PostgreSQL is
                             installed. Writes matching <code>.env</code> / connection URL.</span>
                     </div>
+                    <div class="option-item"><code>--node-build</code><span>Asset build run inside every deploy,
+                            after <code>composer install</code> and before the release goes live, e.g.
+                            <code>'npm ci &amp;&amp; npm run build'</code> (Laravel apps; since
+                            <strong>v5.6.0</strong>). Same setting as
+                            <code>cipi app edit --node-build</code> and <code>deploy.node_build</code> in
+                            <code>cipi.yml</code>. Runners allowed: npm, npx, yarn, pnpm, bun, node.</span>
+                    </div>
                 </div>
 
                 <div class="callout info">
@@ -438,8 +461,9 @@
                         <line x1="12" y1="8" x2="12" y2="12" />
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
-                    <div>If a GitHub or GitLab token is configured, Cipi automatically adds the SSH deploy key and
-                        creates the webhook on the repository — no manual steps needed. See
+                    <div>If a token for the forge (GitHub, GitLab, Bitbucket Cloud, Azure DevOps, Cursor Origin,
+                        AWS CodeCommit) is configured, Cipi automatically adds the SSH deploy key and creates the
+                        webhook on the repository — no manual steps needed. See
                         <a href="/docs/deploy#git-auto-setup">Git auto-setup</a> for setup instructions and
                         fallback options when auto-configuration is not available.
                     </div>
