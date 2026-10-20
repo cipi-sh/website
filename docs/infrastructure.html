@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-09",
+      "dateModified": "2026-10-20",
       "headline": "Cipi Docs — Infrastructure",
       "name": "Infrastructure",
       "url": "https://cipi.sh/docs/infrastructure",
@@ -606,6 +606,12 @@
                     newer PostgreSQL (e.g. <code>pg_dump</code> 17 into PostgreSQL 16 on Ubuntu 24.04) still restores:
                     preamble <code>SET</code> lines for parameters this server does not have are dropped. The same
                     applies to <code>cipi app clone --with-db</code> and <code>cipi sync import</code>.</p>
+                <p>Since <strong>v5.6.2</strong>, a failed PostgreSQL restore no longer empties the database: wipe and
+                    import run in one transaction and <code>COMMIT</code> is sent only after the whole dump has been
+                    read, so a truncated archive, a read error or a failing statement rolls the wipe back. An empty
+                    dump is refused — including a backup taken while <code>pg_dump</code> failed, which can be a valid
+                    archive of nothing. The new <code>public</code> schema goes to the database owner, not a role named
+                    after the database.</p>
                 <p>Laravel apps store the chosen engine in app metadata; backup, sync, and
                     <code>cipi app reset-db-password</code> follow it. Use
                     <code>cipi app create --engine=pgsql</code> (or the interactive prompt) to provision a Laravel app
