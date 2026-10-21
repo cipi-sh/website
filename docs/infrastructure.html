@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-20",
+      "dateModified": "2026-10-21",
       "headline": "Cipi Docs — Infrastructure",
       "name": "Infrastructure",
       "url": "https://cipi.sh/docs/infrastructure",
@@ -358,10 +358,13 @@
                 <p class="doc-section-label">Infrastructure</p>
                 <h1><code>cipi php</code></h1>
                 <p>PHP 8.5 is pre-installed during setup. Additional versions can be added at any time; since
-                    <strong>v4.5.12</strong> Cipi probes APT sources per Ubuntu codename — typically the
-                    ondrej/php PPA on 24.04, <a href="https://packages.sury.org/php/" target="_blank"
-                        rel="noopener">packages.sury.org</a> on 26.04 when Launchpad has no suite, or Ubuntu main as a
-                    last resort (co-installable 8.3–8.5 where the chosen repo supports it).</p>
+                    <strong>v4.5.12</strong> Cipi probes APT sources per Ubuntu codename. Since <strong>v5.6.3</strong>
+                    the order is <a href="https://packages.sury.org/php/" target="_blank"
+                        rel="noopener">packages.sury.org</a> first (24.04 and 26.04), then the ondrej/php PPA, then
+                    Ubuntu main as a last resort (co-installable 8.3–8.5 where the chosen repo supports it). Same
+                    maintainer and packages, but sury.org publishes first: on the 2026-10-21 security release it had
+                    the fixed builds for 24.04 while the PPA was still building them. Migration 5.6.3 moves existing
+                    servers off the PPA, removing it only once sury.org is in place.</p>
 
                 <div class="callout info" style="margin:16px 0;">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -380,11 +383,11 @@
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi php list              <span class="c"># list installed versions, status, and system default</span>
+                    <pre><span class="p">$</span> cipi php list              <span class="c"># installed versions, status, patch version, security state, system default</span>
 <span class="p">$</span> cipi php install 8.4       <span class="c"># install an additional PHP version (8.3–8.5)</span>
 <span class="p">$</span> cipi php switch 8.4        <span class="c"># set system default (root/cipi, API pool)</span>
 <span class="p">$</span> cipi php remove 8.1        <span class="c"># remove a version, incl. legacy (blocks if default or apps use it)</span>
-<span class="p">$</span> cipi php upgrade           <span class="c"># apply security patches to all installed PHP packages</span></pre>
+<span class="p">$</span> cipi php upgrade           <span class="c"># apply security patches, then report the patch level (exit 1 while vulnerable)</span></pre>
                 </div>
 
                 <h3>Security patch upgrades</h3>
@@ -394,10 +397,90 @@
                     <code>libphp*</code> package, then restarts the affected PHP-FPM pools. When SMTP is configured and
                     packages were upgraded, Cipi sends an email (<code>php_upgrade</code> trigger; disable with
                     <code>cipi notifications disable php_upgrade</code>).</p>
-                <p>A weekly check runs automatically on <strong>Sunday at 03:30</strong> via root crontab (wrapped by
+                <p>The check runs automatically <strong>every day at 03:30</strong> via root crontab (wrapped by
                     <code>cipi-cron-notify</code>). Log:
-                    <code>/var/log/cipi/php-upgrade.log</code>. Existing servers receive the cron on
-                    <code>cipi self-update</code> (migration 4.7.13).</p>
+                    <code>/var/log/cipi/php-upgrade.log</code>. With nothing to upgrade, a run costs one
+                    <code>apt-get update</code> and restarts nothing. Migration 4.7.13 added it as a weekly job (Sunday
+                    03:30); since <strong>v5.6.3</strong> it is daily, and existing servers move to the daily schedule
+                    on <code>cipi self-update</code> (migration 5.6.3). A schedule changed by hand is left as it
+                    is.</p>
+
+                <h3>Patch level report (v5.6.3+)</h3>
+                <p>After upgrading, <code>cipi php upgrade</code> prints one line per installed PHP version, compared
+                    with the oldest release that carries every security fix Cipi knows about (8.5.12, 8.4.27, 8.3.36,
+                    8.2.35 as of the PHP security release of 2026-10-21):</p>
+                <ul>
+                    <li><strong>patched</strong> — at or past that release.</li>
+                    <li><strong>VULNERABLE</strong> — the fix exists but this server does not have it, typically
+                        because the repository has not published it yet. Run <code>cipi php upgrade</code> again
+                        later.</li>
+                    <li><strong>distro</strong> — a build from the Ubuntu archive, which backports fixes without
+                        changing the version number; check <code>apt changelog php8.3-fpm</code>.</li>
+                    <li><strong>END OF LIFE</strong> — PHP 8.1 and older get no fixes from the PHP project any more.
+                        Cipi installs 8.3 and later only, so this affects servers set up before 4.5.4; move their apps
+                        with <code>cipi app edit &lt;app&gt; --php=8.5</code>. PHP 8.2 security support ends on
+                        <strong>2026-12-31</strong>, and the report says so.</li>
+                </ul>
+                <p>While a version is <strong>VULNERABLE</strong> the command exits <code>1</code>, so the nightly
+                    cron mails a failure through <code>cipi-cron-notify</code> until the fix is in.</p>
+                <p><strong>Octane apps</strong> are checked too. FrankenPHP runs on the PHP built into the binary that
+                    Octane downloads into the release, and apt never updates that binary. <code>cipi php
+                    upgrade</code> runs <code>current/frankenphp -v</code> as the app user and flags any build on a PHP
+                    older than the fixed release. To fix one, rebuild the binary as the app user and restart the
+                    worker:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># as the app user, in /home/&lt;app&gt;/current</span>
+<span class="p">$</span> php artisan octane:install --server=frankenphp
+
+<span class="c"># as root</span>
+<span class="p">$</span> supervisorctl restart &lt;app&gt;-octane</pre>
+                </div>
+                <p><code>cipi php list</code> shows the same patch version and security state for each version;
+                    <code>cipi php list --json</code> adds <code>patch</code>, <code>security</code>
+                    (<code>patched</code>, <code>vulnerable</code>, <code>distro</code>, <code>eol</code> or
+                    <code>unknown</code>) and <code>security_floor</code> to every entry.</p>
+
+                <h3>FPM pool hardening (v5.6.3+)</h3>
+                <p>Every PHP-FPM pool Cipi writes — app pools, Node webhook pools, and the panel API and GUI pools —
+                    turns off the two confirmed attack paths of CVE-2026-109619 (PHP security advisory of 2026-10-21,
+                    with CVE-2026-109618: unauthenticated remote code execution in every SAPI that serves web
+                    requests):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">ini</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>php_admin_flag[session.upload_progress.enabled] = off
+php_admin_flag[fatal_error_backtraces] = off   <span class="c">; PHP 8.5 only — the setting does not exist earlier</span></pre>
+                </div>
+                <p>They are set as <code>php_admin_flag</code>, so they apply before the request is parsed and
+                    <code>.user.ini</code> or <code>ini_set()</code> cannot turn them back on. The PHP project says only
+                    the patch release is a complete fix; the flags narrow the attack until it is installed. Migration
+                    5.6.3 renders the app and Node webhook pools again, edits the <code>cipi-api</code> and
+                    <code>cipi-gui</code> pools in place, keeps the previous pools in
+                    <code>/var/lib/cipi/fpm-pool-backup-5.6.3/</code> (a version whose new pools fail
+                    <code>php-fpm -t</code> gets the old ones back), runs <code>cipi php upgrade</code> and restarts
+                    every PHP-FPM service — a restart, not a reload, because a stale worker is what CVE-2026-109619
+                    exploits.</p>
+                <p><strong>Optional, not a default:</strong> the advisory also suggests a lower body limit and an
+                    unlimited memory limit for servers that cannot update. Neither is applied by Cipi — a 32M body
+                    limit would break uploads that work today, and an unlimited memory limit trades this bug for
+                    runaway workers. Both are available through <a href="#cli-ini"><code>cipi ini set</code></a>,
+                    server-wide or per app with <code>--app=&lt;app&gt;</code>:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="c"># lower body limit: upload_max_filesize first, then post_max_size</span>
+<span class="p">$</span> cipi ini set upload_max_filesize=30M [--app=&lt;app&gt;]
+<span class="p">$</span> cipi ini set post_max_size=32M [--app=&lt;app&gt;]
+
+<span class="c"># unlimited memory_limit — only with a systemd MemoryMax= cap on the phpX.Y-fpm service</span>
+<span class="p">$</span> cipi ini set memory_limit=-1 [--app=&lt;app&gt;]</pre>
+                </div>
+                <p>Cap the service with a systemd <code>MemoryMax=</code> on <code>phpX.Y-fpm</code> (for example
+                    <code>systemctl edit php8.5-fpm</code>). Do not use <code>RLIMIT_AS</code> or
+                    <code>RLIMIT_DATA</code> for this: the advisory warns that they can trigger the allocation failure
+                    behind the bug.</p>
                 <p>PHP is not the only package Cipi keeps out of <code>unattended-upgrades</code>. Since
                     <strong>v5.2.3</strong>, nginx, MariaDB, PostgreSQL and Valkey have their own operator-triggered
                     equivalent — see <a href="#cli-stack-upgrade">manual stack upgrades</a>. Unlike PHP, those are
@@ -2950,7 +3033,7 @@ Host ssh.example.com
                 <h2>Manual stack upgrades — <code>nginx</code>, MariaDB, PostgreSQL, Valkey</h2>
                 <p>Available since <strong>v5.2.3</strong>. Nginx, MariaDB, PostgreSQL and Valkey are deliberately
                     kept off <code>unattended-upgrades</code>: a MariaDB restart is not a 4am surprise. PHP has had
-                    <a href="#cli-php"><code>cipi php upgrade</code></a> (Sunday 03:30) for a while; this is the
+                    <a href="#cli-php"><code>cipi php upgrade</code></a> (daily at 03:30 since v5.6.3) for a while; this is the
                     operator-facing equivalent for the rest of the blacklisted stack — still
                     <strong>manual</strong>, still <strong>patch-level only</strong>.</p>
 
