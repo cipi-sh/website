@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-15",
+      "dateModified": "2026-10-22",
       "headline": "Cipi Docs — Control Panel (GUI)",
       "name": "Control Panel (GUI)",
       "url": "https://cipi.sh/docs/gui",
@@ -410,6 +410,11 @@
                         options; and the app's <a href="/docs/deploy#deploy-audit">deploy audit ledger</a> — who or
                         what deployed each release, from where (API <strong>1.31+</strong> / Cipi
                         <strong>5.4.0+</strong>).</li>
+                    <li><strong><code>cipi.yml</code></strong> — the app's tab shows the file of the live release,
+                        whether it is valid, what applying would change and what blocks it; apply it as a job, and turn
+                        auto-apply after every deploy on or off, with a confirmation that says who can then change the
+                        server (API <strong>1.35+</strong> / Cipi <strong>5.6.4+</strong>). See
+                        <a href="/docs/deploy#cli-yml"><code>cipi.yml</code></a>.</li>
                     <li><strong>Search</strong> — Meilisearch status and per-app enable/disable for Laravel Scout (API
                         <strong>1.31+</strong> / Cipi <strong>5.2.2+</strong>).</li>
                     <li>Create Laravel apps with optional <strong>Laravel Octane (FrankenPHP)</strong> (API
@@ -643,7 +648,9 @@
                         managed servers need API <strong>1.31+</strong> and Cipi <strong>5.4.1+</strong> (the
                         5.4.1 migration opens those commands to the panel sudoers); the deploy audit needs Cipi
                         <strong>5.4.0+</strong>. Server → Disk needs API <strong>1.33+</strong>, the
-                        <code>disk-view</code> ability and Cipi <strong>5.5.2+</strong> (migration 5.5.2). For server cockpit (PHP, SSH,
+                        <code>disk-view</code> ability and Cipi <strong>5.5.2+</strong> (migration 5.5.2). The app's
+                        <code>cipi.yml</code> tab needs API <strong>1.35+</strong>, the <code>yml-view</code> /
+                        <code>yml-manage</code> abilities and Cipi <strong>5.6.4+</strong>. For server cockpit (PHP, SSH,
                         services, SMTP, health, IP whitelist), managed servers need API <strong>1.15+</strong> and Cipi
                         <strong>5.0.6+</strong>. For <code>.env</code> /
                         <code>auth.json</code> / Artisan / App commands, managed servers need API
@@ -652,11 +659,11 @@
                         multi-engine MariaDB/PostgreSQL and www redirects, API <strong>1.12+</strong> and Cipi
                         <strong>4.8+</strong>.</li>
                 </ul>
-                <p>A token covering everything the panel uses (API <strong>1.33</strong>):</p>
+                <p>A token covering everything the panel uses (API <strong>1.35</strong>):</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre>cipi api token create --name=gui --abilities=apps-view,apps-create,apps-edit,apps-delete,apps-suspend,apps-basicauth,apps-env,apps-auth,apps-artisan,apps-run,apps-deploy-config,aliases-view,aliases-create,aliases-delete,www-manage,redirects-view,redirects-manage,proxies-view,proxies-manage,node-view,node-manage,search-view,search-manage,deploy-manage,ssl-manage,dbs-view,dbs-create,dbs-manage,php-view,php-manage,ssh-view,ssh-manage,services-view,services-manage,smtp-view,smtp-manage,health-view,health-manage,packages-view,monitor-view,zt-view,disk-view,ip-whitelist-view,ip-whitelist-manage,status-view</pre>
+                    <pre>cipi api token create --name=gui --abilities=apps-view,apps-create,apps-edit,apps-delete,apps-suspend,apps-basicauth,apps-env,apps-auth,apps-artisan,apps-run,apps-deploy-config,aliases-view,aliases-create,aliases-delete,www-manage,redirects-view,redirects-manage,proxies-view,proxies-manage,node-view,node-manage,search-view,search-manage,deploy-manage,ssl-manage,dbs-view,dbs-create,dbs-manage,php-view,php-manage,ssh-view,ssh-manage,services-view,services-manage,smtp-view,smtp-manage,health-view,health-manage,packages-view,monitor-view,zt-view,disk-view,yml-view,yml-manage,ip-whitelist-view,ip-whitelist-manage,status-view</pre>
                 </div>
                 <p>PHP, the FPM pool, the Nginx vhost and the scheduler are all provisioned for you by the installer —
                     you do not set up a Laravel environment by hand.</p>
@@ -914,6 +921,14 @@ cipi gui remove --force</pre>
                                                 <td>Structured Deployer knobs via
                                                     <code>/api/apps/{name}/deploy-config</code> (API
                                                     <strong>1.14+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi.yml</code></td>
+                                                <td>Status and plan (<code>GET /api/apps/{name}/yml</code>), apply
+                                                    (<code>POST …/yml/apply</code>, job <code>app-yml-apply</code>),
+                                                    auto-apply (<code>POST …/yml/auto/enable|disable</code>) — API
+                                                    <strong>1.35+</strong> / Cipi <strong>5.6.4+</strong>,
+                                                    <code>yml-view</code> / <code>yml-manage</code></td>
                                             </tr>
                                             <tr>
                                                 <td>Aliases</td>

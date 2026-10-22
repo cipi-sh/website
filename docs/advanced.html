@@ -34,7 +34,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-21",
+      "dateModified": "2026-10-22",
       "headline": "Cipi Docs — Advanced",
       "name": "Advanced",
       "url": "https://cipi.sh/docs/advanced",
@@ -377,7 +377,8 @@
                         fix-permissions, resource limits and the soft disk limit), aliases, www redirects, app and path
                         redirects, prefix proxies, Node runtimes, deploy and the deploy audit ledger, SSL (HTTP-01 or
                         Cloudflare DNS-01 / wildcard), multi-engine databases, Meilisearch, app logs, disk usage,
-                        server status (<code>/api/*</code>)</li>
+                        an app's <code>cipi.yml</code> (plan, apply, auto-apply; API <strong>1.35+</strong> / Cipi
+                        <strong>5.6.4+</strong>), server status (<code>/api/*</code>)</li>
                     <li><strong>MCP server</strong> — 73 tools at <code>/mcp</code> (Streamable HTTP)</li>
                     <li><strong>Read-only host insights</strong> — optional packages, system monitor, Cloudflare Zero
                         Trust status (API <strong>1.31+</strong>) and disk usage per app and per database (API
@@ -510,6 +511,9 @@
                     <li><code>disk-view</code> — disk usage of the server, every app and every database (API
                         <strong>1.33.0+</strong> / Cipi <strong>5.5.2+</strong>). A token created before 1.33 does not
                         have it.</li>
+                    <li><code>yml-view</code> — read an app's <code>cipi.yml</code> status and plan;
+                        <code>yml-manage</code> — apply it and turn auto-apply on or off (API <strong>1.35.0+</strong> /
+                        Cipi <strong>5.6.4+</strong>). A token created before 1.35 has neither.</li>
                     <li><code>apps-delete</code> — delete apps</li>
                     <li><code>deploy-manage</code> — deploy, rollback, unlock, and read the deploy audit ledger (API
                         <strong>1.31.0+</strong> / Cipi <strong>5.4.0+</strong>)</li>
@@ -550,7 +554,9 @@
                     <code>GET|PUT|DELETE /api/ssl/dns</code> are synchronous too (<code>PUT</code> on limits is the
                     async job <code>app-limits</code>). Since API <strong>1.33.0</strong>,
                     <code>GET /api/disk</code> and <code>GET /api/disk/dbs</code> are synchronous and measured on
-                    request.
+                    request. Since API <strong>1.35.0</strong>, <code>GET /api/apps/{name}/yml</code> and
+                    <code>POST /api/apps/{name}/yml/auto/enable|disable</code> are synchronous;
+                    <code>POST /api/apps/{name}/yml/apply</code> is the async job <code>app-yml-apply</code>.
                     <code>POST /api/apps</code> accepts optional <code>custom</code> (boolean) and
                     <code>docroot</code> (string) parameters for creating
                     <a href="/docs/apps#cli-app-custom">custom apps</a> with classic deployment.
@@ -795,6 +801,35 @@
                     command itself exists since 5.5.0. MCP: <code>DiskUsage</code>, <code>DiskDatabases</code>. From a
                     laptop, <a href="/docs/cli-client#cli-disk"><code>cipi-cli disk</code></a> (1.6.0+). The
                     <a href="/docs/gui">control panel</a> shows the same figures on Server → Disk (panel 3.1).</p>
+                <p id="cipi-api-yml"><strong><code>cipi.yml</code></strong> (API <strong>1.35.0+</strong>, abilities
+                    <code>yml-view</code> / <code>yml-manage</code>) — <code>GET /api/apps/{name}/yml</code> is what
+                    <a href="/docs/deploy#cli-yml-json"><code>cipi yml plan &lt;app&gt; --json</code></a> prints:
+                    <code>file</code> (the <code>cipi.yml</code> of the live release, <code>null</code> when there is
+                    none), <code>auto</code>, <code>valid</code> (<code>null</code> with no file; <code>false</code> →
+                    <code>errors</code>), <code>in_sync</code> (<code>true</code> when nothing would change and
+                    nothing blocks), <code>warnings</code>, <code>changes</code> (<code>kind</code>, a short token such
+                    as <code>php</code> or <code>alias-add</code>, and <code>summary</code>, the text to show),
+                    <code>blockers</code> and <code>notes</code>. <code>POST /api/apps/{name}/yml/apply</code> takes no
+                    body and returns <code>202</code> with a <code>job_id</code> (type <code>app-yml-apply</code>).
+                    Its <code>result</code> carries <code>outcome</code> (<code>applied</code>,
+                    <code>unchanged</code>, <code>partial</code>, <code>blocked</code>, <code>invalid</code>,
+                    <code>no-file</code>), <code>applied</code>, <code>failed</code>, <code>failures</code>,
+                    <code>blockers</code> and <code>errors</code>. <code>applied</code> and <code>unchanged</code> end
+                    <code>completed</code>; the others end <code>failed</code> with the same <code>result</code>.
+                    Nothing changes while <code>blockers</code> is not empty.
+                    <code>POST /api/apps/{name}/yml/auto/enable</code> and <code>…/auto/disable</code> are idempotent
+                    and return <code>{ "app", "auto", "sudoers", "file" }</code> — <code>sudoers</code> is the rule that
+                    lets webhook deploys apply the file, and should equal <code>auto</code>. Turning auto on lets
+                    anyone who can push to the repository change the app's aliases, PHP settings, limits, workers,
+                    deploy recipe, crons, databases and backup schedule; clients ask for confirmation. Every route
+                    needs Cipi <strong>5.6.4+</strong> (<code>cipi self-update</code>): it adds the <code>--json</code>
+                    outputs, and migration 5.6.4 lets <code>www-data</code> run
+                    <code>cipi yml plan|apply|auto</code>. <code>--file=</code> is refused through the API, which only reads the
+                    app's own file. Older servers answer 503; 404 for an unknown app. MCP: <code>AppYmlShow</code>,
+                    <code>AppYmlApply</code>, <code>AppYmlAuto</code>. Remote clients:
+                    <a href="/docs/cli-client#cli-deploy"><code>cipi-cli yml</code></a>, the
+                    <a href="/docs/php-sdk#sdk-deploy">PHP SDK</a> <code>yml()</code> resource and the
+                    <a href="/docs/gui">control panel</a>'s <code>cipi.yml</code> tab on the app page.</p>
                 <p><strong>Fix permissions</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.1+</strong>) —
                     <code>POST /api/apps/{name}/fix-permissions</code> restores the app home permission model
                     (<a href="/docs/apps#cli-app-fix-permissions"><code>cipi app fix-permissions</code></a>). Async job
@@ -1183,6 +1218,21 @@
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
+                                                <td><code>/api/apps/{name}/yml</code></td>
+                                                <td>yml-view</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/yml/apply</code></td>
+                                                <td>yml-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/apps/{name}/yml/auto/enable|disable</code></td>
+                                                <td>yml-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
                                                 <td><code>/api/status</code></td>
                                                 <td>status-view</td>
                                             </tr>
@@ -1456,7 +1506,9 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     <code>repository_access</code> to the <code>app-create</code> result, and to the
                     <code>app-edit</code> result when the repository or branch changed: <code>status</code>
                     (<code>ok</code>, <code>nobranch</code>, <code>denied</code>), <code>branch</code>,
-                    <code>error</code> and the CLI fix as <code>hint</code>.</p>
+                    <code>error</code> and the CLI fix as <code>hint</code>. 1.35.0 adds
+                    <code>/api/apps/{name}/yml</code>, <code>…/yml/apply</code> and <code>…/yml/auto/enable|disable</code>
+                    with the <code>yml-view</code> / <code>yml-manage</code> abilities (Cipi <strong>5.6.4+</strong>).</p>
 
                 <h3>MCP server</h3>
                 <p>An <strong>MCP</strong> (Model Context Protocol) server is exposed at <code>/mcp</code> via
@@ -1465,7 +1517,7 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     abilities (<code>apps-view</code>, <code>deploy-manage</code>, <code>apps-basicauth</code>,
                     <code>www-manage</code>, etc.) are not checked on <code>/mcp</code>. The server exposes
                     <strong>73 tools</strong> (one <code>tools/list</code> page; MCP server 1.3.0) for app, alias, www, redirects,
-                    proxies, Node, database, deploy and deploy audit, SSL, HTTP Basic Auth, search, limits, disk usage, server management
+                    proxies, Node, database, deploy and deploy audit, SSL, HTTP Basic Auth, search, limits, disk usage, <code>cipi.yml</code>, server management
                     (PHP, SSH, services, SMTP, health, IP whitelist, packages, monitor, Zero Trust),
                     <code>.env</code> / <code>auth.json</code> / app-run / deploy-config, job polling,
                     logs, Artisan, and server monitoring. Write operations that dispatch async jobs return a
@@ -1486,7 +1538,10 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                         earlier app tooling requires API <strong>1.14.0+</strong> / Cipi <strong>5.0.3+</strong>),
                         <code>AppFixPermissions</code> (API <strong>1.31.0+</strong>),
                         <code>AppLimitsShow</code>, <code>AppLimitsUpdate</code> (API <strong>1.32.0+</strong>;
-                        <code>disk_limit_gb</code> needs Cipi <strong>5.5.0+</strong>)
+                        <code>disk_limit_gb</code> needs Cipi <strong>5.5.0+</strong>),
+                        <code>AppYmlShow</code>, <code>AppYmlApply</code> (async job), <code>AppYmlAuto</code>
+                        (<code>app</code>, <code>enabled</code>) — the app's <code>cipi.yml</code> (API
+                        <strong>1.35.0+</strong> / Cipi <strong>5.6.4+</strong>)
                     </li>
                     <li><strong>Redirects &amp; proxies:</strong> <code>RedirectList</code>, <code>RedirectSet</code>,
                         <code>RedirectToggle</code>, <code>RedirectUnset</code>, <code>RedirectAdd</code>,
@@ -2172,6 +2227,9 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                         app's soft disk limit travels with it</li>
                     <li><strong>PHP-FPM pool, Nginx vhost, Supervisor workers, Crontab, Deployer</strong> — Fully
                         configured from archive data</li>
+                    <li><strong><code>cipi.yml</code> auto-apply</strong> — since <strong>v5.6.4</strong>, an app that
+                        had <a href="/docs/deploy#cli-yml"><code>cipi yml auto</code></a> on gets its webhook sudoers
+                        rule back, so pushes keep applying the file</li>
                 </ol>
 
                 <div class="callout warning">
@@ -2231,6 +2289,8 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     <li><strong>Nginx vhost, Supervisor workers, Deployer config</strong> — Regenerated from archive
                         data.
                     </li>
+                    <li><strong><code>cipi.yml</code> auto-apply</strong> — since <strong>v5.6.4</strong>, the webhook
+                        sudoers rule follows the archive: written when auto-apply is on, removed when it is off.</li>
                     <li><strong>Deploy</strong> — If <code>--deploy</code> is passed, runs <code>dep deploy</code> to
                         pull
                         latest code.</li>

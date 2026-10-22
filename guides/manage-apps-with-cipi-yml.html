@@ -43,7 +43,7 @@
   "inLanguage": "en",
   "image": "https://cipi.sh/og.png",
   "datePublished": "2026-09-07",
-  "dateModified": "2026-09-11",
+  "dateModified": "2026-10-22",
   "author": {
     "@type": "Person",
     "name": "Andrea Pollastri",
@@ -148,7 +148,7 @@
       "name": "Does it work with the Git webhook?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. With cipi yml auto on, both cipi deploy and a webhook-triggered deploy reconcile after a successful release."
+        "text": "Yes, since Cipi 5.6.4. With cipi yml auto on, cipi deploy, a panel or API deploy and a webhook-triggered deploy all reconcile after a successful release. Before 5.6.4 the webhook skipped it."
       }
     }
   ]
@@ -505,7 +505,7 @@ $ cipi yml apply myapp --yes           <span class="c"># scripts and CI</span></
         <pre class="code-pre"><code>$ cipi yml auto myapp on       <span class="c"># reconcile after every successful deploy</span>
 $ cipi yml auto myapp status
 $ cipi yml auto myapp off      <span class="c"># back to manual apply</span></code></pre>
-        <p>With the opt-in given, every <strong>successful</strong> deploy reconciles — from both <code>cipi deploy</code> and the Git webhook. A release that carries no <code>cipi.yml</code> is a quiet no-op. A file that fails validation is reported by email (<code>yml_fail</code>) and never applied halfway. A successful reconcile fires <code>yml_apply</code>. Since 5.5.2 the deploy-success mail quotes one line for the result — applied, unchanged, no file, blocked, invalid or failed — whenever auto is on. The deploy itself still succeeds when the file is blocked or invalid.</p>
+        <p>With the opt-in given, every <strong>successful</strong> deploy reconciles — <code>cipi deploy</code>, a deploy from the control panel or the API, and the Git webhook (the webhook path works since <strong>5.6.4</strong>; before it a push never applied the file). A release that carries no <code>cipi.yml</code> is a quiet no-op. A file that fails validation is reported by email (<code>yml_fail</code>) and never applied halfway. A successful reconcile fires <code>yml_apply</code>. Since 5.5.2 the deploy-success mail quotes one line for the result — applied, unchanged, no file, blocked, invalid or failed — whenever auto is on. The deploy itself still succeeds when the file is blocked or invalid.</p>
 
         <h2 id="left-alone">What the file will not touch</h2>
         <ul>
@@ -543,7 +543,7 @@ $ cipi yml auto myapp off      <span class="c"># back to manual apply</span></co
         <div class="faq-item"><h3>Does a deploy apply the file automatically?</h3><p>Only after you opt in with <code>cipi yml auto &lt;app&gt; on</code>. Until then deploys ignore the file and you reconcile manually with <code>plan</code> and <code>apply</code>. The exception is <code>deploy.post</code> (since 5.2.3): those steps run on every successful deploy without the opt-in, because they accept allowlisted runners only and never a shell line.</p></div>
         <div class="faq-item"><h3>What happens to things the file does not mention?</h3><p>They are left alone. Only the sections you declare are reconciled — with one deliberate exception: the alias list is authoritative, so removing an alias from the file removes it from the server.</p></div>
         <div class="faq-item"><h3>Can a commit break my server?</h3><p>The schema carries no shell commands and no include paths, an app can only touch its own databases and backup profiles, and a file that fails validation is rejected as a whole rather than applied halfway. Deploys ignore the file entirely until you turn <code>yml auto</code> on.</p></div>
-        <div class="faq-item"><h3>Does it work with the Git webhook?</h3><p>Yes. With <code>cipi yml auto</code> on, both <code>cipi deploy</code> and a webhook-triggered deploy reconcile after a successful release.</p></div>
+        <div class="faq-item"><h3>Does it work with the Git webhook?</h3><p>Yes, since 5.6.4. With <code>cipi yml auto</code> on, <code>cipi deploy</code>, a panel or API deploy and a webhook-triggered deploy all reconcile after a successful release; before 5.6.4 the webhook skipped it.</p></div>
 
         <h2>Keep reading</h2>
         <div class="related">

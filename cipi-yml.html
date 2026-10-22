@@ -38,7 +38,7 @@
       "inLanguage": "en",
       "image": "https://cipi.sh/og.png",
       "datePublished": "2026-09-02",
-      "dateModified": "2026-10-21",
+      "dateModified": "2026-10-22",
       "author": { "@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri" },
       "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.6.3" },
       "publisher": { "@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/" },
@@ -271,6 +271,7 @@
 <span class="p">$</span> cipi yml example myapp           <span class="c"># blank commented template, in myapp's namespace</span>
 <span class="p">$</span> cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
 <span class="p">$</span> cipi yml plan myapp              <span class="c"># show exactly what would change</span>
+<span class="p">$</span> cipi yml plan myapp --json       <span class="c"># the same plan as JSON (5.6.4+)</span>
 <span class="p">$</span> cipi yml apply myapp [--yes]     <span class="c"># apply it</span>
 <span class="p">$</span> cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span>
 <span class="p">$</span> cipi yml post-deploy myapp       <span class="c"># run the declared deploy.post steps now (5.2.3+)</span></pre>
@@ -313,7 +314,8 @@
                     <tr>
                         <td><code>cipi yml plan</code></td>
                         <td>The diff: every alias, worker, database, setting and profile that would be added, changed
-                            or removed. Read this before you apply.</td>
+                            or removed. Read this before you apply. Since 5.6.4, <code>--json</code> prints it as one
+                            object for scripts and the panel API.</td>
                     </tr>
                     <tr>
                         <td><code>cipi yml apply</code></td>
@@ -322,7 +324,7 @@
                     <tr>
                         <td><code>cipi yml auto</code></td>
                         <td>Opt in — or out — of reconciling automatically after every successful deploy.
-                            <code>status</code> reports the current setting.</td>
+                            <code>status</code> reports the current setting (<code>--json</code> since 5.6.4).</td>
                     </tr>
                     <tr>
                         <td><code>cipi yml post-deploy</code> <em>(5.2.3)</em></td>
@@ -601,14 +603,20 @@ backup:
 
         <h2 class="cmp-h2-lg" id="auto">Deploys ignore the file until you opt in</h2>
         <p>Nothing happens on deploy until you run <code>cipi yml auto &lt;app&gt; on</code>. With that opt-in given,
-            every <strong>successful</strong> deploy reconciles — from both <code>cipi deploy</code> and the Git
-            webhook. A release that carries no <code>cipi.yml</code> is a quiet no-op, and a file that fails validation
-            is reported by email (<code>yml_fail</code>) and <strong>never partially applied</strong>. A successful
-            reconcile fires <code>yml_apply</code>.</p>
+            every <strong>successful</strong> deploy reconciles — <code>cipi deploy</code>, a deploy from the control
+            panel or the API, and the Git webhook. A release that carries no <code>cipi.yml</code> is a quiet no-op,
+            and a file that fails validation is reported by email (<code>yml_fail</code>) and <strong>never partially
+            applied</strong>. A successful reconcile fires <code>yml_apply</code>. Before <strong>5.6.4</strong> the
+            webhook path never applied the file (its sudoers check could not see <code>/etc/sudoers.d</code>); update
+            if you rely on pushes.</p>
+        <p>Since 5.6.4 the same switch, the plan and apply are on the
+            <a href="/docs/advanced#cipi-api-yml">panel API</a> (<code>cipi/api</code> 1.35.0+, abilities
+            <code>yml-view</code> and <code>yml-manage</code>): the control panel has a <code>cipi.yml</code> tab on
+            the app page, and <code>cipi-cli</code> and the PHP SDK can do the same remotely.</p>
         <div class="code-block">
             <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
             <pre><span class="p">$</span> cipi yml auto myapp on       <span class="c"># reconcile after every successful deploy</span>
-<span class="p">$</span> cipi yml auto myapp status   <span class="c"># is it on?</span>
+<span class="p">$</span> cipi yml auto myapp status   <span class="c"># is it on? warns if the webhook's sudoers rule is missing</span>
 <span class="p">$</span> cipi yml auto myapp off      <span class="c"># back to manual apply</span></pre>
         </div>
 
@@ -692,9 +700,10 @@ backup:
         </div>
         <div class="faq-item">
             <h3>Does it work with the Git webhook?</h3>
-            <p>Yes. With <code>cipi yml auto</code> on, both <code>cipi deploy</code> and a webhook-triggered deploy
-                reconcile after a successful release. <a href="#deploy-post"><code>deploy.post</code></a> runs on both
-                too, and does not need the opt-in.</p>
+            <p>Yes, since 5.6.4. With <code>cipi yml auto</code> on, <code>cipi deploy</code>, a panel or API deploy
+                and a webhook-triggered deploy all reconcile after a successful release; before 5.6.4 the webhook
+                skipped it. <a href="#deploy-post"><code>deploy.post</code></a> runs on every path too, and does not
+                need the opt-in.</p>
         </div>
 
         <div class="cmp-cta">

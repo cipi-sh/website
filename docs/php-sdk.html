@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-15",
+      "dateModified": "2026-10-22",
       "headline": "Cipi Docs — PHP SDK",
       "name": "PHP SDK",
       "url": "https://cipi.sh/docs/php-sdk",
@@ -538,7 +538,12 @@ CIPI_ALLOW_HTTP=false</pre>
 <span class="nv">$cipi</span>-&gt;deployConfig()-&gt;update(<span class="s">'shop'</span>, [
     <span class="s">'keep_releases'</span> =&gt; <span class="mi">5</span>,
     <span class="s">'migrate'</span> =&gt; <span class="k">true</span>,
-]);</pre>
+]);
+
+<span class="nv">$cipi</span>-&gt;yml()-&gt;status(<span class="s">'shop'</span>);
+<span class="nv">$cipi</span>-&gt;jobs()-&gt;wait(<span class="nv">$cipi</span>-&gt;yml()-&gt;apply(<span class="s">'shop'</span>), throwOnFailure: <span class="k">false</span>);
+<span class="nv">$cipi</span>-&gt;yml()-&gt;enableAuto(<span class="s">'shop'</span>);
+<span class="nv">$cipi</span>-&gt;yml()-&gt;disableAuto(<span class="s">'shop'</span>);</pre>
                 </div>
                 <p><code>wait()</code> polls until <code>completed</code> or <code>failed</code>. The default timeout is 300 seconds. A failed job throws <code>Cipi\Sdk\Exception\JobFailedException</code> and keeps the job payload on <code>$e-&gt;job</code>. Pass a job id or the <code>202</code> body:</p>
                 <div class="code-block">
@@ -548,6 +553,7 @@ CIPI_ALLOW_HTTP=false</pre>
 <span class="nv">$cipi</span>-&gt;jobs()-&gt;wait(<span class="nv">$job</span>, timeoutSeconds: <span class="mi">120</span>, intervalSeconds: <span class="mf">1.0</span>);</pre>
                 </div>
                 <p>Deploy config edits the structured Deployer options and regenerates <code>deploy.php</code>. It does not upload a raw PHP file. The audit call is synchronous and reads the hash-chained ledger (Cipi 5.4.0+).</p>
+                <p><code>yml()</code> is the app's <a href="/docs/deploy#cli-yml"><code>cipi.yml</code></a>. <code>status()</code> is synchronous: <code>file</code> (<code>null</code> when the live release has none), <code>auto</code>, <code>valid</code>, <code>in_sync</code>, <code>changes</code>, <code>blockers</code>. <code>apply()</code> is the async job <code>app-yml-apply</code>. <code>partial</code>, <code>blocked</code>, <code>invalid</code> and <code>no-file</code> end <code>failed</code> but carry the same <code>result</code>, so pass <code>throwOnFailure: false</code> to read it without catching <code>JobFailedException</code>. Reads need <code>yml-view</code>, writes <code>yml-manage</code>; older tokens get <code>AuthorizationException</code>. Needs cipi/api 1.35.0+ and Cipi CLI 5.6.4+ (older hosts return 503).</p>
             </div>
 
             <hr class="doc-divider">

@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-15",
+      "dateModified": "2026-10-22",
       "headline": "Cipi Docs — Deploy & CI/CD",
       "name": "Deploy & CI/CD",
       "url": "https://cipi.sh/docs/deploy",
@@ -658,15 +658,31 @@
 <span class="p">$</span> cipi yml example myapp           <span class="c"># blank commented template, in myapp's namespace</span>
 <span class="p">$</span> cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
 <span class="p">$</span> cipi yml plan myapp              <span class="c"># show exactly what would change</span>
+<span class="p">$</span> cipi yml plan myapp --json       <span class="c"># the same plan as one JSON object (5.6.4+)</span>
 <span class="p">$</span> cipi yml apply myapp [--yes]     <span class="c"># apply it</span>
 <span class="p">$</span> cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span>
+<span class="p">$</span> cipi yml auto myapp status --json  <span class="c"># {app, auto, sudoers, file} (5.6.4+)</span>
 <span class="p">$</span> cipi yml post-deploy myapp       <span class="c"># run the declared deploy.post steps now (5.2.3+)</span></pre>
                 </div>
 
                 <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
                     <code>htdocs/cipi.yml</code> and <code>htdocs/cipi.yaml</code> (since <strong>v5.2.3</strong>, where
                     a <a href="/docs/apps#cli-app-custom">custom app</a>'s repository actually lives), then
-                    <code>shared/cipi.yml</code>. Override with <code>--file=&lt;path&gt;</code>.</p>
+                    <code>shared/cipi.yml</code>. Override with <code>--file=&lt;path&gt;</code> — except through the
+                    panel API, which only ever reads the app's own file (5.6.4+).</p>
+
+                <p id="cli-yml-json">Since <strong>v5.6.4</strong>, <code>cipi yml plan &lt;app&gt; --json</code> prints
+                    <code>app</code>, <code>file</code> (<code>null</code> when the release has none), <code>auto</code>,
+                    <code>valid</code>, <code>in_sync</code>, <code>errors</code>, <code>warnings</code>,
+                    <code>changes</code> (<code>kind</code> + <code>summary</code>), <code>blockers</code> and
+                    <code>notes</code>. A missing, invalid or blocked file is still a plan and exits 0; only an unknown
+                    app is an error. <code>cipi yml auto &lt;app&gt; status --json</code> prints
+                    <code>{"app","auto","sudoers","file"}</code>, where <code>sudoers</code> says whether the webhook's
+                    sudo rule is in place. Both feed the <a href="/docs/advanced#cipi-api-yml">panel API</a>
+                    (<code>cipi/api</code> 1.35.0+), so <a href="/docs/gui">the control panel</a>,
+                    <a href="/docs/cli-client#cli-deploy"><code>cipi-cli</code></a> and the
+                    <a href="/docs/php-sdk#sdk-deploy">PHP SDK</a> can read the plan, apply it and turn auto-apply on or
+                    off.</p>
 
                 <div class="callout info">
                     <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -997,14 +1013,22 @@ crons:
 
                 <h3>Deploys ignore the file until you opt in</h3>
                 <p>Nothing happens on deploy until you run <code>cipi yml auto &lt;app&gt; on</code>. With that opt-in
-                    given, every <strong>successful</strong> deploy reconciles — from both <code>cipi deploy</code> and
-                    the Git webhook, the latter through one narrowly scoped sudoers rule. A release that carries no
+                    given, every <strong>successful</strong> deploy reconciles — <code>cipi deploy</code>, a deploy
+                    started from the control panel or the API, and the Git webhook, the latter through one narrowly
+                    scoped sudoers rule (<code>/etc/sudoers.d/cipi-&lt;app&gt;-yml</code>). A release that carries no
                     <code>cipi.yml</code> is a quiet no-op, and a file that fails validation is reported by email
                     (<code>yml_fail</code>) and <strong>never partially applied</strong>. A successful reconcile fires
                     <code>yml_apply</code>. Since <strong>v5.5.2</strong> the deploy-success mail quotes one line for
                     that result — applied, unchanged, no file, blocked, invalid or failed — whenever auto is on, from
                     both <code>cipi deploy</code> and the webhook. The deploy itself still succeeds when the file is
                     blocked or invalid.</p>
+                <p><strong>Fixed in v5.6.4:</strong> before it, a push never applied the file, even with auto on. The
+                    webhook runs as the app user and looked for its sudoers rule with <code>test -f</code>, but
+                    <code>/etc/sudoers.d</code> is <code>0750 root:root</code>, so the check always failed;
+                    <code>cipi deploy</code> was not affected. The webhook now asks sudo instead. <code>cipi yml auto
+                    &lt;app&gt; status</code> warns when auto is on but the rule is missing, <code>cipi app delete</code>
+                    removes the rule, <code>cipi sync import</code> / <code>update</code> recreate it for apps that have
+                    auto on, and migration 5.6.4 reconciles every app and removes leftovers.</p>
 
                 <h3 id="cli-yml-deploy-post"><code>deploy.post</code> — post-deploy steps that travel with the
                     code</h3>
