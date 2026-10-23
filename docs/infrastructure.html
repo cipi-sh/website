@@ -463,6 +463,25 @@ php_admin_flag[fatal_error_backtraces] = off   <span class="c">; PHP 8.5 only �
                     <code>php-fpm -t</code> gets the old ones back), runs <code>cipi php upgrade</code> and restarts
                     every PHP-FPM service — a restart, not a reload, because a stale worker is what CVE-2026-109619
                     exploits.</p>
+                <h3>Octane (FrankenPHP) hardening (v5.7.1+)</h3>
+                <p>FrankenPHP runs the PHP built into its own binary and never reads an FPM pool. Every Octane app
+                    therefore loads the same two settings from <code>/etc/php/cipi-octane.d/99-cipi-hardening.ini</code>:
+                    its <code>&lt;app&gt;-octane</code> Supervisor program sets
+                    <code>PHP_INI_SCAN_DIR=":/etc/php/cipi-octane.d"</code>. The leading <code>:</code> keeps PHP's
+                    compiled-in scan directory, so the <code>php</code> that starts Octane still loads its
+                    <code>conf.d</code>, and Octane passes the variable on to FrankenPHP.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">ini</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>session.upload_progress.enabled = 0
+fatal_error_backtraces = 0   <span class="c">; ignored by PHP below 8.5</span></pre>
+                </div>
+                <p>The settings load at startup, so <code>ini_set()</code> cannot turn upload progress back on. This
+                    also covers the PHP advisory of 2026-10-23 (CVE-2026-115560, no fixed release yet), whose only
+                    mitigation is <code>session.upload_progress.enabled=0</code>. Migration 5.7.1 writes the file,
+                    renders every Octane program again (previous files in
+                    <code>/var/lib/cipi/supervisor-backup-5.7.1/</code>, put back if Supervisor refuses the new ones)
+                    and restarts the running ones.</p>
                 <p><strong>Optional, not a default:</strong> the advisory also suggests a lower body limit and an
                     unlimited memory limit for servers that cannot update. Neither is applied by Cipi — a 32M body
                     limit would break uploads that work today, and an unlimited memory limit trades this bug for
