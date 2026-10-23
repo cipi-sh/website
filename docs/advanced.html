@@ -316,6 +316,7 @@
                 <a href="/docs/gui#gui-requirements" class="sidebar-link">requirements</a>
                 <a href="/docs/gui#gui-install" class="sidebar-link"><code>gui &lt;domain&gt;</code></a>
                 <a href="/docs/gui#gui-ssl" class="sidebar-link"><code>gui ssl</code></a>
+                <a href="/docs/gui#gui-move" class="sidebar-link"><code>gui move</code></a>
                 <a href="/docs/gui#gui-2fa" class="sidebar-link">2FA / TOTP</a>
                 <a href="/docs/gui#gui-update" class="sidebar-link"><code>gui update / upgrade</code></a>
                 <a href="/docs/gui#gui-operations" class="sidebar-link">operations</a>
@@ -391,6 +392,60 @@
                     <strong>server-level</strong> automation — distinct from the per-app
                     <a href="/docs/agent">Cipi Agent</a> package (<code>cipi/agent</code> on each Laravel app).</p>
 
+                <h3 id="cipi-api-domain">A domain of its own</h3>
+                <p>The API is not installed inside an app. It is a separate Laravel application with its own Nginx
+                    vhost and its own certificate, so it needs a <strong>domain or subdomain that only the API
+                    uses</strong>. Pick a subdomain such as <code>api.example.com</code> and create a DNS
+                    <code>A</code> record (and <code>AAAA</code> for IPv6) that points it at the server, before you run
+                    <code>cipi api ssl</code>.</p>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>What</th>
+                                <th>Example domain</th>
+                                <th>Set up with</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Your app</td>
+                                <td><code>example.com</code>, <code>www.example.com</code></td>
+                                <td><code>cipi app create</code>, <code>cipi alias add</code></td>
+                            </tr>
+                            <tr>
+                                <td>Panel API + MCP</td>
+                                <td><code>api.example.com</code></td>
+                                <td><code>cipi api api.example.com</code></td>
+                            </tr>
+                            <tr>
+                                <td>Control panel (GUI)</td>
+                                <td><code>panel.example.com</code></td>
+                                <td><code>cipi gui panel.example.com</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>The three can live on the same server and under the same registered domain: what matters is that
+                    each hostname belongs to one of them only. Since Cipi <strong>5.7.0</strong>, Cipi refuses
+                    any overlap. <code>cipi api</code> and <code>cipi api move</code> will not take the domain or an
+                    alias of an app, or the GUI's domain. In the other direction, <code>cipi app create</code>,
+                    <code>cipi app edit --domain</code>, <code>cipi alias add</code>, <code>cipi app clone</code>,
+                    <code>cipi sync import</code> and cipi.yml aliases will not take the API's or the GUI's domain.</p>
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>API on an app's domain (before 5.7.0):</strong> Nginx ends up with two vhosts with the same
+                        <code>server_name</code>, serves only one of them, and the two certificates fight over the same
+                        lines. <code>cipi api status</code> now warns when this is the case. Fix it with
+                        <a href="#cipi-api-move"><code>cipi api move api.example.com</code></a>; the app's certificate is
+                        left alone.</div>
+                </div>
+
                 <h3 id="cipi-api-package">The <code>cipi/api</code> package</h3>
                 <p>On a normal Cipi server you never install the package manually — <code>cipi api &lt;domain&gt;</code>
                     provisions Laravel at <code>/opt/cipi/api</code>, Nginx, SSL, SQLite job queue, and
@@ -417,8 +472,10 @@
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi api &lt;domain&gt;           <span class="c"># configure API at root (e.g. api.myhosting.com)</span>
+                    <pre><span class="p">$</span> cipi api &lt;domain&gt;           <span class="c"># install at its own (sub)domain, e.g. api.example.com</span>
 <span class="p">$</span> cipi api ssl                  <span class="c"># install Let's Encrypt certificate for API domain</span>
+<span class="p">$</span> cipi api move &lt;domain&gt;      <span class="c"># move to another domain: old certificate out, new one in</span>
+<span class="p">$</span> cipi api remove               <span class="c"># uninstall API + MCP, tokens, vhost, crons and certificate</span>
 <span class="p">$</span> cipi api token list           <span class="c"># list tokens</span>
 <span class="p">$</span> cipi api token create         <span class="c"># create a new token (choose abilities)</span>
 <span class="p">$</span> cipi api token revoke &lt;id&gt;    <span class="c"># revoke a token</span>
@@ -427,6 +484,67 @@
 <span class="p">$</span> cipi api update               <span class="c"># soft update: composer update on Laravel and API packages</span>
 <span class="p">$</span> cipi api upgrade              <span class="c"># full rebuild with rollback at /opt/cipi/api.old</span></pre>
                 </div>
+
+                <h3 id="cipi-api-move">Changing the API domain — <code>cipi api move</code></h3>
+                <p>Installed the API on the wrong domain, or rebranding? Move it. The Laravel app, tokens, job history
+                    and IP whitelist stay exactly as they are; only the address changes.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi api move api.newdomain.com            <span class="c"># move and issue the new certificate</span>
+<span class="p">$</span> cipi api move api.newdomain.com --no-ssl   <span class="c"># move now, certificate later (cipi api ssl)</span></pre>
+                </div>
+                <ol>
+                    <li>Point the new domain at the server first (DNS <code>A</code>/<code>AAAA</code> record): Let's
+                        Encrypt checks it over port 80.</li>
+                    <li><code>cipi api move</code> rewrites the Nginx vhost for the new domain. If <code>nginx -t</code>
+                        rejects it, the old vhost goes back and nothing else changes.</li>
+                    <li>It updates <code>/etc/cipi/api.json</code> and <code>APP_URL</code>, and restarts
+                        <code>cipi-queue</code>.</li>
+                    <li><strong>SSL:</strong> it deletes the old domain's certificate, including any
+                        <code>-0001</code> copies certbot made, so nothing renews a domain the server no longer serves.
+                        Then it issues a certificate for the new domain. If that fails (DNS not propagated yet, port 80
+                        closed), the API is already on the new domain over HTTP: fix the cause and run <code>cipi api
+                        ssl</code>. A certificate that an app still uses is never deleted.</li>
+                </ol>
+                <p>Then update the URL in every client of the server: the server's entry in the GUI (Connections), the
+                    <a href="/docs/cli-client">cipi-cli</a> profile, the <a href="/docs/php-sdk">PHP SDK</a>
+                    configuration and MCP clients (<code>https://api.newdomain.com/mcp</code>). Tokens keep working.</p>
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>Running <code>cipi api &lt;other-domain&gt;</code> on a server whose API is already configured
+                        stops and points you to <code>cipi api move</code>. Before 5.7.0 it silently changed domain,
+                        lost the HTTPS configuration and left the old certificate renewing.</span>
+                </div>
+
+                <h3 id="cipi-api-remove">Removing the API — <code>cipi api remove</code></h3>
+                <p>Uninstalls everything <code>cipi api &lt;domain&gt;</code> set up. Your apps, databases and the GUI
+                    are untouched. <code>uninstall</code> is an alias, and <code>--force</code> skips the
+                    confirmation.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi api remove
+<span class="p">$</span> cipi api remove --force</pre>
+                </div>
+                <p>It removes:</p>
+                <ul>
+                    <li>the <code>cipi-queue</code> worker</li>
+                    <li>the Nginx vhost and the PHP-FPM pool</li>
+                    <li>the scheduler, maintenance and nightly update crons</li>
+                    <li>the Let's Encrypt certificate of the API domain</li>
+                    <li><code>/opt/cipi/api</code>, <code>/opt/cipi/api.old</code> and the upgrade backups</li>
+                    <li><code>api.json</code>, the IP whitelist and the API logs</li>
+                </ul>
+                <p>All tokens die with it, so GUI panels, cipi-cli and MCP clients that use this server lose access.
+                    The <code>www-data</code> sudoers whitelist (<code>/etc/sudoers.d/cipi-api</code>) stays, because
+                    it is part of every Cipi install. Reinstall any time with <code>cipi api &lt;domain&gt;</code>:
+                    you get a new, empty token database.</p>
 
                 <h3>Panel API troubleshooting</h3>
                 <p>After <code>cipi self-update</code>, root-owned files under <code>/opt/cipi/api</code> or

@@ -313,6 +313,7 @@
                 <a href="/docs/gui#gui-requirements" class="sidebar-link">requirements</a>
                 <a href="/docs/gui#gui-install" class="sidebar-link"><code>gui &lt;domain&gt;</code></a>
                 <a href="/docs/gui#gui-ssl" class="sidebar-link"><code>gui ssl</code></a>
+                <a href="/docs/gui#gui-move" class="sidebar-link"><code>gui move</code></a>
                 <a href="/docs/gui#gui-2fa" class="sidebar-link">2FA / TOTP</a>
                 <a href="/docs/gui#gui-update" class="sidebar-link"><code>gui update / upgrade</code></a>
                 <a href="/docs/gui#gui-operations" class="sidebar-link">operations</a>
@@ -640,7 +641,12 @@
                 <ul>
                     <li>A running Cipi server (Ubuntu 24.04 / 26.04) to host the panel — this can be one of the servers
                         you manage or a small dedicated box.</li>
-                    <li>A domain (or subdomain) pointed at that server, e.g. <code>panel.example.com</code>.</li>
+                    <li>A <strong>domain or subdomain of its own</strong>, pointed at that server with a DNS
+                        <code>A</code> (and <code>AAAA</code>) record, e.g. <code>panel.example.com</code>. The panel
+                        is a separate Laravel application with its own Nginx vhost and certificate. It cannot share a
+                        hostname with an app, or with the API, which needs its own too, e.g. <code>api.example.com</code>
+                        (see <a href="/docs/advanced#cipi-api-domain">a domain of its own</a>). Since Cipi
+                        <strong>5.7.0</strong>, Cipi refuses a domain that is already taken.</li>
                     <li><code>cipi api</code> enabled on every server you want to control, each with a full-ability
                         token (include <code>www-manage</code>, <code>status-view</code>, and for app tooling
                         <code>apps-env</code>, <code>apps-auth</code>, <code>apps-artisan</code>,
@@ -696,6 +702,11 @@
                 <p>Configuration is written to <code>/etc/cipi/gui.json</code>. Once the command finishes, open your
                     domain in a browser and log in with the admin account you just created.</p>
 
+                <p>The domain you pass is the panel's alone. If you have an app on <code>example.com</code> on the same
+                    server, the panel goes on a subdomain such as <code>panel.example.com</code>, not on
+                    <code>example.com</code> or one of the app's aliases. Cipi refuses those, and refuses the API's domain.
+                    Picked the wrong one? <a href="#gui-move"><code>cipi gui move</code></a> changes it.</p>
+
                 <div class="callout info">
                     <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -720,7 +731,50 @@
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre>cipi gui ssl</pre>
                 </div>
-                <p>The certificate renews automatically through the same ACME renewal that Cipi uses for app domains.</p>
+                <p>The certificate renews automatically through the same ACME renewal that Cipi uses for app domains.
+                    Since <strong>5.7.0</strong> a failed certbot run is reported as a failure (exit 1). Before, the
+                    command could print &ldquo;SSL installed&rdquo; anyway.</p>
+            </div>
+
+            <!-- ── Move ── -->
+
+            <div class="doc-section" id="gui-move">
+                <p class="doc-section-label">Control Panel (GUI)</p>
+                <h2>Changing domain — <code>cipi gui move</code></h2>
+                <p>Moves the panel to a new domain or subdomain. Admin accounts, 2FA enrolments and saved server
+                    connections stay; admins sign in again, since their sessions belong to the old domain.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>cipi gui move panel.newdomain.com            # move and issue the new certificate
+cipi gui move panel.newdomain.com --no-ssl   # move now, certificate later (cipi gui ssl)</pre>
+                </div>
+                <ol>
+                    <li>Point the new domain at the server first (DNS <code>A</code>/<code>AAAA</code> record).</li>
+                    <li>The Nginx vhost is rewritten for the new domain. If <code>nginx -t</code> rejects it, the old
+                        vhost goes back and nothing else changes.</li>
+                    <li><code>/etc/cipi/gui.json</code> and <code>APP_URL</code> are updated.</li>
+                    <li><strong>SSL:</strong> the old domain's certificate is deleted, so nothing keeps renewing it,
+                        and one is issued for the new domain. If that fails, the panel is already on the new domain
+                        over HTTP: fix DNS or port 80 and run <code>cipi gui ssl</code>.</li>
+                </ol>
+                <p>The managed servers need no change: the panel calls their API URLs, and their IP whitelists are by
+                    IP, not by domain. To move a <em>managed server's</em> API instead, run
+                    <a href="/docs/advanced#cipi-api-move"><code>cipi api move</code></a> on that server and update
+                    its URL under Connections.</p>
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span><strong>Cloudflare Zero Trust:</strong> a panel routed through the tunnel is tied to its
+                        hostname (DNS record, tunnel route, Access app). Run <code>cipi zt hostname remove --gui</code>
+                        before the move, then <code>cipi zt hostname add --gui</code> and
+                        <code>cipi zt access enable --gui</code> after it. <code>cipi gui move</code> refuses to run
+                        until the hostname is off the tunnel.</span>
+                </div>
             </div>
 
             <!-- ── 2FA ── -->
@@ -813,9 +867,11 @@
             <div class="doc-section" id="gui-remove">
                 <p class="doc-section-label">Control Panel (GUI)</p>
                 <h2>Removing the panel — <code>cipi gui remove</code></h2>
-                <p>Uninstall the panel and its Nginx vhost, PHP-FPM pool and scheduler. Your servers and apps are
-                    untouched — the panel is just a client of the API. <code>uninstall</code> is an alias, and
-                    <code>--force</code> skips the confirmation prompt.</p>
+                <p>Uninstall the panel: its Nginx vhost, PHP-FPM pool, scheduler, application, config and the
+                    Let's Encrypt certificate of its domain. A certificate that an app still uses is kept. Your
+                    servers and apps are untouched, since the panel is only a client of the API. <code>uninstall</code> is an
+                    alias, and <code>--force</code> skips the confirmation prompt. A panel on the Cloudflare tunnel
+                    must come off it first (<code>cipi zt hostname remove --gui</code>).</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -823,7 +879,9 @@
 cipi gui remove --force</pre>
                 </div>
                 <p>Removing the panel is the ultimate expression of its optionality: uninstall it any time and Cipi is
-                    back to a pure CLI, exactly as it was before.</p>
+                    back to a pure CLI, exactly as it was before. The API on each server stays; remove it separately
+                    with <a href="/docs/advanced#cipi-api-remove"><code>cipi api remove</code></a> if nothing else
+                    uses it.</p>
             </div>
 
             <!-- ── Architecture ── -->

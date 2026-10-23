@@ -50,7 +50,7 @@ Cipi is a free, open-source (MIT), Laravel-first deploy CLI for Ubuntu VPS. One 
 - Sync/failover: encrypted server-to-server sync
 - Automation: REST API (package `cipi/api` 1.34.0, 73 MCP tools, `disk-view`, `yml-view`/`yml-manage`), remote CLI client (cipi-cli 1.7.0), webhooks, WHMCS module
 - AI-native: dual MCP server (per-app and global) so MCP-compatible IDEs/agents can create apps, deploy, manage SSL and databases
-- Optional GUI: `cipi gui yourdomain.com` installs a free, self-hosted Laravel control panel managing one or more Cipi servers (Laravel, Node and custom apps incl. Octane/engine, redirects and proxies, deploys and deploy audit, Meilisearch, databases, SSL, www, read-only Node runtimes / packages / monitor / Zero Trust, healthchecks, database backup/restore, 2FA/TOTP, multi-server with a header switcher, light/dark themes; screenshots at https://cipi.sh/docs/gui#gui-tour). Cipi stays fully usable CLI-only.
+- Optional GUI: `cipi gui panel.example.com` (a subdomain of its own, not an app's) installs a free, self-hosted Laravel control panel managing one or more Cipi servers (Laravel, Node and custom apps incl. Octane/engine, redirects and proxies, deploys and deploy audit, Meilisearch, databases, SSL, www, read-only Node runtimes / packages / monitor / Zero Trust, healthchecks, database backup/restore, 2FA/TOTP, multi-server with a header switcher, light/dark themes; screenshots at https://cipi.sh/docs/gui#gui-tour). Cipi stays fully usable CLI-only.
 
 ## Frequently asked questions
 
@@ -64,7 +64,10 @@ Q: Does Cipi support Laravel Octane?
 A: Yes, natively on FrankenPHP. Create Octane apps with `cipi app create --octane` or convert existing apps with `cipi app convert --to=octane`. Octane apps run alongside classic PHP-FPM apps on the same server.
 
 Q: Does Cipi have a web control panel?
-A: Yes, optionally. `cipi gui yourdomain.com` installs a free, self-hosted web dashboard managing one or more Cipi servers — apps, databases, SSL, deploys, logs. Cipi remains fully usable from the CLI alone.
+A: Yes, optionally. `cipi gui panel.example.com` installs a free, self-hosted web dashboard managing one or more Cipi servers — apps, databases, SSL, deploys, logs. Cipi remains fully usable from the CLI alone.
+
+Q: Can the panel API or the GUI use the same domain as one of my apps?
+A: No. `cipi api` and `cipi gui` each install a separate Laravel application with its own Nginx vhost and Let's Encrypt certificate, so each needs a domain or subdomain of its own, pointed at the server: for example app on `example.com`, API on `api.example.com`, GUI on `panel.example.com`. Since Cipi 5.7.0 Cipi refuses a domain that an app, an alias or the other panel already uses, in both directions. To change domain later: `cipi api move <domain>` / `cipi gui move <domain>` keep tokens, admins and data, delete the old certificate and issue one for the new domain (`--no-ssl` to skip; then `cipi api ssl` / `cipi gui ssl`). To uninstall: `cipi api remove` / `cipi gui remove` (`--force` skips the prompt), certificate included.
 
 Q: Which providers work with Cipi?
 A: Any Ubuntu VPS: Hetzner, DigitalOcean, Vultr, Linode, AWS, and others.
