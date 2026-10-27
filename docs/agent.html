@@ -482,7 +482,7 @@
                                         <tbody>
                                             <tr>
                                                 <td>php artisan cipi:status</td>
-                                                <td>Agent configuration, live release and commit, feature state, <code>cipi.yml</code> validity, database connectivity</td>
+                                                <td>Agent configuration, the app's environment (<code>CIPI_ENV</code>, agent 2.1.0 / Cipi 5.8.0+), live release and commit, feature state, <code>cipi.yml</code> validity, database connectivity</td>
                                             </tr>
                                             <tr>
                                                 <td>php artisan cipi:deploy-key</td>
@@ -621,11 +621,15 @@
                     <div class="code-block-header"><span class="code-block-lang">env</span></div>
                     <pre>CIPI_DEPLOY_BRANCH=main</pre>
                 </div>
-                <p>Pushes to any other branch receive a <code>skipped</code> response and no deploy is triggered. Without
+                <p>Pushes to any other branch receive a <code>skipped</code> response and no deploy is triggered (since
+                    2.1.0 the webhook answer also names the app's environment). Without
                     the key, every push deploys. Since Cipi <strong>5.7.2</strong> the key is written at
                     <code>cipi app create</code> with the app's deploy branch and kept in step by
                     <code>cipi app edit --branch</code> and <code>cipi sync import</code>; migration 5.7.2 adds it to
-                    existing Laravel apps that lack it and leaves a value already there alone.</p>
+                    existing Laravel apps that lack it and leaves a value already there alone. Since <strong>5.8.0</strong>
+                    a <a href="/docs/deploy#cli-yml-more"><code>deploy.branch</code></a> applied from
+                    <code>cipi.yml</code> rewrites it too, and the app's environment label sits next to it as
+                    <code>CIPI_ENV</code>.</p>
 
                 <h3>What the audit ledger records</h3>
                 <p>Since 2.0 the trigger file carries what the payload said about the push — provider, actor
@@ -648,7 +652,9 @@
                     jobs), writable storage with disk usage, and the deploy state: live release, commit, whether a deploy
                     is queued or running and how the last automatic deploy ended. Useful for external monitoring
                     services such as UptimeRobot. Protected by the <code>CIPI_HEALTH_TOKEN</code> Bearer token —
-                    generate one with <code>php artisan cipi:generate-token health</code>.
+                    generate one with <code>php artisan cipi:generate-token health</code>. Since 2.1.0
+                    <code>environment</code> is the app's environment label (<code>CIPI_ENV</code>, the one
+                    <code>cipi app create --env</code> sets on Cipi 5.8.0+).
                 </p>
 
                 <div class="code-block">
@@ -767,7 +773,7 @@
                                             <tr>
                                                 <td><code>app_info</code></td>
                                                 <td>read-only</td>
-                                                <td>Versions, drivers, Cipi endpoints, enabled features, live release and commit, whether a <code>cipi.yml</code> exists — never secrets</td>
+                                                <td>Versions, drivers, Cipi endpoints, enabled features, the app's environment (<code>CIPI_ENV</code>, agent 2.1.0 / Cipi 5.8.0+), live release and commit, whether a <code>cipi.yml</code> exists — never secrets</td>
                                             </tr>
                                             <tr>
                                                 <td><code>deploy</code></td>
@@ -777,7 +783,7 @@
                                             <tr>
                                                 <td><code>deploy_status</code></td>
                                                 <td>read-only</td>
-                                                <td>Live release and commit, the releases kept for rollback, queued/running state, outcome of the last automatic deploy, optional tail of the deploy log</td>
+                                                <td>Live release and commit, the releases kept for rollback, queued/running state, outcome of the last automatic deploy, optional tail of the deploy log; the app's environment since 2.1.0</td>
                                             </tr>
                                             <tr>
                                                 <td><code>logs</code></td>
@@ -1114,10 +1120,16 @@ CIPI_TOKEN=your-sanctum-token
                 <h2><code>cipi.yml</code> tooling</h2>
                 <p><a href="/cipi-yml"><code>cipi.yml</code></a> is the declarative file committed with the app that
                     drives its server configuration: PHP version, aliases, php.ini overrides, limits, basic auth, extra
-                    databases, workers (queues, Horizon, Reverb), scheduler, healthcheck, deploy recipe and post-deploy
-                    steps, redirects, proxies, SSL, required <code>.env</code> names, crons and backup profiles. On the
-                    server, <a href="/docs/deploy#cli-yml"><code>cipi yml validate | plan | apply</code></a> reconcile
-                    it.</p>
+                    databases, workers (queues, Horizon, Reverb), scheduler, healthcheck, deploy recipe (the deploy
+                    branch too, since Cipi 5.8.0) and post-deploy steps, redirects, proxies, SSL, required
+                    <code>.env</code> names, crons and backup profiles. On the server,
+                    <a href="/docs/deploy#cli-yml"><code>cipi yml validate | plan | apply</code></a> reconcile it —
+                    reading, since Cipi <strong>5.8.0</strong>, a
+                    <a href="/docs/deploy#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> for the app's environment
+                    before <code>cipi.yml</code>, so one repository can carry a staging and a production file. Since
+                    agent <strong>2.1.0</strong> the package's own locator does the same — <code>cipi:yml validate</code>
+                    and <code>show</code> pick <code>cipi-&lt;env&gt;.yml</code> first — and its validator knows
+                    <code>deploy.branch</code>.</p>
                 <p>Since 2.0 the agent ships <strong>the same parser and validator</strong> — a line-for-line port of the
                     server's YAML-subset parser and schema checks, verified against the server's Python on a corpus of
                     valid and invalid files — so you get the server's verdict, and the server's exact error messages,
@@ -1185,8 +1197,9 @@ version: 1</pre>
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                     <div>The local validator and the server validator are the same schema. When a Cipi release adds a
-                        <code>cipi.yml</code> key, update <code>cipi/agent</code> as well so <code>php artisan cipi:yml
-                        validate</code> knows it; until then the server remains authoritative.</div>
+                        <code>cipi.yml</code> key — <code>deploy.branch</code> in 5.8.0, known to the agent since 2.1.0 — update
+                        <code>cipi/agent</code> as well so <code>php artisan cipi:yml validate</code> knows it; until
+                        then the server remains authoritative.</div>
                 </div>
             </div>
 
@@ -2248,8 +2261,13 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/dbs/myapp_db/backup"</span
                                             </tr>
                                             <tr>
                                                 <td>CIPI_DEPLOY_BRANCH</td>
-                                                <td>Branch that triggers a deploy (<em>empty</em> = any branch)</td>
+                                                <td>Branch that triggers a deploy (<em>empty</em> = any branch). Written by Cipi since 5.7.2</td>
                                                 <td><em>empty</em></td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_ENV</td>
+                                                <td>The app's environment label (<code>cipi app create --env</code>, Cipi 5.8.0+), reported by <code>cipi:status</code>, <code>app_info</code>, <code>deploy_status</code>, the webhook answer and the health report (agent 2.1.0); the server uses it to pick <code>cipi-&lt;env&gt;.yml</code></td>
+                                                <td><code>production</code></td>
                                             </tr>
                                             <tr>
                                                 <td>CIPI_ROUTE_PREFIX</td>

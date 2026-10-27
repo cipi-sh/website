@@ -421,7 +421,11 @@
 
 <span class="c"># optional PostgreSQL (v4.8.0+, after cipi db install pgsql)</span>
 <span class="p">$</span> cipi app create --user=myapp --domain=myapp.com \
-    --repository=git@github.com:you/myapp.git --engine=pgsql</pre>
+    --repository=git@github.com:you/myapp.git --engine=pgsql
+
+<span class="c"># a staging app of the same repository (v5.8.0+): it reads cipi-staging.yml before cipi.yml</span>
+<span class="p">$</span> cipi app create --user=myapp-stg --domain=staging.myapp.com \
+    --repository=git@github.com:you/myapp.git --branch=develop --env=staging</pre>
                 </div>
 
                 <div class="options-list">
@@ -433,6 +437,16 @@
                             <code>git@github.com:you/repo.git</code>). Must be SSH, not HTTPS.</span></div>
                     <div class="option-item"><code>--branch</code><span>Branch to deploy. Defaults to
                             <code>main</code>.</span></div>
+                    <div class="option-item"><code>--env</code><span>Environment label for the app (since
+                            <strong>v5.8.0</strong>): lowercase letters, digits, <code>-</code> and <code>_</code>, at
+                            most 32 characters, e.g. <code>production</code> or <code>staging</code>. Defaults to
+                            <code>production</code>, which is also what every app created before 5.8.0 is. Cipi writes it
+                            to the app's <code>.env</code> as <code>APP_ENV</code> (Laravel apps) and
+                            <code>CIPI_ENV</code> (Laravel and Node apps), <code>cipi app show</code> prints it, and it
+                            picks the <a href="/docs/deploy#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> the app
+                            reads before <code>cipi.yml</code>. Change it later with
+                            <code>cipi app edit --env=</code>.</span>
+                    </div>
                     <div class="option-item"><code>--php</code><span>PHP version for this app (e.g. <code>8.5</code>).
                             Defaults to PHP 8.5. Must be an installed version — only <code>8.3</code>, <code>8.4</code>
                             and <code>8.5</code> are accepted since v4.5.4 (Deployer 8 requires PHP &ge; 8.3).</span>
@@ -750,7 +764,10 @@
                     <code>cipi.yml</code> committed at the repository root used to answer at
                     <code>https://&lt;domain&gt;/cipi.yml</code>. Since <strong>v5.2.3</strong> every app vhost denies
                     <code>/cipi.yml</code> and <code>/cipi.yaml</code> at any path — Laravel apps included, in case the
-                    file is ever copied into <code>public/</code>.</p>
+                    file is ever copied into <code>public/</code>. Since <strong>v5.8.0</strong> the rule also covers
+                    the per-environment files, <code>/cipi-&lt;anything&gt;.yml</code> and <code>.yaml</code>
+                    (<code>cipi-staging.yml</code>, <code>cipi-production.yml</code>, …); migration 5.8.0 updates the
+                    existing vhosts.</p>
                 <p>Existing servers get the <code>location</code> block on update, without regenerating the vhost, so
                     certbot's <code>:443</code> block is left untouched. <code>cipi yml</code> also looks for the file
                     in <code>htdocs/</code> now, which is where a custom app's repository actually lives.</p>
@@ -780,7 +797,9 @@
                                                     commands and blue/green slots of a Node app, and for a Laravel app whether its
                                                     Node builds are pinned to a major or follow the server default. For custom apps:
                                                     type "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a
-                                                    repository.
+                                                    repository. Since <strong>5.8.0</strong>: the app's
+                                                    <strong>Environment</strong> (<code>production</code> unless created or
+                                                    edited with <code>--env</code>).
                                                 </td>
                                             </tr>
                                             <tr>
@@ -790,7 +809,22 @@
                                             </tr>
                                             <tr>
                                                 <td>cipi app edit &lt;app&gt; --branch=develop</td>
-                                                <td>Change the deploy branch</td>
+                                                <td>Change the deploy branch. Since <strong>5.7.2</strong> it also rewrites
+                                                    <code>CIPI_DEPLOY_BRANCH</code> in the app's <code>.env</code>; a
+                                                    <a href="/docs/deploy#cli-yml-more"><code>deploy.branch</code></a> in
+                                                    <code>cipi.yml</code> does the same through <code>cipi yml apply</code>
+                                                    (5.8.0+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --env=staging</td>
+                                                <td>Change the app's environment label (since <strong>v5.8.0</strong>; same
+                                                    rules as <code>cipi app create --env</code>). Rewrites
+                                                    <code>APP_ENV</code> (Laravel) and <code>CIPI_ENV</code> in the app's
+                                                    <code>.env</code>, and from then on the app reads
+                                                    <code>cipi-staging.yml</code> before <code>cipi.yml</code> — see
+                                                    <a href="/docs/deploy#cli-yml-env">per-environment
+                                                    <code>cipi.yml</code></a>. Composable with the other
+                                                    <code>app edit</code> flags</td>
                                             </tr>
                                             <tr>
                                                 <td>cipi app edit &lt;app&gt; --domain=new.example.com</td>
@@ -1237,6 +1271,7 @@ myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com
 <span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com --name=myapp-stg --branch=develop --with-db
+<span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com --branch=develop --env=staging   <span class="c"># 5.8.0+: the clone reads cipi-staging.yml</span>
 <span class="p">$</span> cipi app clone myapp --domain=staging.myapp.com --no-db</pre>
                 </div>
                 <div class="options-list">
@@ -1246,6 +1281,12 @@ myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
                     </div>
                     <div class="option-item"><code>--branch</code><span>Deploy branch for the clone (defaults to the
                             source app's branch).</span></div>
+                    <div class="option-item"><code>--env</code><span>Environment label for the clone (since
+                            <strong>v5.8.0</strong>; defaults to the source app's). <code>--env=staging</code> writes
+                            <code>APP_ENV=staging</code> / <code>CIPI_ENV=staging</code> into the clone's
+                            <code>.env</code> and makes it read <code>cipi-staging.yml</code> before
+                            <code>cipi.yml</code>, so one repository can carry both files — see
+                            <a href="/docs/deploy#cli-yml-env">staging and production from one repository</a>.</span></div>
                     <div class="option-item"><code>--with-db</code><span>Create a fresh database for the
                             clone.</span></div>
                     <div class="option-item"><code>--no-db</code><span>Skip database provisioning for the
@@ -1567,8 +1608,18 @@ myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
                                             </tr>
                                             <tr>
                                                 <td>CIPI_DEPLOY_BRANCH</td>
-                                                <td>The branch the cipi/agent webhook deploys; a push to any other branch is skipped. Written at create, kept in step by <code>cipi app edit --branch</code> and <code>cipi sync import</code></td>
+                                                <td>The branch the cipi/agent webhook deploys; a push to any other branch is skipped. Written at create, kept in step by <code>cipi app edit --branch</code>, <code>cipi sync import</code> and, since 5.8.0, a <code>deploy.branch</code> applied from <code>cipi.yml</code></td>
                                                 <td>Cipi (v5.7.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>APP_ENV</td>
+                                                <td>The app's environment label — <code>cipi app create --env</code>, default <code>production</code> — which Laravel reads as its application environment. Laravel apps only. Kept in step by <code>cipi app edit --env</code> and <code>cipi sync import|update</code></td>
+                                                <td>Cipi (v5.8.0+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_ENV</td>
+                                                <td>The same label for Cipi's own tooling, Laravel and Node apps alike: it is what picks the <a href="/docs/deploy#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> the app reads before <code>cipi.yml</code>. Written next to <code>CIPI_DEPLOY_BRANCH</code>; migration 5.8.0 adds <code>CIPI_ENV=production</code> to existing apps that lack it and leaves a value already there alone</td>
+                                                <td>Cipi (v5.8.0+)</td>
                                             </tr>
                                             <tr>
                                                 <td>REDIS_HOST / REDIS_PASSWORD / REDIS_PORT</td>

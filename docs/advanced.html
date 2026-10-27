@@ -688,7 +688,13 @@
                     engine. Since API <strong>1.13.0+</strong> / Cipi <strong>5.0+</strong>, Laravel app create accepts
                     optional <code>octane</code> (<code>true</code> or <code>"frankenphp"</code>) to provision
                     <a href="/docs/apps#cli-app-octane">Laravel Octane (FrankenPHP)</a>; <code>octane</code> is rejected when
-                    <code>custom</code> is set. The MCP tool <code>AppCreate</code> follows the same rules. Keep the API
+                    <code>custom</code> is set. The MCP tool <code>AppCreate</code> follows the same rules. Since API
+                    <strong>1.36.0+</strong> (MCP server 1.6.0) / Cipi <strong>5.8.0+</strong>, app create and
+                    <code>PUT /api/apps/{name}</code> also accept <code>env</code> — the app's
+                    <a href="/docs/apps#cli-app-create">environment label</a> (<code>^[a-z0-9][a-z0-9_-]{0,31}$</code>,
+                    default <code>production</code>), the same as <code>cipi app create --env</code> /
+                    <code>cipi app edit --env</code> — and app objects return it; it decides which
+                    <a href="/docs/deploy#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> the app reads. Keep the API
                     package current with <code>cipi api update</code> / <code>cipi api upgrade</code> so validation and
                     OpenAPI match this behavior.
                 </p>
@@ -713,7 +719,9 @@
                     Since API <strong>1.12.0+</strong> they also expose <code>engine</code>,
                     <code>www_redirect</code>, and <code>force_https</code> from <code>apps-public.json</code> /
                     apps metadata. Since API <strong>1.13.0+</strong> they expose <code>octane</code> and
-                    <code>octane_port</code> for Octane apps.</p>
+                    <code>octane_port</code> for Octane apps. Since API <strong>1.36.0+</strong> / Cipi
+                    <strong>5.8.0+</strong> they expose <code>env</code>, the environment label (<code>production</code> for every app that never set
+                    one).</p>
                 <p>HTTP Basic Auth endpoints under <code>/api/apps/{name}/basicauth/*</code> wrap
                     <code>cipi basicauth</code> synchronously — they do not return a <code>job_id</code>. Enable accepts
                     optional <code>user</code> and <code>password</code> (auto-generated when omitted; returned once in
@@ -928,7 +936,10 @@
                     <code>errors</code>), <code>in_sync</code> (<code>true</code> when nothing would change and
                     nothing blocks), <code>warnings</code>, <code>changes</code> (<code>kind</code>, a short token such
                     as <code>php</code> or <code>alias-add</code>, and <code>summary</code>, the text to show),
-                    <code>blockers</code> and <code>notes</code>. <code>POST /api/apps/{name}/yml/apply</code> takes no
+                    <code>blockers</code> and <code>notes</code> — and, since API <strong>1.36.0+</strong> / Cipi
+                    <strong>5.8.0+</strong>, <code>env</code>, the app's environment, <code>file</code> then being the
+                    <a href="/docs/deploy#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> when the release carries
+                    one. <code>POST /api/apps/{name}/yml/apply</code> takes no
                     body and returns <code>202</code> with a <code>job_id</code> (type <code>app-yml-apply</code>).
                     Its <code>result</code> carries <code>outcome</code> (<code>applied</code>,
                     <code>unchanged</code>, <code>partial</code>, <code>blocked</code>, <code>invalid</code>,

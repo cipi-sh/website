@@ -353,6 +353,7 @@
         <pre class="code-pre"><code>$ cipi yml generate myapp --save        <span class="c"># /home/myapp/cipi.yml</span>
 $ cipi yml plan myapp                  <span class="c"># reports nothing to do</span></code></pre>
         <p>Commit that file at the repository root. Apply reads the committed copy: <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then <code>htdocs/cipi.yml</code>, then <code>shared/cipi.yml</code> — override with <code>--file=&lt;path&gt;</code> if you keep it elsewhere. A file written only under <code>/home/&lt;app&gt;</code> is not what a deploy reconciles.</p>
+        <p>Since <strong>5.8.0</strong> an app with an environment label (<code>cipi app create --env=staging</code>, <code>cipi app clone --env=staging</code>; <code>production</code> by default) reads <code>cipi-&lt;env&gt;.yml</code> before <code>cipi.yml</code> in each of those places. Commit <code>cipi-staging.yml</code> next to <code>cipi.yml</code> and one repository serves both apps; <code>cipi yml generate</code> names the file to commit, and <code>cipi yml auto &lt;app&gt; status</code> says which one an app is reading. The server picks the file from the app's environment — a commit cannot choose it. See <a href="/docs/deploy#cli-yml-env">staging and production from one repository</a>.</p>
         <p>Prefer a blank, fully commented template? <code>cipi yml example myapp</code> prints one with placeholder databases and profiles already inside that app's namespace, so the template validates as-is.</p>
 
         <h2 id="commands">The commands you will use</h2>
@@ -406,7 +407,7 @@ $ cipi yml auto myapp on|off|status
 $ cipi yml post-deploy myapp</code></pre>
 
         <h2 id="declare">What you can declare</h2>
-        <p>Eight areas. You do not have to declare all of them — only the sections you write are reconciled.</p>
+        <p>Nine areas. You do not have to declare all of them — only the sections you write are reconciled.</p>
         <ul>
             <li><strong>Aliases</strong> — the declared list replaces the current one. An alias you delete from the file is removed from Nginx. Wildcards such as <code>*.myapp.com</code> are accepted. The primary domain is never managed here.</li>
             <li><strong>PHP and php.ini</strong> — pin the app to PHP 8.3, 8.4 or 8.5 (already installed on the server) and set per-app overrides: <code>upload_max_filesize</code>, <code>post_max_size</code>, <code>memory_limit</code> and the rest. Server-wide values stay with <code>cipi ini set</code>.</li>
@@ -417,6 +418,7 @@ $ cipi yml post-deploy myapp</code></pre>
             <li><strong>Healthcheck</strong> — an HTTP probe on one of the app's own domains, checked every five minutes and again right after every deploy. Optionally roll a failing release back automatically — the code symlink only; migrations are not undone. <code>health: {enabled: false}</code> removes the check (it was silently ignored before 5.3.0).</li>
             <li><strong>Backup profiles</strong> — per-app profiles with their own scope, schedule, retention, destinations and encryption. Names must be <code>myapp</code> or <code>myapp-*</code>.</li>
             <li><strong>Post-deploy steps</strong> — since <strong>5.2.3</strong>, a <code>deploy.post</code> list that runs from the live release after every successful deploy, on <code>cipi deploy</code> and the webhook alike. Allowlisted runners only — <code>artisan</code>, <code>npm</code>/<code>npx</code>/<code>yarn</code>/<code>pnpm</code>, <code>composer</code>, or one relative <code>php</code>/<code>node</code> script — never a shell line. It is the one section that runs <em>without</em> <code>cipi yml auto</code> being on; <code>deploy.post_on_failure: abort</code> makes a failing step fail the deploy instead of just emailing <code>yml_post_fail</code>.</li>
+            <li><strong>Deploy branch</strong> — since <strong>5.8.0</strong>, <code>deploy.branch</code> is the git branch the app deploys, validated like <code>cipi app edit --branch</code> and applied the same way (<code>apps.json</code>, <code>deploy.php</code>, the webhook's <code>CIPI_DEPLOY_BRANCH</code>), from the next deploy. Blocked on an app without a repository. The pattern: <code>deploy: { branch: develop }</code> in <code>cipi-staging.yml</code>, <code>deploy: { branch: main }</code> in <code>cipi.yml</code>.</li>
         </ul>
 
         <h2 id="example">A complete file</h2>
@@ -543,6 +545,7 @@ $ cipi yml auto myapp off      <span class="c"># back to manual apply</span></co
         <div class="faq-item"><h3>Does a deploy apply the file automatically?</h3><p>Only after you opt in with <code>cipi yml auto &lt;app&gt; on</code>. Until then deploys ignore the file and you reconcile manually with <code>plan</code> and <code>apply</code>. The exception is <code>deploy.post</code> (since 5.2.3): those steps run on every successful deploy without the opt-in, because they accept allowlisted runners only and never a shell line.</p></div>
         <div class="faq-item"><h3>What happens to things the file does not mention?</h3><p>They are left alone. Only the sections you declare are reconciled — with one deliberate exception: the alias list is authoritative, so removing an alias from the file removes it from the server.</p></div>
         <div class="faq-item"><h3>Can a commit break my server?</h3><p>The schema carries no shell commands and no include paths, an app can only touch its own databases and backup profiles, and a file that fails validation is rejected as a whole rather than applied halfway. Deploys ignore the file entirely until you turn <code>yml auto</code> on.</p></div>
+        <div class="faq-item"><h3>Can one repository serve staging and production?</h3><p>Yes, since 5.8.0. Give the staging app an environment label (<code>cipi app create --env=staging</code> or <code>cipi app clone &lt;app&gt; --env=staging</code>) and commit a <code>cipi-staging.yml</code> next to <code>cipi.yml</code>: the staging app reads the first, the production app the second. With <code>deploy: { branch: develop }</code> in one and <code>deploy: { branch: main }</code> in the other, each deploys its own branch from the next deploy.</p></div>
         <div class="faq-item"><h3>Does it work with the Git webhook?</h3><p>Yes, since 5.6.4. With <code>cipi yml auto</code> on, <code>cipi deploy</code>, a panel or API deploy and a webhook-triggered deploy all reconcile after a successful release; before 5.6.4 the webhook skipped it.</p></div>
 
         <h2>Keep reading</h2>

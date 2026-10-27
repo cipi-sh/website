@@ -293,7 +293,9 @@
                             user names only, never hashes) — as a ready-to-commit file. Since 5.5.2,
                             <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code>
                             (<code>--save=&lt;path&gt;</code>, <code>--force</code> to overwrite). Apply still reads
-                            the copy committed in the release.</td>
+                            the copy committed in the release. Since 5.8.0 it emits <code>deploy.branch</code> and names
+                            the file to commit — <code>cipi-&lt;env&gt;.yml</code> when the app's environment is not
+                            production.</td>
                     </tr>
                     <tr>
                         <td><code>cipi yml example</code></td>
@@ -315,7 +317,8 @@
                         <td><code>cipi yml plan</code></td>
                         <td>The diff: every alias, worker, database, setting and profile that would be added, changed
                             or removed. Read this before you apply. Since 5.6.4, <code>--json</code> prints it as one
-                            object for scripts and the panel API.</td>
+                            object for scripts and the panel API; since 5.8.0 it carries <code>env</code> and shows a
+                            branch change as <code>deploy branch: main → develop (from the next deploy)</code>.</td>
                     </tr>
                     <tr>
                         <td><code>cipi yml apply</code></td>
@@ -324,7 +327,8 @@
                     <tr>
                         <td><code>cipi yml auto</code></td>
                         <td>Opt in — or out — of reconciling automatically after every successful deploy.
-                            <code>status</code> reports the current setting (<code>--json</code> since 5.6.4).</td>
+                            <code>status</code> reports the current setting (<code>--json</code> since 5.6.4) and, since
+                            5.8.0, the app's environment and the file in use.</td>
                     </tr>
                     <tr>
                         <td><code>cipi yml post-deploy</code> <em>(5.2.3)</em></td>
@@ -336,8 +340,13 @@
         </div>
         <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
             <code>htdocs/cipi.yml</code> and <code>htdocs/cipi.yaml</code> (since <strong>5.2.3</strong>, where a custom
-            app's repository lives), then <code>shared/cipi.yml</code>. Override with <code>--file=&lt;path&gt;</code>.
-            Since 5.2.3 every app vhost also denies <code>/cipi.yml</code> and <code>/cipi.yaml</code>, so the file is
+            app's repository lives), then <code>shared/cipi.yml</code>. Since <strong>5.8.0</strong> an app whose
+            environment is <code>&lt;label&gt;</code> (<code>cipi app create --env</code>, default
+            <code>production</code>) tries <code>cipi-&lt;label&gt;.yml</code> / <code>.yaml</code> first in each of
+            those places and falls back to <code>cipi.yml</code>: a staging app reads <code>cipi-staging.yml</code>,
+            a production app <code>cipi-production.yml</code> then <code>cipi.yml</code>. Override with
+            <code>--file=&lt;path&gt;</code>. Since 5.2.3 every app vhost also denies <code>/cipi.yml</code> and
+            <code>/cipi.yaml</code> — and since 5.8.0 <code>/cipi-&lt;anything&gt;.yml|yaml</code> — so the file is
             never downloadable from the site it configures.</p>
 
         <h2 class="cmp-h2-lg" id="what-it-configures">What the file can configure</h2>
@@ -464,6 +473,15 @@
                     started with it.</p>
                 <span class="go">node: in the docs →</span>
             </a>
+            <a class="alt-card" href="/docs/deploy#cli-yml-env">
+                <span class="alt-tag">deploy.branch · cipi-&lt;env&gt;.yml</span>
+                <h3>Staging and production, <span>one repository</span></h3>
+                <p>New in 5.8.0. Every app has an environment label (<code>cipi app create --env=staging</code>), and
+                    reads <code>cipi-&lt;env&gt;.yml</code> before <code>cipi.yml</code>. <code>deploy.branch</code>
+                    sets the branch the app deploys, from the next deploy — <code>develop</code> in the staging file,
+                    <code>main</code> in the production one. The server picks the file, never the commit.</p>
+                <span class="go">Environments in the docs →</span>
+            </a>
             <a class="alt-card featured" href="/docs/deploy#cli-yml">
                 <span class="alt-tag">reference</span>
                 <h3>Every key, <span>documented</span></h3>
@@ -548,10 +566,13 @@ health:
   # rollback_on_unhealthy: true   # undo a release that fails the check
   #                               # (the code symlink only — migrations are NOT undone)</span>
 
-<span class="c"># node_build (5.5.2+) runs inside the release, before it goes live.
+<span class="c"># branch (5.8.0+) is the branch the app deploys, like `cipi app edit --branch`,
+# from the next deploy: develop in cipi-staging.yml, main here.
+# node_build (5.5.2+) runs inside the release, before it goes live.
 # deploy.post (5.2.3+) runs after, and does not need `cipi yml auto`.
 # snapshot is still accepted and stored as predeploy_snapshot.</span>
 deploy:
+  branch: main
   predeploy_snapshot: true
   node_build: <span class="s">"npm ci &amp;&amp; npm run build"</span>
   post:
@@ -670,9 +691,10 @@ backup:
                 <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             <div>Once <code>yml auto</code> is on, anyone who can push to that repository can change the app's aliases,
-                PHP settings, workers, healthcheck, backup profiles, basic auth users, redirects, proxies, crons and a
-                Node app's build. That is the point of configuration-as-code —
-                treat write access to the repo accordingly.</div>
+                PHP settings, workers, healthcheck, backup profiles, basic auth users, redirects, proxies, crons, deploy
+                branch (5.8.0) and a Node app's build. That is the point of configuration-as-code —
+                treat write access to the repo accordingly. Which environment file the server reads is not up to the
+                commit: that is the app's own label.</div>
         </div>
 
         <h2 class="cmp-h2-lg" id="faq">Questions</h2>
@@ -697,6 +719,15 @@ backup:
                 aliases, so removing an alias removes it from the server, and since 5.5.2 the backup profiles this
                 file created, so renaming or dropping one removes it from the schedule. Archives stay until
                 <code>cipi backup prune</code> ages them out. Profiles added by hand stay unless the file names them.</p>
+        </div>
+        <div class="faq-item">
+            <h3>Can one repository serve staging and production?</h3>
+            <p>Yes, since 5.8.0. Create (or clone) the staging app with <code>--env=staging</code> and commit a
+                <code>cipi-staging.yml</code> next to <code>cipi.yml</code>: the staging app reads the first, the
+                production app the second (or a <code>cipi-production.yml</code>). Put <code>deploy: { branch: develop
+                }</code> in one and <code>deploy: { branch: main }</code> in the other and each app deploys its own
+                branch from the next deploy. <code>cipi yml auto &lt;app&gt; status</code> tells you which file an app
+                is reading. <a href="/docs/deploy#cli-yml-env">How it fits together</a>.</p>
         </div>
         <div class="faq-item">
             <h3>Does it work with the Git webhook?</h3>

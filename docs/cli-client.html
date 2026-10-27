@@ -589,7 +589,7 @@ sudo make install</pre>
                                             </tr>
                                             <tr>
                                                 <td>cipi-cli apps show &lt;name&gt;</td>
-                                                <td>Show application details</td>
+                                                <td>Show application details — the environment label included (cipi-cli 1.9.0+, Cipi 5.8.0+)</td>
                                             </tr>
                                             <tr>
                                                 <td>cipi-cli apps create [flags]</td>
@@ -683,6 +683,14 @@ sudo make install</pre>
                         <span>Git branch to deploy from</span>
                     </div>
                     <div class="option-item">
+                        <code>--env</code>
+                        <span>Environment label, e.g. <code>production</code> (default) or <code>staging</code> —
+                            lowercase letters, digits, <code>-</code>, <code>_</code>, max 32 characters (cipi-cli 1.9.0+, API 1.36+, Cipi 5.8.0+).
+                            Written to the app's <code>.env</code> as <code>APP_ENV</code> / <code>CIPI_ENV</code> and
+                            picks the <a href="/docs/deploy#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> the app
+                            reads before <code>cipi.yml</code></span>
+                    </div>
+                    <div class="option-item">
                         <code>--custom</code>
                         <span>Create a custom (non-Laravel) app with <code>htdocs</code> deploy</span>
                     </div>
@@ -743,6 +751,10 @@ sudo make install</pre>
                         <span>Change deploy branch</span>
                     </div>
                     <div class="option-item">
+                        <code>--env</code>
+                        <span>Change the environment label (cipi-cli 1.9.0+, Cipi 5.8.0+); same as <code>cipi app edit --env</code></span>
+                    </div>
+                    <div class="option-item">
                         <code>--domain</code>
                         <span>Rename the primary domain (requires Cipi <strong>4.6.2+</strong> and API
                             <strong>1.9.0+</strong>)</span>
@@ -785,6 +797,10 @@ sudo make install</pre>
 <span class="p">$</span> cipi-cli apps create --user=myapp --domain=myapp.com \
     --php=8.5 --repository=git@github.com:acme/myapp.git --branch=main \
     --node-build=<span class="s">'npm ci &amp;&amp; npm run build'</span>   <span class="c"># asset build on every deploy (1.7.0+)</span>
+
+<span class="c"># A staging app of the same repository (cipi-cli 1.9.0+, Cipi 5.8.0+): reads cipi-staging.yml before cipi.yml</span>
+<span class="p">$</span> cipi-cli apps create --user=myapp-stg --domain=staging.myapp.com \
+    --repository=git@github.com:acme/myapp.git --branch=develop --env=staging
 
 <span class="c"># Create a custom (non-Laravel) app</span>
 <span class="p">$</span> cipi-cli apps create --user=landing --domain=landing.acme.com \
@@ -920,7 +936,7 @@ sudo make install</pre>
                                             </tr>
                                             <tr>
                                                 <td>cipi-cli yml &lt;app&gt;</td>
-                                                <td>The app's <code>cipi.yml</code>: file, validity, auto-apply and what applying would change (Cipi 5.6.4+)</td>
+                                                <td>The app's <code>cipi.yml</code>: file, validity, auto-apply and what applying would change (Cipi 5.6.4+); the environment and the <code>cipi-&lt;env&gt;.yml</code> in use (cipi-cli 1.9.0+, Cipi 5.8.0+)</td>
                                             </tr>
                                             <tr>
                                                 <td>cipi-cli yml apply &lt;app&gt;</td>
@@ -2212,6 +2228,11 @@ sudo make install</pre>
                                                 <td><code>yml</code> (plan, apply, auto-apply)</td>
                                                 <td>5.6.4 (API sudoers)</td>
                                                 <td>1.35+ and <code>yml-view</code> / <code>yml-manage</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>apps create|edit --env</code>, environment in <code>apps show</code> and <code>yml</code> (cipi-cli 1.9.0+)</td>
+                                                <td>5.8.0</td>
+                                                <td>1.36+</td>
                                             </tr>
                                             <tr>
                                                 <td>Anonymized dumps (<code>db anonymize</code>, cipi-cli 1.5.0+)</td>
