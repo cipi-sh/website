@@ -198,6 +198,7 @@
                 <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="/docs/apps#cli-use" class="sidebar-link"><code>use</code> (default app)</a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
                 <a href="/docs/apps#cli-app-clone" class="sidebar-link"><code>app clone</code></a>
                 <a href="/docs/apps#cli-app-limits" class="sidebar-link"><code>app limits</code></a>
@@ -903,6 +904,32 @@
                 </div>
             </div>
 
+            <div class="doc-section" id="cli-use">
+                <h2><code>cipi use</code> — a default app</h2>
+                <p>Available since <strong>v5.7.2</strong>. <code>cipi use &lt;app&gt;</code> names the app the per-app
+                    commands act on when none is given: <code>cipi deploy</code>, <code>cipi app logs|env|artisan|edit</code>,
+                    <code>cipi yml plan|apply</code>, <code>cipi worker list</code>, <code>cipi ssl install</code>,
+                    <code>cipi www …</code>, <code>cipi alias …</code>, <code>cipi health …</code> and the others run against
+                    it and print <code>→ &lt;app&gt; (default app — cipi use)</code> on stderr. The default is saved on the
+                    server (<code>/var/lib/cipi/default-app</code>); <code>CIPI_APP=&lt;app&gt;</code> does the same for one
+                    shell and wins over the file.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi use shop                 <span class="c"># the default for the commands that need an app</span>
+<span class="p">$</span> cipi deploy                   <span class="c"># → shop (default app — cipi use)</span>
+<span class="p">$</span> cipi app logs --type=php
+<span class="p">$</span> cipi yml plan
+<span class="p">$</span> cipi use                      <span class="c"># show it</span>
+<span class="p">$</span> cipi use --clear              <span class="c"># remove it</span></pre>
+                </div>
+                <p>It fills in a missing app only where one is a required argument, so nothing that works changes meaning:
+                    a command for which a missing app means every app (<code>cipi git refresh|check</code>,
+                    <code>cipi scan</code>) keeps it, and <code>cipi app delete|reset-password|reset-db-password|convert|clone</code>
+                    and <code>cipi db …</code> still want the name. The panel API never gets a default. Tab-completion and
+                    <code>cipi help use</code> know the command.</p>
+            </div>
+
             <div class="doc-section" id="cli-app-fix-permissions">
                 <h2><code>cipi app fix-permissions</code></h2>
                 <p>The panel already had <code>cipi api fix-permissions</code> and
@@ -1537,6 +1564,16 @@ myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
                                                 <td>CIPI_APP_USER</td>
                                                 <td>Linux username owning this app</td>
                                                 <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_DEPLOY_BRANCH</td>
+                                                <td>The branch the cipi/agent webhook deploys; a push to any other branch is skipped. Written at create, kept in step by <code>cipi app edit --branch</code> and <code>cipi sync import</code></td>
+                                                <td>Cipi (v5.7.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REDIS_HOST / REDIS_PASSWORD / REDIS_PORT</td>
+                                                <td>The local Valkey with the password Cipi set at install. Cache, session and queue stay on the database until you switch them</td>
+                                                <td>Cipi (v5.7.2+)</td>
                                             </tr>
                                             <tr>
                                                 <td>CIPI_MCP</td>

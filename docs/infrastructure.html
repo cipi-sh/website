@@ -198,6 +198,7 @@
                 <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
+                <a href="/docs/apps#cli-use" class="sidebar-link"><code>use</code> (default app)</a>
                 <a href="/docs/apps#cli-app-reverb" class="sidebar-link"><code>app reverb</code></a>
                 <a href="/docs/apps#cli-app-clone" class="sidebar-link"><code>app clone</code></a>
                 <a href="/docs/apps#cli-app-limits" class="sidebar-link"><code>app limits</code></a>
@@ -567,7 +568,10 @@ fatal_error_backtraces = 0   <span class="c">; ignored by PHP below 8.5</span></
                     <li><strong>It refuses what should not be set this way.</strong> Settable keys are an explicit
                         whitelist — see <code>cipi ini keys</code>. <code>open_basedir</code>,
                         <code>auto_prepend_file</code>, <code>extension</code> and friends are refused <em>by name, with
-                            the reason</em>, because Cipi manages them as part of app isolation.</li>
+                            the reason</em>, because Cipi manages them as part of app isolation. The two keys of the
+                        2026-10-21 PHP advisory, <code>session.upload_progress.enabled</code> and
+                        <code>fatal_error_backtraces</code>, are listed there too (5.7.2+): off in every pool since 5.6.3,
+                        in each version's <code>fpm/conf.d/99-cipi.ini</code> since 5.7.2.</li>
                     <li><strong>Per-app overrides win.</strong> <code>--app=&lt;app&gt;</code> writes into that app's
                         FPM pool, which outranks the server-wide file — for that app only.</li>
                 </ul>
@@ -782,7 +786,11 @@ fatal_error_backtraces = 0   <span class="c">; ignored by PHP below 8.5</span></
 <span class="p">$</span> cipi www clear myapp            <span class="c"># clear redirect state</span>
 <span class="p">$</span> cipi www status myapp           <span class="c"># inspect redirect state</span></pre>
                 </div>
-                <p><code>force-to-root</code> / <code>force-from-root</code> auto-add the missing alias when needed.</p>
+                <p><code>force-to-root</code> / <code>force-from-root</code> auto-add the missing alias when needed, and
+                    print the certificate hint when they did. Since <strong>5.7.2</strong> an app whose primary domain is a
+                    wildcard (<code>*.example.com</code>) takes the pair of its base: <code>cipi www force-from-root</code>
+                    sends <code>example.com</code> (added as an alias) to <code>www.example.com</code>, which the wildcard
+                    serves; <code>app.www</code> in <code>cipi.yml</code> follows.</p>
             </div>
 
             <div class="doc-section" id="cli-redirect">
@@ -1330,7 +1338,8 @@ fatal_error_backtraces = 0   <span class="c">; ignored by PHP below 8.5</span></
 <span class="p">$</span> cipi backup profile edit nightly --keep-days=30
 <span class="p">$</span> cipi backup profile disable hourly-db    <span class="c"># pause it without deleting it</span>
 <span class="p">$</span> cipi backup profile enable hourly-db
-<span class="p">$</span> cipi backup profile remove hourly-db     <span class="c"># deletes the profile, keeps its archives</span></pre>
+<span class="p">$</span> cipi backup profile remove hourly-db     <span class="c"># deletes the profile, keeps its archives (asks whether to delete them on a terminal, 5.7.2+)</span>
+<span class="p">$</span> cipi backup profile remove hourly-db --purge  <span class="c"># 5.7.2+: also deletes every run it wrote, on every destination; works for a profile already gone</span></pre>
                 </div>
 
                 <h4>Flags for <code>profile add</code> / <code>profile edit</code></h4>
