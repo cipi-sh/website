@@ -3246,14 +3246,23 @@ Host ssh.example.com
                 <h3>Password &amp; credential reset</h3>
                 <p>Cipi provides commands to regenerate server-level passwords. New passwords are stored in
                     <code>/etc/cipi/server.json</code> (encrypted via Vault) and displayed on screen.
-                    <strong>Save them immediately</strong> — they are shown only once.
+                    <strong>Save them immediately</strong>. Since <strong>5.8.2</strong> <code>cipi credentials</code>
+                    prints the current ones again, in the installer's layout (root, MariaDB, PostgreSQL, Valkey, the
+                    Meilisearch master key, the backup encryption key, with connection URLs), and
+                    <code>cipi credentials export</code> writes them as a plain CSV
+                    (<code>title,url,username,password,notes</code>) that any password manager imports — to stdout, so
+                    nothing is left on the server: <code>ssh cipi@&lt;ip&gt; sudo cipi credentials export &gt; cipi.csv</code>
+                    from your own machine (<code>--output=FILE</code> writes a mode-600 file instead). Every show or
+                    export is logged and raises the <code>credentials_show</code> notification trigger.
                 </p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p">$</span> cipi reset root-password              <span class="c"># regenerate the root Linux user SSH password</span>
 <span class="p">$</span> cipi reset db-password [--engine=…]   <span class="c"># regenerate root password (default or chosen engine)</span>
-<span class="p">$</span> cipi reset valkey-password           <span class="c"># regenerate the Valkey password and restart the service</span></pre>
+<span class="p">$</span> cipi reset valkey-password           <span class="c"># regenerate the Valkey password and restart the service</span>
+<span class="p">$</span> cipi credentials                      <span class="c"># the install summary again: root, MariaDB, PostgreSQL, Valkey, Meilisearch, backup key</span>
+<span class="p">$</span> cipi credentials export [--output=…]  <span class="c"># CSV (title,url,username,password,notes) for any password manager</span></pre>
                 </div>
 
                 <div class="callout warning">

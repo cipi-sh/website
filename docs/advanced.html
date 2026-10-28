@@ -398,7 +398,13 @@
                     vhost and its own certificate, so it needs a <strong>domain or subdomain that only the API
                     uses</strong>. Pick a subdomain such as <code>api.example.com</code> and create a DNS
                     <code>A</code> record (and <code>AAAA</code> for IPv6) that points it at the server, before you run
-                    <code>cipi api ssl</code>.</p>
+                    <code>cipi api &lt;domain&gt;</code>: since <strong>5.8.2</strong> the command checks the DNS first
+                    and stops, with the record to create, when the name does not resolve or points elsewhere (the
+                    Cloudflare proxy counts as pointing here; <code>--skip-dns-check</code> behind a NAT or proxy it
+                    cannot see through). It then installs the API, issues the Let's Encrypt certificate
+                    (<code>--no-ssl</code> to skip) and, on a terminal, offers to create the first token
+                    (<code>--no-token</code> to skip). <code>cipi api ssl</code> and <code>cipi api move</code> run the
+                    same DNS check.</p>
                 <div class="table-scroll">
                     <table class="cmd-table">
                         <thead>
@@ -473,8 +479,8 @@
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi api &lt;domain&gt;           <span class="c"># install at its own (sub)domain, e.g. api.example.com</span>
-<span class="p">$</span> cipi api ssl                  <span class="c"># install Let's Encrypt certificate for API domain</span>
+                    <pre><span class="p">$</span> cipi api &lt;domain&gt;           <span class="c"># DNS check, install, certificate, token — one command (--no-ssl --no-token --skip-dns-check)</span>
+<span class="p">$</span> cipi api ssl                  <span class="c"># (re)issue the Let's Encrypt certificate (--skip-dns-check)</span>
 <span class="p">$</span> cipi api move &lt;domain&gt;      <span class="c"># move to another domain: old certificate out, new one in</span>
 <span class="p">$</span> cipi api remove               <span class="c"># uninstall API + MCP, tokens, vhost, crons and certificate</span>
 <span class="p">$</span> cipi api token list           <span class="c"># list tokens</span>

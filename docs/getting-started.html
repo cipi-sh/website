@@ -460,11 +460,17 @@ cipi ssl install myapp</pre>
                 </div>
                 <p>The wizard asks for the public key <strong>before any package is installed</strong>. Paste the line
                     you copied above (accepted formats: <code>ssh-ed25519</code>, <code>ssh-rsa</code>,
-                    <code>ecdsa</code>). Cipi sanitizes comments, carriage returns, and extra whitespace, then creates
+                    <code>ecdsa</code>); since <strong>5.8.2</strong> it then asks <code>Add another SSH public key?
+                    [y/N]</code> until you press Enter, so a second machine or a colleague's key goes in now, each
+                    shown with its fingerprint. Cipi sanitizes comments, carriage returns, and extra whitespace, then creates
                     a dedicated <code>cipi</code> Linux user for <strong>admin SSH access</strong> and hardens SSH:
                     root login disabled, <code>cipi</code> public-key only (group <code>cipi-ssh</code>), app users
                     (group <code>cipi-apps</code>) can connect with password. Login attempts are limited to 3 with a
                     20-second grace period; X11 forwarding is disabled.</p>
+                <p>With the keys in, the installer shows <strong>what it is about to set up</strong> — the server's IP,
+                    hostname and OS, the SSH access (your keys, root without SSH login, passwords off), the stack, and
+                    which passwords it will generate — and asks <code>Proceed with the installation? [Y/n]</code>.
+                    Answer <code>n</code> and nothing on the machine has changed.</p>
                 <p>The installer also generates a <strong>random 40-character root password</strong>, stores it in
                     <code>/etc/cipi/server.json</code>, and displays it in the installation summary. It is <em>not</em>
                     an SSH password: root SSH login is disabled. It is what you type when, already logged in as the
@@ -473,7 +479,8 @@ cipi ssl install myapp</pre>
 
                 <h3>Non-interactive installation</h3>
                 <p>For automated setups, pass your SSH public key via the <code>SSH_PUBKEY</code> environment variable
-                    to skip the interactive prompt:</p>
+                    to skip the interactive prompt (several keys: one per line). Without a terminal the installer asks
+                    nothing else either: no plan confirmation, no &ldquo;saved?&rdquo; question, no optional wizard.</p>
                 <div class="code-block">
                     <div class="code-block-header">
                         <span class="code-block-lang">bash</span>
@@ -493,9 +500,16 @@ cipi ssl install myapp</pre>
 <span class="p">$</span> wget -O - https://cipi.sh/setup.sh | bash</pre>
                 </div>
 
-                <p>At the end of the installation you will see a summary screen with the SSH access details, the
-                    auto-generated root password, and the MariaDB root password.
-                    <strong>Save them immediately</strong> — they are shown only once. Credentials are stored in
+                <p>At the end of the installation you will see the credentials, one block each with the same rows —
+                    <code>User:</code>, <code>Password:</code>, where to reach it — for Root, MariaDB and Valkey (and
+                    PostgreSQL, Meilisearch and the backup key once they exist), the databases with a ready
+                    connection URL through SSH. <strong>Save them immediately</strong>: since <strong>5.8.2</strong>
+                    the installer waits until you answer <code>y</code> to <em>Have you saved these credentials?</em>
+                    before it prints anything else, and only then offers the optional layers as two questions
+                    (<em>Install the panel API now?</em>, <em>Install the web GUI on this server now?</em>). Lost them
+                    later? <code>sudo cipi credentials</code> prints the same card again, and
+                    <code>sudo cipi credentials export</code> writes a CSV (<code>title,url,username,password,notes</code>)
+                    any password manager imports. Credentials are stored in
                     <code>/etc/cipi/server.json</code>, which — like all Cipi configuration files — is
                     <strong>encrypted at rest</strong> using AES-256-CBC via the built-in <a
                         href="/docs/advanced#cipi-vault">Vault</a>
@@ -513,9 +527,10 @@ cipi ssl install myapp</pre>
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <div><strong>Save the SSH access details, root password, and MariaDB root password.</strong> Shown
-                        only once during
-                        installation. Credentials are stored encrypted at <code>/etc/cipi/server.json</code>.</div>
+                    <div><strong>Save the root, MariaDB and Valkey passwords.</strong> The installer waits until you
+                        confirm you did. Later: <code>sudo cipi credentials</code> prints them again,
+                        <code>sudo cipi credentials export</code> gives a CSV for your password manager. They are
+                        stored encrypted at <code>/etc/cipi/server.json</code>.</div>
                 </div>
 
                 <h3>Post-installation access</h3>
