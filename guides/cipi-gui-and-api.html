@@ -358,9 +358,8 @@
 
         <h2 id="api-first">The API is the backbone</h2>
         <p>Enable the API before you touch the GUI. One command provisions Laravel under <code>/opt/cipi/api</code>, the Nginx vhost, SSL, an SQLite queue and <code>cipi-queue.service</code>:</p>
-        <pre class="code-pre"><code>$ cipi api api.example.com
-$ cipi api ssl
-$ cipi api token create</code></pre>
+        <pre class="code-pre"><code>$ cipi api api.example.com      <span class="c"># DNS check, install, certificate and the first token — one command (Cipi 5.8.2+)</span>
+$ cipi api token create         <span class="c"># more tokens later; cipi api ssl re-issues the certificate</span></code></pre>
         <p>The package is <strong>server-level</strong> automation — distinct from the <a class="inline" href="/docs/agent">Cipi Agent</a> (<code>cipi/agent</code> inside each Laravel app). The Agent covers per-app webhooks, health and MCP. The API covers the whole box: apps, databases, PHP, SSH, services, SMTP, healthchecks, IP whitelist.</p>
         <p>PHP-FPM runs as <code>www-data</code> and executes Cipi commands via sudo against an explicit whitelist in <code>/etc/sudoers.d/cipi-api</code>. Vault and MariaDB passwords stay inside Cipi, not in PHP. After <code>cipi self-update</code>, if <code>/docs</code> or <code>/mcp</code> return HTTP 500, <code>cipi api fix-permissions</code> repairs storage and SQLite ownership.</p>
 
@@ -549,18 +548,17 @@ curl -sS "${CIPI_API_URL}/api/jobs/JOB_ID" \
         <h2 id="install">How to install them</h2>
         <p>Required order: API on every managed server, then the GUI wherever you want the browser. The GUI can live on the same box or on a small dedicated machine — it is just an HTTP client.</p>
         <pre class="code-pre"><code><span class="c"># on every server you will manage</span>
-$ cipi api api.example.com
-$ cipi api ssl
-$ cipi api token create
+$ cipi api api.example.com      <span class="c"># DNS check, install, certificate, a token (Cipi 5.8.2+)</span>
 
 <span class="c"># on the panel box (can be the same machine)</span>
-$ cipi gui panel.example.com
-$ cipi gui ssl</code></pre>
-        <p><code>cipi gui</code> asks for the first admin email and password (minimum 12 characters, upper, lower, digit, special, no 4 identical characters in a row). Config lands in <code>/etc/cipi/gui.json</code>. PHP-FPM, vhost and scheduler come from the installer: you do not bootstrap Laravel by hand.</p>
+$ cipi gui panel.example.com    <span class="c"># DNS check, admin account, install, certificate</span>
+$ cipi gui sso set --issuer=… --client-id=… --client-secret=…   <span class="c"># optional: Entra ID, Google, Okta…</span></code></pre>
+        <p>Both commands check first that the domain points at the server and stop, with the record to create, when it does not (<code>--skip-dns-check</code> behind a proxy or NAT). <code>cipi gui</code> asks for the first admin email and password (minimum 12 characters, upper, lower, digit, special, no 4 identical characters in a row) and ends with the certificate. Config lands in <code>/etc/cipi/gui.json</code>. PHP-FPM, vhost and scheduler come from the installer: you do not bootstrap Laravel by hand.</p>
         <p>Updates: <code>cipi gui update</code> / <code>cipi api update</code> for the daily soft update; <code>upgrade</code> for a full rebuild. <code>cipi gui refresh-theme</code> recompiles the theme only. <code>cipi gui remove</code> uninstalls vhost, pool and scheduler — managed servers stay intact. <code>cipi gui reset-user</code> is the recovery path if an admin loses 2FA.</p>
 
         <h2 id="security">SSL, 2FA and IP whitelist</h2>
-        <p>The panel starts on HTTP: issue Let's Encrypt immediately with <code>cipi gui ssl</code> (automatic renewal, same ACME as app domains). Login is session-based; each administrator can enable <strong>TOTP 2FA</strong> (Google Authenticator, 1Password, Aegis) from their profile — opt-in, not mandatory.</p>
+        <p>The certificate comes with <code>cipi gui &lt;domain&gt;</code> since Cipi 5.8.2 (automatic renewal, same ACME as app domains; <code>cipi gui ssl</code> re-issues it). Login is session-based; each administrator can enable <strong>TOTP 2FA</strong> (Google Authenticator, 1Password, Aegis) from their profile — opt-in, not mandatory.</p>
+        <p><strong>Single sign-on</strong> (cipi/gui 4.0.2): the panel can sign people in through Microsoft Entra ID, Google Workspace, Okta, Keycloak or any OpenID Connect provider. It is configured from the server — <code>cipi gui sso set --issuer=https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0 --client-id=… --client-secret=…</code> — which prints the redirect URI to register at the provider (<code>https://&lt;panel&gt;/auth/sso/callback</code>). Existing accounts are matched by email and linked on their first sign-in, <code>--domains=yourcompany.com</code> lets people from your tenant get an account on first sign-in (role <em>user</em>, no access until granted in Team), <code>cipi gui sso only on</code> switches passwords off and <code>cipi gui sso only off</code>, from the server, is the break-glass. The provider is the MFA authority: the panel's TOTP step is skipped after an SSO sign-in. Details in <a class="inline" href="/docs/gui#gui-sso">Control Panel → Single sign-on</a>.</p>
         <p>Restrict who can talk to the API and MCP:</p>
         <pre class="code-pre"><code>$ cipi api ip-whitelist add 203.0.113.10
 $ cipi api ip-whitelist set --ips=203.0.113.0/24,2001:db8::/32
@@ -570,7 +568,7 @@ $ cipi api ip-whitelist show --json</code></pre>
         <h2 id="use-cases">Use cases: teams, agencies, hosting, AI</h2>
         <ul>
             <li><strong>Freelancer with two VPS</strong> — API + <code>cipi-cli</code> from the laptop, or <code>cipi/sdk</code> inside a Laravel app. The GUI is optional; a <code>prod</code> and a <code>staging</code> profile are enough.</li>
-            <li><strong>A team that does not live in SSH</strong> — one panel, 2FA, live dashboard, Artisan and logs without handing root to everyone.</li>
+            <li><strong>A team that does not live in SSH</strong> — one panel, 2FA or single sign-on through the company identity provider, live dashboard, Artisan and logs without handing root to everyone.</li>
             <li><strong>Multi-client agency</strong> — one login, N servers. Each box has its own token; dropping a client is revoking a token, not uninstalling Cipi.</li>
             <li><strong>Hosting with billing</strong> — the <a class="inline" href="/docs/advanced#whmcs">WHMCS module</a> speaks the same REST API: create, SSL, deploy, delete on the product lifecycle.</li>
             <li><strong>AI agents</strong> — server MCP for infrastructure; in-app Agent MCP for the codebase. Specs and guardrails in the <a class="inline" href="/guides/spec-driven-development-ai-laravel">spec-driven guide</a>.</li>

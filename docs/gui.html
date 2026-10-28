@@ -314,6 +314,7 @@
                 <a href="/docs/gui#gui-requirements" class="sidebar-link">requirements</a>
                 <a href="/docs/gui#gui-install" class="sidebar-link"><code>gui &lt;domain&gt;</code></a>
                 <a href="/docs/gui#gui-ssl" class="sidebar-link"><code>gui ssl</code></a>
+                <a href="/docs/gui#gui-sso" class="sidebar-link"><code>gui sso</code></a>
                 <a href="/docs/gui#gui-move" class="sidebar-link"><code>gui move</code></a>
                 <a href="/docs/gui#gui-2fa" class="sidebar-link">2FA / TOTP</a>
                 <a href="/docs/gui#gui-update" class="sidebar-link"><code>gui update / upgrade</code></a>
@@ -470,6 +471,10 @@
                     <li><strong>One-time credentials</strong> (SSH and database passwords, deploy key, webhook URL and
                         token) are listed with copy buttons when a job returns them, instead of being buried in CLI
                         output.</li>
+                    <li><strong>Single sign-on</strong> (panel <strong>4.0.2</strong>, Cipi 5.8.2): sign in through
+                        Microsoft Entra ID, Google Workspace, Okta or any OpenID Connect provider, configured from the
+                        server with <a href="#gui-sso"><code>cipi gui sso</code></a>; accounts matched by email, optional
+                        auto-created accounts per domain, an SSO-only mode with the break-glass on the CLI.</li>
                     <li><strong>Repository check and build at creation</strong> (panel <strong>3.2</strong>, API
                         <strong>1.34</strong>, Cipi <strong>5.6.0+</strong>): creating a Laravel app takes an optional
                         build command (<code>npm ci &amp;&amp; npm run build</code>) that runs on every deploy before
@@ -491,7 +496,9 @@
                 <p>Panel <strong>3.0</strong> (October 2026) redesigned every page around the same design system as
                     this site. Panel <strong>3.1</strong> adds Server → Disk; <strong>4.0</strong> roles with invite
                     links, the fleet view, deploy times, the Environment field and the
-                    environment on the <code>cipi.yml</code> tab. See the
+                    environment on the <code>cipi.yml</code> tab; <strong>4.0.2</strong> single sign-on over OpenID
+                    Connect, a header and lists that follow every change without a reload, and jobs run in the
+                    background that still report back. See the
                     <a href="#gui-tour">screenshot tour</a> and the
                     <a href="https://github.com/cipi-sh/gui/blob/main/CHANGELOG.md" target="_blank" rel="noopener">changelog</a>.</p>
             </div>
@@ -798,9 +805,32 @@
                 <h2>Single sign-on — <code>cipi gui sso</code></h2>
                 <p>Since Cipi <strong>5.8.2</strong> and cipi/gui <strong>4.0.2</strong> the panel can sign people in
                     through your identity provider over <strong>OpenID Connect</strong>: Microsoft Entra ID, Google
-                    Workspace, Okta, Keycloak, Authentik — anything with a discovery document. It is configured from
-                    the server, because the panel's <code>.env</code> is Cipi's file to write; the same place is the
-                    break-glass when a provider is misconfigured.</p>
+                    Workspace, Okta, Keycloak, Authentik — anything that publishes a discovery document
+                    (<code>/.well-known/openid-configuration</code>). SAML is not supported. SSO is opt-in and configured
+                    <strong>from the server</strong>, because the panel's <code>.env</code> is Cipi's file to write; the
+                    same place is the break-glass when a provider is misconfigured.</p>
+
+                <h3>1. Register the panel at your identity provider</h3>
+                <p>Create an OIDC client (a &ldquo;web application&rdquo;) and give it the panel's callback as the redirect
+                    URI: <code>https://&lt;panel-domain&gt;/auth/sso/callback</code>. You will get back a client id and a
+                    client secret; note the issuer URL too.</p>
+                <ul>
+                    <li><strong>Microsoft Entra ID</strong> — Entra admin center → App registrations → New registration:
+                        single-tenant, platform <em>Web</em>, redirect URI as above. Then Certificates &amp; secrets → New
+                        client secret. The issuer is <strong>tenant-specific</strong>:
+                        <code>https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0</code> (the Directory (tenant) ID
+                        from the Overview page, never <code>common</code> or <code>organizations</code>: the panel compares
+                        the issuer of every token with the one you configured). Users need a mail address on their account;
+                        the <code>email</code> claim is read from the userinfo endpoint.</li>
+                    <li><strong>Google Workspace</strong> — Google Cloud console → APIs &amp; Services → Credentials →
+                        OAuth client ID, type <em>Web application</em>, authorised redirect URI as above. Issuer:
+                        <code>https://accounts.google.com</code>. Restrict who can sign in with <code>--domains</code>.</li>
+                    <li><strong>Okta, Keycloak, Authentik, Zitadel, Auth0</strong> — a standard OIDC web client with the
+                        authorization-code flow (PKCE is used, a client secret is still required). The issuer is the realm
+                        or application URL whose <code>/.well-known/openid-configuration</code> answers.</li>
+                </ul>
+
+                <h3>2. Turn it on from the server</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -812,23 +842,74 @@
 <span class="p">$</span> cipi gui sso only off               <span class="c"># break-glass: passwords accepted again</span>
 <span class="p">$</span> cipi gui sso disable                <span class="c"># back to password sign-in; accounts and their links are kept</span></pre>
                 </div>
-                <p><code>set</code> prints the <strong>Redirect URI</strong> to register at the provider
-                    (<code>https://&lt;panel&gt;/auth/sso/callback</code>) and the login page gets a
-                    <em>Sign in with …</em> button, labelled after the issuer (<code>--label=</code> to change it).
-                    Flags: <code>--domains=a.com,b.com</code> lets a first sign-in from those email domains create an
-                    account with role <em>user</em> and no access, to be granted in Team; <code>--only</code> is
-                    <code>only on</code> in one go; <code>--scopes=</code> overrides <code>openid email profile</code>.</p>
+                <p><code>set</code> writes the settings to the panel's <code>.env</code>, clears the config cache, runs the
+                    pending migration and prints the <strong>Redirect URI</strong> to check against the one registered at
+                    the provider. The login page gets a <em>Sign in with …</em> button, labelled after the issuer
+                    (&ldquo;Microsoft Entra ID&rdquo;, &ldquo;Google&rdquo;, &ldquo;Okta&rdquo;, else &ldquo;SSO&rdquo;;
+                    <code>--label=</code> to change it). Flags:</p>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead><tr><th>Flag</th><th>What it does</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>--issuer=&lt;url&gt;</code></td><td>The OIDC issuer; its discovery document is fetched and cached for an hour. Required, <code>https://</code> only.</td></tr>
+                            <tr><td><code>--client-id=&lt;id&gt;</code></td><td>The client (application) id from the provider. Required.</td></tr>
+                            <tr><td><code>--client-secret=&lt;secret&gt;</code></td><td>The client secret. Asked on the terminal when omitted; kept when you re-run <code>set</code> to change another flag.</td></tr>
+                            <tr><td><code>--label=&lt;text&gt;</code></td><td>The button text instead of the one derived from the issuer.</td></tr>
+                            <tr><td><code>--domains=&lt;a.com,b.com&gt;</code></td><td>Email domains whose people get an account on their <strong>first sign-in</strong>: role <em>user</em>, no access until an admin grants servers or apps in Team. Without it only existing accounts can sign in.</td></tr>
+                            <tr><td><code>--only</code></td><td>Password sign-in off for everyone, the same as <code>cipi gui sso only on</code>.</td></tr>
+                            <tr><td><code>--scopes=&lt;list&gt;</code></td><td>Instead of <code>openid email profile</code>; <code>openid</code> is always sent.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>3. Who gets in, and how</h3>
                 <ul>
-                    <li><strong>Who gets in:</strong> an account that already exists (seeded by <code>cipi gui</code>, created
-                        from an invite link) is matched by its email and linked to the provider's identity on the first
-                        sign-in; after that the link wins. Anyone else is refused, unless their email domain is in
-                        <code>--domains</code>.</li>
-                    <li><strong>MFA:</strong> the identity provider is the authority — the panel's TOTP step is skipped after
-                        an SSO sign-in. The authorization code flow runs with PKCE, state and nonce; the identity is read
-                        from the provider's userinfo endpoint.</li>
-                    <li><strong>Locked out?</strong> From the server: <code>cipi gui sso only off</code> brings passwords back,
-                        <code>cipi gui reset-user</code> resets the admin. Every change is logged and raises the
-                        <code>gui_sso</code> notification trigger.</li>
+                    <li><strong>Existing accounts</strong> — seeded by <code>cipi gui</code>, created from an invite link
+                        — are matched by their email (case-insensitive) and linked to the provider's identity
+                        (<code>users.sso_subject</code>) on the first sign-in; from then on the link wins, so a renamed
+                        mailbox still lands on the same account. An email already linked to a different identity is
+                        refused (&ldquo;linked to another identity&rdquo;).</li>
+                    <li><strong>New people</strong> get an account only when their email domain is in
+                        <code>--domains</code>; everyone else sees &ldquo;No panel account for … Ask an admin for an invite
+                        link.&rdquo; Nothing is created for a refused sign-in.</li>
+                    <li><strong>Roles and grants</strong> are the panel's, as before: an auto-created account is a
+                        <em>user</em> with nothing granted; admins hand out servers and apps in Team, where SSO-linked
+                        accounts carry an <em>SSO</em> badge.</li>
+                    <li><strong>MFA:</strong> the identity provider is the authority — the panel's own TOTP step is skipped
+                        after an SSO sign-in. Password sign-ins keep their TOTP as before.</li>
+                    <li><strong>Under the hood:</strong> authorization-code flow with PKCE (S256), <code>state</code> and
+                        <code>nonce</code>; the code is exchanged server-to-server with the client secret; the identity
+                        comes from the provider's <strong>userinfo endpoint</strong>, and the ID token's issuer, audience
+                        and nonce are checked against the handshake. An <code>email_verified: false</code> claim is
+                        refused; a provider that does not send the claim (Entra ID) is accepted.</li>
+                    <li><strong>Where it shows:</strong> Settings → Panel has a read-only <em>Single sign-on</em> card
+                        for admins (status, provider, SSO-only, auto-provisioned domains, the redirect URI to copy, and the
+                        CLI to change it); the panel's own <code>.env</code> keys are
+                        <code>CIPI_GUI_SSO_ISSUER</code>, <code>_CLIENT_ID</code>, <code>_CLIENT_SECRET</code>,
+                        <code>_LABEL</code>, <code>_DOMAINS</code>, <code>_ONLY</code>, <code>_SCOPES</code>.</li>
+                </ul>
+
+                <h3>4. Changing provider, locking yourself out, and other troubles</h3>
+                <ul>
+                    <li><strong>A new issuer or client id</strong> (another tenant, a new app registration) makes
+                        <code>set</code> forget every link: an identity's <code>sub</code> is per provider, and Entra ID's
+                        is per app registration. Everyone links again at the next sign-in by email; nothing else changes.</li>
+                    <li><strong>SSO-only and a broken provider:</strong> from the server,
+                        <code>cipi gui sso only off</code> brings password sign-in back, <code>cipi gui sso disable</code>
+                        turns SSO off altogether, <a href="#gui-operations"><code>cipi gui reset-user</code></a> resets the
+                        admin account. Nothing in the panel can bypass SSO-only, by design.</li>
+                    <li><strong>&ldquo;redirect_uri mismatch&rdquo;</strong> from the provider: the URI registered there
+                        differs from the one <code>cipi gui sso status</code> prints (scheme, host, trailing path). After
+                        <a href="#gui-move"><code>cipi gui move</code></a> register the new one.</li>
+                    <li><strong>&ldquo;issuer mismatch&rdquo;</strong>: Entra ID configured with <code>common</code> or
+                        <code>organizations</code> instead of the tenant id, or an issuer with a trailing path the provider
+                        does not put in its tokens — use the exact <code>issuer</code> value from the discovery document.</li>
+                    <li><strong>&ldquo;no email claim&rdquo;</strong>: the account has no mail address, or the client was
+                        not granted the <code>email</code> scope (Entra: API permissions → Microsoft Graph →
+                        <code>email</code>, <code>openid</code>, <code>profile</code>). <code>preferred_username</code> is
+                        not accepted as an email.</li>
+                    <li>Every <code>cipi gui sso</code> change is logged in <code>cipi.log</code> and raises the
+                        <code>gui_sso</code> notification trigger (Security).</li>
                 </ul>
             </div>
 
@@ -880,7 +961,9 @@ cipi gui move panel.newdomain.com --no-ssl   # move now, certificate later (cipi
                 <h2>Two-factor authentication (TOTP)</h2>
                 <p>The panel uses classic session login and supports <strong>optional TOTP two-factor
                     authentication</strong>. Each administrator can enrol an authenticator app (Google Authenticator,
-                    1Password, Aegis, …) from their profile. 2FA is opt-in per user, not forced.</p>
+                    1Password, Aegis, …) from their profile. 2FA is opt-in per user, not forced. With
+                    <a href="#gui-sso">single sign-on</a> the identity provider is the authority for MFA: the TOTP step is
+                    skipped after an SSO sign-in and kept for password sign-ins.</p>
                 <p>If an administrator loses access to their second factor, an operator with shell access can clear it
                     from the server with <a href="#gui-operations"><code>cipi gui reset-user</code></a>, which rewrites
                     the account and removes the 2FA enrolment.</p>
@@ -950,7 +1033,9 @@ cipi gui move panel.newdomain.com --no-ssl   # move now, certificate later (cipi
 
                 <h3><code>cipi gui reset-user</code></h3>
                 <p>Rewrite an administrator's email, name and password, and clear their 2FA enrolment — the recovery path
-                    when someone is locked out. <code>reset-password</code> is an alias for the same command.</p>
+                    when someone is locked out. <code>reset-password</code> is an alias for the same command. Locked out
+                    by <a href="#gui-sso">SSO-only</a> or a broken provider? <code>cipi gui sso only off</code> brings
+                    password sign-in back first.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -1002,7 +1087,7 @@ cipi gui remove --force</pre>
                                                 <tr><td>Install path</td><td><code>/opt/cipi/gui</code></td></tr>
                                                 <tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr>
                                                 <tr><td>Isolation</td><td>PHP-FPM <code>open_basedir</code> restricted to <code>/opt/cipi/gui/</code> and <code>/opt/cipi/cipi-gui/</code> (since <strong>5.0.18</strong>)</td></tr>
-                                                <tr><td>Auth</td><td>Session login + optional TOTP 2FA</td></tr>
+                                                <tr><td>Auth</td><td>Session login + optional TOTP 2FA; optional OpenID Connect SSO (<code>cipi gui sso</code>, 4.0.2+)</td></tr>
                                                 <tr><td>Jobs</td><td>No local queue worker — remote async jobs are polled through each managed server's <code>cipi api</code></td></tr>
                                             </tbody>
                                         </table>
