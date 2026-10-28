@@ -667,7 +667,9 @@
                 <p>All endpoints require the <code>Authorization: Bearer &lt;token&gt;</code> header. Write operations
                     (create, edit, delete, deploy, rollback, unlock, SSL, alias, www, database) are asynchronous: they
                     return
-                    <code>202 Accepted</code> with a <code>job_id</code> to poll via <code>GET /api/jobs/{id}</code>.
+                    <code>202 Accepted</code> with a <code>job_id</code> to poll via <code>GET /api/jobs/{id}</code> — with the
+                    ability the job was created under (<code>apps-create</code> for an app create, <code>dbs-manage</code>
+                    for a database password, …; API 1.36.1+ — before, any token could read any job by id).
                     Read-only endpoints such as <code>GET /api/dbs</code>, <code>GET /api/dbs/engines</code>,
                     <code>GET /api/status</code>, <code>GET /api/apps/{name}/www</code>, and
                     <code>GET /api/apps/{name}/logs</code> (API <strong>1.11.9+</strong>),
@@ -1376,7 +1378,7 @@
                                             <tr>
                                                 <td>GET</td>
                                                 <td><code>/api/jobs/{id}</code></td>
-                                                <td>any authenticated token</td>
+                                                <td>the ability the job was created under (API 1.36.1+; any authenticated token before)</td>
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
@@ -1480,7 +1482,8 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/run"</span> \
 curl -sS <span class="s">"${CIPI_API_URL}/api/run-commands"</span> \
   -H <span class="s">"Authorization: Bearer ${CIPI_API_TOKEN}"</span></pre>
                 </div>
-                <p>Poll <code>GET /api/jobs/{id}</code> for <code>output</code> / <code>exit_code</code>. Job types:
+                <p>Poll <code>GET /api/jobs/{id}</code> for <code>output</code> / <code>exit_code</code> — with the same
+                    ability (<code>apps-artisan</code> / <code>apps-run</code>, API 1.36.1+). Job types:
                     <code>app-artisan</code>, <code>app-run</code>.</p>
 
                 <p><strong>Deploy an app</strong> (async, <code>202</code> + <code>job_id</code>):</p>
