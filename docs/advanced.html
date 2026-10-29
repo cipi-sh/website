@@ -871,6 +871,16 @@
                     <code>webhook</code>, <code>ssh</code>, <code>cron</code>, …), operator, IP and the app's
                     <code>claimed</code> fields. The list is empty until the first deploy after the update. Ability
                     <code>deploy-manage</code>; MCP <code>DeployAudit</code>.</p>
+                <p><strong>Deploy status</strong> (API <strong>1.37.0+</strong> / Cipi <strong>5.8.4+</strong>) —
+                    <code>GET /api/apps/{name}/deploy/status?tail=N</code> is
+                    <a href="/docs/deploy#deploy-status"><code>cipi deploy &lt;app&gt; --status --json</code></a>: whether
+                    a deploy is running right now, whoever started it (<code>state</code> running / queued /
+                    interrupted / idle, <code>phase</code>, <code>current</code> with trigger, branch, start time and
+                    elapsed seconds, <code>last</code> with the previous run's result, optionally the last
+                    <code>tail</code> lines of the deploy log). Synchronous and read-only, safe to poll — the GUI does,
+                    to show a deploy started by a Git push. On a server older than Cipi 5.8.4 the API answers
+                    <code>503</code> and never sends the flag (an older core would start a deploy). Ability
+                    <code>deploy-manage</code>; MCP <code>DeployStatus</code>.</p>
                 <p><strong>Search</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.2+</strong>) —
                     <code>GET /api/search</code> (<code>search-view</code>) and
                     <code>POST /api/apps/{name}/search/enable|disable</code> (<code>search-manage</code>, Laravel apps
@@ -1183,6 +1193,11 @@
                                             <tr>
                                                 <td>GET</td>
                                                 <td><code>/api/apps/{name}/deploy/audit</code></td>
+                                                <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/deploy/status</code></td>
                                                 <td>deploy-manage</td>
                                             </tr>
                                             <tr>
@@ -1693,6 +1708,9 @@ curl -sS -X POST <span class="s">"${CIPI_API_URL}/api/apps/myapp/proxies"</span>
                     </li>
                     <li><strong>Deploy audit:</strong> <code>DeployAudit</code> (API <strong>1.31.0+</strong> / Cipi
                         <strong>5.4.0+</strong>)
+                    </li>
+                    <li><strong>Deploy status:</strong> <code>DeployStatus</code> — is a deploy running right now,
+                        whoever started it (API <strong>1.37.0+</strong> / Cipi <strong>5.8.4+</strong>)
                     </li>
                     <li><strong>Search:</strong> <code>SearchStatus</code>, <code>SearchEnable</code>,
                         <code>SearchDisable</code> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.2+</strong>)

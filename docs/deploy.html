@@ -405,6 +405,7 @@
 <span class="p">$</span> cipi deploy myapp --releases   <span class="c"># list releases with date, how long the deploy took (v5.7.2+), commit and subject</span>
 <span class="p">$</span> cipi deploy myapp --log        <span class="c"># timestamped deploy log (v5.1.0+)</span>
 <span class="p">$</span> cipi deploy myapp --log=200    <span class="c"># last 200 lines of it</span>
+<span class="p">$</span> cipi deploy myapp --status     <span class="c"># v5.8.4+ is a deploy running right now, whoever started it? [--json] [--tail=N]</span>
 <span class="p">$</span> cipi deploy myapp --audit      <span class="c"># v5.4.0+ who and what deployed each release [--days=90] [--json]</span>
 <span class="p">$</span> cipi deploy myapp --key        <span class="c"># show the SSH deploy key</span>
 <span class="p">$</span> cipi deploy myapp --webhook    <span class="c"># show webhook URL and token</span>
@@ -463,7 +464,58 @@
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
                     <div>If a deploy is interrupted (e.g. by a network error), Deployer may leave a lock file behind.
-                        Use <code>cipi deploy myapp --unlock</code> to remove it before re-deploying.</div>
+                        Use <code>cipi deploy myapp --unlock</code> to remove it before re-deploying. Not sure whether
+                        it is interrupted or still working? <code>cipi deploy myapp --status</code> (v5.8.4+) tells the
+                        two apart.</div>
+                </div>
+
+                <h3 id="deploy-status">Is a deploy running? (v5.8.4+)</h3>
+                <p>A deploy started by a Git push has nobody watching it. <code>cipi deploy &lt;app&gt; --status</code>
+                    answers from what both deploy paths already write — the start and end banners of
+                    <code>/home/&lt;app&gt;/logs/deploy.log</code> — and from the processes still alive, so it covers
+                    <code>cipi deploy</code>, the panel, the webhook, cipi/agent and rollbacks alike. It is read-only
+                    and safe to poll; the panel does, to show a deploy it did not start.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p">$</span> cipi deploy myapp --status
+<span class="p">$</span> cipi deploy myapp --status --json --tail=20   <span class="c"># for scripts and the panel API, with the last 20 log lines</span></pre>
+                </div>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>State</th>
+                                <th>Meaning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>running</code></td>
+                                <td>A start banner with no end yet and a process still on it. <code>phase</code> is
+                                    <code>deploy</code> while Deployer builds the release, <code>post-deploy</code> while
+                                    the post-deploy steps, cipi.yml and the healthcheck run after it. <code>current</code>
+                                    names the trigger (<code>cli</code>, <code>panel</code>, <code>webhook</code>,
+                                    <code>mcp</code>, <code>rollback</code>), the branch, the previous release, the start
+                                    time and the seconds elapsed.</td>
+                            </tr>
+                            <tr>
+                                <td><code>queued</code></td>
+                                <td>The webhook has received a push and the per-minute cron has not started the deploy
+                                    yet.</td>
+                            </tr>
+                            <tr>
+                                <td><code>interrupted</code></td>
+                                <td>A start banner with no end and nothing alive any more — a reboot, a kill. The lock
+                                    it left behind is what <code>--unlock</code> removes.</td>
+                            </tr>
+                            <tr>
+                                <td><code>idle</code></td>
+                                <td>Nothing running. <code>last</code> says how the previous run ended: result, kind
+                                    (deploy or rollback), release, duration, exit code, trigger.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

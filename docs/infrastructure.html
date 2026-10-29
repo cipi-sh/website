@@ -1781,6 +1781,14 @@ myapp@server:~$ crontab -e</pre>
                 <p>The verdict never changes the deploy's exit code — the release is live either way — but the alert
                     says so and hands you the rollback command. The success email is sent <em>after</em> verification,
                     so it can never announce a successful deploy while the site is returning 500.</p>
+                <p>Since <strong>v5.8.4</strong> a failed verdict also says where the check comes from —
+                    <code>cipi health set</code>, the panel's "Enable healthcheck", or a <code>health:</code> block in
+                    cipi.yml — and how to change it: <code>--url=</code>, <code>--no-postdeploy</code> to keep the
+                    five-minute probe but skip the one after deploys, <code>cipi health unset</code> to remove it. A
+                    <strong>404</strong> adds the usual cause: Laravel serves <code>/up</code> only when the health
+                    route is on (<code>bootstrap/app.php</code>, <code>health: '/up'</code>). <code>cipi health set
+                    &lt;app&gt; --no-postdeploy</code> on its own keeps the URL and status already set (before 5.8.4 it
+                    reset them to <code>https://&lt;domain&gt;/up</code> and 200).</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button

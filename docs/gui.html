@@ -416,7 +416,11 @@
                     <li><strong>Deploy</strong> — deploy, rollback and unlock; structured <code>deploy.php</code>
                         options; and the app's <a href="/docs/deploy#deploy-audit">deploy audit ledger</a> — who or
                         what deployed each release, from where (API <strong>1.31+</strong> / Cipi
-                        <strong>5.4.0+</strong>).</li>
+                        <strong>5.4.0+</strong>). Since panel <strong>4.1.0</strong> (API <strong>1.37.0</strong> /
+                        Cipi <strong>5.8.4+</strong>) a deploy in progress — started by a Git push, the command line,
+                        the panel or a rollback — is shown on the app page while it runs, with its trigger, branch,
+                        elapsed time and the live tail of the deploy log, listed first in the audit, and announced
+                        when it ends; every audit row opens its own deploy log.</li>
                     <li><strong><code>cipi.yml</code></strong> — the app's tab shows the file of the live release,
                         whether it is valid, what applying would change and what blocks it; apply it as a job, and turn
                         auto-apply after every deploy on or off, with a confirmation that says who can then change the
@@ -465,6 +469,18 @@
                         an admin grants — View or Manage on whole servers, and View, Deploy, Edit, Environment, Logs,
                         Commands or Delete on single apps. People are invited with a copyable link that carries the role
                         and the grants; nothing is emailed.</li>
+                    <li><strong>Deploy in progress</strong> (panel <strong>4.1.0</strong>, API <strong>1.37.0</strong>,
+                        Cipi <strong>5.8.4+</strong>): the app page polls
+                        <a href="/docs/deploy#deploy-status"><code>cipi deploy &lt;app&gt; --status</code></a> and shows a
+                        deploy it did not start — a Git push through the webhook, the command line, another panel, a
+                        rollback — as a banner with the trigger, the branch, the phase (Deployer building the release,
+                        then post-deploy steps, cipi.yml and healthcheck), a ticking elapsed time and the live log tail;
+                        Deploy and Roll back are held while it runs; when it ends a toast gives the result and the
+                        page, the audit and the logs reload. A push waiting for the per-minute cron shows as queued, a
+                        run that died shows as interrupted with the Unlock action. Each audit row has a Log button that
+                        opens that deploy's own slice of the deploy log, post-deploy verdict included. The app header
+                        links to the app's server, and the healthcheck card says the check also runs after every deploy.
+                        On an older server the panel simply shows none of this.</li>
                     <li><strong>Deploy times</strong> (panel <strong>4.0</strong>, Cipi <strong>5.6+</strong>): the deploy
                         audit shows how long each deploy took and the Deploy card the last and average time, read from
                         the deploy log's end banners. Dialogs with a form keep what was typed, and IPs copy on click.</li>
@@ -496,7 +512,7 @@
                 <p>Panel <strong>3.0</strong> (October 2026) redesigned every page around the same design system as
                     this site. Panel <strong>3.1</strong> adds Server → Disk; <strong>4.0</strong> roles with invite
                     links, the fleet view, deploy times, the Environment field and the
-                    environment on the <code>cipi.yml</code> tab; <strong>4.0.2</strong> single sign-on over OpenID
+                    environment on the <code>cipi.yml</code> tab; <strong>4.1.0</strong> a deploy in progress — whoever started it — on the app page with its live log, a log per audit row, a link to the app's server (API 1.37.0 / Cipi 5.8.4); <strong>4.0.2</strong> single sign-on over OpenID
                     Connect, a header and lists that follow every change without a reload, and jobs run in the
                     background that still report back. See the
                     <a href="#gui-tour">screenshot tour</a> and the
