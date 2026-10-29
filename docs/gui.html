@@ -447,6 +447,10 @@
                         auto-refresh.</li>
                     <li>Watch <strong>async jobs</strong> in an interactive overlay (spinner + terminal output while
                         polling <code>GET /api/jobs/{id}</code>).</li>
+                    <li>A <strong>time zone per account</strong> (panel <strong>4.1.1</strong>, Settings → Profile, UTC
+                        until chosen, with a <em>Use my browser's</em> shortcut): the deploy in progress, the deploy audit
+                        and the dashboard clock all follow it, and say which zone they are in. Every button that calls
+                        the server shows a spinner while it waits.</li>
                     <li>Live <strong>dashboard</strong> — CPU, memory, disk, services, and app count via
                         <code>GET /api/status</code>.</li>
                     <li><strong>Server cockpit</strong> (API <strong>1.15+</strong> / Cipi <strong>5.0.6+</strong>) —
@@ -512,7 +516,7 @@
                 <p>Panel <strong>3.0</strong> (October 2026) redesigned every page around the same design system as
                     this site. Panel <strong>3.1</strong> adds Server → Disk; <strong>4.0</strong> roles with invite
                     links, the fleet view, deploy times, the Environment field and the
-                    environment on the <code>cipi.yml</code> tab; <strong>4.1.0</strong> a deploy in progress — whoever started it — on the app page with its live log, a log per audit row, a link to the app's server (API 1.37.0 / Cipi 5.8.4); <strong>4.0.2</strong> single sign-on over OpenID
+                    environment on the <code>cipi.yml</code> tab; <strong>4.1.0</strong> a deploy in progress — whoever started it — on the app page with its live log, a log per audit row, a link to the app's server; <strong>4.1.1</strong> every button that calls the server ignores further clicks and shows a spinner until the answer arrives, and a time zone per account (UTC until chosen) that every time in the panel follows (API 1.37.0 / Cipi 5.8.4); <strong>4.0.2</strong> single sign-on over OpenID
                     Connect, a header and lists that follow every change without a reload, and jobs run in the
                     background that still report back. See the
                     <a href="#gui-tour">screenshot tour</a> and the
@@ -657,7 +661,7 @@
                             <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
                             <img src="/img/gui/settings-2fa.webp" width="1440" height="1040" alt="Settings page with the panel settings and two-factor setup" loading="lazy" decoding="async">
                         </div>
-                        <figcaption>Panel settings (admins), profile, password and TOTP two-factor setup.</figcaption>
+                        <figcaption>Panel settings (admins), profile with its time zone, password and TOTP two-factor setup.</figcaption>
                     </figure>
                 </div>
 
@@ -850,13 +854,13 @@
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p">$</span> cipi gui sso set --issuer=https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0 \
+                    <pre><span class="p"></span>cipi gui sso set --issuer=https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0 \
     --client-id=&lt;application-id&gt; --client-secret=&lt;secret&gt;      <span class="c"># Entra ID; the secret is asked when omitted</span>
-<span class="p">$</span> cipi gui sso set --issuer=https://accounts.google.com --client-id=… --client-secret=… --domains=example.com
-<span class="p">$</span> cipi gui sso status                 <span class="c"># issuer, label, Redirect URI, who can get in, SSO-only or not</span>
-<span class="p">$</span> cipi gui sso only on                <span class="c"># password sign-in off for everyone — the SSO button only</span>
-<span class="p">$</span> cipi gui sso only off               <span class="c"># break-glass: passwords accepted again</span>
-<span class="p">$</span> cipi gui sso disable                <span class="c"># back to password sign-in; accounts and their links are kept</span></pre>
+<span class="p"></span>cipi gui sso set --issuer=https://accounts.google.com --client-id=… --client-secret=… --domains=example.com
+<span class="p"></span>cipi gui sso status                 <span class="c"># issuer, label, Redirect URI, who can get in, SSO-only or not</span>
+<span class="p"></span>cipi gui sso only on                <span class="c"># password sign-in off for everyone — the SSO button only</span>
+<span class="p"></span>cipi gui sso only off               <span class="c"># break-glass: passwords accepted again</span>
+<span class="p"></span>cipi gui sso disable                <span class="c"># back to password sign-in; accounts and their links are kept</span></pre>
                 </div>
                 <p><code>set</code> writes the settings to the panel's <code>.env</code>, clears the config cache, runs the
                     pending migration and prints the <strong>Redirect URI</strong> to check against the one registered at
