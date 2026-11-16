@@ -486,7 +486,7 @@
 <span class="p"></span>cipi api remove               <span class="c"># uninstall API + MCP, tokens, vhost, crons and certificate</span>
 <span class="p"></span>cipi api token list           <span class="c"># list tokens</span>
 <span class="p"></span>cipi api token create         <span class="c"># create a new token (choose abilities)</span>
-<span class="p"></span>cipi api token create --name=ci --full-access   <span class="c"># v5.8.6+ a token that may do everything</span>
+<span class="p"></span>cipi api token create --name=ci --full-access   <span class="c"># v5.9.0+ a token that may do everything</span>
 <span class="p"></span>cipi api token create --name=ci --abilities=apps-view,deploy-manage --expires=2027-06-30
 <span class="p"></span>cipi api token revoke &lt;id&gt;    <span class="c"># revoke a token</span>
 <span class="p"></span>cipi api status               <span class="c"># Laravel + cipi-api versions, queue worker, pending jobs, FPM pool</span>
@@ -639,6 +639,12 @@
                     <li><code>disk-view</code> — disk usage of the server, every app and every database (API
                         <strong>1.33.0+</strong> / Cipi <strong>5.5.2+</strong>). A token created before 1.33 does not
                         have it.</li>
+                    <li><code>node-runtimes-manage</code> — install, upgrade and remove Node runtimes and change the
+                        server default; <code>backups-view</code> — read backup destinations (never their keys),
+                        profiles, last runs and stored archives; <code>backups-manage</code> — create, edit, pause, run
+                        and verify backup profiles (API <strong>1.39.0+</strong> / Cipi <strong>5.9.0+</strong>). A
+                        token created before 1.39 with a list of abilities has none of the three; a full-access token
+                        has them already.</li>
                     <li><code>yml-view</code> — read an app's <code>cipi.yml</code> status and plan;
                         <code>yml-manage</code> — apply it and turn auto-apply on or off (API <strong>1.35.0+</strong> /
                         Cipi <strong>5.6.4+</strong>). A token created before 1.35 has neither.</li>
@@ -664,7 +670,7 @@
                     <strong>4.6.3</strong> retrofits existing servers with the updated list (including
                     <code>status-view</code>, <code>apps-suspend</code>, and <code>apps-basicauth</code>). API
                     <strong>1.19.0</strong> removed <code>dbs-delete</code> along with the endpoints it guarded.</p>
-                <p><strong>Full access</strong> (Cipi <strong>5.8.6</strong>, API <strong>1.38.0</strong>):
+                <p><strong>Full access</strong> (Cipi <strong>5.9.0</strong>, API <strong>1.39.0</strong>):
                     <code>cipi api token create --full-access</code> — or <code>f</code> in the checklist — creates a
                     token with the wildcard ability <code>*</code> instead of a list. It passes every ability check,
                     REST and MCP, and keeps passing for the abilities later versions add, which a token holding
@@ -879,9 +885,44 @@
                     Node status (<code>node-view</code>). <code>POST /api/apps/{name}/node/restart</code> is a blue/green
                     restart, async job <code>node-restart</code> (<code>node-manage</code>). App list/show expose
                     <code>node</code>, <code>node_mode</code> and <code>node_version</code>, plus <code>redirect</code>,
-                    <code>redirects</code> and <code>proxies</code>. Installing, upgrading, removing runtimes and
-                    changing the server default stay on the CLI (<code>cipi node</code>). MCP: <code>NodeRuntimes</code>,
+                    <code>redirects</code> and <code>proxies</code>. MCP: <code>NodeRuntimes</code>,
                     <code>NodeStatus</code>, <code>NodeRestart</code>.</p>
+                <p><strong>Node runtimes (API 1.39.0, Cipi 5.9.0).</strong> Before 1.39 installing, upgrading and removing
+                    runtimes and changing the server default stayed on the CLI. With the ability
+                    <code>node-runtimes-manage</code>: <code>POST /api/node/install</code> (<code>major</code>),
+                    <code>POST /api/node/upgrade</code> (optional <code>major</code>; <code>restart: true</code> moves
+                    the SSR apps to the new binary blue/green), <code>PUT /api/node/default</code>
+                    (<code>major</code>, or <code>system</code>) and <code>DELETE /api/node/{major}</code> — async
+                    jobs <code>node-install</code>, <code>node-upgrade</code>, <code>node-default</code>,
+                    <code>node-remove</code>. On an older core these answer <code>503</code> with what they need.</p>
+                <p><strong>Backups (API 1.39.0, Cipi 5.9.0).</strong> <code>GET /api/backups</code> returns what
+                    <code>cipi backup status --json</code> prints: destinations without their keys, every profile
+                    with the apps and databases it covers right now, its last run, <code>overdue</code>,
+                    <code>running</code>, and <code>uncovered</code> — what no enabled profile takes.
+                    <code>GET /api/backups/runs</code> (optional <code>profile</code>) lists the stored runs per
+                    destination. <code>POST /api/backups/run</code> starts <code>cipi backup run --detach</code> on
+                    the server and answers <code>202</code> at once: the run goes on by itself and
+                    <code>GET /api/backups</code> says when it is done. <code>POST /api/backups/verify</code>,
+                    <code>POST /api/backups/profiles</code>, <code>PUT|DELETE /api/backups/profiles/{name}</code>,
+                    <code>POST …/enable</code> and <code>…/disable</code>, and
+                    <code>POST /api/backups/destinations/test</code> complete it. <strong>Destinations are
+                    read-only</strong>: <code>cipi backup configure</code> and <code>cipi backup destination
+                    add</code> take an S3 secret key, and the only way the API passes a value to the CLI is a command
+                    line (which it also keeps in its jobs table). Buckets are added on the server.</p>
+                <p><strong>Databases and dumps (API 1.39.0, Cipi 5.9.0).</strong> <code>GET /api/dbs</code> returns
+                    <code>app</code>, <code>link</code> and <code>size_mb</code> for each database;
+                    <code>POST /api/dbs</code> takes <code>app</code>; <code>POST|DELETE /api/dbs/{name}/link</code>
+                    link an existing database to an app and unlink it (see <a
+                        href="/docs/infrastructure#cli-db-link">a database that belongs to an app</a>);
+                    <code>GET /api/apps</code> returns each app's <code>databases</code>. A dump can be uploaded
+                    instead of having to be on the server already: <code>GET /api/dbs/uploads/limits</code>,
+                    <code>POST /api/dbs/uploads</code> (<code>filename</code>, <code>size</code>),
+                    <code>POST /api/dbs/uploads/{id}/chunks</code> (<code>index</code>, <code>chunk</code>) — in
+                    pieces, so a dump does not have to fit one request — then
+                    <code>POST /api/dbs/{name}/restore</code> with <code>upload_id</code> in place of
+                    <code>file</code>. <code>.sql</code> or <code>.sql.gz</code>, up to <code>db_upload.max_mb</code>
+                    (2 GB by default); the upload is deleted when the restore job ends, and
+                    <code>DELETE /api/dbs/uploads/{id}</code> gives one up.</p>
                 <p><strong>Deploy audit</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.4.0+</strong>) —
                     <code>GET /api/apps/{name}/deploy/audit?days=90</code> returns the app's records from the
                     <a href="/docs/deploy#deploy-audit">hash-chained deploy ledger</a> (<code>cipi deploy &lt;app&gt;
@@ -899,6 +940,18 @@
                     to show a deploy started by a Git push. On a server older than Cipi 5.8.4 the API answers
                     <code>503</code> and never sends the flag (an older core would start a deploy). Ability
                     <code>deploy-manage</code>; MCP <code>DeployStatus</code>.</p>
+                <p><code>GET /api/apps/{name}/deploy/history?limit=N</code> (API <strong>1.39.0</strong>, Cipi
+                    <strong>5.9.0</strong>) is <a href="/docs/deploy#deploy-history"><code>cipi deploy --history
+                    &lt;app&gt; --json</code></a>: past deploys and rollbacks, newest first, each with
+                    <code>result</code>, <code>kind</code>, <code>release</code>, <code>duration</code>,
+                    <code>exit</code>, <code>trigger</code>, <code>branch</code>, <code>from_release</code>,
+                    <code>started_at</code> and <code>finished_at</code> — read from the deploy log <em>and its
+                    rotated files</em>. A client that read <code>deploy.log</code> through the logs endpoint had the
+                    duration of a deploy until the first nightly rotation only; that is why deploys started by a Git
+                    push seemed to have none. <code>GET /api/deploys/last</code> returns the last finished run of every
+                    app (<code>null</code> for one never deployed), for an app list. Both need <code>apps-view</code>
+                    or <code>deploy-manage</code>, are synchronous and read-only, and answer <code>503</code> on a core
+                    older than 5.9.0 without sending the flag.</p>
                 <p><strong>Search</strong> (API <strong>1.31.0+</strong> / Cipi <strong>5.2.2+</strong>) —
                     <code>GET /api/search</code> (<code>search-view</code>) and
                     <code>POST /api/apps/{name}/search/enable|disable</code> (<code>search-manage</code>, Laravel apps
@@ -1195,6 +1248,26 @@
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
+                                                <td><code>/api/node/install</code></td>
+                                                <td>node-runtimes-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/node/upgrade</code></td>
+                                                <td>node-runtimes-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT</td>
+                                                <td><code>/api/node/default</code></td>
+                                                <td>node-runtimes-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/node/{major}</code></td>
+                                                <td>node-runtimes-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
                                                 <td><code>/api/apps/{name}/deploy</code></td>
                                                 <td>deploy-manage</td>
                                             </tr>
@@ -1217,6 +1290,16 @@
                                                 <td>GET</td>
                                                 <td><code>/api/apps/{name}/deploy/status</code></td>
                                                 <td>deploy-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/apps/{name}/deploy/history</code></td>
+                                                <td>apps-view or deploy-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/deploys/last</code></td>
+                                                <td>apps-view or deploy-manage (1.39+)</td>
                                             </tr>
                                             <tr>
                                                 <td>POST</td>
@@ -1262,6 +1345,71 @@
                                                 <td>POST</td>
                                                 <td><code>/api/dbs/{name}/password</code></td>
                                                 <td>dbs-manage</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST|DELETE</td>
+                                                <td><code>/api/dbs/{name}/link</code></td>
+                                                <td>dbs-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/dbs/uploads/limits</code></td>
+                                                <td>dbs-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs/uploads</code></td>
+                                                <td>dbs-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/dbs/uploads/{id}/chunks</code></td>
+                                                <td>dbs-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DELETE</td>
+                                                <td><code>/api/dbs/uploads/{id}</code></td>
+                                                <td>dbs-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/backups</code></td>
+                                                <td>backups-view (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GET</td>
+                                                <td><code>/api/backups/runs</code></td>
+                                                <td>backups-view (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/backups/run</code></td>
+                                                <td>backups-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/backups/verify</code></td>
+                                                <td>backups-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/backups/destinations/test</code></td>
+                                                <td>backups-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/backups/profiles</code></td>
+                                                <td>backups-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>PUT|DELETE</td>
+                                                <td><code>/api/backups/profiles/{name}</code></td>
+                                                <td>backups-manage (1.39+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>POST</td>
+                                                <td><code>/api/backups/profiles/{name}/enable|disable</code></td>
+                                                <td>backups-manage (1.39+)</td>
                                             </tr>
                                             <tr>
                                                 <td>GET</td>
@@ -3155,8 +3303,8 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     <code>redis-server</code>. It excels at caching, session storage, message queues, real-time
                     broadcasting, and rate limiting.</p>
 
-                <h3 id="valkey-per-app">One instance per app (v5.8.6+)</h3>
-                <p>Until 5.8.6 the server had one Valkey and one password, and every app got it in its
+                <h3 id="valkey-per-app">One instance per app (v5.9.0+)</h3>
+                <p>Until 5.9.0 the server had one Valkey and one password, and every app got it in its
                     <code>.env</code>: any app could read and write the cache, the sessions and the queued jobs of
                     every other app, and one <code>FLUSHDB</code> emptied them all. An app now has an instance of its
                     own — <code>cipi-valkey@&lt;app&gt;.service</code>, running as the app's user, listening on
