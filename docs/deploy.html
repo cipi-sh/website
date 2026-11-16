@@ -403,13 +403,15 @@
                     <pre><span class="p"></span>cipi deploy myapp              <span class="c"># deploy latest commit</span>
 <span class="p"></span>cipi deploy myapp --rollback   <span class="c"># instant rollback to previous release</span>
 <span class="p"></span>cipi deploy myapp --releases   <span class="c"># list releases with date, how long the deploy took (v5.7.2+), commit and subject</span>
+<span class="p"></span>cipi deploy myapp --history    <span class="c"># v5.9.0+ past deploys and rollbacks: result, release, duration, who started it [--limit=30] [--json]</span>
+<span class="p"></span>cipi deploy --last             <span class="c"># v5.9.0+ the last deploy of every app [--json]</span>
 <span class="p"></span>cipi deploy myapp --log        <span class="c"># timestamped deploy log (v5.1.0+)</span>
 <span class="p"></span>cipi deploy myapp --log=200    <span class="c"># last 200 lines of it</span>
 <span class="p"></span>cipi deploy myapp --status     <span class="c"># v5.8.4+ is a deploy running right now, whoever started it? [--json] [--tail=N]</span>
 <span class="p"></span>cipi deploy myapp --audit      <span class="c"># v5.4.0+ who and what deployed each release [--days=90] [--json]</span>
 <span class="p"></span>cipi deploy myapp --key        <span class="c"># show the SSH deploy key</span>
 <span class="p"></span>cipi deploy myapp --webhook    <span class="c"># show webhook URL and token</span>
-<span class="p"></span>cipi deploy myapp --unlock     <span class="c"># remove a stuck deploy lock</span>
+<span class="p"></span>cipi deploy myapp --unlock     <span class="c"># remove a stuck deploy lock (a failed deploy releases its own since v5.9.0)</span>
 <span class="p"></span>cipi deploy myapp --snapshot   <span class="c"># v5.0+ opt-in DB dump before deploy</span>
 <span class="p"></span>cipi deploy myapp --snapshot-required  <span class="c"># fail if snapshot cannot be taken</span>
 <span class="p"></span>cipi deploy myapp --rollback-on-unhealthy  <span class="c"># v5.1.0+ undo a release that fails its healthcheck</span>
@@ -463,8 +465,12 @@
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <div>If a deploy is interrupted (e.g. by a network error), Deployer may leave a lock file behind.
-                        Use <code>cipi deploy myapp --unlock</code> to remove it before re-deploying. Not sure whether
+                    <div>Since <strong>v5.9.0</strong> a deploy that fails releases its own lock: the next one starts
+                        without <code>--unlock</code> (the Laravel recipes end with <code>after('deploy:failed',
+                        'deploy:unlock')</code>, and the update adds the line to the <code>deploy.php</code> of existing
+                        apps). A lock is still left behind when a deploy is <em>interrupted</em> — the process killed,
+                        the server restarted: use <code>cipi deploy myapp --unlock</code> to remove it before
+                        re-deploying. Not sure whether
                         it is interrupted or still working? <code>cipi deploy myapp --status</code> (v5.8.4+) tells the
                         two apart.</div>
                 </div>
@@ -517,6 +523,37 @@
                         </tbody>
                     </table>
                 </div>
+
+                <h3 id="deploy-history">Past deploys, and how long each took (v5.9.0+)</h3>
+                <p>Both deploy paths end a run with a banner in the deploy log — result, release, duration, exit
+                    code. The log is rotated every night, so the banner of yesterday's deploy is no longer in
+                    <code>deploy.log</code> but in <code>deploy.log.1</code>, and after that in a <code>.gz</code>.
+                    Anything that read the current file alone — the panel did — showed how long a deploy took until the
+                    first night and never again: a deploy you start is watched while it runs, one a Git push starts is
+                    looked at the day after. <code>--history</code> reads the rotated files too.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p"></span>cipi deploy myapp --history              <span class="c"># newest first: finished, result, release, took, trigger, branch</span>
+<span class="p"></span>cipi deploy myapp --history --limit=100 --json
+<span class="p"></span>cipi deploy --last                       <span class="c"># every app: when it was last deployed and how it went</span>
+<span class="p"></span>cipi deploy --last --json                <span class="c"># what the app list of the panel shows</span></pre>
+                </div>
+                <ul>
+                    <li>A run is a deploy or a rollback, <code>ok</code> or <code>failed</code>, with its release, its
+                        duration in seconds, its exit code, what started it (<code>cli</code>, <code>panel</code>,
+                        <code>webhook</code>, <code>mcp</code>, <code>rollback</code>), the branch and the release it
+                        replaced. Times are ISO 8601 with the server's offset. The keys are those of <code>last</code> in
+                        <code>--status --json</code>.</li>
+                    <li>Files are read newest first and only as far back as it takes; a run that starts before a
+                        rotation and ends after it keeps its start.</li>
+                    <li><code>cipi deploy myapp --releases</code> finds the duration of a release in the rotated logs
+                        as well.</li>
+                    <li>Scripts that cannot be sure of the Cipi version put the flag first:
+                        <code>cipi deploy --history myapp</code>. A Cipi older than 5.9.0 takes the flag for an app
+                        name and answers <em>not found</em>; <code>cipi deploy myapp --history</code> on it would
+                        start a deploy. The panel API uses the first form.</li>
+                </ul>
             </div>
 
             <div class="doc-section" id="deploy-audit">
@@ -1345,7 +1382,7 @@ deploy:
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p"></span>cipi auth create myapp   <span class="c"># create auth.json with initial { "users": [] } structure</span>
+                    <pre><span class="p"></span>cipi auth create myapp   <span class="c"># create auth.json, then open it in $EDITOR (v5.9.0+; --no-edit to skip)</span>
 <span class="p"></span>cipi auth edit myapp     <span class="c"># open in $EDITOR (fallback: nano), validate JSON on close</span>
 <span class="p"></span>cipi auth show myapp     <span class="c"># print contents formatted with jq</span>
 <span class="p"></span>cipi auth delete myapp   <span class="c"># delete file (asks for confirmation)</span>

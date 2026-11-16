@@ -510,6 +510,50 @@
                         <strong>5.8.1</strong> exited 1 after every successful deploy started through the API, which is
                         why every panel deploy looked failed; the overlay names it, and <code>cipi self-update</code>
                         on the server clears it.</li>
+                    <li><strong>The last deploy in the app list</strong> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>) — when each app was last
+                        deployed and how it went (OK, failed, a rollback), with release, duration and who started it
+                        in the tooltip. It is asked after the list is on the page, of every server at once. The
+                        database column counts the databases <a href="/docs/infrastructure#cli-db-link">linked to the
+                        app</a>.</li>
+                    <li><strong>Deploy durations that stay</strong> (same versions). The Deploy tab took them from
+                        <code>deploy.log</code>, which the server rotates every night: a deploy kept its time until
+                        the first rotation, and one started by a Git push — looked at the day after — never showed
+                        any. They come from the server's <a href="/docs/deploy#deploy-history">deploy history</a>
+                        now, rotated logs included.</li>
+                    <li><strong>Backups</strong> — <em>Server → Backups</em> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>): a matrix of every app and
+                        every database against the <a href="/docs/infrastructure#cli-backup">backup profiles</a>. A
+                        column per profile says what it takes, how often, where it sends it, how long it keeps it and
+                        how its last run went (OK, failed, overdue, running); a mark says which apps and databases it
+                        covers, and a row no enabled profile covers is flagged. Create, edit, pause, run now (on the
+                        server, in the background), verify and delete profiles; test the destinations; list the stored
+                        runs. Buckets are added on the server (<code>cipi backup destination add</code>): their
+                        secret key does not go through the panel.</li>
+                    <li><strong>Node runtimes</strong> — <em>Server → Node</em> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>): install a major, upgrade
+                        to the latest patch (the SSR apps move to the new binary blue/green, without downtime), choose
+                        the server default, remove one nothing uses.</li>
+                    <li><strong>Databases that belong to apps, and dumps from your computer</strong> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>).
+                        The Databases page shows the app of each database and links or unlinks one from its row;
+                        <em>Create database</em> takes an app. <em>Restore</em> accepts a <code>.sql</code> or
+                        <code>.sql.gz</code> from your computer as well as a file on the server: the browser cuts it
+                        into chunks and the panel hands each one on — it keeps nothing, so a dump of any size passes
+                        through request limits that were never meant for it — up to the size the server allows (2 GB
+                        by default), with a progress bar and a Stop.</li>
+                    <li><strong>Saved commands</strong> (panel <strong>4.2.0</strong>) — the one-click commands above
+                        the Artisan and Commands inputs are a list the panel's admins edit from the tab: add the ones
+                        the team runs, remove the ones it never does — the defaults included — or go back to the
+                        defaults. One list for every app and everyone.</li>
+                    <li><strong>A confirmation dialog of the panel's own</strong> (panel <strong>4.2.0</strong>) in
+                        place of the browser's: the question, what it will do, the action's own word on the button —
+                        red, and not focused, when it destroys something.</li>
+                    <li><strong>Pages before answers</strong> (panel <strong>4.2.0</strong>) — Server and the log
+                        viewer are shown at once and load their data after, like Dashboard, Apps and Databases; what a
+                        page still needs first is asked in one round instead of one request after the other. Nothing a
+                        server says is cached between requests: a panel that shows a worker or a backup that is no
+                        longer there is worse than one that takes a moment.</li>
+                    <li><strong>What a user may do is asked at every request</strong> (panel <strong>4.2.0</strong>,
+                        a security fix): the abilities on an app, the app, the server and the job a page works on
+                        can no longer be changed from the browser — a user with <em>View</em> on one app could act on
+                        another app of the same server. Update the panel: <code>cipi gui update</code>.</li>
                     <li>Light and dark themes, a phone layout, and per-section fallbacks: a server whose API is older
                         or whose token is narrower still works for everything it supports.</li>
                 </ul>
@@ -518,7 +562,9 @@
                     links, the fleet view, deploy times, the Environment field and the
                     environment on the <code>cipi.yml</code> tab; <strong>4.1.0</strong> a deploy in progress — whoever started it — on the app page with its live log, a log per audit row, a link to the app's server; <strong>4.1.1</strong> every button that calls the server ignores further clicks and shows a spinner until the answer arrives, and a time zone per account (UTC until chosen) that every time in the panel follows (API 1.37.0 / Cipi 5.8.4); <strong>4.0.2</strong> single sign-on over OpenID
                     Connect, a header and lists that follow every change without a reload, and jobs run in the
-                    background that still report back. See the
+                    background that still report back; <strong>4.2.0</strong> backups as a matrix, Node runtimes,
+                    the last deploy of every app, dump upload, databases linked to apps, saved commands, the panel's
+                    own confirmation dialog, and a security fix. See the
                     <a href="#gui-tour">screenshot tour</a> and the
                     <a href="https://github.com/cipi-sh/gui/blob/main/CHANGELOG.md" target="_blank" rel="noopener">changelog</a>.</p>
             </div>
@@ -708,7 +754,9 @@
                     </svg>
                     <span>Each managed server needs <a href="/docs/advanced#cipi-api"><code>cipi api</code></a> installed and a
                         Bearer token with all abilities. See the <a href="/docs/advanced#cipi-api">API setup guide</a> to
-                        generate one.</span>
+                        generate one; since Cipi <strong>5.9.0</strong>, <code>cipi api token create --name=gui
+                        --full-access</code> creates a token that has every ability, including the ones later
+                        releases add.</span>
                 </div>
 
                 <ul>
@@ -1119,6 +1167,15 @@ cipi gui remove --force</pre>
                     managed server.</p>
 
                 <h3>API coverage</h3>
+                <p>Panel <strong>4.2.0</strong> uses the routes of API <strong>1.39</strong> on Cipi <strong>5.9.0</strong>:
+                    <code>GET /api/deploys/last</code> and <code>GET /api/apps/{name}/deploy/history</code>, the Node
+                    runtime routes (<code>node-runtimes-manage</code>), <code>/api/backups…</code>
+                    (<code>backups-view</code>, <code>backups-manage</code>), database links and the dump upload. A
+                    token created with a list of abilities needs the three new ones — the Connections page prints
+                    the command — or is a full-access token (<code>cipi api token create --name=gui
+                    --full-access</code>). A server on an older API or core keeps every page it had: the Backups tab
+                    says what it needs, the Node tab lists and restarts as before, the Last deploy column is left
+                    out, and durations come from today's deploy log.</p>
                 <p>The GUI consumes the Cipi API through <strong>1.33</strong>. Panel <strong>3.1</strong> adds
                     <strong>Server → Disk</strong>: the filesystem <code>/home</code> is on, every app largest first
                     (files, database, total, share of the disk, soft limit — flagged once over the limit or past 90%
