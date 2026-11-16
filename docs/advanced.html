@@ -486,6 +486,8 @@
 <span class="p"></span>cipi api remove               <span class="c"># uninstall API + MCP, tokens, vhost, crons and certificate</span>
 <span class="p"></span>cipi api token list           <span class="c"># list tokens</span>
 <span class="p"></span>cipi api token create         <span class="c"># create a new token (choose abilities)</span>
+<span class="p"></span>cipi api token create --name=ci --full-access   <span class="c"># v5.8.6+ a token that may do everything</span>
+<span class="p"></span>cipi api token create --name=ci --abilities=apps-view,deploy-manage --expires=2027-06-30
 <span class="p"></span>cipi api token revoke &lt;id&gt;    <span class="c"># revoke a token</span>
 <span class="p"></span>cipi api status               <span class="c"># Laravel + cipi-api versions, queue worker, pending jobs, FPM pool</span>
 <span class="p"></span>cipi api fix-permissions      <span class="c"># repair panel storage/database ownership (www-data)</span>
@@ -662,6 +664,14 @@
                     <strong>4.6.3</strong> retrofits existing servers with the updated list (including
                     <code>status-view</code>, <code>apps-suspend</code>, and <code>apps-basicauth</code>). API
                     <strong>1.19.0</strong> removed <code>dbs-delete</code> along with the endpoints it guarded.</p>
+                <p><strong>Full access</strong> (Cipi <strong>5.8.6</strong>, API <strong>1.38.0</strong>):
+                    <code>cipi api token create --full-access</code> — or <code>f</code> in the checklist — creates a
+                    token with the wildcard ability <code>*</code> instead of a list. It passes every ability check,
+                    REST and MCP, and keeps passing for the abilities later versions add, which a token holding
+                    today's whole list does not get. It is the token for something that is meant to do everything — the
+                    panel, your own automation; a CI pipeline that only deploys is still better served by
+                    <code>deploy-manage</code> alone. <code>--name=</code>, <code>--abilities=a,b</code> and
+                    <code>--expires=YYYY-MM-DD</code> create a token without the prompts.</p>
 
                 <h3>REST endpoints</h3>
                 <p>All endpoints require the <code>Authorization: Bearer &lt;token&gt;</code> header. Write operations
@@ -3144,6 +3154,47 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                     Since <strong>v4.5.6</strong> Cipi provisions <strong>Valkey</strong> instead of
                     <code>redis-server</code>. It excels at caching, session storage, message queues, real-time
                     broadcasting, and rate limiting.</p>
+
+                <h3 id="valkey-per-app">One instance per app (v5.8.6+)</h3>
+                <p>Until 5.8.6 the server had one Valkey and one password, and every app got it in its
+                    <code>.env</code>: any app could read and write the cache, the sessions and the queued jobs of
+                    every other app, and one <code>FLUSHDB</code> emptied them all. An app now has an instance of its
+                    own — <code>cipi-valkey@&lt;app&gt;.service</code>, running as the app's user, listening on
+                    <code>127.0.0.1</code> on a port of its own (from 6400), with its own password
+                    (<code>REDIS_HOST</code>, <code>REDIS_PORT</code>, <code>REDIS_PASSWORD</code> in the app's
+                    <code>.env</code>), its configuration in <code>/etc/cipi-valkey/&lt;app&gt;.conf</code> and its data
+                    in <code>/var/lib/cipi-valkey/&lt;app&gt;</code>. An idle instance costs about 10 MB of RAM.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p"></span>cipi valkey list [--json]         <span class="c"># which app uses which instance</span>
+<span class="p"></span>cipi valkey isolate shop          <span class="c"># its own instance: keys copied, .env switched, workers restarted</span>
+<span class="p"></span>cipi valkey isolate --all         <span class="c"># every app still on the shared one</span>
+<span class="p"></span>cipi valkey share shop            <span class="c"># back to the shared instance</span>
+<span class="p"></span>cipi valkey restart shop
+<span class="p"></span>cipi valkey flush-shared          <span class="c"># once nobody uses it: empty it and change its password</span></pre>
+                </div>
+                <ul>
+                    <li><strong>New Laravel apps</strong> get their instance from <code>cipi app create</code>
+                        (<code>--valkey=shared</code> keeps the old behaviour for one app). It is removed with the
+                        app.</li>
+                    <li><strong>Apps that exist are not touched</strong> until you run <code>isolate</code>. The app
+                        goes into maintenance mode, its workers stop, its keys are copied with their expiry — by the
+                        key prefix the application itself reports — the <code>.env</code> is switched, the config cache
+                        rebuilt, workers (queue, Horizon, Octane, Reverb) restarted, maintenance mode off: seconds. A
+                        copy that is refused leaves the app exactly where it was.</li>
+                    <li>An app whose prefix cannot be read (no release deployed yet, an empty prefix) is not moved
+                        unless you pass <code>--no-copy</code>: it then starts empty, without maintenance mode. An app
+                        whose <code>.env</code> points Redis at another host, or through <code>REDIS_URL</code>, is
+                        left alone.</li>
+                    <li><code>--maxmemory=256mb</code> and <code>--policy=allkeys-lru</code> set a ceiling for the
+                        instance; without them it behaves like the shared one.</li>
+                    <li><code>cipi app clone</code> gives the clone its own instance and no longer copies the
+                        source's <code>REDIS_*</code>; <code>cipi sync</code> keeps this server's Valkey settings for an
+                        app that exists and gives an imported one an instance here.</li>
+                    <li><a href="/docs/infrastructure#cli-pending"><code>cipi pending</code></a> lists the apps still on
+                        the shared instance; a Valkey package upgrade restarts every instance.</li>
+                </ul>
 
                 <h3>Why Valkey instead of Redis</h3>
                 <p>Valkey is the <strong>truly open-source, BSD-licensed</strong> fork of Redis, stewarded by the

@@ -409,7 +409,7 @@
 <span class="p"></span>cipi deploy myapp --audit      <span class="c"># v5.4.0+ who and what deployed each release [--days=90] [--json]</span>
 <span class="p"></span>cipi deploy myapp --key        <span class="c"># show the SSH deploy key</span>
 <span class="p"></span>cipi deploy myapp --webhook    <span class="c"># show webhook URL and token</span>
-<span class="p"></span>cipi deploy myapp --unlock     <span class="c"># remove a stuck deploy lock</span>
+<span class="p"></span>cipi deploy myapp --unlock     <span class="c"># remove a stuck deploy lock (a failed deploy releases its own since v5.8.6)</span>
 <span class="p"></span>cipi deploy myapp --snapshot   <span class="c"># v5.0+ opt-in DB dump before deploy</span>
 <span class="p"></span>cipi deploy myapp --snapshot-required  <span class="c"># fail if snapshot cannot be taken</span>
 <span class="p"></span>cipi deploy myapp --rollback-on-unhealthy  <span class="c"># v5.1.0+ undo a release that fails its healthcheck</span>
@@ -463,8 +463,12 @@
                         <line x1="12" y1="9" x2="12" y2="13" />
                         <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
-                    <div>If a deploy is interrupted (e.g. by a network error), Deployer may leave a lock file behind.
-                        Use <code>cipi deploy myapp --unlock</code> to remove it before re-deploying. Not sure whether
+                    <div>Since <strong>v5.8.6</strong> a deploy that fails releases its own lock: the next one starts
+                        without <code>--unlock</code> (the Laravel recipes end with <code>after('deploy:failed',
+                        'deploy:unlock')</code>, and the update adds the line to the <code>deploy.php</code> of existing
+                        apps). A lock is still left behind when a deploy is <em>interrupted</em> — the process killed,
+                        the server restarted: use <code>cipi deploy myapp --unlock</code> to remove it before
+                        re-deploying. Not sure whether
                         it is interrupted or still working? <code>cipi deploy myapp --status</code> (v5.8.4+) tells the
                         two apart.</div>
                 </div>
@@ -1345,7 +1349,7 @@ deploy:
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p"></span>cipi auth create myapp   <span class="c"># create auth.json with initial { "users": [] } structure</span>
+                    <pre><span class="p"></span>cipi auth create myapp   <span class="c"># create auth.json, then open it in $EDITOR (v5.8.6+; --no-edit to skip)</span>
 <span class="p"></span>cipi auth edit myapp     <span class="c"># open in $EDITOR (fallback: nano), validate JSON on close</span>
 <span class="p"></span>cipi auth show myapp     <span class="c"># print contents formatted with jq</span>
 <span class="p"></span>cipi auth delete myapp   <span class="c"># delete file (asks for confirmation)</span>
