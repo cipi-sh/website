@@ -568,6 +568,21 @@
                     <pre><span class="p"></span>cipi api fix-permissions   <span class="c"># chown storage, database, bootstrap/cache, .env → www-data</span>
 <span class="p"></span>cipi api status              <span class="c"># confirm Laravel version, queue worker, pending jobs</span></pre>
                 </div>
+                <p><strong>The panel's Backups tab says "not configured" on a server where backups run.</strong> The
+                    tab shows what <code>cipi backup status --json</code> answers when the API runs it. Compare on the
+                    server, as root:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p"></span>ls -l /etc/cipi/backup.json                                             <span class="c"># the file `cipi backup configure` writes</span>
+<span class="p"></span>sudo -u www-data sudo -n /usr/local/bin/cipi backup status --json | head -c 300   <span class="c"># exactly what the panel runs</span></pre>
+                </div>
+                <p>No file: backups were configured on another server, or never with <code>cipi backup
+                    configure</code>. <code>"configured": true</code> from the second command: the server is fine and
+                    the answer is lost on the way — panel <strong>4.2.1</strong> and API <strong>1.39.1</strong> show
+                    the error instead of "not configured" (<code>cipi api update</code>, <code>cipi gui update</code>).
+                    sudo asking for a password: <code>/etc/sudoers.d/cipi-api</code> does not list the backup
+                    commands — the migration of Cipi 5.9.0 writes them.</p>
                 <p><code>cipi api status</code> prints the installed Laravel and <code>cipi/api</code> package versions,
                     whether <code>cipi-queue.service</code> is active, pending async jobs in the panel SQLite database,
                     and PHP-FPM pool stats for the API vhost (including slow requests when configured).
@@ -832,7 +847,9 @@
                     in the panel's IP tab. <code>show</code> never aborts on a read-only directory (missing file =
                     allow all).</p>
                 <p><code>GET /api/status</code> returns the same structured JSON as <code>cipi status</code> (system,
-                    resources, services, PHP pools, app count). Since API <strong>1.11.8+</strong> the endpoint prefers
+                    resources, services, PHP pools, app count). Since API <strong>1.39.1</strong>
+                    <code>system.api</code> is the installed <code>cipi/api</code> release, next to
+                    <code>system.cipi</code>: the panel (4.2.1+) shows both on the Server page. Since API <strong>1.11.8+</strong> the endpoint prefers
                     <code>sudo cipi status</code> on the host and falls back to direct host reads when sudo is
                     unavailable. Since API <strong>1.12.1+</strong> the host-read fallback includes
                     <code>postgresql</code> when the systemd unit is installed (matching Cipi 4.8+). Requires the
@@ -909,6 +926,13 @@
                     read-only</strong>: <code>cipi backup configure</code> and <code>cipi backup destination
                     add</code> take an S3 secret key, and the only way the API passes a value to the CLI is a command
                     line (which it also keeps in its jobs table). Buckets are added on the server.</p>
+                <p>Since API <strong>1.39.1</strong> <code>GET /api/backups</code> always carries
+                    <code>configured</code> as a boolean — an answer of the CLI without it is a <code>503</code> that
+                    says so, never an empty <code>200</code> — and says where it comes from: <code>host</code> (the
+                    server's hostname) and <code>config_file</code> (<code>/etc/cipi/backup.json</code>, the file
+                    <code>cipi backup configure</code> writes and the status looks for). A line sudo prints around
+                    the JSON is ignored; sudo refusing the command is reported as that, with the file to check
+                    (<code>/etc/sudoers.d/cipi-api</code>).</p>
                 <p><strong>Databases and dumps (API 1.39.0, Cipi 5.9.0).</strong> <code>GET /api/dbs</code> returns
                     <code>app</code>, <code>link</code> and <code>size_mb</code> for each database;
                     <code>POST /api/dbs</code> takes <code>app</code>; <code>POST|DELETE /api/dbs/{name}/link</code>
