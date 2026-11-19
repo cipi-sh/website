@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-21",
+      "dateModified": "2026-11-19",
       "headline": "Cipi Docs — Infrastructure",
       "name": "Infrastructure",
       "url": "https://cipi.sh/docs/infrastructure",
@@ -360,11 +360,13 @@
             <div class="doc-section" id="cli-php">
                 <p class="doc-section-label">Infrastructure</p>
                 <h1><code>cipi php</code></h1>
-                <p>PHP 8.5 is pre-installed during setup. Additional versions can be added at any time; since
+                <p>A new server is installed with <a href="#php-86">PHP 8.6</a> since <strong>v5.9.1</strong> (8.5 before,
+                    and for as long as the repository has no complete release of 8.6); a server that is already
+                    installed keeps the PHP it has. Additional versions can be added at any time; since
                     <strong>v4.5.12</strong> Cipi probes APT sources per Ubuntu codename. Since <strong>v5.6.3</strong>
                     the order is <a href="https://packages.sury.org/php/" target="_blank"
                         rel="noopener">packages.sury.org</a> first (24.04 and 26.04), then the ondrej/php PPA, then
-                    Ubuntu main as a last resort (co-installable 8.3–8.5 where the chosen repo supports it). Same
+                    Ubuntu main as a last resort (co-installable 8.3–8.6 where the chosen repo supports it). Same
                     maintainer and packages, but sury.org publishes first: on the 2026-10-21 security release it had
                     the fixed builds for 24.04 while the PPA was still building them. Migration 5.6.3 moves existing
                     servers off the PPA, removing it only once sury.org is in place.</p>
@@ -379,19 +381,90 @@
                     <div>Since <strong>v4.5.4</strong> Cipi bundles <strong>Deployer 8</strong>, which requires
                         <strong>PHP &ge; 8.3</strong>. <code>cipi php install</code>, <code>cipi php switch</code>,
                         <code>cipi app create</code> and <code>cipi app edit</code> therefore accept only
-                        <strong>8.3, 8.4 and 8.5</strong>. Legacy versions (7.4–8.2) remain detectable and removable, so
+                        <strong>8.3, 8.4, 8.5</strong> and, since <strong>v5.9.1</strong>,
+                        <a href="#php-86"><strong>8.6</strong></a>. Legacy versions (7.4–8.2) remain detectable and removable, so
                         you can still clean up a pre-4.5.4 server with <code>cipi php remove &lt;old-version&gt;</code>.</div>
                 </div>
+
+                <p id="php-legacy">A server installed before v4.5.4 can still have PHP 7.4–8.2, with apps on them. Cipi
+                    manages what is there and adds nothing to it: <code>cipi php list</code> shows those versions
+                    (8.1 and older marked END OF LIFE), <code>cipi service</code> lists and restarts their FPM,
+                    and an app on one keeps it and keeps running. Since <strong>v5.9.1</strong>
+                    <code>cipi status</code> lists their FPM too, and a server-wide
+                    <a href="#cli-ini"><code>cipi ini set</code></a> reaches them.
+                    What no longer works on a legacy version: installing it, giving it to an app, making it the
+                    server's PHP, and — on a server with Deployer 8 — deploying an app that is still on it. Move the
+                    app first with <code>cipi app edit &lt;app&gt; --php=8.5</code>. The panel and the API follow the
+                    same rule: a legacy version is listed and marked, and never offered to an app
+                    (GUI after 4.2.1, API 1.39.2).</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="p"></span>cipi php list              <span class="c"># installed versions, status, patch version, security state, system default</span>
-<span class="p"></span>cipi php install 8.4       <span class="c"># install an additional PHP version (8.3–8.5)</span>
+<span class="p"></span>cipi php install 8.4       <span class="c"># install an additional PHP version (8.3–8.6)</span>
 <span class="p"></span>cipi php switch 8.4        <span class="c"># set system default (root/cipi, API pool)</span>
 <span class="p"></span>cipi php remove 8.1        <span class="c"># remove a version, incl. legacy (blocks if default or apps use it)</span>
 <span class="p"></span>cipi php upgrade           <span class="c"># apply security patches, then report the patch level (exit 1 while vulnerable)</span></pre>
                 </div>
+
+                <h3 id="php-86">PHP 8.6 (v5.9.1+)</h3>
+                <p><strong>A new server is installed with PHP 8.6.</strong> It is the server's PHP — the
+                    <code>php</code> command, the panel's pools — and what <code>cipi app create</code> uses when
+                    no <code>--php</code> is given. The installer does that when the repository has a release of
+                    8.6 with every extension Cipi installs. While it only has a release candidate, or no
+                    <code>redis</code>, <code>memcached</code> or <code>imagick</code> package for 8.6 yet, the
+                    server gets 8.5 as before and the installer's last screen says why. That was still the case
+                    on the afternoon of 19 November 2026, the day PHP 8.6.0 was released: packages.sury.org had
+                    8.6.0 itself and none of those three, so a server installed then got 8.5. The installer looks
+                    again at every install; nothing has to be updated for it to choose 8.6. On a server that
+                    got 8.5, <code>cipi php install 8.6</code> and then <code>cipi php switch 8.6</code> move it
+                    later.</p>
+                <p><strong>A server that is already installed keeps the PHP it has.</strong> Updating to 5.9.1
+                    does not install 8.6, does not move an app to it and does not change the server's PHP. There
+                    8.6 is a version you add: <code>cipi php install 8.6</code> installs it next to the ones
+                    already there, and <code>cipi php switch</code>, <code>cipi app create --php=8.6</code>,
+                    <code>cipi app edit &lt;app&gt; --php=8.6</code> and <code>php: "8.6"</code> in
+                    <a href="/cipi-yml">cipi.yml</a> accept it. Installing it does not make it the default:
+                    <code>cipi app create</code> without <code>--php</code> keeps using the server's PHP until
+                    <code>cipi php switch 8.6</code>. When you install it while the branch is new, three things
+                    are worth knowing:</p>
+                <ul>
+                    <li><strong>You get what the repository has that day.</strong> PHP 8.6.0 was released on
+                        19 November 2026 and packages.sury.org had it within hours; the Launchpad PPA, which servers
+                        set up before 5.6.3 may still use, carried a release candidate that afternoon. Where the
+                        repository only has a release candidate Cipi installs it and calls it what it is:
+                        <code>cipi php list</code>, <code>cipi php upgrade</code> and <code>cipi pending</code> show
+                        <strong>prerelease</strong> instead of comparing it with a security release. The nightly
+                        <code>cipi php upgrade</code> moves it to 8.6.0 when the repository has it.</li>
+                    <li><strong>Extensions that are not packaged yet come later, by themselves.</strong> PHP's own
+                        packages are published first; <code>redis</code>, <code>memcached</code> and
+                        <code>imagick</code> are separate projects and follow. Before 5.9.1 the install failed on the
+                        first missing package. Now it stops only if PHP itself (<code>fpm</code>, <code>cli</code>,
+                        <code>common</code>) is missing; otherwise it installs the version without the extensions apt
+                        does not have, names them, and keeps the list in
+                        <code>/var/lib/cipi/php-ext-pending</code>. The nightly <code>cipi php upgrade</code> installs
+                        each one as soon as it is published and restarts that version's FPM;
+                        <code>cipi pending</code> lists them until then. Mind what a missing one means: Laravel's
+                        default Redis client is the <code>redis</code> extension, so an app that uses Redis for
+                        cache, sessions or queues does not work on a PHP without it. For that reason
+                        <code>cipi app create</code>, <code>cipi app edit --php</code>,
+                        <code>cipi app clone</code> and <code>php:</code> in cipi.yml refuse a version that is
+                        still waiting for extensions and name what is missing. An app that uses none of them goes
+                        on with <code>--force</code> (<code>cipi app edit &lt;app&gt; --php=8.6 --force</code>);
+                        a Node app is not asked, its PHP only runs Deployer and the webhook receiver. From the
+                        panel the job fails with the same message: <code>--force</code> is given on the command
+                        line only.</li>
+                    <li><strong>An app's <code>composer.lock</code> may need a refresh first.</strong> Every Laravel
+                        app depends on <code>nette/schema</code> and <code>nette/utils</code> (through
+                        <code>league/commonmark</code>), and their releases before 20 October 2026 declare PHP up to
+                        8.5: <code>composer install</code> refuses such a lock on 8.6 and the deploy fails, leaving
+                        the release that was live in place. Run
+                        <code>composer update nette/schema nette/utils</code> in the project (1.3.7+ and 4.1.6+),
+                        commit the lock, then switch the app.</li>
+                </ul>
+                <p>The panel needs <code>cipi/api</code> <strong>1.39.2</strong> to install 8.6 or assign it to an
+                    app; on a server older than 5.9.1 it answers <code>422</code> with the version it needs.</p>
 
                 <h3>Security patch upgrades</h3>
                 <p>Since <strong>v4.7.13</strong>, PHP packages are excluded from
@@ -410,8 +483,11 @@
 
                 <h3 id="php-security">Patch level report (v5.6.3+)</h3>
                 <p>After upgrading, <code>cipi php upgrade</code> prints one line per installed PHP version, compared
-                    with the oldest release that carries every security fix Cipi knows about (8.5.12, 8.4.27, 8.3.36,
-                    8.2.35 as of the PHP security release of 2026-10-21):</p>
+                    with the oldest release that carries every security fix Cipi knows about. Since v5.9.1 that is
+                    <strong>8.5.13, 8.4.28, 8.3.37 and 8.2.36</strong> — the PHP security release of 2026-11-19 —
+                    and 8.6.0, released the same day with the same fixes. Up to v5.9.0 it was 8.5.12, 8.4.27, 8.3.36
+                    and 8.2.35 (the release of 2026-10-21); a server on those is reported vulnerable from v5.9.1
+                    on:</p>
                 <ul>
                     <li><strong>patched</strong> — at or past that release.</li>
                     <li><strong>VULNERABLE</strong> — the fix exists but this server does not have it, typically
@@ -423,7 +499,26 @@
                         Cipi installs 8.3 and later only, so this affects servers set up before 4.5.4; move their apps
                         with <code>cipi app edit &lt;app&gt; --php=8.5</code>. PHP 8.2 security support ends on
                         <strong>2026-12-31</strong>, and the report says so.</li>
+                    <li><strong>prerelease</strong> (v5.9.1+) — a release candidate, beta or alpha: what the
+                        repository carries for a branch that is not released yet (see
+                        <a href="#php-86">PHP 8.6</a>). It is not compared with a security release.</li>
                 </ul>
+                <p id="php-security-2026-11-19"><strong>The release of 2026-11-19.</strong> It fixes, among others,
+                    request smuggling in PHP-FPM (CVE-2026-129289), a use-after-free in the PHP-FPM master
+                    (CVE-2026-129291), two ways to code execution through session files (CVE-2026-126714,
+                    CVE-2026-115560), a use-after-free of the timezone cache (CVE-2026-129496) and, on 8.5 and
+                    later, one in fatal-error backtraces (CVE-2026-129474). Migration 5.9.1 runs
+                    <code>cipi php upgrade</code>, which installs the fixed packages and restarts PHP-FPM. Where a
+                    Cipi server stood before that: its vhosts never set <code>fastcgi_keep_conn</code>, which the
+                    request smuggling needs (check a vhost written by hand with
+                    <code>nginx -T | grep fastcgi_keep_conn</code>); upload progress and
+                    <code>fatal_error_backtraces</code> are off in every pool since v5.6.3 and in Octane apps since
+                    v5.7.1, which closes CVE-2026-115560, CVE-2026-129474 and the upload path of CVE-2026-126714;
+                    the PHP-FPM master issue needs <code>catch_workers_output</code>, set only in the panel's own
+                    pools, and code already running as their user. The timezone one has no setting that closes it:
+                    it needs the update. An <a href="/docs/apps#cli-app-octane">Octane</a> app runs the PHP built into its
+                    FrankenPHP binary, which apt does not touch: <code>cipi php upgrade</code> lists it as
+                    vulnerable until the app has a FrankenPHP build on a fixed PHP.</p>
                 <p>While a version is <strong>VULNERABLE</strong> the command exits <code>1</code>, so the nightly
                     cron mails a failure through <code>cipi-cron-notify</code> until the fix is in.</p>
                 <p><strong>Octane apps</strong> are checked too. FrankenPHP runs on the PHP built into the binary that
@@ -442,8 +537,9 @@
                 </div>
                 <p><code>cipi php list</code> shows the same patch version and security state for each version;
                     <code>cipi php list --json</code> adds <code>patch</code>, <code>security</code>
-                    (<code>patched</code>, <code>vulnerable</code>, <code>distro</code>, <code>eol</code> or
-                    <code>unknown</code>) and <code>security_floor</code> to every entry.</p>
+                    (<code>patched</code>, <code>vulnerable</code>, <code>distro</code>, <code>eol</code>,
+                    <code>prerelease</code> since 5.9.1, or <code>unknown</code>) and <code>security_floor</code> to
+                    every entry.</p>
 
                 <h3>FPM pool hardening (v5.6.3+)</h3>
                 <p>Every PHP-FPM pool Cipi writes — app pools, Node webhook pools, and the panel API and GUI pools —
@@ -1230,8 +1326,83 @@ fatal_error_backtraces = 0   <span class="c">; ignored by PHP below 8.5</span></
                 <p>Nginx is on the <code>unattended-upgrades</code> blacklist, so patches are applied when you ask for
                     them: <code>cipi nginx upgrade [--yes]</code> runs <code>apt --only-upgrade</code> over the
                     installed <code>nginx*</code> packages, keeps your <code>nginx.conf</code>, checks the config with
-                    <code>nginx -t</code> and reloads. Details in
+                    <code>nginx -t</code> and reloads. Since <strong>v5.9.0</strong> the nightly
+                    <a href="#cli-autoupdate"><code>cipi autoupdate</code></a> runs the same code. Details in
                     <a href="#cli-stack-upgrade">manual stack upgrades</a>.</p>
+
+                <h3 id="nginx-security"><code>cipi nginx security</code> and nginx 1.31.9 (v5.9.1+)</h3>
+                <p>nginx <strong>1.31.9</strong> (18 November 2026) is a security release with ten CVEs. Cipi 5.9.1
+                    brings every server to it; <code>cipi self-update</code> is all it takes. What applies to a Cipi
+                    server:</p>
+                <ul>
+                    <li><strong>CVE-2026-118899</strong> — an endless loop while reading a request body over TLS 1.3:
+                        one request keeps a worker at 100% CPU. Any HTTPS vhost, so <strong>every server</strong>.</li>
+                    <li><strong>CVE-2026-125283</strong> — a buffer overflow with <code>try_files</code> under an
+                        <code>alias</code>. The panel API vhost had exactly that for <code>/api-docs</code>; 5.9.1
+                        serves it without the <code>alias</code>, which did nothing, and the migration removes the
+                        line from an installed vhost.</li>
+                    <li><strong>CVE-2026-123007</strong> and <strong>CVE-2026-123633</strong> — memory corruption in
+                        the HTTP/2 code. Cipi 4 and 5 write <code>listen 443 ssl;</code>, never
+                        <code>http2 on;</code>, and nginx has HTTP/2 off by default since 1.25.1, so a server as Cipi
+                        sets it up <strong>cannot be reached</strong> by either. They apply where HTTP/2 was turned on
+                        by hand, on a vhost written by Cipi 3, or by an older version of the
+                        <a href="/docs/deploy#preview-environments">preview environments</a> workflow on this site,
+                        which added <code>listen 443 ssl http2;</code>.</li>
+                    <li>The other six are in parts Cipi does not use: the resolver, HTTP/3, mail, stream and the PROXY
+                        protocol v2.</li>
+                </ul>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p"></span>cipi nginx security        <span class="c"># patch level, the binary that is running, where HTTP/2 is on</span></pre>
+                </div>
+                <p>It prints the installed version against the oldest one that carries every fix Cipi knows about
+                    (1.31.9), whether the nginx that answers requests is the one on disk, and every configuration file
+                    that turns HTTP/2 on. It only reports; <a href="#cli-pending"><code>cipi pending</code></a> carries
+                    the first two as items (below 1.31.9, the archive's build, an old binary still running).</p>
+                <p><strong>Which nginx a server runs.</strong> Since 4.5.9 Cipi runs nginx from
+                    <a href="https://nginx.org/en/linux_packages.html#mainline" target="_blank" rel="noopener">nginx.org's
+                    mainline repository</a>. Between 4.6.5 and 5.9.0 (10 June – 19 November 2026) the installer did
+                    not: a server installed in that period runs the Ubuntu archive's nginx (1.24.0 on 24.04), without
+                    <code>max_headers</code>, and — nginx being on the <code>unattended-upgrades</code> blacklist —
+                    got security updates from nobody. <code>dpkg-query -W nginx</code> tells: a version like
+                    <code>1.24.0-2ubuntu7.x</code> is the archive's, <code>1.31.9-1~noble</code> is nginx.org's.
+                    Migration 5.9.1 moves such a server to nginx.org mainline:</p>
+                <ul>
+                    <li>one apt transaction — nginx.org's <code>nginx</code> in,
+                        <code>libnginx-mod-http-headers-more-filter</code> out — <strong>simulated first</strong>: if
+                        apt cannot do all of it, nothing is removed and nginx stays as it is, with a warning;</li>
+                    <li>refused before anything is touched when the installed nginx already fails
+                        <code>nginx -t</code>, or when a file other than <code>nginx.conf</code> uses a headers-more
+                        directive (<code>more_set_headers</code> and the like), which nginx.org's build does not
+                        have. The warning names the files; remove the directives and run
+                        <code>cipi nginx upgrade</code>;</li>
+                    <li><code>nginx.conf</code> is adapted in place and keeps the rest of what is in it: the
+                        <code>modules-enabled</code> include and <code>more_clear_headers</code> go,
+                        <code>max_headers 1000;</code> comes in. The previous file stays next to it as
+                        <code>nginx.conf.cipi-&lt;timestamp&gt;.bak</code>. Only if nginx refuses the adapted file is
+                        it replaced by Cipi's own.</li>
+                </ul>
+                <p><code>cipi nginx upgrade</code> and the nightly run do the same on such a server, asking first when
+                    run by hand.</p>
+                <p><strong>The binary that answers is the one just installed.</strong> The nginx.org package asks
+                    the running master to start the new binary, and exits 0 when that fails; when it works, old
+                    workers stay for as long as one of their connections is open — hours, with a WebSocket. After an
+                    upgrade Cipi waits a few seconds and looks at every nginx process: if one still runs the replaced
+                    binary, nginx is <strong>restarted</strong> instead of reloaded (connections drop for well under a
+                    second).</p>
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>After <code>cipi self-update</code> to 5.9.1, run <code>cipi nginx security</code> once. The
+                        move from the Ubuntu archive's packages to nginx.org's was tested against simulated package
+                        managers, not on every combination of a real server: if the migration printed a warning, this
+                        command says what is left to do.</div>
+                </div>
             </div>
 
             <div class="doc-section" id="cli-backup">
@@ -3204,6 +3375,11 @@ Host ssh.example.com
                         <code>/boot</code> against the one that is running;</li>
                     <li><strong>PHP</strong> below its security release, or a branch that is end of life;
                         <strong>Composer</strong> and <strong>Node.js</strong> below theirs;</li>
+                    <li>since <strong>v5.9.1</strong>: <strong>nginx</strong> below its security release (1.31.9), on
+                        the Ubuntu archive's build instead of nginx.org mainline, or upgraded on disk with the old
+                        binary still running (<a href="#nginx-security">nginx security</a>); a PHP that is a
+                        <strong>release candidate</strong>, and the extensions a new PHP branch is still
+                        <a href="#php-86">waiting for</a>;</li>
                     <li>a newer package of a component whose automatic update is <strong>off</strong>, or whose last
                         run <strong>failed</strong>;</li>
                     <li><strong>PHP extensions installed with PECL</strong> (or built by hand). Cipi installs
@@ -3240,6 +3416,7 @@ Host ssh.example.com
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
                     <pre><span class="c"># nginx — apt --only-upgrade of installed nginx*, nginx -t, then reload</span>
 <span class="p"></span>cipi nginx upgrade [--yes]
+<span class="p"></span>cipi nginx security        <span class="c"># v5.9.1+ patch level, running binary, where HTTP/2 is on</span>
 
 <span class="c"># databases — one engine, or every installed engine when omitted</span>
 <span class="p"></span>cipi db upgrade [mariadb|pgsql] [--yes]
@@ -3265,7 +3442,10 @@ Host ssh.example.com
                                 <td><code>apt --only-upgrade</code> of the installed <code>nginx*</code> packages from
                                     the nginx.org mainline repo Cipi already configured, then <code>nginx -t</code> and
                                     a reload. <code>/etc/nginx/nginx.conf</code> is kept
-                                    (<code>--force-confold</code>) — this is not the HTTP/2-bomb rewrite.</td>
+                                    (<code>--force-confold</code>) — this is not the HTTP/2-bomb rewrite. Since
+                                    <strong>v5.9.1</strong>: nginx is restarted instead of reloaded when the old
+                                    binary is still running after the upgrade, and a server on the Ubuntu archive's
+                                    nginx is <a href="#nginx-security">moved to nginx.org mainline</a>.</td>
                             </tr>
                             <tr>
                                 <td><code>cipi db upgrade [engine] [--yes]</code></td>

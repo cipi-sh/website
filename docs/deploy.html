@@ -907,7 +907,7 @@ deploy:
                     <pre>version: 1
 
 app:
-  <span class="c"># 8.3, 8.4 or 8.5 — must already be installed (cipi php install 8.5)</span>
+  <span class="c"># 8.3, 8.4, 8.5 or 8.6 — must already be installed (cipi php install 8.5)</span>
   php: <span class="s">"8.5"</span>
 
   <span class="c"># The declared list replaces the current aliases: one you remove here is
@@ -3118,6 +3118,23 @@ DOMAIN="${BRANCH_SLUG}-${PROJECT_SLUG}-${HASH}.${DEPLOY_WILDCARD_DOMAIN}"</pre>
                     </div>
                 </div>
 
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>If you copied these pipelines before 19 November 2026:</strong> they added
+                        <code>listen 443 ssl http2;</code> to each preview vhost, which turns HTTP/2 on — the only
+                        place where a Cipi server gets it, and what two of the CVEs fixed in nginx 1.31.9
+                        (CVE-2026-123007, CVE-2026-123633) need. The examples below now write
+                        <code>listen 443 ssl;</code>, like every vhost Cipi writes. Update to Cipi 5.9.1
+                        (<code>cipi self-update</code>, which installs nginx 1.31.9), change the line in your
+                        workflow, and run <a href="/docs/infrastructure#nginx-security"><code>cipi nginx
+                        security</code></a> to see which existing vhosts still have it.</div>
+                </div>
+
                 <h3>GitHub Actions</h3>
                 <p>Add these secrets to the repository: <code>SERVER_HOST</code>, <code>SERVER_SSH_KEY</code>,
                     <code>DEPLOY_WILDCARD_DOMAIN</code> (e.g. <code>preview.domain.ltd</code>), <code>GH_PAT</code> (a
@@ -3186,7 +3203,7 @@ jobs:
               awk -v cert="$WILDCARD" '
                 /^    listen 80;/ {
                   print
-                  print "    listen 443 ssl http2;"
+                  print "    listen 443 ssl;"
                   print "    ssl_certificate " cert "/fullchain.pem;"
                   print "    ssl_certificate_key " cert "/privkey.pem;"
                   next
@@ -3303,7 +3320,7 @@ deploy-preview:
           awk -v cert="\$WILDCARD" '
             /^    listen 80;/ {
               print
-              print "    listen 443 ssl http2;"
+              print "    listen 443 ssl;"
               print "    ssl_certificate " cert "/fullchain.pem;"
               print "    ssl_certificate_key " cert "/privkey.pem;"
               next

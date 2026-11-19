@@ -31,7 +31,7 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "datePublished": "2026-06-03",
-      "dateModified": "2026-10-22",
+      "dateModified": "2026-11-19",
       "headline": "Cipi Docs — PHP SDK",
       "name": "PHP SDK",
       "url": "https://cipi.sh/docs/php-sdk",
@@ -567,6 +567,18 @@ CIPI_ALLOW_HTTP=false</pre>
 <span class="nv">$cipi</span>-&gt;jobs()-&gt;wait(<span class="nv">$job</span>, timeoutSeconds: <span class="mi">120</span>, intervalSeconds: <span class="mf">1.0</span>);</pre>
                 </div>
                 <p>Deploy config edits the structured Deployer options and regenerates <code>deploy.php</code>. It does not upload a raw PHP file. The audit call is synchronous and reads the hash-chained ledger (Cipi 5.4.0+).</p>
+                <p>A deploy can be watched while it runs, and the past ones read back:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="nv">$status</span> = <span class="nv">$cipi</span>-&gt;deploys()-&gt;status(<span class="s">'shop'</span>, tail: <span class="mi">50</span>)[<span class="s">'data'</span>];
+<span class="nv">$status</span>[<span class="s">'state'</span>];   <span class="c">// running, queued, interrupted or idle</span>
+<span class="nv">$status</span>[<span class="s">'tail'</span>];    <span class="c">// the last 50 lines of the deploy log</span>
+
+<span class="nv">$cipi</span>-&gt;deploys()-&gt;history(<span class="s">'shop'</span>, limit: <span class="mi">10</span>);
+<span class="nv">$cipi</span>-&gt;deploys()-&gt;last(); <span class="c">// the last run of every app, null for one never deployed</span></pre>
+                </div>
+                <p>All three are synchronous. <code>status()</code> needs the <code>deploy-manage</code> ability, cipi/api 1.37.0+ and Cipi CLI 5.8.4+; <code>tail</code> is 0 to 500 lines. <code>history()</code> and <code>last()</code> need <code>apps-view</code> or <code>deploy-manage</code>, cipi/api 1.39.0+ and Cipi CLI 5.9.0+; <code>limit</code> is 1 to 500, 30 when omitted.</p>
                 <p>An app can ship a <a href="/docs/deploy#cli-yml"><code>cipi.yml</code></a> in its repository that describes the server state it expects. <code>yml()</code> reads its status and plan, applies it, and turns auto-apply on or off:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">php</span><button
@@ -670,6 +682,56 @@ CIPI_ALLOW_HTTP=false</pre>
 <span class="nv">$cipi</span>-&gt;databases()-&gt;password(<span class="s">'shop'</span>);</pre>
                 </div>
                 <p><code>engine</code> is <code>mariadb</code> or <code>pgsql</code>. Omit it to use the server default. Backup, restore, and password regeneration are jobs. The restore path has to be a <code>.sql.gz</code> file already on the server.</p>
+                <p>A database can belong to an app, and a dump on your machine can be restored without copying it to the server first:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;databases()-&gt;create(<span class="s">'shop_reports'</span>, <span class="s">'pgsql'</span>, app: <span class="s">'shop'</span>));
+<span class="nv">$cipi</span>-&gt;databases()-&gt;link(<span class="s">'legacy'</span>, <span class="s">'shop'</span>);
+<span class="nv">$cipi</span>-&gt;databases()-&gt;unlink(<span class="s">'legacy'</span>);
+
+<span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;databases()-&gt;restoreLocal(<span class="s">'shop'</span>, __DIR__.<span class="s">'/shop.sql.gz'</span>));</pre>
+                </div>
+                <p>A linked database shows under its app (<code>apps()-&gt;list()</code> returns each app's <code>databases</code>) and <code>list()</code> returns <code>app</code>, <code>link</code> and <code>size_mb</code> for each one. <code>link()</code> and <code>unlink()</code> are synchronous.</p>
+                <p><code>restoreLocal()</code> sends a <code>.sql</code> or <code>.sql.gz</code> file in chunks and starts the restore job on it. The file is read one chunk at a time, so its size is not bound by <code>memory_limit</code>. If a chunk or the restore call is refused, the partial upload is cancelled before the exception reaches you. The steps are available one by one:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="nv">$cipi</span>-&gt;databases()-&gt;uploadLimits();                       <span class="c">// max size, chunk size, what may wait</span>
+<span class="nv">$upload</span> = <span class="nv">$cipi</span>-&gt;databases()-&gt;upload(<span class="s">'/tmp/shop.sql.gz'</span>); <span class="c">// start + every chunk</span>
+<span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;databases()-&gt;restoreUpload(<span class="s">'shop'</span>, <span class="nv">$upload</span>[<span class="s">'data'</span>][<span class="s">'upload_id'</span>]));
+
+<span class="nv">$cipi</span>-&gt;databases()-&gt;startUpload(<span class="s">'shop.sql.gz'</span>, <span class="nv">$bytes</span>);
+<span class="nv">$cipi</span>-&gt;databases()-&gt;uploadChunk(<span class="nv">$uploadId</span>, <span class="mi">0</span>, <span class="nv">$firstChunk</span>);
+<span class="nv">$cipi</span>-&gt;databases()-&gt;cancelUpload(<span class="nv">$uploadId</span>);</pre>
+                </div>
+                <p>The panel deletes an uploaded dump when its restore job ends, or after a day. Links and uploads need the <code>dbs-manage</code> ability, cipi/api 1.39.0+ and Cipi CLI 5.9.0+; an older host returns 503.</p>
+                <h3>Backups</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="nv">$backups</span> = <span class="nv">$cipi</span>-&gt;backups()-&gt;status()[<span class="s">'data'</span>];
+<span class="nv">$backups</span>[<span class="s">'uncovered'</span>]; <span class="c">// apps and databases no enabled profile takes</span>
+
+<span class="nv">$cipi</span>-&gt;backups()-&gt;createProfile(<span class="s">'nightly'</span>, [
+    <span class="s">'scope'</span> =&gt; <span class="s">'all'</span>,            <span class="c">// all, files or db</span>
+    <span class="s">'every'</span> =&gt; <span class="s">'1d'</span>,             <span class="c">// or 'cron' =&gt; '0 3 * * *'</span>
+    <span class="s">'destinations'</span> =&gt; [<span class="s">'s3'</span>],    <span class="c">// local, s3 or a named destination</span>
+    <span class="s">'keep_days'</span> =&gt; <span class="mi">14</span>,
+    <span class="s">'encrypt'</span> =&gt; <span class="k">true</span>,
+]);
+<span class="nv">$cipi</span>-&gt;backups()-&gt;updateProfile(<span class="s">'nightly'</span>, [<span class="s">'keep_days'</span> =&gt; <span class="mi">30</span>]);
+<span class="nv">$cipi</span>-&gt;backups()-&gt;disableProfile(<span class="s">'nightly'</span>);
+<span class="nv">$cipi</span>-&gt;backups()-&gt;enableProfile(<span class="s">'nightly'</span>);
+<span class="nv">$cipi</span>-&gt;backups()-&gt;deleteProfile(<span class="s">'nightly'</span>);
+
+<span class="nv">$cipi</span>-&gt;backups()-&gt;run(<span class="s">'nightly'</span>);             <span class="c">// omit the profile to run every enabled one</span>
+<span class="nv">$cipi</span>-&gt;backups()-&gt;runs(<span class="s">'nightly'</span>);
+<span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;backups()-&gt;verify(<span class="s">'nightly'</span>));
+<span class="nv">$cipi</span>-&gt;backups()-&gt;testDestinations();</pre>
+                </div>
+                <p><code>run()</code> is not a job: the panel answers <code>202</code> with <code>started: true</code> as soon as the run has started, and the outcome shows in <code>status()</code> (<code>running</code>, then the profile's last run). Do not pass its answer to <code>wait()</code>. <code>verify()</code> is a job (<code>backup-verify</code>). Everything else is synchronous. A profile also takes <code>apps</code>, <code>databases</code>, <code>exclude_databases</code>, <code>exclude_tables</code>, <code>keep</code> and <code>keep_weeks</code>. Destinations and their credentials are configured on the server with <code>cipi backup configure</code> and are never returned.</p>
+                <p>Reads need the <code>backups-view</code> ability, writes <code>backups-manage</code>; both need cipi/api 1.39.0+ and Cipi CLI 5.9.0+. Existing tokens do not get them automatically.</p>
             </div>
 
             <hr class="doc-divider">
@@ -701,6 +763,16 @@ CIPI_ALLOW_HTTP=false</pre>
 <span class="nv">$cipi</span>-&gt;disk()-&gt;databases();</pre>
                 </div>
                 <p>Packages, the system monitor, Cloudflare Zero Trust, and disk usage are read-only here, matching the panel API. Installing those pieces stays on the host CLI. <code>disk()</code> needs Cipi CLI 5.5.2 (older hosts return 503). Sizes are measured on request. The per-app soft limit is <code>limits()</code>, not <code>disk()</code>.</p>
+                <p>Node runtimes are installed, upgraded, and removed as jobs:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;node()-&gt;install(<span class="mi">24</span>));
+<span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;node()-&gt;upgrade(<span class="mi">24</span>, restart: <span class="k">true</span>)); <span class="c">// omit the major to upgrade every runtime</span>
+<span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;node()-&gt;setDefault(<span class="mi">24</span>));             <span class="c">// or 'system'</span>
+<span class="nv">$cipi</span>-&gt;wait(<span class="nv">$cipi</span>-&gt;node()-&gt;remove(<span class="mi">20</span>));</pre>
+                </div>
+                <p>They need the <code>node-runtimes-manage</code> ability, cipi/api 1.39.0+ and Cipi CLI 5.9.0+. Existing tokens do not get the ability automatically.</p>
                 <p>The API allowlist defaults to <code>*</code>. Restrict it without locking yourself out — <code>ensure_client_ip: true</code> keeps the caller on the list:</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">php</span><button
