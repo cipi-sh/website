@@ -195,6 +195,8 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-frankenphp" class="sidebar-link"><code>frankenphp</code> builds</a>
+                <a href="/docs/apps#cli-app-jit" class="sidebar-link"><code>app jit</code></a>
                 <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
@@ -329,8 +331,8 @@
                 <a href="/docs/advanced#whmcs" class="sidebar-link">WHMCS module</a>
                 <a href="/docs/advanced#cipi-sync" class="sidebar-link"><code>cipi sync</code></a>
                 <a href="/docs/advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
-                <a href="/docs/advanced#cipi-smtp" class="sidebar-link">email notifications</a>
-                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">chat alert channels</a>
+                <a href="/docs/advanced#cipi-smtp" class="sidebar-link"><code>notification</code> &amp; SMTP</a>
+                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">notification channels</a>
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
@@ -377,6 +379,26 @@
                         to an older PHP version — switch it with <code>cipi app edit &lt;app&gt; --php=8.3</code> (or
                         higher) first.</div>
                 </div>
+
+                <h3 id="deployer-version">Deployer version (v5.10.0+)</h3>
+                <p>Up to 5.9.x the installer downloaded <code>https://deployer.org/deployer.phar</code>, which now
+                    serves <strong>Deployer 6.8.0</strong>: no <code>deploy:publish</code>, so every deploy of a fresh
+                    server stopped at <code>Task `deploy:publish` not found</code>
+                    (<a href="https://github.com/cipi-sh/cipi/issues/519" target="_blank" rel="noopener">#519</a>).
+                    Since <strong>v5.10.0</strong> Deployer comes from its GitHub release, pinned to
+                    <strong>8.0.5</strong>, checked against the SHA-256 GitHub publishes for <code>deployer.phar</code>
+                    and asked its version before it is installed; <code>setup.sh</code> stops when it cannot install
+                    it, and <code>cipi deploy</code> refuses Deployer 6 with what to run. Migration 5.10.0 moves a
+                    server on Deployer 6 or 7 to 8.0.5 — keeping 7, and naming the apps, where an app still runs PHP
+                    below 8.3.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p"></span>dep --version                                                    <span class="c"># Deployer 8.0.5</span>
+<span class="c"># by hand, as root (what setup.sh and the migration run)</span>
+<span class="p"></span>source /opt/cipi/lib/deployer-install.sh &amp;&amp; cipi_deployer_install</pre>
+                </div>
+
 
                 <h3>Deploy pipeline</h3>
                 <p>Deployer and Composer run with the <strong>app's configured PHP version</strong> (e.g.
@@ -2627,10 +2649,10 @@ deploy:
                         <line x1="12" y1="16" x2="12.01" y2="16" />
                     </svg>
                     <div>Since <strong>v5.3.0</strong> the server can post for you — webhook deploys included:
-                        <code>cipi notifications channel add slack ops --url=…</code> sends every
+                        <code>cipi notification add slack ops --url=…</code> sends every
                         <code>deploy_success</code>, <code>deploy_fail</code> and <code>deploy_rollback</code> (and every
                         other trigger) to Slack, Discord, Telegram, ntfy or a custom webhook. See
-                        <a href="/docs/advanced#cipi-alert-channels">chat alert channels</a>. The pipeline examples
+                        <a href="/docs/advanced#cipi-alert-channels">notification channels</a>. The pipeline examples
                         below are still the way to go when the message should come from CI.</div>
                 </div>
 

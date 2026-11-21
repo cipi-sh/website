@@ -198,6 +198,8 @@
                 <a href="/docs/apps" class="sidebar-group-label">apps</a>
                 <a href="/docs/apps#cli-app-create" class="sidebar-link"><code>app create</code></a>
                 <a href="/docs/apps#cli-app-octane" class="sidebar-link">Laravel Octane</a>
+                <a href="/docs/apps#cli-frankenphp" class="sidebar-link"><code>frankenphp</code> builds</a>
+                <a href="/docs/apps#cli-app-jit" class="sidebar-link"><code>app jit</code></a>
                 <a href="/docs/apps#cli-app-node" class="sidebar-link">Node apps</a>
                 <a href="/docs/apps#cli-app-custom" class="sidebar-link">custom apps</a>
                 <a href="/docs/apps#cli-app-manage" class="sidebar-link"><code>app list / show / edit</code></a>
@@ -332,8 +334,8 @@
                 <a href="/docs/advanced#whmcs" class="sidebar-link">WHMCS module</a>
                 <a href="/docs/advanced#cipi-sync" class="sidebar-link"><code>cipi sync</code></a>
                 <a href="/docs/advanced#cipi-vault" class="sidebar-link">vault &amp; encryption</a>
-                <a href="/docs/advanced#cipi-smtp" class="sidebar-link">email notifications</a>
-                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">chat alert channels</a>
+                <a href="/docs/advanced#cipi-smtp" class="sidebar-link"><code>notification</code> &amp; SMTP</a>
+                <a href="/docs/advanced#cipi-alert-channels" class="sidebar-link">notification channels</a>
                 <a href="/docs/advanced#cipi-log-retention" class="sidebar-link">log retention (GDPR)</a>
                 <a href="/docs/advanced#valkey" class="sidebar-link">valkey</a>
                 <a href="/docs/advanced#self-update" class="sidebar-link">self-update</a>
@@ -827,7 +829,7 @@
                 <p><strong>SMTP</strong> — <code>GET|PUT|DELETE /api/smtp</code>,
                     <code>POST /api/smtp/enable|disable|test</code> (abilities <code>smtp-view</code> /
                     <code>smtp-manage</code>; password never returned on GET; API <strong>1.15.0+</strong> / Cipi
-                    <strong>5.0.6+</strong> non-interactive <code>cipi smtp configure --host=…</code>).</p>
+                    <strong>5.0.6+</strong> non-interactive <code>cipi smtp configure --host=…</code>; since 5.10.0 also <code>cipi notification add smtp --host=…</code>).</p>
                 <p><strong>Healthchecks</strong> — <code>GET /api/health</code>,
                     <code>GET|PUT|DELETE /api/apps/{name}/health</code>,
                     <code>POST /api/apps/{name}/health/check</code> (abilities <code>health-view</code> /
@@ -2884,14 +2886,32 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 
             <!-- ── Email Notifications ── -->
             <div class="doc-section" id="cipi-smtp">
-                <h2>Email Notifications</h2>
-                <p>Cipi can send email alerts when backup errors, deploy failures, system cron job failures, or
-                    security-relevant authentication events occur.
-                    SMTP configuration is stored encrypted in <code>/etc/cipi/smtp.json</code> and included in sync
-                    exports. Since <strong>v5.3.0</strong> the same notifications can also go to Slack, Discord,
-                    Telegram, ntfy or a webhook — see <a href="#cipi-alert-channels">chat alert channels</a>.</p>
+                <h2>Notifications &amp; SMTP</h2>
+                <p>Cipi notifies on backup errors, deploy failures, system cron job failures, security-relevant
+                    authentication events, monitor alerts, PHP and FrankenPHP patches and more. Since
+                    <strong>v5.10.0</strong> one command, <code>cipi notification</code>, manages where they go: SMTP is
+                    one channel among <a href="#cipi-alert-channels">Resend, Amazon SES, Slack, Discord, Mattermost,
+                    Google Chat, Telegram, ntfy, Pushover and webhooks</a>, and every trigger that is on reaches every
+                    enabled channel.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre><span class="p"></span>cipi notification                     <span class="c"># every channel (SMTP first) and how many triggers are on</span>
+<span class="p"></span>cipi notification --json              <span class="c"># the same, no secret in it (*_set: true)</span>
+<span class="p"></span>cipi notification add smtp --host=smtp.example.com --port=587 --user=… --password=… \
+    --from=alerts@example.com --to=ops@example.com --tls=on
+<span class="p"></span>cipi notification test smtp           <span class="c"># or: test all</span>
+<span class="p"></span>cipi notification disable smtp        <span class="c"># keep it, stop sending</span>
+<span class="p"></span>cipi notification remove smtp
+<span class="p"></span>cipi notification triggers            <span class="c"># which events notify</span></pre>
+                </div>
+                <p>The SMTP configuration is the one <code>cipi smtp configure</code> has always written, stored
+                    encrypted in <code>/etc/cipi/smtp.json</code> and included in sync exports: nothing to redo on an
+                    existing server. <code>cipi smtp …</code> and <code>cipi notifications …</code> (the older name,
+                    with <code>list</code>, <code>enable|disable &lt;trigger&gt;</code> and <code>channel …</code>) keep
+                    working, and so does the panel's SMTP page.</p>
 
-                <h3>Commands</h3>
+                <h3><code>cipi smtp</code> (all versions)</h3>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -2910,9 +2930,12 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 </div>
 
                 <h3>Granular notification triggers</h3>
-                <p>Since <strong>v4.6.3</strong>, you can control which events send email when SMTP is configured.
-                    All triggers are <strong>on by default</strong>; events are always logged to
-                    <code>/var/log/cipi/events.log</code> regardless.</p>
+                <p>Since <strong>v4.6.3</strong>, you can control which events notify. All triggers are <strong>on by
+                    default</strong>; events are always logged to <code>/var/log/cipi/events.log</code> regardless.
+                    Since v5.10.0 the commands are <code>cipi notification triggers [list|enable &lt;t&gt;|disable
+                    &lt;t&gt;|enable-all|disable-all|reset]</code>; the forms below keep working
+                    (<code>cipi notification enable|disable &lt;name&gt;</code> toggles a channel when the name is one,
+                    a trigger otherwise).</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -2951,6 +2974,11 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 <p><strong>v5.3.1</strong> adds two under Domains, both on by default:
                     <code>redirect_change</code> for <a href="/docs/infrastructure#cli-redirect"><code>cipi redirect</code></a>
                     and <code>proxy_change</code> for <a href="/docs/infrastructure#cli-proxy"><code>cipi proxy</code></a>.</p>
+
+                <p><strong>v5.10.0</strong> adds three: <code>frankenphp_upgrade</code> (the FrankenPHP build of an
+                    Octane app changed or was upgraded, or the upgrade was rolled back), <code>frankenphp_available</code>
+                    (a FrankenPHP release on another PHP minor or a new major, announced once and not applied) and
+                    <code>app_jit</code> (JIT turned on or off for an app).</p>
 
                 <p><strong>v5.4.0</strong> adds <code>node_default</code> under a new Node category: the server-wide
                     Node version changed (<a href="/docs/infrastructure#cli-node"><code>cipi node default</code></a>, or
@@ -3029,6 +3057,9 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                             <tr><td><code>php_switch</code></td><td>PHP</td><td>System PHP switched</td></tr>
                                             <tr><td><code>php_remove</code></td><td>PHP</td><td>PHP version removed</td></tr>
                                             <tr><td><code>php_upgrade</code></td><td>PHP</td><td>PHP packages upgraded</td></tr>
+                                            <tr><td><code>frankenphp_upgrade</code></td><td>PHP</td><td>FrankenPHP build of an Octane app changed or upgraded</td></tr>
+                                            <tr><td><code>frankenphp_available</code></td><td>Updates</td><td>FrankenPHP release on another PHP minor or major, not applied</td></tr>
+                                            <tr><td><code>app_jit</code></td><td>PHP</td><td>JIT turned on or off for an app</td></tr>
                                             <tr><td><code>nginx_upgrade</code></td><td>Stack</td><td>nginx packages upgraded <strong>(5.2.3)</strong></td></tr>
                                             <tr><td><code>mariadb_upgrade</code></td><td>Stack</td><td>MariaDB packages upgraded <strong>(5.2.3)</strong></td></tr>
                                             <tr><td><code>pgsql_upgrade</code></td><td>Stack</td><td>PostgreSQL packages upgraded <strong>(5.2.3)</strong></td></tr>
@@ -3155,30 +3186,41 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
 
             <!-- ── Alert Channels ── -->
             <div class="doc-section" id="cipi-alert-channels">
-                <h2>Chat alert channels</h2>
-                <p>Since <strong>v5.3.0</strong>, email is no longer the only way out of Cipi's notifications. Every
-                    trigger — deploys, backups, scans, SSH logins, healthchecks and
-                    <a href="/docs/infrastructure#cli-monitor">monitor</a> alerts — also fans out to
-                    <strong>Slack</strong>, <strong>Discord</strong>, <strong>Telegram</strong>, <strong>ntfy</strong> or
-                    a custom <strong>webhook</strong>. Channels do not need SMTP. And nothing changes until you add one:
-                    with no channel configured, delivery is email-only, exactly as before.</p>
+                <h2>Notification channels</h2>
+                <p>Since <strong>v5.3.0</strong>, email is no longer the only way out of Cipi's notifications, and
+                    since <strong>v5.10.0</strong> email itself has three ways: SMTP, the <strong>Resend</strong> API and
+                    <strong>Amazon SES</strong>. Every trigger — deploys, backups, scans, SSH logins, healthchecks and
+                    <a href="/docs/infrastructure#cli-monitor">monitor</a> alerts — fans out to every enabled channel:
+                    <strong>Slack</strong>, <strong>Discord</strong>, <strong>Mattermost</strong>, <strong>Google
+                    Chat</strong>, <strong>Telegram</strong>, <strong>ntfy</strong>, <strong>Pushover</strong> or a
+                    <strong>webhook</strong> (optionally signed). Channels do not need SMTP.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-                    <pre><span class="p"></span>cipi notifications channel add slack ops --url=https://hooks.slack.com/services/…
-<span class="p"></span>cipi notifications channel add discord team --url=https://discord.com/api/webhooks/…
-<span class="p"></span>cipi notifications channel add telegram oncall --token=&lt;bot-token&gt; --chat-id=&lt;id&gt;
-<span class="p"></span>cipi notifications channel add ntfy phone --url=https://ntfy.sh/my-topic --priority=high
-<span class="p"></span>cipi notifications channel add webhook pager --url=https://example.com/hooks/cipi
+                    <pre><span class="p"></span>cipi notification add resend mail --api-key=re_… --from="Cipi &lt;alerts@example.com&gt;" --to=ops@example.com,dev@example.com
+<span class="p"></span>cipi notification add ses aws --region=eu-west-1 --access-key=AKIA… --secret-key=… \
+    --from=alerts@example.com --to=ops@example.com
+<span class="p"></span>cipi notification add slack ops --url=https://hooks.slack.com/services/…
+<span class="p"></span>cipi notification add discord team --url=https://discord.com/api/webhooks/…
+<span class="p"></span>cipi notification add mattermost team --url=https://chat.example.com/hooks/…
+<span class="p"></span>cipi notification add googlechat team --url=https://chat.googleapis.com/v1/spaces/…
+<span class="p"></span>cipi notification add telegram oncall --token=&lt;bot-token&gt; --chat-id=&lt;id&gt;
+<span class="p"></span>cipi notification add ntfy phone --url=https://ntfy.sh/my-topic --priority=high
+<span class="p"></span>cipi notification add pushover phone --token=&lt;app token&gt; --user=&lt;user key&gt;
+<span class="p"></span>cipi notification add webhook pager --url=https://example.com/hooks/cipi --secret=…
 
-<span class="p"></span>cipi notifications channel list [--json]   <span class="c"># secrets masked</span>
-<span class="p"></span>cipi notifications channel test ops        <span class="c"># or: test all</span>
-<span class="p"></span>cipi notifications channel disable ops     <span class="c"># keep it, stop sending</span>
-<span class="p"></span>cipi notifications channel enable ops
-<span class="p"></span>cipi notifications channel remove ops</pre>
+<span class="p"></span>cipi notification [--json]           <span class="c"># every channel; secrets never shown</span>
+<span class="p"></span>cipi notification test ops           <span class="c"># or: test all</span>
+<span class="p"></span>cipi notification disable ops        <span class="c"># keep it, stop sending</span>
+<span class="p"></span>cipi notification enable ops
+<span class="p"></span>cipi notification remove ops</pre>
                 </div>
-                <p>Channel ids are lowercase letters, digits and dashes, and unique on the server.</p>
+                <p>Channel ids are lowercase letters, digits and dashes, and unique on the server (<code>smtp</code> is
+                    the SMTP channel). A secret left out of the command line (<code>--api-key</code>,
+                    <code>--secret-key</code>, <code>--token</code>) is asked for on the terminal, without echo. The
+                    commands before 5.10.0 — <code>cipi notifications channel add|list|test|enable|disable|remove</code>
+                    — keep working.</p>
 
                 <div class="table-scroll">
                     <table class="cmd-table">
@@ -3190,6 +3232,22 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                             </tr>
                         </thead>
                         <tbody>
+                            <tr>
+                                <td><code>resend</code></td>
+                                <td><code>--api-key=re_…</code>; <code>--from=</code> on a domain verified in Resend;
+                                    <code>--to=</code> one or more addresses, comma-separated</td>
+                                <td>A plain-text email through the <a href="https://resend.com" target="_blank" rel="noopener">Resend</a>
+                                    API. The key goes to curl on stdin, never on its command line.</td>
+                            </tr>
+                            <tr>
+                                <td><code>ses</code></td>
+                                <td><code>--region=</code>, <code>--access-key=</code>, <code>--secret-key=</code> of an
+                                    IAM user allowed <code>ses:SendEmail</code>; <code>--from=</code> a verified identity;
+                                    <code>--to=</code> (verified too while SES is in its sandbox)</td>
+                                <td>A plain-text email through Amazon SES API v2 (<code>SendEmail</code>), the request
+                                    signed with AWS Signature Version 4 by Cipi itself — no AWS CLI. The secret key signs
+                                    and is never sent.</td>
+                            </tr>
                             <tr>
                                 <td><code>slack</code></td>
                                 <td><code>--url=</code> — an Incoming Webhook</td>
@@ -3217,9 +3275,22 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                                     default-priority channel to <code>high</code>.</td>
                             </tr>
                             <tr>
+                                <td><code>mattermost</code>, <code>googlechat</code></td>
+                                <td><code>--url=</code> — the incoming webhook</td>
+                                <td>A text message, as for Slack (Mattermost takes Slack's payload).</td>
+                            </tr>
+                            <tr>
+                                <td><code>pushover</code></td>
+                                <td><code>--token=</code> — the application token; <code>--user=</code> — the user or
+                                    group key</td>
+                                <td>A push notification; urgent triggers at priority 1.</td>
+                            </tr>
+                            <tr>
                                 <td><code>webhook</code></td>
-                                <td><code>--url=</code></td>
-                                <td>Structured JSON, for anything else.</td>
+                                <td><code>--url=</code> (https://, or http:// for a receiver on your network); optional
+                                    <code>--secret=</code></td>
+                                <td>Structured JSON, for anything else. With a secret, the request carries
+                                    <code>X-Cipi-Signature: sha256=&lt;HMAC-SHA256 of the body, hex&gt;</code>.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -3241,9 +3312,21 @@ vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read 
                 <h3>Best-effort, never blocking</h3>
                 <p>Each channel gets a <strong>5-second timeout</strong>, and a failed delivery is only logged to
                     <code>/var/log/cipi/events.log</code>: a slow or dead webhook can never stall a deploy or a cron run.
-                    Channels are stored encrypted in <code>/etc/cipi/alerts.json</code>; <code>channel list</code> masks
-                    the secret part of webhook URLs and shows only the start of a bot token.</p>
-                <p>Channels follow the same triggers as email: <code>cipi notifications disable &lt;trigger&gt;</code>
+                    Channels are stored encrypted in <code>/etc/cipi/alerts.json</code>; the list shows a webhook URL down
+                    to its host and only the start of a bot token, and <code>--json</code> reports an API key, AWS secret
+                    key or webhook secret as <code>&lt;name&gt;_set: true</code>, never its value.</p>
+                <p>To check a signed webhook on the receiving side:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">php</span><button
+                            class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
+                    <pre>$expected = 'sha256=' . hash_hmac('sha256', file_get_contents('php://input'), $secret);
+if (! hash_equals($expected, $_SERVER['HTTP_X_CIPI_SIGNATURE'] ?? '')) {
+    http_response_code(401);
+    exit;
+}</pre>
+                </div>
+
+                <p>Channels follow the same triggers as email: <code>cipi notification triggers disable &lt;trigger&gt;</code>
                     mutes that event everywhere, and there is no per-channel filter. A chat message carries the same body
                     as the email, footer included.</p>
 
