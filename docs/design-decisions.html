@@ -185,376 +185,44 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/about">About</a></li><li aria-current="page">Design decisions</li></ol>
 <h1>Design decisions</h1>
 <p class="docs-lead">Why MariaDB, PostgreSQL, Valkey, Laravel — and why not local.</p>
-<div class="docs-meta"><span>About</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/design-decisions.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>About</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/design-decisions.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="why-not-local">
-                <h2 id="why-not-local-2">Why not local?<a class="anchor" href="#why-not-local-2" aria-label="Link to this section">#</a></h2>
-                <p>Cipi is a <strong>production server provisioner</strong>. It is designed to turn a fresh Ubuntu VPS
-                    into a live, internet-facing Laravel host — not to run on your laptop, inside a local Docker
-                    container, or behind a home NAT.</p>
-
-                <p>This is explicit in the <a href="/docs/installation#requirements">requirements</a> and is not a bug or
-                    missing feature. Cipi needs a server that is:</p>
-                <ul>
-                    <li><strong>Reachable from the public internet</strong> — with a routable public IPv4 address, not
-                        hidden behind NAT (home router, corporate firewall, or NAT-only cloud tiers)</li>
-                    <li><strong>Running on real hardware or full virtualization</strong> (KVM, VMware, Hyper-V, Xen HVM)
-                        — not on shared-kernel virtualization (OpenVZ, LXC) or desktop container runtimes that emulate a
-                        Linux VM on your machine. Since v5.5.0 the installer detects those and stops with the name of
-                        what it found</li>
-                    <li><strong>Accessible on ports 22, 80, and 443</strong> — Let's Encrypt HTTP validation, Nginx
-                        vhosts, and SSH deploy workflows all assume inbound traffic can reach the host</li>
-                </ul>
-
-                <h3 id="not-compatible-with-local-dockerization">Not compatible with local dockerization<a class="anchor" href="#not-compatible-with-local-dockerization" aria-label="Link to this section">#</a></h3>
-                <p><strong>Cipi is not compatible with local dockerized environments.</strong> Tools like Docker
-                    Desktop, OrbStack, Colima, and similar runtimes give you a Linux VM behind NAT on your Mac or
-                    Windows machine — no public IP, no inbound routing from the internet, and often a shared kernel
-                    under the hood. The Cipi installer may finish, but the result is not a production server:</p>
-                <ul>
-                    <li><strong>SSL will not work</strong> — Certbot cannot complete Let's Encrypt validation when
-                        the host is not reachable on port 80 from the internet</li>
-                    <li><strong>Domains will not resolve</strong> — there is no public endpoint for DNS to point to
-                    </li>
-                    <li><strong>Deploy and webhook flows break</strong> — Git providers, CI runners, and external
-                        services cannot reach a NAT-ted local VM</li>
-                </ul>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>Do not install Cipi inside Docker, OrbStack, WSL, or a local VM expecting a working
-                        production stack. Use a real VPS — even a €4/month instance is enough for development and
-                        staging.</div>
-                </div>
-
-                <h3 id="industry-standard-constraint">Industry-standard constraint<a class="anchor" href="#industry-standard-constraint" aria-label="Link to this section">#</a></h3>
-                <p>No production server provisioner supports NAT-ted local environments. Commercial panels and
-                    open-source tools alike require a public, internet-accessible host — this is how SSL, domain
-                    routing, and remote deploy pipelines work. Cipi follows the same rule.</p>
-                <p>The difference is what Cipi does <em>not</em> ask for: no proprietary agent daemon, no dedicated
-                    outbound port to an external control panel, and no mandatory cloud account. Cipi runs entirely on
-                    your server — you SSH in and use the CLI. The public-internet requirement is about network topology,
-                    not about tying you to a SaaS vendor.</p>
-
-                <h3 id="what-to-use-locally-instead">What to use locally instead<a class="anchor" href="#what-to-use-locally-instead" aria-label="Link to this section">#</a></h3>
-                <p>For local Laravel development, use <a href="https://laravel.com/docs/sail" target="_blank"
-                        rel="noopener">Laravel Sail</a>, <a href="https://herd.laravel.com/" target="_blank"
-                        rel="noopener">Laravel Herd</a>, or a plain <code>composer install</code> with
-                    <code>php artisan serve</code>. Provision a cheap VPS with Cipi when you need a real staging or
-                    production environment.</p>
-            
+<h2 id="local">Why not local?<a class="anchor" href="#local" aria-label="Link to this section">#</a></h2>
+<p>Cipi is a <strong>production server provisioner</strong>: it turns a fresh Ubuntu VPS into an internet-facing host. It doesn't run on a laptop, in local Docker, or behind a home NAT, by design.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>A Cipi server needs</th><th>Because</th></tr></thead><tbody><tr><td>A public IPv4 address, no NAT</td><td>Domains must resolve to it and Git providers must reach its webhooks</td></tr><tr><td>Full virtualization or bare metal (KVM, VMware, Hyper-V, Xen HVM)</td><td>Shared-kernel containers (OpenVZ, LXC) can't run the services and firewall Cipi manages; the installer detects them and stops</td></tr><tr><td>Ports 22, 80 and 443 reachable</td><td>SSH, Let's Encrypt validation and HTTPS</td></tr></tbody></table></div>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Don't install Cipi inside Docker Desktop, OrbStack, Colima, WSL or a local VM expecting a working stack: certificates won't issue, domains won't resolve and webhooks can't arrive. A small VPS is enough for staging.</p></div></div>
+<p>Every production provisioner has the same constraint. What Cipi doesn't ask for is the difference: no agent phoning home, no external control plane, no cloud account.</p>
+<p><strong>Locally</strong>, use <a href="https://herd.laravel.com/">Laravel Herd</a>, <a href="https://laravel.com/docs/sail">Sail</a> or <code>php artisan serve</code>, then push to a Cipi server for staging and production.</p>
 </section>
-
 <section class="doc-section" id="why-mariadb">
-                <h2 id="why-mariadb-2">Why MariaDB?<a class="anchor" href="#why-mariadb-2" aria-label="Link to this section">#</a></h2>
-                <p>MariaDB is the <strong>default</strong> database engine on every Cipi server (port
-                    <code>3306</code>). Since <strong>v4.8.0</strong> you can also install optional
-                    <strong>PostgreSQL</strong> (<code>cipi db install pgsql</code>, port <code>5432</code>) and pick
-                    an engine per app or database — see <a href="/docs/databases#cli-db">cipi db</a> and
-                    <a href="/docs/design-decisions#why-postgresql">Why PostgreSQL?</a>. MariaDB remains the right default for most
-                    Laravel apps: familiar MySQL-compatible SQL, strong out-of-the-box performance, and a license model
-                    that stays simple for self-hosted production.</p>
-
-                <h3 id="performance-that-matters-in-production">Performance that matters in production<a class="anchor" href="#performance-that-matters-in-production" aria-label="Link to this section">#</a></h3>
-                <p>MariaDB is built for high-concurrency web workloads — exactly the pattern Laravel apps generate
-                    (many short queries, connection churn from PHP-FPM, mixed reads and writes).</p>
-                <ul>
-                    <li><strong>Advanced query optimizer</strong> — better join planning and cost-based decisions than
-                        classic MySQL for typical application queries, which often means fewer full scans and lower
-                        latency under load.</li>
-                    <li><strong>Native thread pool</strong> — available in the community edition, so the server handles
-                        many concurrent connections more efficiently than a one-thread-per-connection model when PHP-FPM
-                        spikes.</li>
-                    <li><strong>InnoDB tuned for your VPS</strong> — Cipi sets
-                        <code>innodb_buffer_pool_size</code> from server RAM (256M on 1 GB hosts, up to 4 GB on 16 GB+
-                        machines), so hot data stays in memory without starving Nginx or PHP.</li>
-                    <li><strong>Lean default for Laravel</strong> — most apps need a fast relational store, not exotic
-                        extensions. MariaDB delivers that with low operational overhead on a single Ubuntu box.</li>
-                </ul>
-
-                <h3 id="fewer-licensing-headaches">Fewer licensing headaches<a class="anchor" href="#fewer-licensing-headaches" aria-label="Link to this section">#</a></h3>
-                <p>Choosing MariaDB avoids the ambiguity that surrounds Oracle MySQL in commercial and redistribution
-                    scenarios — especially when you ship products, host client apps, or run infra for a company.</p>
-                <ul>
-                    <li><strong>Pure GPL community server</strong> — MariaDB Server is GPL; there is no dual-license
-                        enterprise fork of the core engine that you must navigate just to stay compliant.</li>
-                    <li><strong>No Oracle MySQL CLA / dual-license maze</strong> — you are not depending on Oracle's
-                        MySQL product line, trademark policy, or commercial editions for features that “should” be
-                        free.</li>
-                    <li><strong>Predictable for SaaS and agencies</strong> — self-hosting MariaDB on your VPS keeps
-                        database licensing simple: you run open-source software on hardware you control, without MySQL
-                        Enterprise feature gates or surprise license reviews.</li>
-                    <li><strong>Aligned with Cipi's MIT philosophy</strong> — open stack, no vendor lock-in, no
-                        paid database SKU required for production performance features like the thread pool.</li>
-                </ul>
-
-                <h3 id="mysql-compatibility-without-the-baggage">MySQL compatibility without the baggage<a class="anchor" href="#mysql-compatibility-without-the-baggage" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>Drop-in for Laravel</strong> — use the <code>mysql</code> driver, the same
-                        <code>DB_*</code> env keys, and the same migration files. Eloquent, queues, and most packages
-                        just work.</li>
-                    <li><strong>Familiar tooling</strong> — TablePlus, DBeaver, Sequel Ace, and
-                        <code>mariadb</code>/<code>mysql</code> CLI clients connect the same way; Cipi still exposes a
-                        ready <code>mariadb+ssh://</code> URL after install.</li>
-                    <li><strong>Native on Ubuntu</strong> — installs from MariaDB.org / Ubuntu packaging without inventing
-                        a custom database stack; Cipi wires users, backups, and vault credentials on top.</li>
-                    <li><strong>Battle-tested for the LAMP/LEMP world</strong> — decades of MySQL-compatible
-                        applications, docs, and hiring familiarity — with an engine that stays community-first.</li>
-                </ul>
-            
+<h2 id="mariadb">Why MariaDB by default?<a class="anchor" href="#mariadb" aria-label="Link to this section">#</a></h2>
+<p>MariaDB (port <code>3306</code>) is the default because it fits most Laravel apps with zero friction. <a href="#why-postgresql">PostgreSQL</a> is one command away and can run next to it.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Reason</th><th>Detail</th></tr></thead><tbody><tr><td>Drop-in for Laravel</td><td><code>mysql</code> driver, same <code>DB_*</code> keys, same migrations; works with TablePlus, DBeaver, Sequel Ace</td></tr><tr><td>Built for web concurrency</td><td>Strong optimizer and a native thread pool in the community edition, good with PHP-FPM connection churn</td></tr><tr><td>Tuned to your VPS</td><td>Cipi sizes <code>innodb_buffer_pool_size</code> from RAM (256 MB on 1 GB hosts up to 4 GB on 16 GB+)</td></tr><tr><td>Simple licensing</td><td>GPL community server, no enterprise feature gates, no Oracle dual-licensing to navigate</td></tr><tr><td>Native packaging</td><td>Installed from MariaDB.org or Ubuntu; Cipi adds users, backups and vault credentials on top</td></tr></tbody></table></div>
 </section>
-
 <section class="doc-section" id="why-postgresql">
-                <h2 id="why-postgresql-2">Why PostgreSQL?<a class="anchor" href="#why-postgresql-2" aria-label="Link to this section">#</a></h2>
-                <p>Since <strong>v4.8.0</strong>, PostgreSQL is a <strong>first-class optional engine</strong> on Cipi
-                    (port <code>5432</code>). Install it with <code>cipi db install pgsql</code>, then create apps or
-                    databases with <code>--engine=pgsql</code> — see <a href="/docs/databases#cli-db">cipi db</a>. Keep
-                    MariaDB as the default for classic Laravel MySQL workloads, or choose Postgres when you need richer
-                    SQL, stronger concurrency guarantees, or a stack that grows toward analytics and AI.</p>
-
-                <h3 id="functionality-beyond-just-tables">Functionality beyond “just tables”<a class="anchor" href="#functionality-beyond-just-tables" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>Rich SQL and data types</strong> — JSON/JSONB, arrays, ranges, UUID, full-text search,
-                        and expressive constraints (CHECK, exclusion, deferred FKs) that map cleanly to complex domain
-                        models.</li>
-                    <li><strong>Powerful indexing</strong> — B-tree, GIN, GiST, BRIN, partial and expression indexes —
-                        so you can index JSON paths, search documents, or speed up time-series-style queries without a
-                        second datastore.</li>
-                    <li><strong>Extensions ecosystem</strong> — <code>pgcrypto</code>, <code>uuid-ossp</code>,
-                        <code>pg_trgm</code>, PostGIS, and many others turn Postgres into a platform, not only a SQL
-                        file.</li>
-                    <li><strong>First-class Laravel support</strong> — native <code>pgsql</code> driver, migrations,
-                        Eloquent, and a huge ecosystem of packages that assume Postgres features when you need them.
-                    </li>
-                </ul>
-
-                <h3 id="scalability-and-concurrency">Scalability and concurrency<a class="anchor" href="#scalability-and-concurrency" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>MVCC done right</strong> — readers do not block writers; long-running reports and busy
-                        write traffic coexist more gracefully than on lock-heavy setups.</li>
-                    <li><strong>Reliable under mixed load</strong> — strong consistency, transactional DDL in many
-                        cases, and a planner that holds up as schemas and query shapes get more sophisticated.</li>
-                    <li><strong>Room to grow on one VPS — then beyond</strong> — excellent vertical scale for a
-                        single-node Cipi server; when you outgrow the box, the same engine is what managed Postgres,
-                        replicas, and logical replication ecosystems are built around.</li>
-                    <li><strong>Operational clarity</strong> — mature monitoring views (<code>pg_stat_*</code>),
-                        explain plans, and tooling that senior teams already know how to tune.</li>
-                </ul>
-
-                <h3 id="compatibility-and-portability">Compatibility and portability<a class="anchor" href="#compatibility-and-portability" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>Industry standard</strong> — Postgres is the default answer for many SaaS backends,
-                        analytics pipelines, and cloud “managed database” offerings. Skills and runbooks transfer.
-                    </li>
-                    <li><strong>Standards-leaning SQL</strong> — closer to ANSI SQL than MySQL dialects, which reduces
-                        surprise when you share queries across tools, ORMs, and warehouses.</li>
-                    <li><strong>Works with the wider data stack</strong> — BI tools, ORMs, ETL, and CDC systems almost
-                        always speak Postgres; your Cipi-hosted DB is not a dead end.</li>
-                    <li><strong>Side-by-side with MariaDB on Cipi</strong> — both engines can run on the same server
-                        (3306 + 5432). Pick per app: WordPress-style or classic Laravel MySQL on MariaDB; product,
-                        multi-tenant, or JSON-heavy apps on Postgres.</li>
-                </ul>
-
-                <h3 id="ready-for-ai-and-modern-data-workloads">Ready for AI and modern data workloads<a class="anchor" href="#ready-for-ai-and-modern-data-workloads" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>Vectors and embeddings</strong> — with extensions such as
-                        <code>pgvector</code>, you can store embeddings next to relational data for semantic search,
-                        RAG, and recommendation features without bolting on a separate vector database on day one.</li>
-                    <li><strong>JSONB as a flexible document layer</strong> — keep structured columns for invariants and
-                        JSONB for evolving AI metadata, model outputs, or tool payloads — queryable and indexable.</li>
-                    <li><strong>Full-text + similarity building blocks</strong> — combine FTS, trigram similarity, and
-                        vectors for hybrid retrieval (keyword + semantic) inside one transactional system.</li>
-                    <li><strong>Analytics-friendly</strong> — window functions, CTEs, materialized views, and robust
-                        aggregation make Postgres a solid home for product metrics and feature stores before you need a
-                        warehouse.</li>
-                </ul>
-
-                <h3 id="when-to-choose-postgresql-on-cipi">When to choose PostgreSQL on Cipi<a class="anchor" href="#when-to-choose-postgresql-on-cipi" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li>You need advanced constraints, JSONB, or Postgres-specific extensions</li>
-                    <li>You care about concurrent writers, complex reporting, or stricter SQL semantics</li>
-                    <li>You are building AI features (embeddings, hybrid search) or expect to</li>
-                    <li>Your team or upstream packages already standardize on <code>pgsql</code></li>
-                </ul>
-                <p>MariaDB stays the zero-friction default. PostgreSQL is there when the product needs a more capable
-                    relational engine — still managed through the same <code>cipi db</code> workflow for create, list,
-                    backup, restore, and password rotation.</p>
-            
+<h2 id="postgresql">Why PostgreSQL as an option?<a class="anchor" href="#postgresql" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi db install pgsql<span class="c">                       # port 5432, side by side with MariaDB</span>
+<span class="p"></span>cipi app create shop --engine=pgsql</pre></div>
+<p>Choose PostgreSQL per app when the product needs more than tables:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Need</th><th>PostgreSQL gives you</th></tr></thead><tbody><tr><td>Rich data</td><td>JSONB, arrays, ranges, UUID, full-text search, CHECK and exclusion constraints</td></tr><tr><td>Indexing</td><td>B-tree, GIN, GiST, BRIN, partial and expression indexes</td></tr><tr><td>Extensions</td><td><code>pgcrypto</code>, <code>pg_trgm</code>, PostGIS, <code>pgvector</code> for embeddings and RAG</td></tr><tr><td>Concurrency</td><td>MVCC: readers don't block writers; long reports and busy writes coexist</td></tr><tr><td>Portability</td><td>The standard of managed databases, BI tools and data pipelines</td></tr></tbody></table></div>
+<p>The same <code>cipi db</code> workflow covers both engines: create, list, backup, restore, password rotation.</p>
 </section>
-
 <section class="doc-section" id="why-valkey">
-                <h2 id="why-valkey-2">Why Valkey?<a class="anchor" href="#why-valkey-2" aria-label="Link to this section">#</a></h2>
-                <p>Cipi uses Valkey instead of Redis for several reasons:</p>
-                <ul>
-                    <li><strong>Drop-in replacement</strong> — same RESP protocol on port <code>6379</code>, same
-                        <code>phpredis</code> extension, same <code>REDIS_*</code> <code>.env</code> keys. Laravel
-                        doesn't notice the difference.</li>
-                    <li><strong>Truly open source</strong> — BSD-licensed fork stewarded by the Linux Foundation,
-                        created after Redis Inc. moved to the source-available SSPL / RSALv2 in 2024.</li>
-                    <li><strong>Native on Ubuntu</strong> — ships in Ubuntu 24.04's Universe repository
-                        (<code>valkey-server</code> + <code>valkey-tools</code>) without third-party PPAs.</li>
-                    <li><strong>No vendor lock-in</strong> — aligns with Cipi's MIT, self-hosted philosophy: free
-                        forever, backed by AWS, Google Cloud, Oracle, and a large community.</li>
-                    <li><strong>Auto-migrated</strong> — existing servers switch from Redis to Valkey automatically on
-                        <code>cipi self-update</code>, reusing the same password and dataset with zero app changes.
-                    </li>
-                </ul>
-            
+<h2 id="valkey">Why Valkey?<a class="anchor" href="#valkey" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Reason</th><th>Detail</th></tr></thead><tbody><tr><td>Drop-in</td><td>Same protocol on <code>6379</code>, same <code>phpredis</code>, same <code>REDIS_*</code> keys; Laravel doesn't notice</td></tr><tr><td>Truly open source</td><td>BSD-licensed, stewarded by the Linux Foundation after Redis moved to source-available licences</td></tr><tr><td>Native on Ubuntu</td><td><code>valkey-server</code> from the Universe repository, no third-party PPAs</td></tr><tr><td>Automatic migration</td><td>Servers moved from Redis to Valkey on <code>cipi self-update</code>, same password and data</td></tr></tbody></table></div>
 </section>
-
 <section class="doc-section" id="why-laravel">
-                <h2 id="why-laravel-2">Why Laravel?<a class="anchor" href="#why-laravel-2" aria-label="Link to this section">#</a></h2>
-                <p>When v4 was designed, one of the clearest decisions was to drop generic PHP and WordPress support
-                    entirely and go all-in on a single framework. That framework was Laravel — and the reasoning goes
-                    well beyond personal preference.</p>
-
-                <h3 id="speed-of-development">Speed of development<a class="anchor" href="#speed-of-development" aria-label="Link to this section">#</a></h3>
-                <p>Laravel gives developers an extraordinary head start. Authentication, queues, scheduled tasks, file
-                    storage, email, notifications, API resources, database migrations — all of it is built in,
-                    consistent, and documented. A team can go from an empty project to a production-ready application in
-                    a fraction of the time it would take with a lower-level stack. For Cipi, this means that every
-                    deployment assumption — directory layout, <code>.env</code> handling, queue workers, the scheduler —
-                    maps cleanly to a known structure. There is no guesswork.</p>
-
-                <h3 id="a-thriving-open-source-community">A thriving open-source community<a class="anchor" href="#a-thriving-open-source-community" aria-label="Link to this section">#</a></h3>
-                <p>Laravel has one of the most active and welcoming communities in the PHP world. Packages are
-                    published, maintained, and discussed daily on GitHub, Laracasts, Discord, and X. When you hire a
-                    Laravel developer, you get someone who already knows the conventions, the tooling, and the
-                    ecosystem. When you publish a Laravel package, it reaches tens of thousands of developers overnight.
-                    That network effect is genuinely valuable — and it is one of the reasons Cipi's companion package,
-                    <strong>cipi-agent</strong>, works so well: drop it into a Laravel app and it just fits.
-                </p>
-
-                <h3 id="security-by-default">Security by default<a class="anchor" href="#security-by-default" aria-label="Link to this section">#</a></h3>
-                <p>Laravel takes security seriously out of the box. CSRF protection, SQL injection prevention through
-                    the query builder, XSS mitigation via Blade's auto-escaping, rate limiting, signed URLs, encrypted
-                    cookies — these are not add-ons you wire together, they are the defaults. The framework's release
-                    cycle includes prompt security patches, and the team publishes clear upgrade guides. For production
-                    applications that handle real users and real data, that reliability matters enormously.</p>
-
-                <h3 id="longevity-and-support">Longevity and support<a class="anchor" href="#longevity-and-support" aria-label="Link to this section">#</a></h3>
-                <p>Every major Laravel version receives bug fixes for 18 months and security fixes for two years after
-                    release. LTS versions extend that further. Taylor Otwell and the core team have maintained a
-                    consistent, principled release cadence since 2011 — a track record that is rare and genuinely
-                    reassuring for long-term projects. When you deploy on Cipi, you are not betting on a framework that
-                    might be abandoned next year.</p>
-
-                <h3 id="the-laravel-ecosystem">The Laravel ecosystem<a class="anchor" href="#the-laravel-ecosystem" aria-label="Link to this section">#</a></h3>
-                <p>Laravel does not stand alone. Around it has grown an ecosystem of first-party and community tools
-                    that are among the best in the industry:</p>
-                <ul>
-                    <li><strong>Livewire</strong> — full-stack reactive components without leaving PHP</li>
-                    <li><strong>Filament</strong> — a stunning admin panel and form builder built on Livewire</li>
-                    <li><strong>Inertia.js</strong> — the bridge between Laravel and modern front-end frameworks (Vue,
-                        React, Svelte)</li>
-                    <li><strong>Laravel Horizon</strong> — a beautiful dashboard for monitoring Valkey/Redis queues;
-                        Cipi enables it with <code>cipi worker horizon enable</code></li>
-                    <li><strong>Laravel Reverb</strong> — first-party WebSockets; Cipi wires Supervisor, Nginx
-                        <code>/app</code> proxy, and <code>REVERB_*</code> with
-                        <code>cipi app reverb enable</code></li>
-                    <li><strong>Laravel Telescope</strong> — an elegant debug assistant for local and staging
-                        environments</li>
-                    <li><strong>Laravel Octane</strong> — supercharges application performance with FrankenPHP (and
-                        optionally Swoole / RoadRunner). Cipi runs Octane natively:
-                        <code>cipi app create --octane</code> or <code>cipi app convert --to=octane</code></li>
-                    <li><strong>Pest</strong> — a delightful PHP testing framework with a Laravel-native plugin</li>
-                    <li><strong>Laracasts</strong> — the best screencasts in PHP, period</li>
-                </ul>
-                <p>These tools do not just exist — they are actively developed, widely adopted, and genuinely fun to
-                    use. The Laravel world has a rare quality: it manages to be both opinionated enough to feel cohesive
-                    and flexible enough to stay out of your way when you need it to.</p>
-
-                <h3 id="ship-or-die">Ship or die<a class="anchor" href="#ship-or-die" aria-label="Link to this section">#</a></h3>
-                <p><a href="https://x.com/taylorotwell" target="_blank" rel="noopener">Taylor Otwell</a>, the founder of
-                    Laravel, has a mantra that
-                    resonates far beyond the framework: <strong>"we must ship."</strong> It is a simple statement, but
-                    it encapsulates an entire philosophy — that code only has value when it reaches users, that
-                    perfectionism is the enemy of progress, and that the best developers are the ones who find ways to
-                    move forward even when the conditions are not ideal.</p>
-                <p>The broader tech world has its own, blunter version: <strong>ship or die.</strong> Build something
-                    real, put it in front of people, learn, and iterate — or watch it slowly become irrelevant in a
-                    drawer. Laravel's entire ecosystem is built around that spirit. The framework reduces friction, the
-                    community celebrates releases, and the tooling rewards velocity. Cipi exists for the same reason: to
-                    remove the server management friction that stands between a developer and a live, deployed
-                    application.</p>
-                <p>If you are reading these docs, you are probably a developer who wants to build things, not babysit
-                    infrastructure. That is exactly the kind of developer Cipi was made for.</p>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Cipi is built <em>for</em> Laravel and <em>with</em> Laravel. The installer, the deploy
-                        pipeline, the agent package, the cron setup, the worker management — every decision was made
-                        with a Laravel app in mind. If you love the framework, you will feel right at home.</div>
-                </div>
-            
+<h2 id="laravel">Why Laravel first?<a class="anchor" href="#laravel" aria-label="Link to this section">#</a></h2>
+<p>Knowing the framework lets Cipi automate what generic panels leave to you: the release layout, <code>.env</code> handling, queue workers, the scheduler, Horizon, Reverb, Octane, health routes. Every assumption maps to a known structure, so there's no guesswork. Anything that isn't Laravel still runs as a <a href="/docs/custom-apps">custom app</a> (WordPress, Symfony, static sites) or a <a href="/docs/node-apps">Node app</a>.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Laravel brings</th><th>Cipi turns it into</th></tr></thead><tbody><tr><td>Queues and Horizon</td><td>Supervisor workers, <code>cipi worker horizon enable</code></td></tr><tr><td>Reverb</td><td>Supervisor process, Nginx <code>/app</code> proxy, <code>REVERB_*</code> keys: <code>cipi app reverb enable</code></td></tr><tr><td>Octane</td><td>FrankenPHP apps side by side with FPM: <code>cipi app create --octane</code></td></tr><tr><td>Scheduler</td><td>One cron per app, nothing to configure</td></tr><tr><td>Scout</td><td>Meilisearch on the server: <code>cipi search</code></td></tr><tr><td>Secure defaults and a long support cycle</td><td>Apps you can leave in production for years</td></tr></tbody></table></div>
+<p>Taylor Otwell's mantra is <strong>"we must ship"</strong>. Cipi exists for the same reason: to remove the server work between a developer and a live application.</p>
 </section>
-
 <section class="doc-section" id="why-cipi">
-                <h2 id="why-ci-pi">Why "ci-pi"?<a class="anchor" href="#why-ci-pi" aria-label="Link to this section">#</a></h2>
-
-                <div class="why-cipi-intro">
-                    <div class="why-cipi-mascot">
-                        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none">
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M16.2182,35.9c-3.1368,0-6.8982,1.496-7.2988,5.6766a.916.916,0,0,0,.9061,1.0025h11.97A.9.9,0,0,0,22.7,41.643C22.6175,39.8048,21.7865,35.9,16.2182,35.9Z">
-                            </path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M18.0508,20.564c-1.35,1.0368-7.3687,7.51-4.3595,15.6667"></path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M31.7818,35.9c3.1368,0,6.8982,1.496,7.2988,5.6766a.916.916,0,0,1-.9061,1.0025h-11.97A.9.9,0,0,1,25.3,41.643C25.3825,39.8048,26.2135,35.9,31.7818,35.9Z">
-                            </path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M35.0148,36.4556c3.1848-2.8438,2.7468-7.5246,2.7468-8.7785,2.8935.82,5.0306,2.9709,5.5941,2.17,1.3744-1.9531-7.5193-7.5461-7.6918-10.8989C35.4951,15.6692,35.1706,5.4214,24,5.4214S12.5049,15.6692,12.3361,18.9484c-.1725,3.3528-9.0662,8.9458-7.6918,10.8989.5635.8007,2.7006-1.35,5.5941-2.17,0,1.2539-.438,5.9347,2.7468,8.7785">
-                            </path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M29.2763,19.8324c1.9318,1.5032,8.0416,8.242,5.0324,16.3983"></path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M24,24.8431l3.9479-4.2791c-.3858-1.0127-1.712-1.929-3.9479-1.929s-3.5621.9163-3.9479,1.929Z">
-                            </path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M20.0521,20.564c-3.424.5063-3.9062-2.7247-3.9062-4.7019,0-2.7006,1.4467-4.4367,3.9062-4.4367S23.79,14.7529,23.79,16.3443A3.8486,3.8486,0,0,1,23.181,18.68">
-                            </path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M27.7205,20.1334c.6751.0482,3.9538-.3892,3.9538-3.331s-1.76-3.7615-4.1232-3.7615a3.7861,3.7861,0,0,0-3.8164,2.6682">
-                            </path>
-                            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                d="M22.7012,41.4815a6.8371,6.8371,0,0,0,2.6076,0"></path>
-                            <circle fill="currentColor" cx="22.1579" cy="16.5888" r="0.75"></circle>
-                            <circle fill="currentColor" cx="25.5497" cy="16.5888" r="0.75"></circle>
-                        </svg>
-                    </div>
-                    <div class="why-cipi-text">
-                        <p><strong>Cipi</strong> is the Italian reading of the letters <strong>C</strong> and
-                            <strong>P</strong> — which stand for <strong>Control Panel</strong>. It is a quiet nod to
-                            the project's Italian roots and to the fact that, underneath all the CLI commands, Cipi is
-                            doing exactly what a control panel does: managing Nginx, PHP-FPM, MariaDB, Supervisor,
-                            Certbot, and UFW on your behalf — just without the browser tab.
-                        </p>
-                        <p>The name also carries a deliberate lightness. Server management tools tend to take themselves
-                            very seriously. Cipi does not. It is a tool built by a developer for developers, with the
-                            goal of getting out of the way as quickly as possible.</p>
-                    </div>
-                </div>
-
-                <h3 id="the-mascot">The mascot<a class="anchor" href="#the-mascot" aria-label="Link to this section">#</a></h3>
-                <p>The Cipi mascot is a penguin — an intentional reference to <strong>Tux</strong>, the official Linux
-                    mascot created by Larry Ewing in 1996. Where Tux is polished and iconic, the Cipi penguin is drawn
-                    in a minimal, hand-sketched line style: same species, different attitude. Think of it as Tux's
-                    quieter sibling who prefers the terminal over the spotlight.</p>
-                <p>The illustration is rendered as a pure SVG using the project's accent color, so it adapts naturally
-                    to light and dark mode and scales to any size without losing quality.</p>
-            
+<h2 id="name">Why "ci-pi"?<a class="anchor" href="#name" aria-label="Link to this section">#</a></h2>
+<div class="why-cipi-intro"><div class="why-cipi-mascot"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none"> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M16.2182,35.9c-3.1368,0-6.8982,1.496-7.2988,5.6766a.916.916,0,0,0,.9061,1.0025h11.97A.9.9,0,0,0,22.7,41.643C22.6175,39.8048,21.7865,35.9,16.2182,35.9Z"> </path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M18.0508,20.564c-1.35,1.0368-7.3687,7.51-4.3595,15.6667"></path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M31.7818,35.9c3.1368,0,6.8982,1.496,7.2988,5.6766a.916.916,0,0,1-.9061,1.0025h-11.97A.9.9,0,0,1,25.3,41.643C25.3825,39.8048,26.2135,35.9,31.7818,35.9Z"> </path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M35.0148,36.4556c3.1848-2.8438,2.7468-7.5246,2.7468-8.7785,2.8935.82,5.0306,2.9709,5.5941,2.17,1.3744-1.9531-7.5193-7.5461-7.6918-10.8989C35.4951,15.6692,35.1706,5.4214,24,5.4214S12.5049,15.6692,12.3361,18.9484c-.1725,3.3528-9.0662,8.9458-7.6918,10.8989.5635.8007,2.7006-1.35,5.5941-2.17,0,1.2539-.438,5.9347,2.7468,8.7785"> </path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M29.2763,19.8324c1.9318,1.5032,8.0416,8.242,5.0324,16.3983"></path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M24,24.8431l3.9479-4.2791c-.3858-1.0127-1.712-1.929-3.9479-1.929s-3.5621.9163-3.9479,1.929Z"> </path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M20.0521,20.564c-3.424.5063-3.9062-2.7247-3.9062-4.7019,0-2.7006,1.4467-4.4367,3.9062-4.4367S23.79,14.7529,23.79,16.3443A3.8486,3.8486,0,0,1,23.181,18.68"> </path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M27.7205,20.1334c.6751.0482,3.9538-.3892,3.9538-3.331s-1.76-3.7615-4.1232-3.7615a3.7861,3.7861,0,0,0-3.8164,2.6682"> </path> <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M22.7012,41.4815a6.8371,6.8371,0,0,0,2.6076,0"></path> <circle fill="currentColor" cx="22.1579" cy="16.5888" r="0.75"></circle> <circle fill="currentColor" cx="25.5497" cy="16.5888" r="0.75"></circle> </svg></div><p><strong>Cipi</strong> is the Italian reading of the letters <strong>C</strong> and <strong>P</strong>: <strong>Control Panel</strong>. A nod to the project's Italian roots, and to what it does under the hood: manage Nginx, PHP-FPM, databases, Supervisor, certificates and the firewall for you.</p></div>
+<p>The mascot is a penguin, a reference to <strong>Tux</strong>, the Linux mascot drawn by Larry Ewing in 1996. Same species, different attitude: minimal, hand-sketched, happier in the terminal than in the spotlight.</p>
 </section>
 
 </div>
@@ -562,33 +230,15 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#why-not-local-2">Why not local?</a></li>
-<li><a class="l3" href="#not-compatible-with-local-dockerization">Not compatible with local dockerization</a></li>
-<li><a class="l3" href="#industry-standard-constraint">Industry-standard constraint</a></li>
-<li><a class="l3" href="#what-to-use-locally-instead">What to use locally instead</a></li>
-<li><a class="l2" href="#why-mariadb-2">Why MariaDB?</a></li>
-<li><a class="l3" href="#performance-that-matters-in-production">Performance that matters in production</a></li>
-<li><a class="l3" href="#fewer-licensing-headaches">Fewer licensing headaches</a></li>
-<li><a class="l3" href="#mysql-compatibility-without-the-baggage">MySQL compatibility without the baggage</a></li>
-<li><a class="l2" href="#why-postgresql-2">Why PostgreSQL?</a></li>
-<li><a class="l3" href="#functionality-beyond-just-tables">Functionality beyond “just tables”</a></li>
-<li><a class="l3" href="#scalability-and-concurrency">Scalability and concurrency</a></li>
-<li><a class="l3" href="#compatibility-and-portability">Compatibility and portability</a></li>
-<li><a class="l3" href="#ready-for-ai-and-modern-data-workloads">Ready for AI and modern data workloads</a></li>
-<li><a class="l3" href="#when-to-choose-postgresql-on-cipi">When to choose PostgreSQL on Cipi</a></li>
-<li><a class="l2" href="#why-valkey-2">Why Valkey?</a></li>
-<li><a class="l2" href="#why-laravel-2">Why Laravel?</a></li>
-<li><a class="l3" href="#speed-of-development">Speed of development</a></li>
-<li><a class="l3" href="#a-thriving-open-source-community">A thriving open-source community</a></li>
-<li><a class="l3" href="#security-by-default">Security by default</a></li>
-<li><a class="l3" href="#longevity-and-support">Longevity and support</a></li>
-<li><a class="l3" href="#the-laravel-ecosystem">The Laravel ecosystem</a></li>
-<li><a class="l3" href="#ship-or-die">Ship or die</a></li>
-<li><a class="l2" href="#why-ci-pi">Why &quot;ci-pi&quot;?</a></li>
-<li><a class="l3" href="#the-mascot">The mascot</a></li>
+<li><a class="l2" href="#local">Why not local?</a></li>
+<li><a class="l2" href="#mariadb">Why MariaDB by default?</a></li>
+<li><a class="l2" href="#postgresql">Why PostgreSQL as an option?</a></li>
+<li><a class="l2" href="#valkey">Why Valkey?</a></li>
+<li><a class="l2" href="#laravel">Why Laravel first?</a></li>
+<li><a class="l2" href="#name">Why &quot;ci-pi&quot;?</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/design-decisions.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/design-decisions.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
