@@ -2,6 +2,8 @@
 
 Move, copy or replicate whole apps between Cipi servers: configuration, deploy keys, workers, crontab, and optionally database and storage. Archives are **encrypted with AES-256** and a passphrase, so credentials are safe at rest and in transit. Migrating providers becomes one command.
 
+<cipi-term name="sync"></cipi-term>
+
 ```flow
 Export | encrypted archive
 Transfer | rsync over SSH

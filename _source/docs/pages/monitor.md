@@ -2,6 +2,8 @@
 
 The server watches itself every 5 minutes and tells you when something actually breaks. No agent, no metrics database, no third-party service: a cron job, a few state files and your [notification channels](/docs/notifications).
 
+<cipi-term name="monitor"></cipi-term>
+
 ```bash
 $ cipi monitor                    # run every check now (exit 1 on warn/crit)
 $ cipi monitor list               # checks, thresholds, state, last alert

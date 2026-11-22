@@ -2,6 +2,8 @@
 
 Laravel Reverb is Laravel's own WebSocket server. Cipi runs it behind the app's own domain and certificate: no extra port to open, no second certificate, no credentials to invent.
 
+<cipi-term name="reverb"></cipi-term>
+
 ```bash
 $ cipi app reverb enable myapp
 $ cipi app reverb status myapp

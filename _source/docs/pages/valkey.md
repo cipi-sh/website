@@ -2,6 +2,8 @@
 
 Valkey is the open-source (BSD, Linux Foundation) continuation of Redis: same protocol, same `phpredis` driver, same `REDIS_*` variables. Cipi gives **each Laravel app its own instance**, so no app can read or flush another's cache, sessions or jobs.
 
+<cipi-term name="valkey"></cipi-term>
+
 | Per-app instance | |
 | --- | --- |
 | Service | `cipi-valkey@myapp`, running as the app's user |

@@ -2,6 +2,8 @@
 
 `cipi.yml` describes, in your repository, how the server should run the app: aliases, PHP settings, databases, workers, scheduler, health check, backups, routes, deploy options, crons. Server configuration gets reviewed, versioned and deployed like code.
 
+<cipi-term name="yml"></cipi-term>
+
 ```flow
 Commit cipi.yml | next to your code
 Deploy | the file ships with the release

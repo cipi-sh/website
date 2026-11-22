@@ -2,6 +2,8 @@
 
 Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades and the default server.
 
+<cipi-term name="nginx-security"></cipi-term>
+
 ## Security report {#nginx-security}
 
 ```bash

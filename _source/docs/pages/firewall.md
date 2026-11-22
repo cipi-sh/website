@@ -2,6 +2,8 @@
 
 UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time.
 
+<cipi-term name="firewall"></cipi-term>
+
 ```bash
 $ cipi firewall list
 $ cipi firewall allow 3306 --from=10.0.0.5        # one address

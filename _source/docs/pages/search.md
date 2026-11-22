@@ -2,6 +2,8 @@
 
 Full-text search for Laravel Scout, self-hosted: no Algolia account, no per-record billing. Meilisearch runs natively (a single binary with systemd), listens on localhost only, and every app gets a key that can touch **its own indexes and nothing else**. Off until you install it.
 
+<cipi-term name="search"></cipi-term>
+
 ```bash
 $ cipi search install             # binary, config, hardened unit; checks /health
 $ cipi search enable myapp        # scoped key + SCOUT_* in .env

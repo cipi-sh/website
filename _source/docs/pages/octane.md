@@ -2,6 +2,8 @@
 
 Laravel Octane keeps your app booted in memory and serves requests with FrankenPHP. Typical result: much lower response times for the same hardware. Octane and PHP-FPM apps run side by side on one server.
 
+<cipi-term name="octane"></cipi-term>
+
 ## Create or convert {#octane-use}
 
 Your repository needs `laravel/octane`, installed with `php artisan octane:install --server=frankenphp`. Octane starts after the first deploy.

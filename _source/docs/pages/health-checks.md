@@ -2,6 +2,8 @@
 
 Two different questions, two checks: *is the site up?* and *did the release I just shipped break it?* Combined with automatic rollback, a bad deploy can undo itself within seconds.
 
+<cipi-term name="health"></cipi-term>
+
 | Check | Runs | Alerts |
 | --- | --- | --- |
 | Periodic probe | Every 5 minutes | After 3 consecutive failures (`health_fail`) |

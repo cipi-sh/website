@@ -2,6 +2,8 @@
 
 Every Laravel app starts with one Supervisor worker on the `default` queue. Add queues, scale processes, or hand everything to Horizon.
 
+<cipi-term name="workers"></cipi-term>
+
 ```bash
 $ cipi worker add myapp --queue=emails --processes=3
 $ cipi worker add myapp --queue=exports --processes=1 --timeout=7200

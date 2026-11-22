@@ -2,6 +2,8 @@
 
 Cipi tells you when something happens that you should know about: failed deploys and backups, health and monitor alerts, security events (SSH logins, sudo, key changes), patches applied. One command manages where messages go; every enabled trigger reaches every enabled channel.
 
+<cipi-term name="notifications"></cipi-term>
+
 ```bash
 $ cipi notification                     # channels and active triggers (no secrets shown)
 $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
