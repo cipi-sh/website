@@ -185,142 +185,32 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/domains-ssl">Domains &amp; SSL</a></li><li aria-current="page">Domains &amp; aliases</li></ol>
 <h1>Domains &amp; aliases</h1>
 <p class="docs-lead">Primary domains, aliases and www redirects.</p>
-<div class="docs-meta"><span>Domains &amp; SSL</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/domains.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Domains &amp; SSL</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/domains.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-domains">
-                <h2 id="cipi-domains"><code>cipi domains</code><a class="anchor" href="#cipi-domains" aria-label="Link to this section">#</a></h2>
-                <p>Available since <strong>v4.5.5</strong>. A top-level command that lists <strong>every</strong>
-                    domain and alias across <strong>all</strong> apps in a single table — the global counterpart to
-                    the per-app <code>cipi alias list &lt;app&gt;</code>. Ideal for auditing the whole
-                    domain-to-app mapping or spotting a domain that is still missing a certificate.
-                </p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi domains   <span class="c"># list all domains and aliases across every app</span></pre>
-                </div>
-
-                <p>Each row shows the following columns:</p>
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Column</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><strong>DOMAIN</strong></td>
-                                                <td>The domain or alias name. Rows are sorted alphabetically by domain.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>APP</strong></td>
-                                                <td>The app that owns the domain.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>KIND</strong></td>
-                                                <td><code>primary</code> or <code>alias</code>.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>TYPE</strong></td>
-                                                <td><code>Laravel</code> or <code>Custom</code>.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>PHP</strong></td>
-                                                <td>The app's PHP version.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>DOCROOT</strong></td>
-                                                <td><code>public</code> for Laravel apps, <code>/&lt;docroot&gt;</code> for custom apps.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>BRANCH</strong></td>
-                                                <td>The Git branch deployed for the app.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>LAST DEPLOY</strong></td>
-                                                <td>Human-relative age (<code>just now</code>, <code>10m ago</code>, <code>2h ago</code>,
-                                                    <code>3d ago</code>, <code>2w ago</code>, <code>2mo ago</code>, <code>2y ago</code>) —
-                                                    derived from the mtime of the app's <code>current</code> symlink, which Deployer
-                                                    atomically re-points on every successful deploy. Shows <code>-</code> when the app was
-                                                    never deployed.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>SSL</strong></td>
-                                                <td>Per-name certificate status (<code>&#10003;</code>/<code>&#10007;</code>), detected from
-                                                    <code>/etc/letsencrypt/live/&lt;domain&gt;</code>.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>REPOSITORY</strong></td>
-                                                <td>The Git repository, or <code>(SFTP only)</code> for custom apps with no repo.</td>
-                                            </tr>
-                                            <tr>
-                                                <td><strong>(suffix)</strong></td>
-                                                <td>When the owning app is suspended, each row ends with <code>⏸ suspended</code> (yellow).
-                                                    The footer also reports how many apps are suspended.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <p>A footer summarises the totals — number of domains, apps, certificates, and suspended apps — making
-                    it easy to audit the whole mapping at a glance.</p>
-            
+<p>An app has one <strong>primary domain</strong> and any number of <strong>aliases</strong>. One certificate covers them all.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi domains<span class="c">            # every domain of every app, in one table</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Column</th><th>Shows</th></tr></thead><tbody><tr><td>DOMAIN, APP, KIND</td><td>The name, its app, <code>primary</code> or <code>alias</code></td></tr><tr><td>TYPE, PHP, DOCROOT, BRANCH</td><td>How the app is served and deployed</td></tr><tr><td>LAST DEPLOY</td><td>When the live release was published</td></tr><tr><td>SSL</td><td><code>✓</code>/<code>✗</code> per name</td></tr><tr><td>suffix</td><td><code>⏸ suspended</code> for suspended apps</td></tr></tbody></table></div>
+<p>To rename the primary domain: <code>cipi app edit myapp --domain=new.example.com</code> (<a href="/docs/manage-apps#edit">Manage apps</a>).</p>
 </section>
-
 <section class="doc-section" id="cli-aliases">
-                <h2 id="cipi-alias"><code>cipi alias</code><a class="anchor" href="#cipi-alias" aria-label="Link to this section">#</a></h2>
-                <p>Add multiple domains or subdomains to any app. <code>cipi alias add|remove</code> regenerates the
-                    vhost, which keeps serving the app's certificate (since <strong>v5.5.1</strong> Cipi writes the
-                    HTTPS block itself), and <code>cipi alias add</code> tells you whether the new name is already
-                    covered by that certificate or which command adds it — usually <code>cipi ssl install</code>, which
-                    reissues one SAN certificate for all the domains.
-                </p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi alias add myapp www.myapp.com
+<h2 id="alias">Aliases<a class="anchor" href="#alias" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi alias add myapp www.myapp.com
 <span class="p"></span>cipi alias add myapp myapp.it
-<span class="p"></span>cipi alias add myapp <span class="s">'*.myapp.com'</span>   <span class="c"># wildcard (v5.1.0+) — quote it</span>
+<span class="p"></span>cipi alias add myapp '*.myapp.com'<span class="c">     # wildcard: quote it</span>
 <span class="p"></span>cipi alias list myapp
-<span class="p"></span>cipi alias remove myapp myapp.it</pre>
-                </div>
-                <p>Since <strong>v5.1.0</strong>, <strong>wildcard aliases</strong> such as
-                    <code>*.example.com</code> are accepted — Nginx matches a wildcard <code>server_name</code>
-                    natively, and multi-tenant apps need it. Quote the pattern so the shell does not expand it. The
-                    alias routes the subdomains; the certificate comes from
-                    <code>cipi ssl install myapp --dns=cloudflare</code>, which includes the wildcard alias: HTTP-01
-                    cannot validate a wildcard. With or without Cloudflare, proxy on or off, the whole procedure is in
-                    <a href="/docs/wildcard-domains#wildcard-domains">Wildcard domains &amp; SSL</a>.</p>
-                <p>For www ↔ apex canonical redirects, prefer <a href="/docs/domains#cli-www"><code>cipi www</code></a>
-                    instead of managing the counterpart host by hand.</p>
-            
+<span class="p"></span>cipi alias remove myapp myapp.it</pre></div>
+<p>The vhost keeps serving HTTPS while you change aliases. <code>alias add</code> tells you whether the new name is already covered by the certificate or which command adds it (usually <code>cipi ssl install myapp</code>; for a wildcard <code>--dns=cloudflare</code>, see <a href="/docs/wildcard-domains">Wildcard domains</a>).</p>
 </section>
-
 <section class="doc-section" id="cli-www">
-                <h2 id="cipi-www"><code>cipi www</code><a class="anchor" href="#cipi-www" aria-label="Link to this section">#</a></h2>
-                <p>Available since <strong>v4.8.0</strong>. Manage www/apex aliases and canonical 301 redirects for an
-                    app. State lives in <code>apps.json</code> (<code>www_redirect</code>); Nginx emits a dedicated
-                    redirect server block (ACME path kept public) that survives vhost regeneration. SSL is re-applied
-                    via <code>certbot install --redirect</code>.
-                </p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi www add myapp              <span class="c"># add counterpart host (www ↔ apex)</span>
-<span class="p"></span>cipi www force-to-root myapp    <span class="c"># 301 www.domain → domain</span>
-<span class="p"></span>cipi www force-from-root myapp  <span class="c"># 301 domain → www.domain</span>
-<span class="p"></span>cipi www clear myapp            <span class="c"># clear redirect state</span>
-<span class="p"></span>cipi www status myapp           <span class="c"># inspect redirect state</span></pre>
-                </div>
-                <p><code>force-to-root</code> / <code>force-from-root</code> auto-add the missing alias when needed, and
-                    print the certificate hint when they did. Since <strong>5.7.2</strong> an app whose primary domain is a
-                    wildcard (<code>*.example.com</code>) takes the pair of its base: <code>cipi www force-from-root</code>
-                    sends <code>example.com</code> (added as an alias) to <code>www.example.com</code>, which the wildcard
-                    serves; <code>app.www</code> in <code>cipi.yml</code> follows.</p>
-            
+<h2 id="www">www and apex<a class="anchor" href="#www" aria-label="Link to this section">#</a></h2>
+<p>Pick one canonical host and 301 the other to it. Search engines see one site, and the certificate covers both.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi www force-to-root myapp<span class="c">      # www.myapp.com → myapp.com</span>
+<span class="p"></span>cipi www force-from-root myapp<span class="c">    # myapp.com → www.myapp.com</span>
+<span class="p"></span>cipi www status myapp
+<span class="p"></span>cipi www clear myapp</pre></div>
+<p>The missing counterpart is added as an alias automatically. ACME challenges stay reachable, so renewals keep working. In <a href="/docs/yml#cli-yml-routes">cipi.yml</a>: <code>app.www: to-root</code>.</p>
 </section>
 
 </div>
@@ -328,12 +218,11 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#cipi-domains">cipi domains</a></li>
-<li><a class="l2" href="#cipi-alias">cipi alias</a></li>
-<li><a class="l2" href="#cipi-www">cipi www</a></li>
+<li><a class="l2" href="#alias">Aliases</a></li>
+<li><a class="l2" href="#www">www and apex</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/domains.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/domains.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

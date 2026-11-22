@@ -185,107 +185,35 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/infrastructure">Server &amp; runtime</a></li><li aria-current="page">Databases</li></ol>
 <h1>Databases</h1>
 <p class="docs-lead">MariaDB and PostgreSQL: create, back up, restore, rotate passwords.</p>
-<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/databases.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/databases.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-db">
-                <p>Cipi creates a dedicated database for each <strong>Laravel</strong> app automatically during
-                    <code>app create</code>. <strong>MariaDB</strong> (port <code>3306</code>) is the native default;
-                    since <strong>v4.8.0</strong> you can also install optional <strong>PostgreSQL</strong> (port
-                    <code>5432</code>) and choose an engine per database or app. Custom apps do not get a database —
-                    use <code>cipi db create --name=&lt;app&gt;</code> if you need one (e.g. for WordPress or another
-                    CMS). After setup, a ready-to-use connection URL is displayed (MariaDB:
-                    <code>mariadb+ssh://</code>), combining SSH credentials, server IP, and database information for
-                    GUI clients like TablePlus, DBeaver, or Sequel Pro.
-                </p>
-                <div class="term" data-term data-autoplay="view" style="--term-min:calc(7 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Databases</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Databases">$ cipi db install pgsql
+<p>Each Laravel app gets its own database and user, so no app can read another's data. MariaDB is the default; PostgreSQL can be added and chosen per app or per database.</p>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(7 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Databases</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Databases">$ cipi db install pgsql
 $ cipi db create --name=analytics --engine=pgsql</pre><script type="application/json" class="term-script">[{"c": "cipi db install pgsql"}, {"bar": "PostgreSQL ", "ms": 1500}, {"o": [["✓ ", "ok"], ["PostgreSQL installed next to MariaDB", ""]], "d": 300}, {"c": "cipi db create --name=analytics --engine=pgsql", "wait": 300}, {"o": [["✓ ", "ok"], ["Database analytics (PostgreSQL), user analytics", ""]], "d": 500}, {"o": [["URL: ", "dim"], ["postgresql+ssh://cipi@203.0.113.10/analytics", "hl"]], "d": 300}]</script></div>
-
-                <h3 id="engines-v4-8-0">Engines (v4.8.0+)<a class="anchor" href="#engines-v4-8-0" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi db install pgsql              <span class="c"># install optional PostgreSQL</span>
-<span class="p"></span>cipi db uninstall pgsql|mariadb    <span class="c"># remove a non-default engine (destroys data)</span>
-<span class="p"></span>cipi db default mariadb|pgsql      <span class="c"># server-wide default when --engine is omitted</span>
-<span class="p"></span>cipi db engines                    <span class="c"># installed engines, ports, and default</span></pre>
-                </div>
-
-                <h3 id="database-lifecycle">Database lifecycle<a class="anchor" href="#database-lifecycle" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi db create                              <span class="c"># interactive: engine menu, then the name</span>
-<span class="p"></span>cipi db create --name=analytics             <span class="c"># engine menu on a terminal; default engine in a script</span>
-<span class="p"></span>cipi db create --name=analytics --engine=pgsql
-<span class="p"></span>cipi db create --name=wpblog --app=blog     <span class="c"># v5.9.0+ created and shown as that app's</span>
-<span class="p"></span>cipi db link wpblog blog                    <span class="c"># v5.9.0+ the same for a database that exists</span>
-<span class="p"></span>cipi db unlink wpblog
-<span class="p"></span>cipi db list [--engine=mariadb|pgsql]       <span class="c"># databases with sizes and the app each belongs to; --json (v5.9.0+)</span>
-<span class="p"></span>cipi db backup myapp [--engine=…]
-<span class="p"></span>cipi db restore myapp backup.sql.gz [--engine=…]
-<span class="p"></span>cipi db password myapp [--engine=…]         <span class="c"># regenerate password</span>
-<span class="p"></span>cipi db delete analytics [--engine=…]</pre>
-                </div>
-                <h3 id="cli-db-link">A database that belongs to an app (v5.9.0+)<a class="anchor" href="#cli-db-link" aria-label="Link to this section">#</a></h3>
-                <p>A Laravel app gets its database with <code>cipi app create</code>. Everything else — the database
-                    of a WordPress on a custom app, a second database of a Laravel app — was created with
-                    <code>cipi db create</code> and belonged to nobody: nothing on the server or in the panel said
-                    which app it was for. <code>--app=&lt;app&gt;</code> on create, or <code>cipi db link</code>
-                    afterwards, says it.</p>
-                <ul>
-                    <li>The link is a label. The database keeps its own user and password, a database is linked to one
-                        app at most (linking it elsewhere moves it), and <code>cipi app delete</code> leaves a linked
-                        database where it is and names it — only the database created with a Laravel app goes with the
-                        app.</li>
-                    <li><code>cipi db list</code> on a terminal has an <strong>APP</strong> column: the linked app, the
-                        app a database was created with, or the app whose namespace it is in
-                        (<code>&lt;app&gt;_…</code>, what <a href="/cipi-yml">cipi.yml</a> lets an app declare).
-                        <code>cipi app show</code> lists an app's linked databases, and so do the Apps and Databases
-                        pages of the panel.</li>
-                    <li>Piped or run by a script, the table keeps the four columns it always had; <code>cipi db list
-                        --json</code> carries engine, name, user, size, <code>app</code> and <code>link</code>
-                        (<code>linked</code>, <code>own</code>, <code>namespace</code>).</li>
-                </ul>
-
-                <p>Since <strong>v5.6.0</strong>, with both engines installed and no <code>--engine</code>,
-                    <code>cipi db create</code> on a terminal opens a menu — MariaDB or PostgreSQL, the server default
-                    (<code>cipi db default</code>) pre-selected, Enter to take it. A script, or a server with one
-                    engine, gets the default without a prompt.</p>
-                <p>Since <strong>v5.6.0</strong>, <code>cipi db restore</code> stops at the first failed statement on
-                    both engines and says what failed (<code>PostgreSQL restore: ERROR: relation "users" already
-                    exists</code>), exiting 1 — before, a PostgreSQL restore could leave the database empty and still
-                    print <em>restored</em>. A <code>.gz</code> that does not uncompress fails too. A dump taken on a
-                    newer PostgreSQL (e.g. <code>pg_dump</code> 17 into PostgreSQL 16 on Ubuntu 24.04) still restores:
-                    preamble <code>SET</code> lines for parameters this server does not have are dropped. The same
-                    applies to <code>cipi app clone --with-db</code> and <code>cipi sync import</code>.</p>
-                <p>Since <strong>v5.6.2</strong>, a failed PostgreSQL restore no longer empties the database: wipe and
-                    import run in one transaction and <code>COMMIT</code> is sent only after the whole dump has been
-                    read, so a truncated archive, a read error or a failing statement rolls the wipe back. An empty
-                    dump is refused — including a backup taken while <code>pg_dump</code> failed, which can be a valid
-                    archive of nothing. The new <code>public</code> schema goes to the database owner, not a role named
-                    after the database.</p>
-                <p>Since <strong>v5.9.0</strong>, a dump that is in an app's home or in the panel's storage is opened
-                    by the owner of that tree — the app user, or <code>www-data</code> for a dump uploaded through the
-                    panel — not by root: there the file is whatever that user made of its name a moment ago. A file of
-                    root's is read as before.</p>
-                <p>Laravel apps store the chosen engine in app metadata; backup, sync, and
-                    <code>cipi app reset-db-password</code> follow it. Use
-                    <code>cipi app create --engine=pgsql</code> (or the interactive prompt) to provision a Laravel app
-                    on PostgreSQL — <code>.env</code> and the connection URL match the engine. Root password reset:
-                    <code>cipi reset db-password [--engine=]</code>.
-                </p>
-
-                <h3 id="cipi-db-upgrade-v5-2-3"><code>cipi db upgrade</code> (v5.2.3+)<a class="anchor" href="#cipi-db-upgrade-v5-2-3" aria-label="Link to this section">#</a></h3>
-                <p>Both engines are excluded from <code>unattended-upgrades</code> on purpose, so patch-level upgrades
-                    are a command you run:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi db upgrade                  <span class="c"># every installed engine</span>
-<span class="p"></span>cipi db upgrade mariadb [--yes]
-<span class="p"></span>cipi db upgrade pgsql   [--yes]</pre>
-                </div>
-                <p>Expect brief downtime while the service restarts — the prompt says so before it starts. See
-                    <a href="/docs/stack-upgrades#cli-stack-upgrade">manual stack upgrades</a>.</p>
-            
+<h2 id="engines">Engines<a class="anchor" href="#engines" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi db install pgsql<span class="c">             # add PostgreSQL next to MariaDB</span>
+<span class="p"></span>cipi db default mariadb|pgsql<span class="c">     # default when --engine is omitted</span>
+<span class="p"></span>cipi db engines
+<span class="p"></span>cipi db uninstall pgsql<span class="c">           # destroys its data: asks first</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>MariaDB</th><th>PostgreSQL</th></tr></thead><tbody><tr><td>Port</td><td>3306 (localhost)</td><td>5432 (localhost)</td></tr><tr><td>Installed</td><td>Always</td><td><code>cipi db install pgsql</code></td></tr><tr><td>Laravel <code>DB_CONNECTION</code></td><td><code>mysql</code></td><td><code>pgsql</code></td></tr><tr><td>Why choose it</td><td><a href="/docs/design-decisions#why-mariadb">Design decisions</a></td><td><a href="/docs/design-decisions#why-postgresql">Design decisions</a></td></tr></tbody></table></div>
+<h2 id="lifecycle">Databases<a class="anchor" href="#lifecycle" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi db create --name=analytics --engine=pgsql
+<span class="p"></span>cipi db create --name=wpblog --app=blog<span class="c">     # belongs to the "blog" app</span>
+<span class="p"></span>cipi db link wpblog blog<span class="c">                    # or link an existing one</span>
+<span class="p"></span>cipi db list [--json]<span class="c">                       # sizes and owning app</span>
+<span class="p"></span>cipi db backup myapp
+<span class="p"></span>cipi db restore myapp backup.sql.gz
+<span class="p"></span>cipi db password myapp<span class="c">                      # new password, .env updated</span>
+<span class="p"></span>cipi db delete analytics</pre></div>
+<p>Each database has its own user and password. Linking is a label: a linked database is listed with its app (in the CLI and the panel) and is <strong>kept</strong> when the app is deleted; only a Laravel app's own database goes with it. Connect from TablePlus or DBeaver with the <code>mariadb+ssh://</code> URL shown at creation: no database port is ever exposed.</p>
+<h2 id="restore">Restores you can trust<a class="anchor" href="#restore" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Guard</th><th>Effect</th></tr></thead><tbody><tr><td>Stops at the first failing statement</td><td>Clear error, exit 1, no "restored" lie</td></tr><tr><td>PostgreSQL restore in one transaction</td><td>A truncated or failing dump rolls back; your data stays</td></tr><tr><td>Empty dumps refused</td><td>A backup of nothing never wipes a database</td></tr><tr><td>Newer <code>pg_dump</code> into older server</td><td>Unknown <code>SET</code> lines are dropped so it still restores</td></tr><tr><td>Files from an app's home opened as that user</td><td>A malicious symlink can't make root read other files</td></tr></tbody></table></div>
+<h2 id="upgrade">Upgrades<a class="anchor" href="#upgrade" aria-label="Link to this section">#</a></h2>
+<p>Database engines are excluded from unattended upgrades, so they never restart under you. Patch when you choose (brief restart):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi db upgrade [mariadb|pgsql] [--yes]</pre></div>
+<p>Or schedule it with <a href="/docs/stack-upgrades">cipi autoupdate</a>.</p>
 </section>
 
 </div>
@@ -293,13 +221,13 @@ $ cipi db create --name=analytics --engine=pgsql</pre><script type="application/
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#engines-v4-8-0">Engines (v4.8.0+)</a></li>
-<li><a class="l2" href="#database-lifecycle">Database lifecycle</a></li>
-<li><a class="l2" href="#cli-db-link">A database that belongs to an app (v5.9.0+)</a></li>
-<li><a class="l2" href="#cipi-db-upgrade-v5-2-3">cipi db upgrade (v5.2.3+)</a></li>
+<li><a class="l2" href="#engines">Engines</a></li>
+<li><a class="l2" href="#lifecycle">Databases</a></li>
+<li><a class="l2" href="#restore">Restores you can trust</a></li>
+<li><a class="l2" href="#upgrade">Upgrades</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/databases.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/databases.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

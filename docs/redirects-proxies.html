@@ -185,191 +185,41 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/domains-ssl">Domains &amp; SSL</a></li><li aria-current="page">Redirects &amp; proxies</li></ol>
 <h1>Redirects &amp; proxies</h1>
 <p class="docs-lead">Nginx redirects and prefix reverse proxies per app.</p>
-<div class="docs-meta"><span>Domains &amp; SSL</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/redirects-proxies.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Domains &amp; SSL</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/redirects-proxies.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-redirect">
-                <h2 id="cipi-redirect"><code>cipi redirect</code><a class="anchor" href="#cipi-redirect" aria-label="Link to this section">#</a></h2>
-                <p>Available since <strong>v5.3.1</strong>. Two kinds of redirect, both stored in
-                    <code>apps.json</code> (<code>redirect</code> and <code>redirects[]</code>) and rendered by the
-                    same vhost generator as everything else. They survive every vhost regeneration — alias, www, basic
-                    auth, PHP switch, <code>cipi sync import</code> — and certbot clones them into <code>:443</code>
-                    like any other location.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># The whole app moved: every name, www included, in one hop</span>
-<span class="p"></span>cipi redirect set oldsite --to=https://new.com          <span class="c"># 301, path and query kept</span>
+<p>Move pages or whole sites without losing visitors or search ranking, and route a path to another service. Rules live in Cipi's state and survive every vhost change.</p>
+<h2 id="app-redirect">Redirect a whole app<a class="anchor" href="#app-redirect" aria-label="Link to this section">#</a></h2>
+<p>Every name the app answers to (primary, aliases, www) goes to the target in <strong>one hop</strong>.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi redirect set oldsite --to=https://new.com<span class="c">            # 301, path and query kept</span>
 <span class="p"></span>cipi redirect set oldsite --to=https://new.com --302 --no-path
-<span class="p"></span>cipi redirect disable oldsite                           <span class="c"># serve the app again, keep the target</span>
+<span class="p"></span>cipi redirect disable oldsite<span class="c">      # serve the app again, keep the target</span>
 <span class="p"></span>cipi redirect enable oldsite
-<span class="p"></span>cipi redirect unset oldsite                             <span class="c"># forget it</span>
-
-<span class="c"># Path redirects</span>
-<span class="p"></span>cipi redirect add myapp /old-pricing /pricing           <span class="c"># exact, same app</span>
-<span class="p"></span>cipi redirect add myapp /blog/ https://blog.example.com/ <span class="c"># prefix</span>
+<span class="p"></span>cipi redirect unset oldsite</pre></div>
+<p>Status codes: <code>--301</code> (default), <code>--302</code>, <code>--307</code>, <code>--308</code>. The old name's certificate keeps renewing, so HTTPS visitors get a valid redirect too.</p>
+<h2 id="path-redirects">Redirect paths<a class="anchor" href="#path-redirects" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi redirect add myapp /old-pricing /pricing
+<span class="p"></span>cipi redirect add myapp /blog/ https://blog.example.com/
 <span class="p"></span>cipi redirect add myapp /docs/ https://docs.example.com --308 --no-path
-<span class="p"></span>cipi redirect list myapp [--json]
-<span class="p"></span>cipi redirect remove myapp /old-pricing</pre>
-                </div>
-
-                <h3 id="app-redirect">App redirect<a class="anchor" href="#app-redirect" aria-label="Link to this section">#</a></h3>
-                <p><code>cipi redirect set &lt;app&gt; --to=&lt;url&gt;</code> sends every name the app answers to
-                    — primary domain, aliases and the www host — to the target in a single hop. The path and query are
-                    kept by default (<code>old.com/a?b</code> → <code>https://new.com/a?b</code>); <code>--no-path</code>
-                    sends everything to the target as is. The status is <code>--301</code> (default),
-                    <code>--302</code>, <code>--307</code> or <code>--308</code>.</p>
-                <p>The ACME challenge stays public, so the old name's certificate keeps renewing and HTTPS visitors
-                    still get a valid redirect. A target served by the app itself is refused: it would loop.
-                    <code>enable</code> / <code>disable</code> toggle the saved target without losing it;
-                    <code>unset</code> removes it.</p>
-
-                <h3 id="path-redirects">Path redirects<a class="anchor" href="#path-redirects" aria-label="Link to this section">#</a></h3>
-                <p><code>cipi redirect add &lt;app&gt; &lt;from&gt; &lt;to&gt;</code>. <code>&lt;to&gt;</code> is a
-                    same-app <code>/path</code> or an <code>http(s)://</code> URL. Adding an existing
-                    <code>&lt;from&gt;</code> updates it.</p>
-                <div class="table-scroll">
-                    <table class="cmd-table">
-                        <thead>
-                            <tr>
-                                <th><code>&lt;from&gt;</code></th>
-                                <th>Matches</th>
-                                <th>Example</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>No trailing <code>/</code></td>
-                                <td>Exact path. Only the query string is carried over, unless <code>&lt;to&gt;</code> has
-                                    its own.</td>
-                                <td><code>/old?x=1</code> → <code>/new?x=1</code></td>
-                            </tr>
-                            <tr>
-                                <td>Trailing <code>/</code></td>
-                                <td>Prefix. The rest of the raw request URI is appended; <code>/blog</code> without the
-                                    slash goes to the target too.</td>
-                                <td><code>/blog/x?y</code> → <code>https://blog.example.com/x?y</code></td>
-                            </tr>
-                            <tr>
-                                <td>Either, with <code>--no-path</code></td>
-                                <td>Everything goes to <code>&lt;to&gt;</code> unchanged.</td>
-                                <td><code>/blog/x</code> → <code>https://blog.example.com/</code></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p>Path redirects and <a href="/docs/redirects-proxies#cli-proxy">proxy prefixes</a> keep working while the app redirect is
-                    on: they are more specific than <code>location /</code>, so a site that moved can keep
-                    <code>/api/</code> where it was.</p>
-
-                <h3 id="what-is-refused">What is refused<a class="anchor" href="#what-is-refused" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li>Paths and URLs outside a safe charset — no quotes, <code>$</code>, <code>;</code>, braces or
-                        whitespace — so a rule cannot inject nginx directives. Write source paths
-                        <strong>decoded</strong>: nginx matches the decoded URI.</li>
-                    <li><code>/</code>, the ACME challenge, <code>/favicon.ico</code>, <code>/robots.txt</code>,
-                        <code>/index.php</code>, <code>/cipi/webhook</code>, and <code>/app</code> / <code>/apps</code>
-                        on a <a href="/docs/reverb#cli-app-reverb">Reverb</a> app.</li>
-                    <li>A path another redirect or proxy already occupies — for example a redirect and a proxy both on
-                        <code>/api/</code>.</li>
-                    <li>A redirect that would loop back into itself.</li>
-                </ul>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div><strong>Safe apply.</strong> <code>nginx -t</code> must pass before the change. If nginx
-                        refuses the new vhost, <code>apps.json</code> and the vhost are restored and the command exits
-                        1. <code>cipi app show</code> lists the app redirect and path redirects; changes fire the
-                        <code>redirect_change</code> <a href="/docs/notifications#cipi-smtp">notification</a> (on by
-                        default). Since Cipi <strong>5.4.1</strong> the panel API (<strong>1.31+</strong>) and the
-                        <a href="/docs/gui">GUI</a> can manage redirects too, with the CLI's own validation; an app can
-                        also declare them in <a href="/docs/yml#cli-yml-routes"><code>cipi.yml</code></a>.</div>
-                </div>
-            
+<span class="p"></span>cipi redirect list myapp
+<span class="p"></span>cipi redirect remove myapp /old-pricing</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th><code>from</code></th><th>Matches</th><th>Example</th></tr></thead><tbody><tr><td><code>/old</code> (no trailing slash)</td><td>Exactly that path; query kept</td><td><code>/old?x=1</code> → <code>/new?x=1</code></td></tr><tr><td><code>/blog/</code> (trailing slash)</td><td>The prefix; the rest is appended</td><td><code>/blog/x?y</code> → <code>https://blog.example.com/x?y</code></td></tr><tr><td>with <code>--no-path</code></td><td>Everything to the target as is</td><td><code>/blog/x</code> → <code>https://blog.example.com/</code></td></tr></tbody></table></div>
+<p>Path redirects and proxies keep working while an app redirect is on, so a moved site can keep <code>/api/</code> in place.</p>
 </section>
-
 <section class="doc-section" id="cli-proxy">
-                <h2 id="cipi-proxy"><code>cipi proxy</code><a class="anchor" href="#cipi-proxy" aria-label="Link to this section">#</a></h2>
-                <p>Available since <strong>v5.3.1</strong>. Hand one URL prefix of an app to another HTTP service — a
-                    Node or Go API, a legacy app, a docs site — with <code>location ^~ &lt;prefix&gt;</code> and
-                    <code>proxy_pass</code>. Stored in <code>apps.json</code> (<code>proxies[]</code>), so it survives
-                    vhost regeneration like <a href="/docs/redirects-proxies#cli-redirect">redirects</a> do.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi proxy add myapp /api/ http://127.0.0.1:3000 --strip-prefix
+<h2 id="proxy">Proxy a path to another service<a class="anchor" href="#proxy" aria-label="Link to this section">#</a></h2>
+<p>Hand <code>/api/</code>, <code>/events/</code> or <code>/docs/</code> to a Node or Go service, a legacy app or another origin.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi proxy add myapp /api/ http://127.0.0.1:3000 --strip-prefix
 <span class="p"></span>cipi proxy add myapp /events/ http://127.0.0.1:4000 --no-buffering --timeout=3600
 <span class="p"></span>cipi proxy add myapp /docs/ https://docs-origin.example.com --preserve-host
-<span class="p"></span>cipi proxy list myapp [--json]
-<span class="p"></span>cipi proxy remove myapp /api/</pre>
-                </div>
-
-                <div class="table-scroll">
-                    <table class="cmd-table">
-                        <thead>
-                            <tr>
-                                <th>Option</th>
-                                <th>Effect</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><em>(none)</em></td>
-                                <td>The URI goes upstream unchanged: <code>/api/users</code> → <code>&lt;upstream&gt;/api/users</code>.</td>
-                            </tr>
-                            <tr>
-                                <td><code>--strip-prefix</code></td>
-                                <td><code>/api/users</code> → <code>&lt;upstream&gt;/users</code>, and
-                                    <code>X-Forwarded-Prefix</code> is sent. Required when the upstream has a path
-                                    (<code>http://h/v1</code>), because such an upstream always replaces the prefix.</td>
-                            </tr>
-                            <tr>
-                                <td><code>--preserve-host</code></td>
-                                <td>Send the visitor's <code>Host</code>. By default <code>Host</code> is the upstream's.</td>
-                            </tr>
-                            <tr>
-                                <td><code>--timeout=60</code></td>
-                                <td>Upstream timeout in seconds.</td>
-                            </tr>
-                            <tr>
-                                <td><code>--no-buffering</code></td>
-                                <td>For Server-Sent Events, long polling and streamed downloads.</td>
-                            </tr>
-                            <tr>
-                                <td><code>--force</code></td>
-                                <td>Skip the loopback guard (below).</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <p>Every proxy gets WebSocket upgrade, <code>X-Real-IP</code>, <code>X-Forwarded-For</code>,
-                    <code>X-Forwarded-Proto</code> and <code>X-Forwarded-Host</code>, plus
-                    <code>proxy_ssl_server_name</code> for HTTPS upstreams. When <a href="/docs/basic-auth#cli-basicauth">basic
-                        auth</a> is on, it covers the prefix too. Prefixes follow the same validation and reserved paths
-                    as <a href="/docs/redirects-proxies#cli-redirect">path redirects</a>, and keep working while an app redirect is on.</p>
-
-                <h3 id="loopback-guard">Loopback guard<a class="anchor" href="#loopback-guard" aria-label="Link to this section">#</a></h3>
-                <p>A proxy to <code>127.0.0.1</code> or <code>localhost</code> on a port Cipi already uses is refused
-                    without <code>--force</code>: nginx itself (80/443), SSH, MariaDB, PostgreSQL, Valkey, Meilisearch,
-                    and any app's Octane or Reverb port. An upstream hostname that does not resolve is refused, since
-                    nginx resolves it at reload; one that does not answer within 5 seconds is only a warning.</p>
-
-                <p>As with redirects, <code>nginx -t</code> must pass or <code>apps.json</code> and the vhost are
-                    restored and the command exits 1. <code>cipi app show</code> lists the proxy prefixes, and changes
-                    fire <code>proxy_change</code> (on by default). See also <code>cipi help proxy</code>.</p>
-                <p>Since Cipi <strong>5.4.1</strong>, the panel API (<strong>1.31+</strong>) and the
-                    <a href="/docs/gui">GUI</a> can add, list and remove proxies — always <strong>without</strong>
-                    <code>--force</code>, so the loopback guard cannot be bypassed from the web. Proxies declared in
-                    <a href="/docs/yml#cli-yml-routes"><code>cipi.yml</code></a> are stricter still: link-local and
-                    <code>0.0.0.0/8</code> upstreams, cloud metadata included, are refused, and resolved hostnames are
-                    checked as well as literal IPs.</p>
-            
+<span class="p"></span>cipi proxy list myapp
+<span class="p"></span>cipi proxy remove myapp /api/</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Option</th><th>Effect</th></tr></thead><tbody><tr><td>(none)</td><td>URI unchanged: <code>/api/users</code> → <code>upstream/api/users</code></td></tr><tr><td><code>--strip-prefix</code></td><td><code>/api/users</code> → <code>upstream/users</code>, with <code>X-Forwarded-Prefix</code></td></tr><tr><td><code>--preserve-host</code></td><td>Send the visitor's <code>Host</code></td></tr><tr><td><code>--timeout=N</code></td><td>Upstream timeout in seconds</td></tr><tr><td><code>--no-buffering</code></td><td>For Server-Sent Events, long polling, streaming</td></tr></tbody></table></div>
+<p>Every proxy carries WebSocket upgrade and <code>X-Real-IP</code> / <code>X-Forwarded-*</code> headers; basic auth, when on, covers it too.</p>
+<h2 id="safety">Safety rails<a class="anchor" href="#safety" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Guard</th><th>Protects against</th></tr></thead><tbody><tr><td>Strict charset for paths and URLs</td><td>Injecting Nginx directives</td></tr><tr><td>Reserved paths (<code>/</code>, ACME, <code>/robots.txt</code>, <code>/cipi/webhook</code>, Reverb's <code>/app</code>)</td><td>Breaking certificates, webhooks or WebSockets</td></tr><tr><td>Loop and overlap detection</td><td>Redirect loops; a redirect and a proxy on the same prefix</td></tr><tr><td>Loopback guard</td><td>Proxying to Cipi's own ports (SSH, databases, Valkey, Octane, Reverb) without <code>--force</code>; the panel and cipi.yml can never force</td></tr><tr><td><code>nginx -t</code> before reload</td><td>A bad rule: config and state are restored, exit code 1</td></tr></tbody></table></div>
+<p>Changes fire <code>redirect_change</code> / <code>proxy_change</code> <a href="/docs/notifications">notifications</a>. Also available in the panel, the API and <a href="/docs/yml#cli-yml-routes">cipi.yml</a>.</p>
 </section>
 
 </div>
@@ -377,15 +227,13 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#cipi-redirect">cipi redirect</a></li>
-<li><a class="l3" href="#app-redirect">App redirect</a></li>
-<li><a class="l3" href="#path-redirects">Path redirects</a></li>
-<li><a class="l3" href="#what-is-refused">What is refused</a></li>
-<li><a class="l2" href="#cipi-proxy">cipi proxy</a></li>
-<li><a class="l3" href="#loopback-guard">Loopback guard</a></li>
+<li><a class="l2" href="#app-redirect">Redirect a whole app</a></li>
+<li><a class="l2" href="#path-redirects">Redirect paths</a></li>
+<li><a class="l2" href="#proxy">Proxy a path to another service</a></li>
+<li><a class="l2" href="#safety">Safety rails</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/redirects-proxies.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/redirects-proxies.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

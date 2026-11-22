@@ -185,344 +185,49 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/infrastructure">Server &amp; runtime</a></li><li aria-current="page">PHP versions &amp; php.ini</li></ol>
 <h1>PHP versions &amp; php.ini</h1>
 <p class="docs-lead">Install PHP versions, switch per app and tune php.ini.</p>
-<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/php.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/php.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-php">
-                <h2 id="cipi-php"><code>cipi php</code><a class="anchor" href="#cipi-php" aria-label="Link to this section">#</a></h2>
-                <p>A new server is installed with <a href="/docs/php#php-86">PHP 8.6</a> since <strong>v5.9.1</strong> (8.5 before,
-                    and for as long as the repository has no complete release of 8.6); a server that is already
-                    installed keeps the PHP it has. Additional versions can be added at any time; since
-                    <strong>v4.5.12</strong> Cipi probes APT sources per Ubuntu codename. Since <strong>v5.6.3</strong>
-                    the order is <a href="https://packages.sury.org/php/" target="_blank"
-                        rel="noopener">packages.sury.org</a> first (24.04 and 26.04), then the ondrej/php PPA, then
-                    Ubuntu main as a last resort (co-installable 8.3–8.6 where the chosen repo supports it). Same
-                    maintainer and packages, but sury.org publishes first: on the 2026-10-21 security release it had
-                    the fixed builds for 24.04 while the PPA was still building them. Migration 5.6.3 moves existing
-                    servers off the PPA, removing it only once sury.org is in place.</p>
-                <div class="term" data-term data-autoplay="view" style="--term-min:calc(10 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">PHP versions</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: PHP versions">$ cipi php list
+<p>Run several PHP versions side by side, give each app its own, and keep all of them patched. Cipi installs from packages.sury.org (fastest with security releases), then the ondrej PPA, then Ubuntu.</p>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(10 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">PHP versions</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: PHP versions">$ cipi php list
 $ cipi php install 8.3
 $ cipi app edit blog --php=8.5</pre><script type="application/json" class="term-script">[{"c": "cipi php list"}, {"o": [["  8.4  ", ""], ["installed", "dim"], ["   apps: blog", "dim"]], "d": 300}, {"o": [["  8.5  ", ""], ["installed, default", "ok"], ["   apps: shop, api, bakery", "dim"]], "d": 150}, {"c": "cipi php install 8.3", "wait": 400}, {"bar": "php8.3-fpm and extensions ", "ms": 1400}, {"o": [["✓ ", "ok"], ["PHP 8.3 installed", ""]], "d": 300}, {"c": "cipi app edit blog --php=8.5", "wait": 400}, {"o": [["→ ", "info"], ["PHP 8.4 → 8.5...", ""]], "d": 300}, {"o": [["✓ ", "ok"], ["PHP → 8.5", ""]], "d": 600}]</script></div>
-
-                <div class="callout info" style="margin:16px 0;">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Since <strong>v4.5.4</strong> Cipi bundles <strong>Deployer 8</strong> (since v5.10.0
-                        pinned to 8.0.5 from its GitHub release and checked against its SHA-256 — see
-                        <a href="/docs/deploying#deployer-version">Deployer version</a>), which requires
-                        <strong>PHP &ge; 8.3</strong>. <code>cipi php install</code>, <code>cipi php switch</code>,
-                        <code>cipi app create</code> and <code>cipi app edit</code> therefore accept only
-                        <strong>8.3, 8.4, 8.5</strong> and, since <strong>v5.9.1</strong>,
-                        <a href="/docs/php#php-86"><strong>8.6</strong></a>. Legacy versions (7.4–8.2) remain detectable and removable, so
-                        you can still clean up a pre-4.5.4 server with <code>cipi php remove &lt;old-version&gt;</code>.</div>
-                </div>
-
-                <p id="php-legacy">A server installed before v4.5.4 can still have PHP 7.4–8.2, with apps on them. Cipi
-                    manages what is there and adds nothing to it: <code>cipi php list</code> shows those versions
-                    (8.1 and older marked END OF LIFE), <code>cipi service</code> lists and restarts their FPM,
-                    and an app on one keeps it and keeps running. Since <strong>v5.9.1</strong>
-                    <code>cipi status</code> lists their FPM too, and a server-wide
-                    <a href="/docs/php#cli-ini"><code>cipi ini set</code></a> reaches them.
-                    What no longer works on a legacy version: installing it, giving it to an app, making it the
-                    server's PHP, and — on a server with Deployer 8 — deploying an app that is still on it. Move the
-                    app first with <code>cipi app edit &lt;app&gt; --php=8.5</code>. The panel and the API follow the
-                    same rule: a legacy version is listed and marked, and never offered to an app
-                    (GUI after 4.2.1, API 1.39.2).</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi php list              <span class="c"># installed versions, status, patch version, security state, system default</span>
-<span class="p"></span>cipi php install 8.4       <span class="c"># install an additional PHP version (8.3–8.6)</span>
-<span class="p"></span>cipi php switch 8.4        <span class="c"># set system default (root/cipi, API pool)</span>
-<span class="p"></span>cipi php remove 8.1        <span class="c"># remove a version, incl. legacy (blocks if default or apps use it)</span>
-<span class="p"></span>cipi php upgrade           <span class="c"># apply security patches, then report the patch level (exit 1 while vulnerable)</span></pre>
-                </div>
-
-                <h3 id="php-86">PHP 8.6 (v5.9.1+)<a class="anchor" href="#php-86" aria-label="Link to this section">#</a></h3>
-                <p><strong>A new server is installed with PHP 8.6.</strong> It is the server's PHP — the
-                    <code>php</code> command, the panel's pools — and what <code>cipi app create</code> uses when
-                    no <code>--php</code> is given. The installer does that when the repository has a release of
-                    8.6 with every extension Cipi installs. While it only has a release candidate, or no
-                    <code>redis</code>, <code>memcached</code> or <code>imagick</code> package for 8.6 yet, the
-                    server gets 8.5 as before and the installer's last screen says why. That was still the case
-                    on the afternoon of 19 November 2026, the day PHP 8.6.0 was released: packages.sury.org had
-                    8.6.0 itself and none of those three, so a server installed then got 8.5. The installer looks
-                    again at every install; nothing has to be updated for it to choose 8.6. On a server that
-                    got 8.5, <code>cipi php install 8.6</code> and then <code>cipi php switch 8.6</code> move it
-                    later.</p>
-                <p><strong>A server that is already installed keeps the PHP it has.</strong> Updating to 5.9.1
-                    does not install 8.6, does not move an app to it and does not change the server's PHP. There
-                    8.6 is a version you add: <code>cipi php install 8.6</code> installs it next to the ones
-                    already there, and <code>cipi php switch</code>, <code>cipi app create --php=8.6</code>,
-                    <code>cipi app edit &lt;app&gt; --php=8.6</code> and <code>php: "8.6"</code> in
-                    <a href="/cipi-yml">cipi.yml</a> accept it. Installing it does not make it the default:
-                    <code>cipi app create</code> without <code>--php</code> keeps using the server's PHP until
-                    <code>cipi php switch 8.6</code>. When you install it while the branch is new, three things
-                    are worth knowing:</p>
-                <ul>
-                    <li><strong>You get what the repository has that day.</strong> PHP 8.6.0 was released on
-                        19 November 2026 and packages.sury.org had it within hours; the Launchpad PPA, which servers
-                        set up before 5.6.3 may still use, carried a release candidate that afternoon. Where the
-                        repository only has a release candidate Cipi installs it and calls it what it is:
-                        <code>cipi php list</code>, <code>cipi php upgrade</code> and <code>cipi pending</code> show
-                        <strong>prerelease</strong> instead of comparing it with a security release. The nightly
-                        <code>cipi php upgrade</code> moves it to 8.6.0 when the repository has it.</li>
-                    <li><strong>Extensions that are not packaged yet come later, by themselves.</strong> PHP's own
-                        packages are published first; <code>redis</code>, <code>memcached</code> and
-                        <code>imagick</code> are separate projects and follow. Before 5.9.1 the install failed on the
-                        first missing package. Now it stops only if PHP itself (<code>fpm</code>, <code>cli</code>,
-                        <code>common</code>) is missing; otherwise it installs the version without the extensions apt
-                        does not have, names them, and keeps the list in
-                        <code>/var/lib/cipi/php-ext-pending</code>. The nightly <code>cipi php upgrade</code> installs
-                        each one as soon as it is published and restarts that version's FPM;
-                        <code>cipi pending</code> lists them until then. Mind what a missing one means: Laravel's
-                        default Redis client is the <code>redis</code> extension, so an app that uses Redis for
-                        cache, sessions or queues does not work on a PHP without it. For that reason
-                        <code>cipi app create</code>, <code>cipi app edit --php</code>,
-                        <code>cipi app clone</code> and <code>php:</code> in cipi.yml refuse a version that is
-                        still waiting for extensions and name what is missing. An app that uses none of them goes
-                        on with <code>--force</code> (<code>cipi app edit &lt;app&gt; --php=8.6 --force</code>);
-                        a Node app is not asked, its PHP only runs Deployer and the webhook receiver. From the
-                        panel the job fails with the same message: <code>--force</code> is given on the command
-                        line only.</li>
-                    <li><strong>An app's <code>composer.lock</code> may need a refresh first.</strong> Every Laravel
-                        app depends on <code>nette/schema</code> and <code>nette/utils</code> (through
-                        <code>league/commonmark</code>), and their releases before 20 October 2026 declare PHP up to
-                        8.5: <code>composer install</code> refuses such a lock on 8.6 and the deploy fails, leaving
-                        the release that was live in place. Run
-                        <code>composer update nette/schema nette/utils</code> in the project (1.3.7+ and 4.1.6+),
-                        commit the lock, then switch the app.</li>
-                </ul>
-                <p>The panel needs <code>cipi/api</code> <strong>1.39.2</strong> to install 8.6 or assign it to an
-                    app; on a server older than 5.9.1 it answers <code>422</code> with the version it needs.</p>
-
-                <h3 id="security-patch-upgrades">Security patch upgrades<a class="anchor" href="#security-patch-upgrades" aria-label="Link to this section">#</a></h3>
-                <p>Since <strong>v4.7.13</strong>, PHP packages are excluded from
-                    <code>unattended-upgrades</code> and managed by Cipi instead. <code>cipi php upgrade</code> runs
-                    <code>apt-get update</code> and <code>--only-upgrade</code> on every installed <code>php*</code> and
-                    <code>libphp*</code> package, then restarts the affected PHP-FPM pools. When SMTP is configured and
-                    packages were upgraded, Cipi sends an email (<code>php_upgrade</code> trigger; disable with
-                    <code>cipi notifications disable php_upgrade</code>).</p>
-                <p>The check runs automatically <strong>every day at 03:30</strong> via root crontab (wrapped by
-                    <code>cipi-cron-notify</code>). Log:
-                    <code>/var/log/cipi/php-upgrade.log</code>. With nothing to upgrade, a run costs one
-                    <code>apt-get update</code> and restarts nothing. Migration 4.7.13 added it as a weekly job (Sunday
-                    03:30); since <strong>v5.6.3</strong> it is daily, and existing servers move to the daily schedule
-                    on <code>cipi self-update</code> (migration 5.6.3). A schedule changed by hand is left as it
-                    is.</p>
-
-                <h3 id="php-security">Patch level report (v5.6.3+)<a class="anchor" href="#php-security" aria-label="Link to this section">#</a></h3>
-                <p>After upgrading, <code>cipi php upgrade</code> prints one line per installed PHP version, compared
-                    with the oldest release that carries every security fix Cipi knows about. Since v5.9.1 that is
-                    <strong>8.5.13, 8.4.28, 8.3.37 and 8.2.36</strong> — the PHP security release of 2026-11-19 —
-                    and 8.6.0, released the same day with the same fixes. Up to v5.9.0 it was 8.5.12, 8.4.27, 8.3.36
-                    and 8.2.35 (the release of 2026-10-21); a server on those is reported vulnerable from v5.9.1
-                    on:</p>
-                <ul>
-                    <li><strong>patched</strong> — at or past that release.</li>
-                    <li><strong>VULNERABLE</strong> — the fix exists but this server does not have it, typically
-                        because the repository has not published it yet. Run <code>cipi php upgrade</code> again
-                        later.</li>
-                    <li><strong>distro</strong> — a build from the Ubuntu archive, which backports fixes without
-                        changing the version number; check <code>apt changelog php8.3-fpm</code>.</li>
-                    <li><strong>END OF LIFE</strong> — PHP 8.1 and older get no fixes from the PHP project any more.
-                        Cipi installs 8.3 and later only, so this affects servers set up before 4.5.4; move their apps
-                        with <code>cipi app edit &lt;app&gt; --php=8.5</code>. PHP 8.2 security support ends on
-                        <strong>2026-12-31</strong>, and the report says so.</li>
-                    <li><strong>prerelease</strong> (v5.9.1+) — a release candidate, beta or alpha: what the
-                        repository carries for a branch that is not released yet (see
-                        <a href="/docs/php#php-86">PHP 8.6</a>). It is not compared with a security release.</li>
-                </ul>
-                <p id="php-security-2026-11-19"><strong>The release of 2026-11-19.</strong> It fixes, among others,
-                    request smuggling in PHP-FPM (CVE-2026-129289), a use-after-free in the PHP-FPM master
-                    (CVE-2026-129291), two ways to code execution through session files (CVE-2026-126714,
-                    CVE-2026-115560), a use-after-free of the timezone cache (CVE-2026-129496) and, on 8.5 and
-                    later, one in fatal-error backtraces (CVE-2026-129474). Migration 5.9.1 runs
-                    <code>cipi php upgrade</code>, which installs the fixed packages and restarts PHP-FPM. Where a
-                    Cipi server stood before that: its vhosts never set <code>fastcgi_keep_conn</code>, which the
-                    request smuggling needs (check a vhost written by hand with
-                    <code>nginx -T | grep fastcgi_keep_conn</code>); upload progress and
-                    <code>fatal_error_backtraces</code> are off in every pool since v5.6.3 and in Octane apps since
-                    v5.7.1, which closes CVE-2026-115560, CVE-2026-129474 and the upload path of CVE-2026-126714;
-                    the PHP-FPM master issue needs <code>catch_workers_output</code>, set only in the panel's own
-                    pools, and code already running as their user. The timezone one has no setting that closes it:
-                    it needs the update. An <a href="/docs/octane#cli-app-octane">Octane</a> app runs the PHP built into its
-                    FrankenPHP binary, which apt does not touch: <code>cipi php upgrade</code> lists it as
-                    vulnerable until the app has a FrankenPHP build on a fixed PHP.</p>
-                <p>While a version is <strong>VULNERABLE</strong> the command exits <code>1</code>, so the nightly
-                    cron mails a failure through <code>cipi-cron-notify</code> until the fix is in.</p>
-                <p><strong>Octane apps</strong> are checked too. FrankenPHP runs on the PHP built into its binary,
-                    and apt never updates that binary. <code>cipi php upgrade</code> lists, per Octane app, the
-                    <a href="/docs/octane#cli-frankenphp">FrankenPHP build</a> it is pinned to (v5.10.0+), the PHP inside
-                    it, and flags any build on a PHP older than the fixed release. To fix one:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi frankenphp upgrade &lt;app&gt;     <span class="c"># or --all: newest build on the app's PHP minor, restarted and checked</span></pre>
-                </div>
-                <p>Up to 5.9.x the advice here was <code>php artisan octane:install --server=frankenphp</code> and a
-                    restart — which does nothing when a binary is already there: <code>octane:install</code> keeps
-                    it.</p>
-                <p><code>cipi php list</code> shows the same patch version and security state for each version;
-                    <code>cipi php list --json</code> adds <code>patch</code>, <code>security</code>
-                    (<code>patched</code>, <code>vulnerable</code>, <code>distro</code>, <code>eol</code>,
-                    <code>prerelease</code> since 5.9.1, or <code>unknown</code>) and <code>security_floor</code> to
-                    every entry.</p>
-
-                <h3 id="fpm-pool-hardening-v5-6-3">FPM pool hardening (v5.6.3+)<a class="anchor" href="#fpm-pool-hardening-v5-6-3" aria-label="Link to this section">#</a></h3>
-                <p>Every PHP-FPM pool Cipi writes — app pools, Node webhook pools, and the panel API and GUI pools —
-                    turns off the two confirmed attack paths of CVE-2026-109619 (PHP security advisory of 2026-10-21,
-                    with CVE-2026-109618: unauthenticated remote code execution in every SAPI that serves web
-                    requests):</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">ini</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre>php_admin_flag[session.upload_progress.enabled] = off
-php_admin_flag[fatal_error_backtraces] = off   <span class="c">; PHP 8.5 only — the setting does not exist earlier</span></pre>
-                </div>
-                <p>They are set as <code>php_admin_flag</code>, so they apply before the request is parsed and
-                    <code>.user.ini</code> or <code>ini_set()</code> cannot turn them back on. The PHP project says only
-                    the patch release is a complete fix; the flags narrow the attack until it is installed. Migration
-                    5.6.3 renders the app and Node webhook pools again, edits the <code>cipi-api</code> and
-                    <code>cipi-gui</code> pools in place, keeps the previous pools in
-                    <code>/var/lib/cipi/fpm-pool-backup-5.6.3/</code> (a version whose new pools fail
-                    <code>php-fpm -t</code> gets the old ones back), runs <code>cipi php upgrade</code> and restarts
-                    every PHP-FPM service — a restart, not a reload, because a stale worker is what CVE-2026-109619
-                    exploits.</p>
-                <h3 id="octane-frankenphp-hardening-v5-7-1">Octane (FrankenPHP) hardening (v5.7.1+)<a class="anchor" href="#octane-frankenphp-hardening-v5-7-1" aria-label="Link to this section">#</a></h3>
-                <p>FrankenPHP runs the PHP built into its own binary and never reads an FPM pool. Every Octane app
-                    therefore loads the same two settings from <code>/etc/php/cipi-octane.d/99-cipi-hardening.ini</code>:
-                    its <code>&lt;app&gt;-octane</code> Supervisor program sets
-                    <code>PHP_INI_SCAN_DIR=":/etc/php/cipi-octane.d"</code>. The leading <code>:</code> keeps PHP's
-                    compiled-in scan directory, so the <code>php</code> that starts Octane still loads its
-                    <code>conf.d</code>, and Octane passes the variable on to FrankenPHP.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">ini</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre>session.upload_progress.enabled = 0
-fatal_error_backtraces = 0   <span class="c">; ignored by PHP below 8.5</span></pre>
-                </div>
-                <p>The settings load at startup, so <code>ini_set()</code> cannot turn upload progress back on. This
-                    also covers the PHP advisory of 2026-10-23 (CVE-2026-115560, no fixed release yet), whose only
-                    mitigation is <code>session.upload_progress.enabled=0</code>. Migration 5.7.1 writes the file,
-                    renders every Octane program again (previous files in
-                    <code>/var/lib/cipi/supervisor-backup-5.7.1/</code>, put back if Supervisor refuses the new ones)
-                    and restarts the running ones.</p>
-                <p><strong>Optional, not a default:</strong> the advisory also suggests a lower body limit and an
-                    unlimited memory limit for servers that cannot update. Neither is applied by Cipi — a 32M body
-                    limit would break uploads that work today, and an unlimited memory limit trades this bug for
-                    runaway workers. Both are available through <a href="/docs/php#cli-ini"><code>cipi ini set</code></a>,
-                    server-wide or per app with <code>--app=&lt;app&gt;</code>:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># lower body limit: upload_max_filesize first, then post_max_size</span>
-<span class="p"></span>cipi ini set upload_max_filesize=30M [--app=&lt;app&gt;]
-<span class="p"></span>cipi ini set post_max_size=32M [--app=&lt;app&gt;]
-
-<span class="c"># unlimited memory_limit — only with a systemd MemoryMax= cap on the phpX.Y-fpm service</span>
-<span class="p"></span>cipi ini set memory_limit=-1 [--app=&lt;app&gt;]</pre>
-                </div>
-                <p>Cap the service with a systemd <code>MemoryMax=</code> on <code>phpX.Y-fpm</code> (for example
-                    <code>systemctl edit php8.5-fpm</code>). Do not use <code>RLIMIT_AS</code> or
-                    <code>RLIMIT_DATA</code> for this: the advisory warns that they can trigger the allocation failure
-                    behind the bug.</p>
-                <p>PHP is not the only package Cipi keeps out of <code>unattended-upgrades</code>. Since
-                    <strong>v5.2.3</strong>, nginx, MariaDB, PostgreSQL and Valkey have their own operator-triggered
-                    equivalent — see <a href="/docs/stack-upgrades#cli-stack-upgrade">manual stack upgrades</a>. Unlike PHP, those are
-                    never scheduled.</p>
-
-                <h3 id="system-default-vs-app-specific-php">System default vs app-specific PHP<a class="anchor" href="#system-default-vs-app-specific-php" aria-label="Link to this section">#</a></h3>
-                <p>The <strong>system default</strong> is the PHP version used by the <code>root</code> and
-                    <code>cipi</code>
-                    users, the Cipi API FPM pool, and the API queue worker. Use <code>cipi php switch &lt;ver&gt;</code>
-                    to
-                    change it. The command migrates the API pool (and the GUI FPM pool when installed), recreates
-                    panel sockets, and restarts the API worker. Since <strong>5.0.9+</strong>,
-                    <code>PUT /api/php/default</code> wraps this via the panel API (<code>php-manage</code> ability).
-                    Since <strong>5.0.10&ndash;5.0.12</strong>, switch tolerates partial
-                    <code>update-alternatives</code> success, remounts read-only roots when needed, and keeps API/GUI
-                    FPM pools on the target version to avoid nginx 502.
-                </p>
-                <p>REST: <code>GET /api/php</code>, <code>POST /api/php/install</code>,
-                    <code>DELETE /api/php/{version}</code>, <code>PUT /api/php/default</code> (API
-                    <strong>1.15.0+</strong> / Cipi <strong>5.0.6+</strong>). CLI JSON:
-                    <code>cipi php list --json</code> (since <strong>5.0.6</strong>).</p>
-                <p>Each app has its <strong>own</strong> PHP version (set at <code>app create</code> or via
-                    <code>cipi app edit --php=</code>). Deployer, Composer, crontab deploy triggers, and
-                    <code>cipi sync import</code> always run with the app's configured PHP — never the system default.
-                </p>
-
-                <p>To switch an existing app to a different version:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi app edit myapp --php=8.5</pre>
-                </div>
-                <p>This hot-swaps the PHP version with zero downtime: updates the FPM pool, Nginx socket, Supervisor
-                    workers, crontab, Deployer config, and <code>.env</code> in one atomic operation.</p>
-            
+<h2 id="versions">Versions<a class="anchor" href="#versions" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi php list<span class="c">                # versions, patch level, security state, default</span>
+<span class="p"></span>cipi php install 8.4<span class="c">         # add a version (8.3–8.6)</span>
+<span class="p"></span>cipi php switch 8.6<span class="c">          # server default (CLI, panel pools)</span>
+<span class="p"></span>cipi php remove 8.1<span class="c">          # refused while it's the default or an app uses it</span>
+<span class="p"></span>cipi app edit myapp --php=8.6<span class="c">  # move one app, zero downtime</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Version</th><th>Status on Cipi</th></tr></thead><tbody><tr><td>8.6</td><td>Default on new servers once the repository has every extension Cipi needs</td></tr><tr><td>8.3, 8.4, 8.5</td><td>Installable and assignable</td></tr><tr><td>7.4–8.2 (old servers)</td><td>Listed, restartable, removable; never offered to an app</td></tr></tbody></table></div>
+<p>Each app's deploys, Composer, cron and workers always use <strong>the app's</strong> PHP, never the server default.</p>
 </section>
-
+<section class="doc-section" id="php-86">
+<h2 id="php-86">A new PHP minor<a class="anchor" href="#php-86" aria-label="Link to this section">#</a></h2>
+<p>When a new minor comes out, the extension packages (<code>redis</code>, <code>memcached</code>, <code>imagick</code>) follow a few days later. Cipi handles the gap:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Situation</th><th>Cipi</th></tr></thead><tbody><tr><td>PHP packaged, some extensions not yet</td><td>Installs it, records what's missing, adds each extension as soon as it's published (nightly)</td></tr><tr><td>Only a release candidate available</td><td>Installs it and labels it <strong>prerelease</strong></td></tr><tr><td>Assigning a version still missing extensions</td><td>Refused with the list of what's missing; <code>--force</code> if the app doesn't use them</td></tr><tr><td>A lock file that rejects the new PHP</td><td>The deploy fails and the live release stays: update the dependency, commit, deploy</td></tr></tbody></table></div>
+<h2 id="security">Security patches<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
+<p>PHP is excluded from Ubuntu's unattended upgrades: Cipi patches it itself <strong>every night at 03:30</strong>, restarts only the affected PHP-FPM services and reports the result.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi php upgrade<span class="c">      # patch now and print the patch level</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>State</th><th>Meaning</th></tr></thead><tbody><tr><td><code>patched</code></td><td>At or past the latest security release Cipi knows</td></tr><tr><td><code>VULNERABLE</code></td><td>A fix exists but isn't installed yet (exit code 1; the nightly job alerts until fixed)</td></tr><tr><td><code>distro</code></td><td>Ubuntu build: fixes backported without a version bump</td></tr><tr><td><code>END OF LIFE</code></td><td>No more fixes from PHP: move apps off it</td></tr><tr><td><code>prerelease</code></td><td>Release candidate, not compared</td></tr></tbody></table></div>
+<p><a href="/docs/octane">Octane</a> apps run the PHP inside their FrankenPHP binary, which apt never touches; <code>cipi php upgrade</code> lists them too and <code>cipi frankenphp upgrade</code> fixes them.</p>
+<h2 id="hardening">Hardening<a class="anchor" href="#hardening" aria-label="Link to this section">#</a></h2>
+<p>Every pool Cipi writes (apps, webhook receivers, panel) locks down settings that recent PHP advisories used as attack paths, and Octane apps load the same rules:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">ini</span><button class="code-copy-btn" type="button">Copy</button></div><pre>php_admin_flag[session.upload_progress.enabled] = off
+php_admin_flag[fatal_error_backtraces] = off</pre></div>
+<p>They are set as admin flags, so neither <code>.user.ini</code> nor <code>ini_set()</code> can turn them back on. Vhosts never enable <code>fastcgi_keep_conn</code>. Real-world walkthrough: <a href="/guides/php-nginx-cve-patching">How Cipi handles PHP and nginx CVEs</a>.</p>
+</section>
 <section class="doc-section" id="cli-ini">
-                <h2 id="cipi-ini"><code>cipi ini</code><a class="anchor" href="#cipi-ini" aria-label="Link to this section">#</a></h2>
-                <p>Available since <strong>v5.1.0</strong>. A guided way to change PHP settings without hunting for the
-                    right <code>php.ini</code>. Every server-wide change reaches <strong>both SAPIs</strong> — PHP-FPM
-                    <em>and</em> CLI — so what your web requests see is also what queue workers, <code>artisan</code>
-                    and cron see.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi ini list                                <span class="c"># effective values and which layer set them</span>
-<span class="p"></span>cipi ini list --app=shop                     <span class="c"># as seen by one app</span>
-<span class="p"></span>cipi ini get memory_limit                    <span class="c"># one setting</span>
-<span class="p"></span>cipi ini set upload_max_filesize=50M         <span class="c"># server-wide (FPM + CLI)</span>
-<span class="p"></span>cipi ini set memory_limit=512M --app=shop    <span class="c"># for one app only</span>
-<span class="p"></span>cipi ini unset memory_limit --app=shop       <span class="c"># fall back to the wider value</span>
-<span class="p"></span>cipi ini reset [--app=shop]                  <span class="c"># back to Cipi defaults</span>
-<span class="p"></span>cipi ini keys                                <span class="c"># what can be set, and what cannot</span></pre>
-                </div>
-                <p>A <strong>5.1.3</strong> hotfix stopped <code>cipi ini list</code> from dying on the first setting after printing the table header (<code>_INI_SOURCE: unbound variable</code>). No migration: <code>cipi self-update</code> copies the new <code>lib/ini.sh</code>.</p>
-
-                <h3 id="what-it-does-for-you">What it does for you<a class="anchor" href="#what-it-does-for-you" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>It raises the settings that would silently cap yours.</strong> Setting
-                        <code>upload_max_filesize</code> also raises <code>post_max_size</code> and
-                        <code>memory_limit</code> when they would otherwise limit it, and Nginx's
-                        <code>client_max_body_size</code> is flagged when it would.</li>
-                    <li><strong>It refuses what should not be set this way.</strong> Settable keys are an explicit
-                        whitelist — see <code>cipi ini keys</code>. <code>open_basedir</code>,
-                        <code>auto_prepend_file</code>, <code>extension</code> and friends are refused <em>by name, with
-                            the reason</em>, because Cipi manages them as part of app isolation. The two keys of the
-                        2026-10-21 PHP advisory, <code>session.upload_progress.enabled</code> and
-                        <code>fatal_error_backtraces</code>, are listed there too (5.7.2+): off in every pool since 5.6.3,
-                        in each version's <code>fpm/conf.d/99-cipi.ini</code> since 5.7.2.</li>
-                    <li><strong>Per-app overrides win.</strong> <code>--app=&lt;app&gt;</code> writes into that app's
-                        FPM pool, which outranks the server-wide file — for that app only.</li>
-                </ul>
-
-                <h3 id="why-this-needed-fixing">Why this needed fixing<a class="anchor" href="#why-this-needed-fixing" aria-label="Link to this section">#</a></h3>
-                <p>Before 5.1.0 every FPM pool hardcoded <code>upload_max_filesize</code>, <code>post_max_size</code>
-                    and <code>max_execution_time</code>, and pool values outrank <code>conf.d</code> — so a server-wide
-                    <code>php.ini</code> change could not reach a single app. On top of that, Cipi wrote
-                    <code>99-cipi.ini</code> for FPM only, leaving the CLI SAPI (queue workers, <code>artisan</code>,
-                    cron) on the PHP package defaults.</p>
-                <p>In 5.1.0 pools carry only what is genuinely per-app (<code>open_basedir</code>, the error log,
-                    explicit overrides) and inherit everything else; both SAPIs get their file; and <strong>migration
-                        5.1.0</strong> backfills the CLI <code>99-cipi.ini</code> and rewrites existing pools on
-                    update.</p>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Each change fires the <code>ini_set</code> notification trigger, so a PHP setting never changes
-                        on a shared server without a trace. An app can also carry its PHP version and per-app settings
-                        in its repository — see <a href="/docs/yml#cli-yml"><code>cipi.yml</code></a>.</div>
-                </div>
-            
+<h2 id="ini">php.ini settings: <code>cipi ini</code><a class="anchor" href="#ini" aria-label="Link to this section">#</a></h2>
+<p>Change PHP settings without hunting for the right file. Server-wide changes reach <strong>PHP-FPM and CLI</strong>, so web requests, workers, Artisan and cron agree.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi ini list [--app=shop]<span class="c">                  # effective values and where each comes from</span>
+<span class="p"></span>cipi ini set upload_max_filesize=50M<span class="c">        # server-wide</span>
+<span class="p"></span>cipi ini set memory_limit=512M --app=shop<span class="c">   # one app only (wins)</span>
+<span class="p"></span>cipi ini unset memory_limit --app=shop
+<span class="p"></span>cipi ini reset [--app=shop]
+<span class="p"></span>cipi ini keys<span class="c">                               # what can and can't be set</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Behaviour</th><th>Why</th></tr></thead><tbody><tr><td>Raising <code>upload_max_filesize</code> raises <code>post_max_size</code>/<code>memory_limit</code> if they'd cap it</td><td>One command, a working upload limit</td></tr><tr><td>Nginx <code>client_max_body_size</code> flagged when it would cap it</td><td>No mystery 413 errors</td></tr><tr><td><code>open_basedir</code>, <code>auto_prepend_file</code>, <code>extension</code>… refused</td><td>They are part of app isolation</td></tr><tr><td>Every change fires the <code>ini_set</code> notification</td><td>Nothing changes on a shared server without a trace</td></tr></tbody></table></div>
+<p>Per-app settings can also live in <a href="/docs/yml">cipi.yml</a> as <code>app.ini</code>.</p>
 </section>
 
 </div>
@@ -530,19 +235,14 @@ fatal_error_backtraces = 0   <span class="c">; ignored by PHP below 8.5</span></
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#cipi-php">cipi php</a></li>
-<li><a class="l3" href="#php-86">PHP 8.6 (v5.9.1+)</a></li>
-<li><a class="l3" href="#security-patch-upgrades">Security patch upgrades</a></li>
-<li><a class="l3" href="#php-security">Patch level report (v5.6.3+)</a></li>
-<li><a class="l3" href="#fpm-pool-hardening-v5-6-3">FPM pool hardening (v5.6.3+)</a></li>
-<li><a class="l3" href="#octane-frankenphp-hardening-v5-7-1">Octane (FrankenPHP) hardening (v5.7.1+)</a></li>
-<li><a class="l3" href="#system-default-vs-app-specific-php">System default vs app-specific PHP</a></li>
-<li><a class="l2" href="#cipi-ini">cipi ini</a></li>
-<li><a class="l3" href="#what-it-does-for-you">What it does for you</a></li>
-<li><a class="l3" href="#why-this-needed-fixing">Why this needed fixing</a></li>
+<li><a class="l2" href="#versions">Versions</a></li>
+<li><a class="l2" href="#php-86">A new PHP minor</a></li>
+<li><a class="l2" href="#security">Security patches</a></li>
+<li><a class="l2" href="#hardening">Hardening</a></li>
+<li><a class="l2" href="#ini">php.ini settings: cipi ini</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/php.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/php.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

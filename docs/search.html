@@ -185,131 +185,24 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/infrastructure">Server &amp; runtime</a></li><li aria-current="page">Search (Meilisearch)</li></ol>
 <h1>Search (Meilisearch)</h1>
 <p class="docs-lead">Opt-in Meilisearch for Laravel Scout.</p>
-<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/search.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/search.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-search">
-                <p>Available since <strong>v5.2.2</strong>, and <strong>off by default</strong>: neither
-                    <code>setup.sh</code> nor <code>cipi self-update</code> installs it. A self-hosted search engine
-                    for Laravel Scout, wired the way the rest of Cipi is: <strong>native, not a container</strong>.
-                    Meilisearch is a single static Rust binary with no runtime dependencies, so it installs as a
-                    binary, a config file and a systemd unit alongside Nginx, PHP-FPM, MariaDB and Valkey. Engines
-                    that need a runtime around them (Elasticsearch, Typesense, Qdrant) belong in the container
-                    branch; this one does not, and that is the line. For a Laravel app it is
-                    <code>cipi search enable &lt;app&gt;</code> plus a <code>scout:import</code> — no Algolia
-                    account, no per-record billing.</p>
-                <p>You may not need it. For a small dataset Scout's <code>database</code> driver — or Postgres
-                    full-text, already in the stack since 5.0 — needs no extra service, no extra memory and no
-                    upgrade path. <code>cipi search status</code> says so on a server where it is not installed.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi search install [--version=] [--port=] [--force]
-<span class="p"></span>cipi search enable &lt;app&gt;
-<span class="p"></span>cipi search disable &lt;app&gt; [--purge-indexes]
-<span class="p"></span>cipi search list
-<span class="p"></span>cipi search status [--check] [--json]
-<span class="p"></span>cipi search key show &lt;app&gt;
-<span class="p"></span>cipi search key rotate &lt;app&gt;
-<span class="p"></span>cipi search key rotate --master
-<span class="p"></span>cipi search upgrade [--version=] [--reset-data] [--yes]
-<span class="p"></span>cipi search remove [--keep-data]</pre>
-                </div>
-
-                <h3 id="what-install-actually-does">What <code>install</code> actually does<a class="anchor" href="#what-install-actually-does" aria-label="Link to this section">#</a></h3>
-                <p>Downloads the release binary for this architecture from GitHub (amd64/aarch64), creates the
-                    <code>meilisearch</code> system user, <code>/var/lib/meilisearch</code> (0750),
-                    <code>/etc/meilisearch.toml</code> and a hardened unit, then waits on
-                    <code>GET /health</code> before claiming success. It listens on <strong>127.0.0.1</strong>
-                    only — never a public address, so there is no firewall hole to open and no TLS to terminate.
-                    Meilisearch publishes no checksum beside its binaries, so the download is verified the only
-                    way available: it is executed and asked for its version before it is allowed to replace
-                    anything.</p>
-                <p><code>install</code> refuses below <strong>512MB</strong> MemAvailable
-                    (<code>--force</code> overrides) and warns below 1GB. Meilisearch memory-maps its LMDB store,
-                    so its RSS understates what it asks the kernel for; on a 1GB VPS already running MariaDB
-                    tuned to that RAM, an OOM kill is a real outcome and the kernel does not always pick
-                    Meilisearch.</p>
-
-                <h3 id="isolation-is-the-design">Isolation is the design<a class="anchor" href="#isolation-is-the-design" aria-label="Link to this section">#</a></h3>
-                <p>Meilisearch has no databases and no per-tenant separation, so one shared instance needs an
-                    explicit boundary. Cipi's is the index prefix, and <strong>Cipi writes it — the operator
-                    does not choose it</strong>: two apps that pick the same index name are not separated by a
-                    key pattern. It holds because a Cipi app username is
-                    <code>^[a-z][a-z0-9]{2,31}$</code> with <strong>no hyphens</strong>, so
-                    <code>blog-</code> can never be a prefix of <code>blogs-</code> or the reverse, and every
-                    index name belongs to exactly one app. An app that ignores <code>SCOUT_PREFIX</code> does
-                    not collide with its neighbour — it gets a 403. <code>enable</code> still asserts the
-                    non-overlap before minting a key.</p>
-
-                <h3 id="what-enable-writes">What <code>enable</code> writes<a class="anchor" href="#what-enable-writes" aria-label="Link to this section">#</a></h3>
-                <p>Mints an API key scoped to the index pattern <code>&lt;app&gt;-*</code> with exactly the
-                    actions Scout calls (<code>search</code>, <code>documents.*</code>, <code>indexes.*</code>,
-                    <code>settings.get</code>, <code>settings.update</code>, <code>tasks.get</code>,
-                    <code>stats.get</code> — <strong>not</strong> <code>keys.*</code>), then writes
-                    <code>SCOUT_DRIVER</code>, <code>SCOUT_PREFIX=&lt;app&gt;-</code>,
-                    <code>MEILISEARCH_HOST</code> and <code>MEILISEARCH_KEY</code> into
-                    <code>shared/.env</code>. The previous <code>SCOUT_DRIVER</code> is recorded so
-                    <code>disable</code> can put it back.</p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>The master key never reaches an app, an argument list, or a config file. It lives in
-                        the vault (<code>/etc/cipi/search.json</code>) and in
-                        <code>/etc/cipi/meilisearch.env</code>, mode <strong>0600 root:root</strong>, read by
-                        systemd as root <em>before</em> the unit drops to the <code>meilisearch</code> user.
-                        <code>--master-key</code> on an <code>ExecStart</code> line would put it in
-                        <code>/proc/&lt;pid&gt;/cmdline</code>, which every app user on the box can read — the
-                        same reason <code>cipi search</code>'s own HTTP calls pass the
-                        <code>Authorization</code> header to curl through a stdin config file instead of
-                        <code>-H</code>.</div>
-                </div>
-
-                <h3 id="apps-clones-and-the-master-key">Apps, clones, and the master key<a class="anchor" href="#apps-clones-and-the-master-key" aria-label="Link to this section">#</a></h3>
-                <p><code>cipi app delete</code> revokes the app's key and drops its indexes. The engine knows
-                    nothing about <code>apps.json</code>: without this, deleting an app left a live, working API
-                    key behind for a Unix user and a home that no longer exist.</p>
-                <p><code>cipi app clone</code> gives the clone its own key and prefix. The source's
-                    <code>MEILISEARCH_*</code> and <code>SCOUT_PREFIX</code> are excluded from the copied
-                    <code>.env</code> for a sharper reason than the Reverb exclusion next to it: the source's
-                    key is valid for the <em>source's</em> prefix, so a clone that inherited it would not fail —
-                    it would reindex straight into production's indexes.</p>
-                <p>Rotating the master key regenerates every API key on the server. Meilisearch derives a key's
-                    value from its uid and the master key, so the uids survive and the values do not.
-                    <code>key rotate --master</code> therefore rewrites every enabled app's <code>.env</code>
-                    in the same run — otherwise the whole server loses search at once, silently, at the next
-                    master key change. It says which apps it is about to touch before it starts.</p>
-
-                <h3 id="upgrades-are-the-real-cost">Upgrades are the real cost<a class="anchor" href="#upgrades-are-the-real-cost" aria-label="Link to this section">#</a></h3>
-                <p>A Meilisearch store is readable only by the version that wrote it.
-                    <code>cipi search upgrade</code> asks the new binary which in-place upgrade flag it
-                    supports (<code>--upgrade-db</code> on current releases,
-                    <code>--experimental-dumpless-upgrade</code> on older ones) rather than guessing from a
-                    version number, applies it through a one-shot systemd drop-in, and then restarts
-                    <strong>without</strong> it to prove the unit still comes up on its own. If the engine
-                    refuses the store, the old binary is put back and the service restarted — nothing is
-                    dropped without an explicit answer. Only if you say so does it delete
-                    <code>data.ms</code>, reissue every app key (a wiped store has no keys, so every
-                    <code>.env</code> would otherwise be dead) and print the <code>scout:import</code>
-                    commands.</p>
-
-                <p>Meilisearch appears in <code>cipi status</code>,
-                    <code>cipi service list|start|stop|restart</code> (<code>meilisearch</code>, or
-                    <code>search</code>) and shell completion, but only where the unit exists. Six notification
-                    triggers sit under a new <strong>Search</strong> category:
-                    <code>search_install</code>, <code>search_enable</code>, <code>search_disable</code>,
-                    <code>search_key_rotate</code>, <code>search_upgrade</code>,
-                    <code>search_remove</code>.</p>
-                <p>The panel sudoers file allows <code>search status|list|enable|disable</code>.
-                    <code>install</code>, <code>upgrade</code>, <code>key rotate</code> and
-                    <code>remove</code> are deliberately <strong>not</strong> in it: they change or destroy
-                    server state and stay with the operator on the CLI.</p>
-            
+<p>Full-text search for Laravel Scout, self-hosted: no Algolia account, no per-record billing. Meilisearch runs natively (a single binary with systemd), listens on localhost only, and every app gets a key that can touch <strong>its own indexes and nothing else</strong>. Off until you install it.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi search install<span class="c">             # binary, config, hardened unit; checks /health</span>
+<span class="p"></span>cipi search enable myapp<span class="c">        # scoped key + SCOUT_* in .env</span>
+<span class="p"></span>cipi app artisan myapp scout:import "App\Models\Product"
+<span class="p"></span>cipi search status [--check]
+<span class="p"></span>cipi search disable myapp [--purge-indexes]</pre></div>
+<p>Step-by-step with a real model: <a href="/guides/laravel-scout-meilisearch">Laravel Scout with Meilisearch on Cipi</a>.</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Small dataset? Scout's <code>database</code> driver or PostgreSQL full-text need no extra service. <code>cipi search status</code> says so on servers without Meilisearch.</p></div></div>
+<h2 id="isolation">Isolation by design<a class="anchor" href="#isolation" aria-label="Link to this section">#</a></h2>
+<ol class="flow"><li><b>App myapp</b><span>SCOUT_PREFIX=myapp-</span></li><li><b>Scoped key</b><span>indexes myapp-* only</span></li><li><b>Meilisearch</b><span>127.0.0.1, no public port</span></li></ol>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Guard</th><th>Effect</th></tr></thead><tbody><tr><td>Prefix written by Cipi, not chosen by you</td><td>App names can't overlap, so prefixes can't either</td></tr><tr><td>Key limited to Scout's actions on <code>myapp-*</code></td><td>No key management, no other app's indexes (a stray index name gets 403)</td></tr><tr><td>Master key in a root-only file, never on a command line</td><td>App users can't read it from <code>/proc</code></td></tr><tr><td>Delete or clone an app</td><td>Its key is revoked / the clone gets a new key and prefix, never production's</td></tr><tr><td>Memory check before install</td><td>Refused below 512 MB available, warned below 1 GB</td></tr></tbody></table></div>
+<h2 id="commands">Commands<a class="anchor" href="#commands" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>cipi search list</code></td><td>Apps with search and their prefixes</td></tr><tr><td><code>cipi search key show|rotate myapp</code></td><td>Show or replace an app's key (<code>.env</code> updated)</td></tr><tr><td><code>cipi search key rotate --master</code></td><td>New master key; every app's <code>.env</code> is rewritten in the same run</td></tr><tr><td><code>cipi search upgrade [--version=]</code></td><td>Upgrade in place; the old binary returns if the store is refused</td></tr><tr><td><code>cipi search remove [--keep-data]</code></td><td>Uninstall</td></tr></tbody></table></div>
+<p>The panel can show status and enable/disable search per app; installing, upgrading, rotating and removing stay on the CLI.</p>
 </section>
 
 </div>
@@ -317,14 +210,11 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#what-install-actually-does">What install actually does</a></li>
-<li><a class="l2" href="#isolation-is-the-design">Isolation is the design</a></li>
-<li><a class="l2" href="#what-enable-writes">What enable writes</a></li>
-<li><a class="l2" href="#apps-clones-and-the-master-key">Apps, clones, and the master key</a></li>
-<li><a class="l2" href="#upgrades-are-the-real-cost">Upgrades are the real cost</a></li>
+<li><a class="l2" href="#isolation">Isolation by design</a></li>
+<li><a class="l2" href="#commands">Commands</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/search.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/search.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

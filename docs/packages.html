@@ -185,117 +185,26 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/infrastructure">Server &amp; runtime</a></li><li aria-current="page">Packages</li></ol>
 <h1>Packages</h1>
 <p class="docs-lead">Optional tools: ffmpeg, image optimisers, pdftotext.</p>
-<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/packages.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/packages.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-package">
-                <p>Available since <strong>v5.2.2</strong>, and <strong>off by default</strong>: neither
-                    <code>setup.sh</code> nor <code>cipi self-update</code> installs any of it. Installs host
-                    tools a Laravel project may need — image optimisers, ffmpeg, the ImageMagick CLI,
-                    <code>pdftotext</code> — from Ubuntu's own repositories. <strong>The allowlist is the
-                    feature</strong>: without it the command is a root apt shell with extra steps. The catalog
-                    is closed and every entry has to earn its place — a <em>stateless binary from an Ubuntu
-                    repo</em> (no daemon, no port, no credentials, no state outliving the process) with a real
-                    Laravel package behind it. Anything failing that is not a package but a service, and
-                    belongs to <a href="/docs/search#cli-search"><code>cipi search</code></a>,
-                    <a href="/docs/databases#cli-db"><code>cipi db install</code></a> or the container branch. This is the
-                    same rule that put Meilisearch on the other side of the line, written down once.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi package list
+<p>Tools some Laravel packages need on the host, from Ubuntu's own repositories, through a <strong>closed allowlist</strong>: never a root apt shell. Nothing is installed until you ask.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi package list
 <span class="p"></span>cipi package install image-optimizers
 <span class="p"></span>cipi package install ffmpeg
-<span class="p"></span>cipi package install imagemagick
-<span class="p"></span>cipi package install poppler-utils
-<span class="p"></span>cipi package install webp          <span class="c"># a single binary inside a group is a name of its own</span>
-<span class="p"></span>cipi package remove ffmpeg</pre>
-                </div>
-
-                <h3 id="the-catalog">The catalog<a class="anchor" href="#the-catalog" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><code>image-optimizers</code> → <code>jpegoptim optipng pngquant gifsicle webp</code>,
-                        exactly the set <code>spatie/laravel-image-optimizer</code> documents.</li>
-                    <li><code>ffmpeg</code> → <code>pbmedia/laravel-ffmpeg</code>. The install prints the
-                        warning that matters: run it from a queue worker, never from a web request — the FPM
-                        pool is <code>request_terminate_timeout = 300</code> and one ffmpeg will take every
-                        core on a box shared with MariaDB.</li>
-                    <li><code>imagemagick</code> → the <code>convert</code>/<code>magick</code> CLI.
-                        <strong>This is genuinely missing today:</strong> <code>php8.5-imagick</code> depends
-                        on <code>libmagickcore</code>/<code>libmagickwand</code> and, through them, on
-                        <code>imagemagick-6-common</code> (config files only). The binaries live in
-                        <code>imagemagick-6.q16</code>, which nothing in the chain pulls — so PHP-side Imagick
-                        works while <code>exec('convert …')</code> does not.</li>
-                    <li><code>poppler-utils</code> → <code>pdftotext</code>, for
-                        <code>spatie/pdf-to-text</code> and for feeding PDF content to the Scout indexes
-                        above.</li>
-                </ul>
-                <p>A single package inside a group is accepted as a name of its own, so
-                    <code>cipi package install webp</code> works alongside
-                    <code>install image-optimizers</code>.</p>
-
-                <h3 id="install-and-remove-ask-first">Install and remove ask first<a class="anchor" href="#install-and-remove-ask-first" aria-label="Link to this section">#</a></h3>
-                <p><code>install</code> shows what apt intends to do before doing it — package count and disk
-                    delta, read from <code>apt-get install -s</code> on the machine rather than from a number
-                    hardcoded here — then asks. Afterwards it verifies each expected binary is on
-                    <code>PATH</code> and names any that is not, instead of letting the application discover
-                    it.</p>
-                <p><code>remove</code> purges only the packages actually present (naming an absent one turns a
-                    no-op into an apt failure), then previews the orphaned dependencies
-                    <code>autoremove</code> would take and asks before running it — server-wide autoremove on
-                    a box that also runs MariaDB and PHP is not something to do silently.</p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>Chromium is deliberately not in the allowlist, and the refusal says why. On Ubuntu
-                        24.04 there is no <code>chromium</code> deb at all, and <code>chromium-browser</code>
-                        is a 48 kB transitional package whose dependencies are <code>debconf</code> and
-                        <strong><code>snapd</code></strong>. Installing it would add a daemon and a snap that
-                        updates itself outside apt's control, which is precisely what this command exists not
-                        to do. For <code>spatie/browsershot</code>, use Puppeteer's own Chromium (Node 22 is
-                        already installed) or Google's apt repository — both deliberate choices, not a side
-                        effect of an allowlist entry.</div>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Ghostscript and <code>fonts-dejavu-core</code> are already installed and are not in
-                        the list: they arrive as <em>Recommends</em> of <code>php-imagick</code>, and
-                        <code>setup.sh</code> passes no <code>--no-install-recommends</code>. PDF through
-                        ImageMagick will still fail after installing it, and not for a missing package:
-                        <code>imagemagick-6-common</code> ships <code>/etc/ImageMagick-6/policy.xml</code>
-                        with the PDF/PS/EPS coders disabled (the Ghostscript CVEs). That file exists on every
-                        Cipi server. <code>pdftotext</code> is not affected by the policy, which is part of
-                        why <code>poppler-utils</code> earned a place.</div>
-                </div>
-
-                <p>Two notification triggers sit under a new <strong>Packages</strong> category:
-                    <code>package_install</code>, <code>package_remove</code>. The panel sudoers file allows
-                    <code>package list</code> only: installing packages as root stays with the operator on
-                    the CLI.</p>
-            
+<span class="p"></span>cipi package install webp<span class="c">            # one binary from a group</span>
+<span class="p"></span>cipi package remove ffmpeg</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Package</th><th>Installs</th><th>For</th></tr></thead><tbody><tr><td><code>image-optimizers</code></td><td>jpegoptim, optipng, pngquant, gifsicle, webp</td><td><code>spatie/laravel-image-optimizer</code></td></tr><tr><td><code>ffmpeg</code></td><td>ffmpeg</td><td><code>pbmedia/laravel-ffmpeg</code> (run it in a queue worker, never in a request)</td></tr><tr><td><code>imagemagick</code></td><td><code>convert</code> / <code>magick</code> CLI</td><td>Code that shells out to ImageMagick (the PHP extension is already installed)</td></tr><tr><td><code>poppler-utils</code></td><td><code>pdftotext</code></td><td><code>spatie/pdf-to-text</code>, feeding PDFs to search</td></tr></tbody></table></div>
+<p>Install and remove show what apt will do (packages, disk space) and ask first; afterwards Cipi checks each binary is on the <code>PATH</code>. Removal previews orphaned dependencies before cleaning them up. Anything with a daemon, a port or state is a service, not a package: see <a href="/docs/search">search</a> and <a href="/docs/databases">databases</a>.</p>
 </section>
 
 </div>
 <nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/services" rel="prev"><small>Previous</small><b>Services</b></a><a class="next" href="/docs/stack-upgrades" rel="next"><small>Next</small><b>Stack upgrades</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
-<h2>On this page</h2><ol>
-<li><a class="l2" href="#the-catalog">The catalog</a></li>
-<li><a class="l2" href="#install-and-remove-ask-first">Install and remove ask first</a></li>
-</ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/packages.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/packages.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

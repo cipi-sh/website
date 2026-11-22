@@ -185,135 +185,28 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/infrastructure">Server &amp; runtime</a></li><li aria-current="page">Valkey</li></ol>
 <h1>Valkey</h1>
 <p class="docs-lead">Cache, sessions and queues on Valkey, shared or one instance per app.</p>
-<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/valkey.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/valkey.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="valkey">
-                <p><strong>Valkey</strong> is the in-memory data store that Cipi installs as part of the default stack.
-                    Since <strong>v4.5.6</strong> Cipi provisions <strong>Valkey</strong> instead of
-                    <code>redis-server</code>. It excels at caching, session storage, message queues, real-time
-                    broadcasting, and rate limiting.</p>
-
-                <h3 id="valkey-per-app">One instance per app (v5.9.0+)<a class="anchor" href="#valkey-per-app" aria-label="Link to this section">#</a></h3>
-                <p>Until 5.9.0 the server had one Valkey and one password, and every app got it in its
-                    <code>.env</code>: any app could read and write the cache, the sessions and the queued jobs of
-                    every other app, and one <code>FLUSHDB</code> emptied them all. An app now has an instance of its
-                    own — <code>cipi-valkey@&lt;app&gt;.service</code>, running as the app's user, listening on
-                    <code>127.0.0.1</code> on a port of its own (from 6400), with its own password
-                    (<code>REDIS_HOST</code>, <code>REDIS_PORT</code>, <code>REDIS_PASSWORD</code> in the app's
-                    <code>.env</code>), its configuration in <code>/etc/cipi-valkey/&lt;app&gt;.conf</code> and its data
-                    in <code>/var/lib/cipi-valkey/&lt;app&gt;</code>. An idle instance costs about 10 MB of RAM.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi valkey list [--json]         <span class="c"># which app uses which instance</span>
-<span class="p"></span>cipi valkey isolate shop          <span class="c"># its own instance: keys copied, .env switched, workers restarted</span>
-<span class="p"></span>cipi valkey isolate --all         <span class="c"># every app still on the shared one</span>
-<span class="p"></span>cipi valkey share shop            <span class="c"># back to the shared instance</span>
+<p>Valkey is the open-source (BSD, Linux Foundation) continuation of Redis: same protocol, same <code>phpredis</code> driver, same <code>REDIS_*</code> variables. Cipi gives <strong>each Laravel app its own instance</strong>, so no app can read or flush another's cache, sessions or jobs.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Per-app instance</th><th></th></tr></thead><tbody><tr><td>Service</td><td><code>cipi-valkey@myapp</code>, running as the app's user</td></tr><tr><td>Network</td><td><code>127.0.0.1</code>, its own port (from 6400) and password</td></tr><tr><td>Config / data</td><td><code>/etc/cipi-valkey/myapp.conf</code>, <code>/var/lib/cipi-valkey/myapp</code></td></tr><tr><td>Cost</td><td>About 10 MB of RAM when idle</td></tr><tr><td><code>.env</code></td><td><code>REDIS_HOST</code>, <code>REDIS_PORT</code>, <code>REDIS_PASSWORD</code> already written</td></tr></tbody></table></div>
+<h2 id="laravel">Use it in Laravel<a class="anchor" href="#laravel" aria-label="Link to this section">#</a></h2>
+<p>New apps keep cache, sessions and queues in their database. Switch whatever you want to Valkey:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app env myapp --set=CACHE_STORE=redis
+<span class="p"></span>cipi app env myapp --set=SESSION_DRIVER=redis
+<span class="p"></span>cipi app env myapp --set=QUEUE_CONNECTION=redis
+<span class="p"></span>cipi worker restart myapp<span class="c">            # or enable Horizon</span></pre></div>
+<h2 id="manage">Manage instances<a class="anchor" href="#manage" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi valkey list
+<span class="p"></span>cipi valkey isolate shop<span class="c">                     # move an app off the shared instance</span>
+<span class="p"></span>cipi valkey isolate --all
+<span class="p"></span>cipi valkey isolate shop --maxmemory=256mb --policy=allkeys-lru
 <span class="p"></span>cipi valkey restart shop
-<span class="p"></span>cipi valkey flush-shared          <span class="c"># once nobody uses it: empty it and change its password</span></pre>
-                </div>
-                <ul>
-                    <li><strong>New Laravel apps</strong> get their instance from <code>cipi app create</code>
-                        (<code>--valkey=shared</code> keeps the old behaviour for one app). It is removed with the
-                        app.</li>
-                    <li><strong>Apps that exist are not touched</strong> until you run <code>isolate</code>. The app
-                        goes into maintenance mode, its workers stop, its keys are copied with their expiry — by the
-                        key prefix the application itself reports — the <code>.env</code> is switched, the config cache
-                        rebuilt, workers (queue, Horizon, Octane, Reverb) restarted, maintenance mode off: seconds. A
-                        copy that is refused leaves the app exactly where it was.</li>
-                    <li>An app whose prefix cannot be read (no release deployed yet, an empty prefix) is not moved
-                        unless you pass <code>--no-copy</code>: it then starts empty, without maintenance mode. An app
-                        whose <code>.env</code> points Redis at another host, or through <code>REDIS_URL</code>, is
-                        left alone.</li>
-                    <li><code>--maxmemory=256mb</code> and <code>--policy=allkeys-lru</code> set a ceiling for the
-                        instance; without them it behaves like the shared one.</li>
-                    <li><code>cipi app clone</code> gives the clone its own instance and no longer copies the
-                        source's <code>REDIS_*</code>; <code>cipi sync</code> keeps this server's Valkey settings for an
-                        app that exists and gives an imported one an instance here.</li>
-                    <li><a href="/docs/stack-upgrades#cli-pending"><code>cipi pending</code></a> lists the apps still on
-                        the shared instance; a Valkey package upgrade restarts every instance.</li>
-                </ul>
-
-                <h3 id="why-valkey-instead-of-redis">Why Valkey instead of Redis<a class="anchor" href="#why-valkey-instead-of-redis" aria-label="Link to this section">#</a></h3>
-                <p>Valkey is the <strong>truly open-source, BSD-licensed</strong> fork of Redis, stewarded by the
-                    <strong>Linux Foundation</strong>. It was created in 2024 after Redis Inc. relicensed Redis away
-                    from the permissive BSD license to the source-available SSPL / RSALv2 — a change that no longer met
-                    the open-source definition. Backed by AWS, Google Cloud, Oracle, and a large community, Valkey
-                    continues the same battle-tested codebase under a license that stays <strong>free forever</strong>.
-                    That makes it a perfect fit for Cipi's MIT, no-vendor-lock-in philosophy, and it ships
-                    <strong>natively in Ubuntu 24.04's Universe repository</strong> (packages
-                    <code>valkey-server</code> + <code>valkey-tools</code>) — no third-party PPA to trust.</p>
-                <p>Just as importantly, Valkey is a <strong>drop-in replacement</strong>: it speaks the exact same RESP
-                    protocol on the same port (<code>127.0.0.1:6379</code>), honours the same
-                    <code>requirepass</code> / <code>bind</code> directives, and reads the same RDB/AOF data format. Your
-                    apps need <strong>zero changes</strong> — the <code>phpredis</code> extension and your existing
-                    <code>REDIS_*</code> <code>.env</code> values keep working exactly as before.</p>
-
-                <h3 id="how-cipi-implements-it">How Cipi implements it<a class="anchor" href="#how-cipi-implements-it" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>Install</strong> — <code>setup.sh</code> installs and configures Valkey
-                        (<code>/etc/valkey/valkey.conf</code>, service <code>valkey-server</code>), bound to
-                        <code>localhost</code> only and protected with a password.</li>
-                    <li><strong>Service management</strong> — <code>cipi service …</code> manages
-                        <code>valkey-server</code> (the names <code>redis-server</code>, <code>redis</code>, and
-                        <code>valkey</code> are still accepted as aliases). It is added to the unattended-upgrades
-                        blacklist, so Cipi manages it instead of an automatic upgrade.</li>
-                    <li><strong>Credentials</strong> — stored under <code>valkey_user</code> /
-                        <code>valkey_password</code> in <code>/etc/cipi/server.json</code> (the legacy
-                        <code>redis_*</code> keys are still read as a fallback). Host: 127.0.0.1, Port: 6379.</li>
-                    <li><strong>Password reset</strong> — <code>cipi reset valkey-password</code> regenerates the
-                        password and restarts the service (<code>cipi reset redis-password</code> stays as an alias).</li>
-                </ul>
-
-                <h3 id="migrating-from-redis-4-5-6-4-5-7">Migrating from Redis (4.5.6 / 4.5.7)<a class="anchor" href="#migrating-from-redis-4-5-6-4-5-7" aria-label="Link to this section">#</a></h3>
-                <p>Existing servers are switched to Valkey automatically on <code>cipi self-update</code> — no app
-                    <code>.env</code> editing required. The migration reuses the current Redis password (recovered from
-                    <code>server.json</code> or <code>/etc/redis/redis.conf</code>), forces an RDB <code>SAVE</code> and
-                    snapshots <code>dump.rdb</code>/AOF, purges <code>redis-server</code>, installs
-                    <code>valkey-server</code> + <code>valkey-tools</code> on the same port with the same
-                    <code>requirepass</code> / <code>bind</code>, restores the dataset, and rewrites
-                    <code>server.json</code> (<code>redis_*</code> → <code>valkey_*</code>) and the unattended-upgrades
-                    blacklist — so cache, sessions, and queued jobs survive the switch.</p>
-                <p><strong>v4.5.7</strong> corrects the package name to <code>valkey-server</code> (the Ubuntu 24.04
-                    daemon package; <code>4.5.6</code> initially used <code>valkey</code>) and makes the migration fully
-                    self-contained and safe. It auto-enables the <code>universe</code> APT component when the package
-                    isn't found, runs a post-start health check (<code>PING</code> → <code>PONG</code> with the
-                    password), and <strong>rolls back to <code>redis-server</code></strong> — restoring both the saved
-                    password and the dataset — if Valkey can't be installed or doesn't come up healthy. The dataset
-                    snapshot is kept until the switch is verified, then cleaned up. The migration is idempotent: servers
-                    already on Valkey skip it.</p>
-
-                <h3 id="laravel-integration">Laravel integration<a class="anchor" href="#laravel-integration" aria-label="Link to this section">#</a></h3>
-                <p>New apps use the database driver for cache, sessions and queues: Valkey is <strong>one instance with
-                    one password</strong> for every app of the server, and whoever has the password can read — and
-                    flush — every app's keys. The database driver keeps each app inside its own database and user.
-                    Switch an app to Valkey when you want it (faster cache and queues, Horizon, Reverb scaling) and
-                    trust every app on the server with that.</p>
-                <p>The password is in the installation summary; <code>cipi reset valkey-password</code> sets a new one
-                    and prints it (every app that uses Valkey then needs it). Add these variables with
-                    <code>cipi app env myapp</code>. The names stay <code>REDIS_*</code> — that is what
-                    <code>phpredis</code> and Laravel's <code>redis</code> driver expect, and Valkey answers on the very
-                    same socket:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">env</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="n">REDIS_HOST</span><span class="o">=</span><span class="s">127.0.0.1</span>
-<span class="n">REDIS_PASSWORD</span><span class="o">=</span><span class="s">the-valkey-password</span>
-<span class="n">REDIS_PORT</span><span class="o">=</span><span class="s">6379</span>
-<span class="n">REDIS_PREFIX</span><span class="o">=</span><span class="s">myapp_</span>   <span class="c"># one per app, so keys never collide</span></pre>
-                </div>
-                <p>Then set the drivers for each use case:</p>
-                <ul>
-                    <li><strong>Cache</strong> — <code>CACHE_STORE=redis</code></li>
-                    <li><strong>Session</strong> — <code>SESSION_DRIVER=redis</code></li>
-                    <li><strong>Queue</strong> — <code>QUEUE_CONNECTION=redis</code> (then
-                        <code>cipi worker restart myapp</code>)
-                    </li>
-                    <li><strong>Broadcasting</strong> — <code>BROADCAST_CONNECTION=redis</code></li>
-                </ul>
-                <p>The <code>phpredis</code> extension is installed with every PHP version Cipi installs;
-                    <code>predis/predis</code> works too, as a pure-PHP fallback. Both talk to Valkey transparently.
-                </p>
-            
+<span class="p"></span>cipi valkey flush-shared<span class="c">                     # once no app uses it: empty + new password</span></pre></div>
+<ol class="flow"><li><b>Maintenance on</b><span>app returns 503</span></li><li><b>Workers stop</b><span>nothing writes</span></li><li><b>Copy keys</b><span>with their expiry</span></li><li><b>Switch .env</b><span>config cache rebuilt</span></li><li><b>Back online</b><span>seconds later</span></li></ol>
+<p>If the copy fails, the app stays exactly where it was. Apps whose Redis points elsewhere are left alone. Clones and synced apps get their own instance. <code>cipi pending</code> lists apps still on the shared instance.</p>
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p><code>cipi app create --valkey=shared</code> keeps one app on the server-wide instance. Valkey is excluded from unattended upgrades; patch it with <a href="/docs/stack-upgrades">stack upgrades</a>.</p></div></div>
 </section>
 
 </div>
@@ -321,14 +214,11 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#valkey-per-app">One instance per app (v5.9.0+)</a></li>
-<li><a class="l2" href="#why-valkey-instead-of-redis">Why Valkey instead of Redis</a></li>
-<li><a class="l2" href="#how-cipi-implements-it">How Cipi implements it</a></li>
-<li><a class="l2" href="#migrating-from-redis-4-5-6-4-5-7">Migrating from Redis (4.5.6 / 4.5.7)</a></li>
-<li><a class="l2" href="#laravel-integration">Laravel integration</a></li>
+<li><a class="l2" href="#laravel">Use it in Laravel</a></li>
+<li><a class="l2" href="#manage">Manage instances</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/valkey.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/valkey.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

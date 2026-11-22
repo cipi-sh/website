@@ -185,217 +185,41 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/infrastructure">Server &amp; runtime</a></li><li aria-current="page">Uninstall</li></ol>
 <h1>Uninstall</h1>
 <p class="docs-lead">Remove Cipi from a server.</p>
-<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/uninstall.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/uninstall.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="uninstall">
-                <p>Cipi does not provide a built-in uninstall command. If you need to completely remove Cipi from a
-                    server,
-                    follow the steps below <strong>in order</strong>. This procedure removes every component that Cipi
-                    installs — users, services, packages, configs, and data.</p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div><strong>This is a destructive and irreversible operation.</strong> All apps, databases, SSL
-                        certificates, and server configurations managed by Cipi will be permanently deleted. Back up
-                        everything you need <strong>before</strong> proceeding. After uninstalling, the recommended
-                        approach
-                        is to reprovision the server from scratch.</div>
-                </div>
-
-                <h3 id="1-stop-and-remove-all-apps">1 — Stop and remove all apps<a class="anchor" href="#1-stop-and-remove-all-apps" aria-label="Link to this section">#</a></h3>
-                <p>For each app managed by Cipi, remove its system user, home directory, database, nginx vhost, PHP-FPM
-                    pool,
-                    and supervisor config.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># List all app users (members of cipi-apps group)</span>
-<span class="p"></span>grep cipi-apps /etc/group
-
-<span class="c"># For EACH app user, remove everything</span>
-<span class="p"></span>supervisorctl stop &lt;app_user&gt;:*
-<span class="p"></span>rm -f /etc/supervisor/conf.d/&lt;app_user&gt;.conf
-<span class="p"></span>rm -f /etc/nginx/sites-enabled/&lt;app_user&gt;
-<span class="p"></span>rm -f /etc/nginx/sites-available/&lt;app_user&gt;
-<span class="p"></span>rm -f /etc/php/*/fpm/pool.d/&lt;app_user&gt;.conf
-<span class="p"></span>rm -f /etc/sudoers.d/cipi-&lt;app_user&gt;
-<span class="p"></span>mysql -e "DROP DATABASE IF EXISTS &lt;app_user&gt;; DROP USER IF EXISTS '&lt;app_user&gt;'@'localhost'; DROP USER IF EXISTS '&lt;app_user&gt;'@'127.0.0.1';"
-<span class="p"></span>userdel -r &lt;app_user&gt;</pre>
-                </div>
-
-                <h3 id="2-remove-the-cipi-user-and-groups">2 — Remove the Cipi user and groups<a class="anchor" href="#2-remove-the-cipi-user-and-groups" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>userdel -r cipi
-<span class="p"></span>groupdel cipi-ssh 2>/dev/null
-<span class="p"></span>groupdel cipi-apps 2>/dev/null</pre>
-                </div>
-
-                <h3 id="3-remove-cipi-binaries-libraries-and-data">3 — Remove Cipi binaries, libraries, and data<a class="anchor" href="#3-remove-cipi-binaries-libraries-and-data" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>rm -f /usr/local/bin/cipi
-<span class="p"></span>rm -f /usr/local/bin/cipi-worker
-<span class="p"></span>rm -f /usr/local/bin/cipi-cron-notify
-<span class="p"></span>rm -f /usr/local/bin/cipi-auth-notify
-<span class="p"></span>rm -rf /opt/cipi
-<span class="p"></span>rm -rf /etc/cipi
-<span class="p"></span>rm -rf /var/log/cipi</pre>
-                </div>
-
-                <h3 id="4-remove-cipi-api-if-installed">4 — Remove Cipi API (if installed)<a class="anchor" href="#4-remove-cipi-api-if-installed" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>systemctl stop cipi-queue 2>/dev/null
-<span class="p"></span>systemctl disable cipi-queue 2>/dev/null
-<span class="p"></span>rm -f /etc/systemd/system/cipi-queue.service
-<span class="p"></span>systemctl daemon-reload</pre>
-                </div>
-
-                <h3 id="5-remove-cipi-cron-jobs">5 — Remove Cipi cron jobs<a class="anchor" href="#5-remove-cipi-cron-jobs" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># Edit root crontab and remove all Cipi entries</span>
-<span class="p"></span>crontab -e
-<span class="c"># Remove lines referencing: cipi self-update, certbot renewal, cache cleanup, RAM drop</span></pre>
-                </div>
-
-                <h3 id="6-remove-cipi-configuration-files">6 — Remove Cipi configuration files<a class="anchor" href="#6-remove-cipi-configuration-files" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># Sudoers</span>
-<span class="p"></span>rm -f /etc/sudoers.d/cipi-sudo
-<span class="p"></span>rm -f /etc/sudoers.d/cipi-api
-
-<span class="c"># Logrotate</span>
-<span class="p"></span>rm -f /etc/logrotate.d/cipi-app-logs
-<span class="p"></span>rm -f /etc/logrotate.d/cipi-http-logs
-<span class="p"></span>rm -f /etc/logrotate.d/cipi-security-logs
-
-<span class="c"># Unattended upgrades</span>
-<span class="p"></span>rm -f /etc/apt/apt.conf.d/50cipi-unattended-upgrades
-<span class="p"></span>rm -f /etc/apt/apt.conf.d/20cipi-auto-upgrades
-
-<span class="c"># System profile and MOTD</span>
-<span class="p"></span>rm -f /etc/profile.d/cipi-env.sh
-<span class="p"></span>echo "" > /etc/motd
-
-<span class="c"># MariaDB custom config</span>
-<span class="p"></span>rm -f /etc/mysql/mariadb.conf.d/99-cipi.cnf
-
-<span class="c"># PHP custom config (all versions)</span>
-<span class="p"></span>rm -f /etc/php/*/fpm/conf.d/99-cipi.ini
-
-<span class="c"># Nginx default page</span>
-<span class="p"></span>rm -f /etc/nginx/sites-available/default
-<span class="p"></span>rm -f /etc/nginx/sites-enabled/default</pre>
-                </div>
-
-                <h3 id="7-purge-installed-packages">7 — Purge installed packages<a class="anchor" href="#7-purge-installed-packages" aria-label="Link to this section">#</a></h3>
-                <p>Remove all packages that Cipi installed. Skip any package you want to keep for other purposes.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>systemctl stop nginx mariadb valkey-server fail2ban supervisor
-<span class="p"></span>systemctl stop php*-fpm
-
-<span class="p"></span>apt purge -y nginx* mariadb-server mariadb-client valkey-server \
-    fail2ban supervisor certbot python3-certbot-nginx \
-    php8.4* php8.5* nodejs
-
+<p>Cipi changes a server deeply (users, SSH, firewall, packages, repositories), so there is no <code>uninstall</code> command. <strong>The clean way out is a fresh server</strong>: move the apps elsewhere with <a href="/docs/sync">cipi sync</a> or your backups, then destroy the VPS. The steps below exist for when you must keep the machine.</p>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>This deletes every app, database, certificate and configuration Cipi manages. Back up first (<a href="/docs/backups">Backups</a>). It cannot be undone.</p></div></div>
+<ol class="flow"><li><b>Back up</b><span>backups, credentials export</span></li><li><b>Remove apps</b><span>users, vhosts, pools, databases</span></li><li><b>Remove Cipi</b><span>users, binaries, config, cron</span></li><li><b>Purge packages</b><span>optional</span></li><li><b>Restore SSH &amp; firewall</b><span>last</span></li></ol>
+<h2 id="apps">1. Apps<a class="anchor" href="#apps" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>grep cipi-apps /etc/group<span class="c">                     # list app users</span>
+<span class="c"># for each APP:</span>
+<span class="p"></span>supervisorctl stop "APP:*"
+<span class="p"></span>rm -f /etc/supervisor/conf.d/APP.conf /etc/nginx/sites-{enabled,available}/APP \
+        /etc/php/*/fpm/pool.d/APP.conf /etc/sudoers.d/cipi-APP*
+<span class="p"></span>mysql -e "DROP DATABASE IF EXISTS APP; DROP USER IF EXISTS 'APP'@'localhost';"
+<span class="p"></span>userdel -r APP</pre></div>
+<h2 id="cipi">2. Cipi itself<a class="anchor" href="#cipi" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>systemctl disable --now cipi-queue 2&gt;/dev/null; rm -f /etc/systemd/system/cipi-queue.service
+<span class="p"></span>userdel -r cipi; groupdel cipi-ssh; groupdel cipi-apps
+<span class="p"></span>rm -rf /opt/cipi /etc/cipi /var/log/cipi /usr/local/bin/cipi*
+<span class="p"></span>rm -f /etc/sudoers.d/cipi-* /etc/logrotate.d/cipi-* /etc/apt/apt.conf.d/*cipi* \
+        /etc/profile.d/cipi-* /etc/mysql/mariadb.conf.d/99-cipi.cnf /etc/php/*/*/conf.d/99-cipi.ini
+<span class="p"></span>crontab -e<span class="c">                                    # remove the Cipi block</span></pre></div>
+<h2 id="packages">3. Packages and repositories (optional)<a class="anchor" href="#packages" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>systemctl stop nginx mariadb valkey-server fail2ban supervisor 'php*-fpm'
+<span class="p"></span>apt purge -y 'nginx*' mariadb-server mariadb-client valkey-server fail2ban supervisor certbot 'php8.*' nodejs
 <span class="p"></span>apt autoremove -y
-<span class="p"></span>apt autoclean</pre>
-                </div>
-
-                <h3 id="8-remove-apt-repositories">8 — Remove APT repositories<a class="anchor" href="#8-remove-apt-repositories" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>add-apt-repository --remove ppa:ondrej/php -y
-<span class="p"></span>rm -f /etc/apt/sources.list.d/php-sury.list
-<span class="p"></span>rm -f /etc/apt/sources.list.d/mariadb.list
-<span class="p"></span>rm -f /etc/apt/sources.list.d/nodesource.list
-<span class="p"></span>rm -f /etc/apt/keyrings/mariadb-keyring.pgp
-<span class="p"></span>apt update</pre>
-                </div>
-
-                <h3 id="9-remove-composer-and-deployer">9 — Remove Composer and Deployer<a class="anchor" href="#9-remove-composer-and-deployer" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>rm -f /usr/local/bin/composer
-<span class="p"></span>rm -f /usr/local/bin/dep</pre>
-                </div>
-
-                <h3 id="10-remove-swap-file">10 — Remove swap file<a class="anchor" href="#10-remove-swap-file" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>swapoff /var/swap.1
-<span class="p"></span>rm -f /var/swap.1
-<span class="c"># Remove the swap entry from /etc/fstab</span>
-<span class="p"></span>sed -i '/swap\.1/d' /etc/fstab</pre>
-                </div>
-
-                <h3 id="11-restore-ssh-and-pam-defaults">11 — Restore SSH and PAM defaults<a class="anchor" href="#11-restore-ssh-and-pam-defaults" aria-label="Link to this section">#</a></h3>
-                <p>Cipi hardens SSH (disables root login and password auth) and adds PAM hooks. If you need to restore
-                    defaults:</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># Restore sshd_config to allow password auth (if needed)</span>
-<span class="p"></span>sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-<span class="p"></span>sed -i 's/^PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
-
-<span class="c"># Remove Cipi PAM hooks</span>
-<span class="p"></span>sed -i '/cipi-auth-notify/d' /etc/pam.d/sshd
-<span class="p"></span>sed -i '/cipi-auth-notify/d' /etc/pam.d/sudo
-
-<span class="c"># Restore sysctl</span>
-<span class="p"></span>sed -i '/vm.swappiness/d' /etc/sysctl.conf
-<span class="p"></span>sysctl -p
-
-<span class="p"></span>systemctl restart sshd</pre>
-                </div>
-
-                <h3 id="12-reset-firewall">12 — Reset firewall<a class="anchor" href="#12-reset-firewall" aria-label="Link to this section">#</a></h3>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>ufw disable
-<span class="p"></span>ufw reset</pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <div>After a full uninstall, the server will be stripped of its web stack and security hardening.
-                        <strong>The recommended approach is to reprovision the server from a clean OS image</strong>
-                        rather
-                        than trying to reconfigure the same machine. Use this guide primarily to clean up before a fresh
-                        start, or to selectively remove Cipi components while keeping packages you still need.
-                    </div>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── About Cipi ── -->
+<span class="p"></span>rm -f /etc/apt/sources.list.d/{php-sury,mariadb,nodesource}.list &amp;&amp; apt update
+<span class="p"></span>rm -f /usr/local/bin/composer /usr/local/bin/dep
+<span class="p"></span>swapoff /var/swap.1 &amp;&amp; rm -f /var/swap.1 &amp;&amp; sed -i '/swap\.1/d' /etc/fstab</pre></div>
+<h2 id="ssh">4. SSH and firewall (last)<a class="anchor" href="#ssh" aria-label="Link to this section">#</a></h2>
+<p>Do this from a console session, not over SSH, so a mistake can't lock you out:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sed -i '/cipi-auth-notify/d' /etc/pam.d/sshd /etc/pam.d/sudo
+<span class="p"></span>nano /etc/ssh/sshd_config<span class="c">        # review PermitRootLogin / PasswordAuthentication</span>
+<span class="p"></span>systemctl restart ssh
+<span class="p"></span>ufw disable &amp;&amp; ufw reset</pre></div>
 </section>
 
 </div>
@@ -403,21 +227,13 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#1-stop-and-remove-all-apps">1 — Stop and remove all apps</a></li>
-<li><a class="l2" href="#2-remove-the-cipi-user-and-groups">2 — Remove the Cipi user and groups</a></li>
-<li><a class="l2" href="#3-remove-cipi-binaries-libraries-and-data">3 — Remove Cipi binaries, libraries, and data</a></li>
-<li><a class="l2" href="#4-remove-cipi-api-if-installed">4 — Remove Cipi API (if installed)</a></li>
-<li><a class="l2" href="#5-remove-cipi-cron-jobs">5 — Remove Cipi cron jobs</a></li>
-<li><a class="l2" href="#6-remove-cipi-configuration-files">6 — Remove Cipi configuration files</a></li>
-<li><a class="l2" href="#7-purge-installed-packages">7 — Purge installed packages</a></li>
-<li><a class="l2" href="#8-remove-apt-repositories">8 — Remove APT repositories</a></li>
-<li><a class="l2" href="#9-remove-composer-and-deployer">9 — Remove Composer and Deployer</a></li>
-<li><a class="l2" href="#10-remove-swap-file">10 — Remove swap file</a></li>
-<li><a class="l2" href="#11-restore-ssh-and-pam-defaults">11 — Restore SSH and PAM defaults</a></li>
-<li><a class="l2" href="#12-reset-firewall">12 — Reset firewall</a></li>
+<li><a class="l2" href="#apps">1. Apps</a></li>
+<li><a class="l2" href="#cipi">2. Cipi itself</a></li>
+<li><a class="l2" href="#packages">3. Packages and repositories (optional)</a></li>
+<li><a class="l2" href="#ssh">4. SSH and firewall (last)</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/uninstall.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/uninstall.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
