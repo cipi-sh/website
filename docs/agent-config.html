@@ -185,254 +185,20 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/agent">Cipi Agent &amp; AI</a></li><li aria-current="page">Agent security &amp; ENV</li></ol>
 <h1>Agent security &amp; ENV</h1>
 <p class="docs-lead">Tokens, IP rules and every ENV variable.</p>
-<div class="docs-meta"><span>Cipi Agent &amp; AI</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-config.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Cipi Agent &amp; AI</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-config.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="agent-security">
-                <h2 id="security">Security<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
-                <p>Cipi Agent uses <strong>defense in depth</strong>: each feature has its own Bearer token and can be
-                    toggled off independently. When disabled, routes return <strong>404</strong> (hidden, not 403).</p>
-
-                <h3 id="token-isolation">Token isolation<a class="anchor" href="#token-isolation" aria-label="Link to this section">#</a></h3>
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Feature</th>
-                                                <th>Token variable</th>
-                                                <th>Endpoint</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Webhook deploy</td>
-                                                <td><code>CIPI_WEBHOOK_TOKEN</code></td>
-                                                <td><code>POST /cipi/webhook</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Health check</td>
-                                                <td><code>CIPI_HEALTH_TOKEN</code> (fallback: webhook token)</td>
-                                                <td><code>GET /cipi/health</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>MCP server</td>
-                                                <td><code>CIPI_MCP_TOKEN</code></td>
-                                                <td><code>POST /cipi/mcp</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>DB anonymizer</td>
-                                                <td><code>CIPI_ANONYMIZER_TOKEN</code></td>
-                                                <td><code>POST /cipi/db</code>, <code>POST /cipi/db/user</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Panel tools (optional)</td>
-                                                <td><code>CIPI_TOKEN</code> — Sanctum token from <code>cipi api token create</code></td>
-                                                <td>Outbound, to the panel API via <code>cipi/sdk</code></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <h3 id="webhook-verification">Webhook verification<a class="anchor" href="#webhook-verification" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>GitHub</strong> — <code>X-Hub-Signature-256</code> HMAC-SHA256 (<code>X-Hub-Signature</code>
-                        SHA-1 legacy)</li>
-                    <li><strong>Bitbucket</strong> — <code>X-Hub-Signature</code> <code>sha256=</code> HMAC</li>
-                    <li><strong>GitLab</strong> and <strong>Azure DevOps</strong> — <code>X-Gitlab-Token</code> header
-                        comparison</li>
-                    <li><strong>Gitea</strong> — <code>X-Gitea-Signature</code> HMAC-SHA256</li>
-                </ul>
-                <p>All comparisons are constant-time. What the agent writes about a deploy (actor, commit, delivery id,
-                    IP) is recorded by Cipi as a <em>claim</em> in the audit ledger, never as a fact.</p>
-
-                <h3 id="mcp-safety">MCP safety<a class="anchor" href="#mcp-safety" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li>Blocked Artisan commands and SQL statements (see <a href="/docs/mcp#agent-mcp">MCP server</a>), one
-                        statement per call, reads capped at <code>CIPI_MCP_MAX_ROWS</code>, optional read-only mode
-                        (<code>CIPI_MCP_DB_WRITE=false</code>)</li>
-                    <li>Secret redaction in logs and command output (<code>CIPI_MCP_REDACT</code>)</li>
-                    <li><code>Origin</code> validation against the app host (<code>CIPI_MCP_ALLOWED_ORIGINS</code>),
-                        <code>405</code> on <code>GET</code>/<code>DELETE</code>, no sessions to hijack</li>
-                    <li>Tool failures are reported with <code>isError</code>, protocol errors with the JSON-RPC codes the
-                        clients expect; the file paths <code>cipi_yml</code> may read are confined to the app and its
-                        home</li>
-                </ul>
-
-                <h3 id="anonymizer-safety">Anonymizer safety<a class="anchor" href="#anonymizer-safety" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li>Config outside the repository (<code>/home/{app_user}/.db/</code>, <code>0640</code>), validated
-                        before a job is queued</li>
-                    <li>Database passwords via <code>MYSQL_PWD</code> / <code>PGPASSWORD</code>, never on the command
-                        line; the original dump is deleted right after processing; outputs are <code>0600</code></li>
-                    <li>Signed, time-limited download links (<code>signed</code> middleware); downloads confined to
-                        <code>storage/cipi</code></li>
-                </ul>
-
-                <p>Source code and releases:
-                    <a href="https://github.com/cipi-sh/agent" target="_blank" rel="noopener">github.com/cipi-sh/agent</a>
-                    (MIT).</p>
-            
+<p>Each feature of the agent has <strong>its own token</strong> and can be switched off independently. A disabled route answers 404: hidden, not just forbidden.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Feature</th><th>Token</th><th>Endpoint</th></tr></thead><tbody><tr><td>Webhook deploy</td><td><code>CIPI_WEBHOOK_TOKEN</code></td><td><code>POST /cipi/webhook</code></td></tr><tr><td>Health</td><td><code>CIPI_HEALTH_TOKEN</code> (falls back to the webhook token)</td><td><code>GET /cipi/health</code></td></tr><tr><td>MCP</td><td><code>CIPI_MCP_TOKEN</code></td><td><code>POST /cipi/mcp</code></td></tr><tr><td>Anonymizer</td><td><code>CIPI_ANONYMIZER_TOKEN</code></td><td><code>POST /cipi/db</code>, <code>/cipi/db/user</code></td></tr><tr><td>Panel tools</td><td><code>CIPI_TOKEN</code> (server API token)</td><td>outbound, via <code>cipi/sdk</code></td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Area</th><th>Protection</th></tr></thead><tbody><tr><td>Webhooks</td><td>HMAC signatures (GitHub, Bitbucket, Gitea) or token header (GitLab, Azure), constant-time comparisons; what the push claims is recorded as a claim, never as a fact</td></tr><tr><td>MCP</td><td>Command and SQL blocklists, one statement per call, row caps, optional read-only DB, secret redaction, Origin check, no sessions</td></tr><tr><td>Anonymizer</td><td>Config outside the repository (<code>0640</code>); DB passwords via environment, never on a command line; raw dump deleted right after; outputs <code>0600</code>; signed, expiring download links</td></tr></tbody></table></div>
+<p>Source: <a href="https://github.com/cipi-sh/agent">github.com/cipi-sh/agent</a> (MIT).</p>
 </section>
-
 <section class="doc-section" id="agent-env">
-                <h2 id="env-variables">ENV Variables<a class="anchor" href="#env-variables" aria-label="Link to this section">#</a></h2>
-                <p>These variables are automatically injected by Cipi into the app's <code>.env</code> during
-                    <code>cipi app create</code>. Toggle optional features with
-                    <code>php artisan cipi:service {type} --enable|--disable</code> or set them manually.
-                </p>
-                                <div class="table-scroll">
-                    <table class="env-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Variable</th>
-                                                <th>Description</th>
-                                                <th>Default</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>CIPI_WEBHOOK_TOKEN</td>
-                                                <td>Secret for webhook authentication (GitHub / Bitbucket / Gitea HMAC, GitLab / Azure token)</td>
-                                                <td>auto-generated</td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_APP_USER</td>
-                                                <td>Linux username for this app (paths, deploy trigger, logs)</td>
-                                                <td>auto-set</td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_HOME</td>
-                                                <td>Override the app home directory</td>
-                                                <td><code>/home/&lt;app_user&gt;</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_PHP_VERSION</td>
-                                                <td>PHP version reported in the health check and used by <code>cipi:yml generate</code></td>
-                                                <td>system PHP</td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_DEPLOY_SCRIPT</td>
-                                                <td>Path to Deployer config</td>
-                                                <td><code>~/.deployer/deploy.php</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_DEPLOY_BRANCH</td>
-                                                <td>Branch that triggers a deploy (<em>empty</em> = any branch). Written by Cipi since 5.7.2</td>
-                                                <td><em>empty</em></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_ENV</td>
-                                                <td>The app's environment label (<code>cipi app create --env</code>, Cipi 5.8.0+), reported by <code>cipi:status</code>, <code>app_info</code>, <code>deploy_status</code>, the webhook answer and the health report (agent 2.1.0); the server uses it to pick <code>cipi-&lt;env&gt;.yml</code></td>
-                                                <td><code>production</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_ROUTE_PREFIX</td>
-                                                <td>URL prefix for all agent routes</td>
-                                                <td><code>cipi</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_LOG_CHANNEL</td>
-                                                <td>Laravel log channel for deploy events</td>
-                                                <td><em>null</em></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_HEALTH_CHECK</td>
-                                                <td>Enable <code>/cipi/health</code></td>
-                                                <td><code>true</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_HEALTH_TOKEN</td>
-                                                <td>Bearer token for health (falls back to webhook token)</td>
-                                                <td><em>none</em></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_MCP</td>
-                                                <td>Enable <code>/cipi/mcp</code></td>
-                                                <td><code>false</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_MCP_TOKEN</td>
-                                                <td>Bearer token for MCP</td>
-                                                <td><em>none</em></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_MCP_ALLOWED_ORIGINS</td>
-                                                <td>Browser origins allowed on the MCP endpoint, comma-separated (<code>*</code> = any)</td>
-                                                <td>the app host</td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_MCP_DB_WRITE</td>
-                                                <td>Allow <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code> through <code>db_query</code></td>
-                                                <td><code>true</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_MCP_MAX_ROWS</td>
-                                                <td>Default row cap for <code>db_query</code> (max 500)</td>
-                                                <td><code>100</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_MCP_REDACT</td>
-                                                <td>Redact common secrets in logs and command output sent over MCP</td>
-                                                <td><code>true</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_ANONYMIZER</td>
-                                                <td>Enable anonymizer at <code>/cipi/db</code></td>
-                                                <td><code>false</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_ANONYMIZER_TOKEN</td>
-                                                <td>Bearer token for anonymizer</td>
-                                                <td><em>none</em></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_ANONYMIZER_CONFIG</td>
-                                                <td>Explicit path of <code>anonymization.json</code></td>
-                                                <td><code>~/.db/anonymization.json</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_ANONYMIZER_TTL</td>
-                                                <td>Minutes a download link stays valid</td>
-                                                <td><code>15</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_MYSQLDUMP / CIPI_PG_DUMP</td>
-                                                <td>Dump binaries, when not on <code>PATH</code></td>
-                                                <td>from <code>PATH</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_PANEL</td>
-                                                <td>Expose the <code>panel_*</code> MCP tools when <code>cipi/sdk</code> is installed and configured</td>
-                                                <td><code>true</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_PANEL_APP</td>
-                                                <td>App name on the panel</td>
-                                                <td><code>CIPI_APP_USER</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>CIPI_BASE_URL / CIPI_TOKEN</td>
-                                                <td>Panel API URL and Sanctum token, read by <code>cipi/sdk</code></td>
-                                                <td><em>none</em></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Use <code>php artisan cipi:generate-token {type}</code> to generate tokens for
-                        <code>mcp</code>, <code>health</code>, or <code>anonymize</code>. Use
-                        <code>php artisan cipi:service {type} --enable|--disable</code> to toggle services — the
-                        command updates your <code>.env</code> in place.
-                    </div>
-                </div>
-            
+<h2 id="env">Environment variables<a class="anchor" href="#env" aria-label="Link to this section">#</a></h2>
+<p>Written by <code>cipi app create</code>; toggle features with <code>php artisan cipi:service &lt;type&gt; --enable|--disable</code>.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Variable</th><th>Purpose</th><th>Default</th></tr></thead><tbody><tr><td><code>CIPI_WEBHOOK_TOKEN</code></td><td>Webhook secret</td><td>generated</td></tr><tr><td><code>CIPI_APP_USER</code></td><td>The app's Linux user</td><td>set by Cipi</td></tr><tr><td><code>CIPI_DEPLOY_BRANCH</code></td><td>Branch that deploys (empty = any)</td><td>the app's branch</td></tr><tr><td><code>CIPI_ENV</code></td><td>Environment label; picks <code>cipi-&lt;env&gt;.yml</code></td><td><code>production</code></td></tr><tr><td><code>CIPI_HOME</code>, <code>CIPI_DEPLOY_SCRIPT</code></td><td>Paths overrides</td><td><code>/home/&lt;user&gt;</code>, <code>~/.deployer/deploy.php</code></td></tr><tr><td><code>CIPI_PHP_VERSION</code></td><td>Reported PHP; used by <code>cipi:yml generate</code></td><td>system PHP</td></tr><tr><td><code>CIPI_ROUTE_PREFIX</code></td><td>Prefix of all agent routes</td><td><code>cipi</code></td></tr><tr><td><code>CIPI_LOG_CHANNEL</code></td><td>Log channel for deploy events</td><td>none</td></tr><tr><td><code>CIPI_HEALTH_CHECK</code>, <code>CIPI_HEALTH_TOKEN</code></td><td>Health endpoint</td><td>on, none</td></tr><tr><td><code>CIPI_MCP</code>, <code>CIPI_MCP_TOKEN</code></td><td>MCP endpoint</td><td>off, none</td></tr><tr><td><code>CIPI_MCP_ALLOWED_ORIGINS</code></td><td>Extra browser origins</td><td>the app host</td></tr><tr><td><code>CIPI_MCP_DB_WRITE</code></td><td>Allow writes in <code>db_query</code></td><td><code>true</code></td></tr><tr><td><code>CIPI_MCP_MAX_ROWS</code></td><td>Row cap (max 500)</td><td>100</td></tr><tr><td><code>CIPI_MCP_REDACT</code></td><td>Mask secrets in output</td><td><code>true</code></td></tr><tr><td><code>CIPI_ANONYMIZER</code>, <code>CIPI_ANONYMIZER_TOKEN</code></td><td>Anonymizer endpoint</td><td>off, none</td></tr><tr><td><code>CIPI_ANONYMIZER_CONFIG</code>, <code>CIPI_ANONYMIZER_TTL</code></td><td>Config path; link validity (minutes)</td><td><code>~/.db/anonymization.json</code>, 15</td></tr><tr><td><code>CIPI_MYSQLDUMP</code>, <code>CIPI_PG_DUMP</code></td><td>Dump binaries</td><td>from <code>PATH</code></td></tr><tr><td><code>CIPI_PANEL</code>, <code>CIPI_PANEL_APP</code></td><td>Panel MCP tools; app name on the panel</td><td>on, <code>CIPI_APP_USER</code></td></tr><tr><td><code>CIPI_BASE_URL</code>, <code>CIPI_TOKEN</code></td><td>Server API URL and token for <code>cipi/sdk</code></td><td>none</td></tr></tbody></table></div>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>For production, set <code>CIPI_MCP_DB_WRITE=false</code> unless you really want your assistant to write data.</p></div></div>
 </section>
 
 </div>
@@ -440,15 +206,10 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#security">Security</a></li>
-<li><a class="l3" href="#token-isolation">Token isolation</a></li>
-<li><a class="l3" href="#webhook-verification">Webhook verification</a></li>
-<li><a class="l3" href="#mcp-safety">MCP safety</a></li>
-<li><a class="l3" href="#anonymizer-safety">Anonymizer safety</a></li>
-<li><a class="l2" href="#env-variables">ENV Variables</a></li>
+<li><a class="l2" href="#env">Environment variables</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-config.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-config.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

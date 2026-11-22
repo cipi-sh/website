@@ -185,94 +185,34 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/agent">Cipi Agent &amp; AI</a></li><li aria-current="page">cipi.yml tooling</li></ol>
 <h1>cipi.yml tooling</h1>
 <p class="docs-lead">Validate and generate cipi.yml from your app.</p>
-<div class="docs-meta"><span>Cipi Agent &amp; AI</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-yml.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Cipi Agent &amp; AI</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-yml.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="agent-yml">
-                <p><a href="/cipi-yml"><code>cipi.yml</code></a> is the declarative file committed with the app that
-                    drives its server configuration: PHP version, aliases, php.ini overrides, limits, basic auth, extra
-                    databases, workers (queues, Horizon, Reverb), scheduler, healthcheck, deploy recipe (the deploy
-                    branch too, since Cipi 5.8.0) and post-deploy steps, redirects, proxies, SSL, required
-                    <code>.env</code> names, crons and backup profiles. On the server,
-                    <a href="/docs/yml#cli-yml"><code>cipi yml validate | plan | apply</code></a> reconcile it —
-                    reading, since Cipi <strong>5.8.0</strong>, a
-                    <a href="/docs/yml#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> for the app's environment
-                    before <code>cipi.yml</code>, so one repository can carry a staging and a production file. Since
-                    agent <strong>2.1.0</strong> the package's own locator does the same — <code>cipi:yml validate</code>
-                    and <code>show</code> pick <code>cipi-&lt;env&gt;.yml</code> first — and its validator knows
-                    <code>deploy.branch</code>.</p>
-                <p>Since 2.0 the agent ships <strong>the same parser and validator</strong> — a line-for-line port of the
-                    server's YAML-subset parser and schema checks, verified against the server's Python on a corpus of
-                    valid and invalid files — so you get the server's verdict, and the server's exact error messages,
-                    locally and in CI before anything is committed.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>php artisan cipi:yml validate              <span class="c"># ./cipi.yml, then the server locations; exit 1 on errors</span>
-<span class="p"></span>php artisan cipi:yml validate --json       <span class="c"># machine-readable, for CI</span>
-<span class="p"></span>php artisan cipi:yml validate --strict     <span class="c"># warnings (env.required missing in .env) also fail</span>
-<span class="p"></span>php artisan cipi:yml show                  <span class="c"># the normalized document, server defaults applied</span>
-<span class="p"></span>php artisan cipi:yml generate --write      <span class="c"># a cipi.yml inferred from this Laravel app</span>
-<span class="p"></span>php artisan cipi:yml example --write       <span class="c"># the commented template, in the app's namespace</span>
-<span class="p"></span>php artisan cipi:yml schema --write        <span class="c"># JSON Schema for editor autocompletion</span></pre>
-                </div>
-
-                <h3 id="generate-from-the-application">Generate from the application<a class="anchor" href="#generate-from-the-application" aria-label="Link to this section">#</a></h3>
-                <p><code>cipi yml generate &lt;app&gt;</code> on the server prints what is configured <em>today</em>.
-                    <code>php artisan cipi:yml generate</code> is the other direction — a starting point derived from
-                    the code for an app that has never run on Cipi: Horizon or plain queue workers
-                    (<code>QUEUE_CONNECTION</code>), Reverb, Scout with Meilisearch, scheduled tasks, the <code>/up</code>
-                    health route, <code>CIPI_PHP_VERSION</code>, extra databases in the app's namespace and the
-                    credential-looking keys of <code>.env.example</code> for <code>env.required</code>. Everything else is
-                    left as commented examples. The output is run through the validator before it is returned, so it is
-                    never a file the server would reject.</p>
-
-                <h3 id="validate-before-the-server-does">Validate before the server does<a class="anchor" href="#validate-before-the-server-does" aria-label="Link to this section">#</a></h3>
-                <p>Unknown keys, values outside their bounds, databases or backup profiles outside the app's namespace,
-                    forbidden runners in <code>deploy.post</code> — every rule the server applies is applied here, with
-                    the same <code>path: message</code> output. The validator also reads the local <code>.env</code> and
-                    warns about each <code>env.required</code> name that is missing or empty, because the server blocks
-                    the plan while one is. Namespace rules need the app name: <code>CIPI_APP_USER</code>, or
-                    <code>--app=&lt;name&gt;</code> outside the server.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span></div>
-                    <pre><span class="p"></span>php artisan cipi:yml validate
-<span class="s">INFO</span>  cipi.yml is valid (/var/www/shop/cipi.yml)
-<span class="s">WARN</span>  env.required: STRIPE_KEY is not set in .env — the server blocks the plan while it is missing
-  See what applying it would change on the server: cipi yml plan shop</pre>
-                </div>
-
-                <h3 id="editor-support">Editor support<a class="anchor" href="#editor-support" aria-label="Link to this section">#</a></h3>
-                <p><code>cipi:yml schema --write</code> publishes <code>cipi.schema.json</code> (JSON Schema 2020-12,
-                    also available with <code>vendor:publish --tag=cipi-schemas</code>). Point the YAML language server
-                    at it with a first-line comment and get completion and inline errors while you type:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">yaml</span></div>
-                    <pre><span class="c"># yaml-language-server: $schema=./cipi.schema.json</span>
-version: 1</pre>
-                </div>
-
-                <h3 id="from-the-assistant">From the assistant<a class="anchor" href="#from-the-assistant" aria-label="Link to this section">#</a></h3>
-                <p>The MCP <code>cipi_yml</code> tool runs the same actions (<code>validate</code>, <code>show</code>,
-                    <code>generate</code>, <code>example</code>) and accepts a draft as <code>content</code>, so an AI
-                    assistant can propose a change, validate it and hand you a file the server accepts — without
-                    writing to the repository itself. The <code>env_check</code> tool reports which
-                    <code>env.required</code> names are missing on the server, with no values.</p>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>The local validator and the server validator are the same schema. When a Cipi release adds a
-                        <code>cipi.yml</code> key — <code>deploy.branch</code> in 5.8.0, known to the agent since 2.1.0 — or a value, like
-                        <code>php: "8.6"</code> in 5.9.1, known to the agent since 2.1.1 — update
-                        <code>cipi/agent</code> as well so <code>php artisan cipi:yml validate</code> knows it; until
-                        then the server remains authoritative.</div>
-                </div>
-            
+<p>The agent ships <strong>the same parser and validator as the server</strong>, so you get the server's verdict, with the same error messages, on your laptop and in CI, before you push. Plus a generator that writes a first <code>cipi.yml</code> from your Laravel code.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>php artisan cipi:yml validate [--json] [--strict]<span class="c">   # exit 1 on errors</span>
+<span class="p"></span>php artisan cipi:yml show<span class="c">                            # normalized, with server defaults</span>
+<span class="p"></span>php artisan cipi:yml generate --write<span class="c">                # inferred from this app</span>
+<span class="p"></span>php artisan cipi:yml example --write<span class="c">                 # commented template</span>
+<span class="p"></span>php artisan cipi:yml schema --write<span class="c">                  # JSON Schema for your editor</span></pre></div>
+<ol class="flow"><li><b>Generate</b><span>from your code</span></li><li><b>Edit</b><span>with schema autocompletion</span></li><li><b>Validate</b><span>locally and in CI</span></li><li><b>Commit &amp; deploy</b><span>server plans and applies</span></li></ol>
+<h2 id="generate">Generate from your app<a class="anchor" href="#generate" aria-label="Link to this section">#</a></h2>
+<p><code>cipi:yml generate</code> reads the code and proposes a file the server will accept:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Detected</th><th>Becomes</th></tr></thead><tbody><tr><td><code>laravel/horizon</code> or <code>QUEUE_CONNECTION</code></td><td><code>workers.horizon</code> or <code>workers.queues</code></td></tr><tr><td><code>laravel/reverb</code></td><td><code>workers.reverb: true</code></td></tr><tr><td>Scout with Meilisearch</td><td><code>search: true</code></td></tr><tr><td>Scheduled tasks</td><td><code>schedule: true</code></td></tr><tr><td><code>/up</code> health route</td><td><code>health.url</code></td></tr><tr><td><code>CIPI_PHP_VERSION</code></td><td><code>app.php</code></td></tr><tr><td>Credential-looking keys in <code>.env.example</code></td><td><code>env.required</code></td></tr></tbody></table></div>
+<h2 id="validate">Validate in CI<a class="anchor" href="#validate" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>php artisan cipi:yml validate
+INFO cipi.yml is valid (/var/www/shop/cipi.yml)
+WARN env.required: STRIPE_KEY is not set in .env — the server blocks the plan while it is missing</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># .github/workflows/ci.yml (step)</span>
+      - run: php artisan cipi:yml validate --json --app=shop</pre></div>
+<p>Every server rule applies: unknown keys, bounds, namespaces for databases and backup profiles, allowlisted runners in <code>deploy.post</code>. Outside the server, pass the app name with <code>--app=</code> (on the server it's read from <code>CIPI_APP_USER</code>). The validator picks <code>cipi-&lt;env&gt;.yml</code> first, like the server.</p>
+<h2 id="editor">Editor support<a class="anchor" href="#editor" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># yaml-language-server: $schema=./cipi.schema.json</span>
+version: 1</pre></div>
+<p>Completion and inline errors as you type in VS Code, PhpStorm or any YAML language server.</p>
+<h2 id="assistant">From your AI assistant<a class="anchor" href="#assistant" aria-label="Link to this section">#</a></h2>
+<p>The MCP <code>cipi_yml</code> tool validates a draft passed as <code>content</code>, so an assistant can propose a change and hand you a file the server accepts, without writing to your repository. <code>env_check</code> lists the <code>env.required</code> names missing on the server (never values).</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Keep <code>cipi/agent</code> up to date: when Cipi learns a new <code>cipi.yml</code> key, the agent's validator learns it in the matching release. Until then the server's verdict wins.</p></div></div>
 </section>
 
 </div>
@@ -280,13 +220,13 @@ version: 1</pre>
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#generate-from-the-application">Generate from the application</a></li>
-<li><a class="l2" href="#validate-before-the-server-does">Validate before the server does</a></li>
-<li><a class="l2" href="#editor-support">Editor support</a></li>
-<li><a class="l2" href="#from-the-assistant">From the assistant</a></li>
+<li><a class="l2" href="#generate">Generate from your app</a></li>
+<li><a class="l2" href="#validate">Validate in CI</a></li>
+<li><a class="l2" href="#editor">Editor support</a></li>
+<li><a class="l2" href="#assistant">From your AI assistant</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-yml.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/agent-yml.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
