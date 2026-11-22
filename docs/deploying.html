@@ -185,222 +185,25 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">Deploy &amp; roll back</li></ol>
 <h1>Deploy &amp; roll back</h1>
 <p class="docs-lead">cipi deploy, releases, rollback, status and logs.</p>
-<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploying.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploying.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-deploy">
-                <p>Cipi uses <strong>Deployer</strong> for all deployments. Every deploy is atomic: a new release
-                    directory is prepared fully before the <code>current</code> symlink is swapped, so traffic is never
-                    interrupted.</p>
-                <div class="term" data-term data-autoplay="view" style="--term-min:calc(16 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Deploy, list releases, roll back</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Deploy, list releases, roll back">$ cipi deploy shop
+<p>A deploy builds the new release next to the live one and switches traffic with a single atomic symlink. Visitors never see a half-deployed app, and the previous five releases stay ready for an instant rollback.</p>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(16 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Deploy, list releases, roll back</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Deploy, list releases, roll back">$ cipi deploy shop
 $ cipi deploy shop --releases
 $ cipi deploy shop --rollback</pre><script type="application/json" class="term-script">[{"c": "cipi deploy shop"}, {"o": [["task ", "dim"], ["deploy:prepare", ""]], "d": 300}, {"o": [["task ", "dim"], ["deploy:update_code", ""], ["    main @ 9d1f3a5", "dim"]], "d": 500}, {"o": [["task ", "dim"], ["deploy:vendors", ""]], "d": 900}, {"o": [["task ", "dim"], ["artisan:migrate", ""]], "d": 500}, {"o": [["task ", "dim"], ["artisan:optimize", ""]], "d": 300}, {"o": [["task ", "dim"], ["deploy:symlink", ""], ["        current → releases/133", "dim"]], "d": 300}, {"o": [["task ", "dim"], ["artisan:queue:restart", ""]], "d": 300}, {"o": [["✓ ", "ok"], ["Deploy completed  (release 133, 1m43s)", ""]], "d": 400}, {"c": "cipi deploy shop --releases", "wait": 500}, {"o": [["Releases for 'shop'", "hl"]], "d": 200}, {"o": "  133  2026-10-27 05:30  1m43s  9d1f3a5  hotfix: checkout tax rounding   (current)"}, {"o": "  132  2026-10-26 08:30    45s  e4a8b1c  orders: export to CSV"}, {"c": "cipi deploy shop --rollback", "wait": 500}, {"o": [["✓ ", "ok"], ["Rollback done  (now on release 132)", ""]], "d": 500}]</script></div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Since <strong>v4.5.4</strong> Cipi bundles <strong>Deployer 8</strong>, which requires
-                        <strong>PHP &ge; 8.3</strong>. <code>cipi deploy</code> and <code>cipi deploy --rollback</code>
-                        abort with a clear upgrade message <em>before</em> invoking Deployer when an app is still pinned
-                        to an older PHP version — switch it with <code>cipi app edit &lt;app&gt; --php=8.3</code> (or
-                        higher) first.</div>
-                </div>
-
-                <h3 id="deployer-version">Deployer version (v5.10.0+)<a class="anchor" href="#deployer-version" aria-label="Link to this section">#</a></h3>
-                <p>Up to 5.9.x the installer downloaded <code>https://deployer.org/deployer.phar</code>, which now
-                    serves <strong>Deployer 6.8.0</strong>: no <code>deploy:publish</code>, so every deploy of a fresh
-                    server stopped at <code>Task `deploy:publish` not found</code>
-                    (<a href="https://github.com/cipi-sh/cipi/issues/519" target="_blank" rel="noopener">#519</a>).
-                    Since <strong>v5.10.0</strong> Deployer comes from its GitHub release, pinned to
-                    <strong>8.0.5</strong>, checked against the SHA-256 GitHub publishes for <code>deployer.phar</code>
-                    and asked its version before it is installed; <code>setup.sh</code> stops when it cannot install
-                    it, and <code>cipi deploy</code> refuses Deployer 6 with what to run. Migration 5.10.0 moves a
-                    server on Deployer 6 or 7 to 8.0.5 — keeping 7, and naming the apps, where an app still runs PHP
-                    below 8.3.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>dep --version                                                    <span class="c"># Deployer 8.0.5</span>
-<span class="c"># by hand, as root (what setup.sh and the migration run)</span>
-<span class="p"></span>source /opt/cipi/lib/deployer-install.sh &amp;&amp; cipi_deployer_install</pre>
-                </div>
-
-                <h3 id="deploy-pipeline">Deploy pipeline<a class="anchor" href="#deploy-pipeline" aria-label="Link to this section">#</a></h3>
-                <p>Deployer and Composer run with the <strong>app's configured PHP version</strong> (e.g.
-                    <code>/usr/bin/php8.5</code>), not the system default. This applies to <code>cipi deploy</code>,
-                    <code>cipi deploy --rollback</code>, crontab deploy triggers, <code>cipi sync import</code> deploys,
-                    and the <code>deploy</code> / <code>composer</code> aliases in the app user's <code>.bashrc</code>.
-                </p>
-                <ol>
-                    <li>Stop queue workers (<code>cipi worker stop</code>)</li>
-                    <li>Clone repo into <code>releases/N/</code></li>
-                    <li>Run <code>composer install --no-dev</code> (with app's PHP)</li>
-                    <li>Link <code>shared/.env</code> and <code>shared/storage/</code></li>
-                    <li>Run <code>artisan migrate --force</code></li>
-                    <li>Run <code>artisan optimize</code></li>
-                    <li>Run <code>artisan storage:link</code></li>
-                    <li>Swap <code>current</code> symlink atomically</li>
-                    <li>Restart queue workers</li>
-                    <li>Prune old releases (keep last 5)</li>
-                </ol>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi deploy myapp              <span class="c"># deploy latest commit</span>
-<span class="p"></span>cipi deploy myapp --rollback   <span class="c"># instant rollback to previous release</span>
-<span class="p"></span>cipi deploy myapp --releases   <span class="c"># list releases with date, how long the deploy took (v5.7.2+), commit and subject</span>
-<span class="p"></span>cipi deploy myapp --history    <span class="c"># v5.9.0+ past deploys and rollbacks: result, release, duration, who started it [--limit=30] [--json]</span>
-<span class="p"></span>cipi deploy --last             <span class="c"># v5.9.0+ the last deploy of every app [--json]</span>
-<span class="p"></span>cipi deploy myapp --log        <span class="c"># timestamped deploy log (v5.1.0+)</span>
-<span class="p"></span>cipi deploy myapp --log=200    <span class="c"># last 200 lines of it</span>
-<span class="p"></span>cipi deploy myapp --status     <span class="c"># v5.8.4+ is a deploy running right now, whoever started it? [--json] [--tail=N]</span>
-<span class="p"></span>cipi deploy myapp --audit      <span class="c"># v5.4.0+ who and what deployed each release [--days=90] [--json]</span>
-<span class="p"></span>cipi deploy myapp --key        <span class="c"># show the SSH deploy key</span>
-<span class="p"></span>cipi deploy myapp --webhook    <span class="c"># show webhook URL and token</span>
-<span class="p"></span>cipi deploy myapp --unlock     <span class="c"># remove a stuck deploy lock (a failed deploy releases its own since v5.9.0)</span>
-<span class="p"></span>cipi deploy myapp --snapshot   <span class="c"># v5.0+ opt-in DB dump before deploy</span>
-<span class="p"></span>cipi deploy myapp --snapshot-required  <span class="c"># fail if snapshot cannot be taken</span>
-<span class="p"></span>cipi deploy myapp --rollback-on-unhealthy  <span class="c"># v5.1.0+ undo a release that fails its healthcheck</span>
-<span class="p"></span>cipi deploy myapp --trust-host=git.mycompany.com       <span class="c"># trust a custom Git server fingerprint</span>
-<span class="p"></span>cipi deploy myapp --trust-host=git.mycompany.com:2222  <span class="c"># trust on non-standard port (also writes ~/.ssh/config)</span></pre>
-                </div>
-
-                <h3 id="knowing-whether-a-deploy-worked-v5-1-0">Knowing whether a deploy worked (v5.1.0+)<a class="anchor" href="#knowing-whether-a-deploy-worked-v5-1-0" aria-label="Link to this section">#</a></h3>
-                <p>Up to 5.0.x a failing deploy could pass in silence: the failure branch, its warnings, the rollback
-                    hint and the <code>deploy_fail</code> email were unreachable code, because a non-zero exit from
-                    Deployer killed the <code>cipi</code> process on the spot. Since <strong>v5.1.0</strong>:</p>
-                <ul>
-                    <li><strong>Both paths email on success and on failure</strong> — the CLI and the automatic Git
-                        webhook alike. Subjects are visibly different
-                        (<code>Cipi deploy succeeded: myapp release 55 …</code> /
-                        <code>Cipi deploy FAILED: myapp …</code>), and the body names the branch, the release number,
-                        the commit hash and subject, its author and date, the duration, the previous release, the deploy
-                        log path and the post-deploy healthcheck verdict.</li>
-                    <li><strong><code>cipi deploy</code> exits non-zero when the deploy failed</strong>, so CI and
-                        webhooks can see it. The same applies to <code>cipi deploy --rollback</code>.</li>
-                    <li>The success email is sent <em>after</em>
-                        <a href="/docs/health-checks#cli-health">post-deploy verification</a>, so it can never
-                        announce a successful deploy while the site is returning 500.</li>
-                </ul>
-
-                <h3 id="reading-the-deploy-log">Reading the deploy log<a class="anchor" href="#reading-the-deploy-log" aria-label="Link to this section">#</a></h3>
-                <p><code>/home/&lt;app&gt;/logs/deploy.log</code> used to be raw Deployer output appended forever, which
-                    made a deploy that failed overnight unreadable afterwards. Since <strong>v5.1.0</strong> every line
-                    is timestamped and each run is bracketed by a banner naming the trigger (CLI or webhook), the
-                    branch, the release and the duration.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi deploy myapp --log=100   <span class="c"># same as tailing /home/myapp/logs/deploy.log</span>
-<span class="p"></span>cipi deploy myapp --releases  <span class="c"># release number, date, TOOK (5.7.2+), commit, subject</span></pre>
-                </div>
-                <p>Release directories stay numeric — rollback depends on that ordering — so <code>--releases</code>
-                    adds the human detail on top rather than renaming anything.</p>
-
-                <p>Since <strong>v5.0</strong>, opt-in <strong>pre-deploy DB snapshots</strong> are available via
-                    <code>--snapshot</code> / <code>--snapshot-required</code> or a permanent app setting — see
-                    <a href="/docs/safe-deploy#predeploy-snapshot">Pre-deploy DB snapshots</a>. Octane apps use the
-                    <code>laravel-octane.php</code> Deployer template (reload/restart Octane on deploy); enable Node
-                    builds with <code>cipi app edit &lt;app&gt; --node-build='…'</code>.
-                </p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>Since <strong>v5.9.0</strong> a deploy that fails releases its own lock: the next one starts
-                        without <code>--unlock</code> (the Laravel recipes end with <code>after('deploy:failed',
-                        'deploy:unlock')</code>, and the update adds the line to the <code>deploy.php</code> of existing
-                        apps). A lock is still left behind when a deploy is <em>interrupted</em> — the process killed,
-                        the server restarted: use <code>cipi deploy myapp --unlock</code> to remove it before
-                        re-deploying. Not sure whether
-                        it is interrupted or still working? <code>cipi deploy myapp --status</code> (v5.8.4+) tells the
-                        two apart.</div>
-                </div>
-
-                <h3 id="deploy-status">Is a deploy running? (v5.8.4+)<a class="anchor" href="#deploy-status" aria-label="Link to this section">#</a></h3>
-                <p>A deploy started by a Git push has nobody watching it. <code>cipi deploy &lt;app&gt; --status</code>
-                    answers from what both deploy paths already write — the start and end banners of
-                    <code>/home/&lt;app&gt;/logs/deploy.log</code> — and from the processes still alive, so it covers
-                    <code>cipi deploy</code>, the panel, the webhook, cipi/agent and rollbacks alike. It is read-only
-                    and safe to poll; the panel does, to show a deploy it did not start.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi deploy myapp --status
-<span class="p"></span>cipi deploy myapp --status --json --tail=20   <span class="c"># for scripts and the panel API, with the last 20 log lines</span></pre>
-                </div>
-                <div class="table-scroll">
-                    <table class="cmd-table">
-                        <thead>
-                            <tr>
-                                <th>State</th>
-                                <th>Meaning</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><code>running</code></td>
-                                <td>A start banner with no end yet and a process still on it. <code>phase</code> is
-                                    <code>deploy</code> while Deployer builds the release, <code>post-deploy</code> while
-                                    the post-deploy steps, cipi.yml and the healthcheck run after it. <code>current</code>
-                                    names the trigger (<code>cli</code>, <code>panel</code>, <code>webhook</code>,
-                                    <code>mcp</code>, <code>rollback</code>), the branch, the previous release, the start
-                                    time and the seconds elapsed.</td>
-                            </tr>
-                            <tr>
-                                <td><code>queued</code></td>
-                                <td>The webhook has received a push and the per-minute cron has not started the deploy
-                                    yet.</td>
-                            </tr>
-                            <tr>
-                                <td><code>interrupted</code></td>
-                                <td>A start banner with no end and nothing alive any more — a reboot, a kill. The lock
-                                    it left behind is what <code>--unlock</code> removes.</td>
-                            </tr>
-                            <tr>
-                                <td><code>idle</code></td>
-                                <td>Nothing running. <code>last</code> says how the previous run ended: result, kind
-                                    (deploy or rollback), release, duration, exit code, trigger.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 id="deploy-history">Past deploys, and how long each took (v5.9.0+)<a class="anchor" href="#deploy-history" aria-label="Link to this section">#</a></h3>
-                <p>Both deploy paths end a run with a banner in the deploy log — result, release, duration, exit
-                    code. The log is rotated every night, so the banner of yesterday's deploy is no longer in
-                    <code>deploy.log</code> but in <code>deploy.log.1</code>, and after that in a <code>.gz</code>.
-                    Anything that read the current file alone — the panel did — showed how long a deploy took until the
-                    first night and never again: a deploy you start is watched while it runs, one a Git push starts is
-                    looked at the day after. <code>--history</code> reads the rotated files too.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi deploy myapp --history              <span class="c"># newest first: finished, result, release, took, trigger, branch</span>
-<span class="p"></span>cipi deploy myapp --history --limit=100 --json
-<span class="p"></span>cipi deploy --last                       <span class="c"># every app: when it was last deployed and how it went</span>
-<span class="p"></span>cipi deploy --last --json                <span class="c"># what the app list of the panel shows</span></pre>
-                </div>
-                <ul>
-                    <li>A run is a deploy or a rollback, <code>ok</code> or <code>failed</code>, with its release, its
-                        duration in seconds, its exit code, what started it (<code>cli</code>, <code>panel</code>,
-                        <code>webhook</code>, <code>mcp</code>, <code>rollback</code>), the branch and the release it
-                        replaced. Times are ISO 8601 with the server's offset. The keys are those of <code>last</code> in
-                        <code>--status --json</code>.</li>
-                    <li>Files are read newest first and only as far back as it takes; a run that starts before a
-                        rotation and ends after it keeps its start.</li>
-                    <li><code>cipi deploy myapp --releases</code> finds the duration of a release in the rotated logs
-                        as well.</li>
-                    <li>Scripts that cannot be sure of the Cipi version put the flag first:
-                        <code>cipi deploy --history myapp</code>. A Cipi older than 5.9.0 takes the flag for an app
-                        name and answers <em>not found</em>; <code>cipi deploy myapp --history</code> on it would
-                        start a deploy. The panel API uses the first form.</li>
-                </ul>
-            
+<h2 id="pipeline">The pipeline<a class="anchor" href="#pipeline" aria-label="Link to this section">#</a></h2>
+<ol class="flow"><li><b>Stop workers</b><span>no old code on new data</span></li><li><b>Clone</b><span>into releases/N</span></li><li><b>Composer</b><span>--no-dev, app's PHP</span></li><li><b>Link shared</b><span>.env, storage</span></li><li><b>Migrate &amp; optimize</b><span>migrate --force, optimize</span></li><li><b>Swap</b><span>current → releases/N</span></li><li><b>Restart &amp; verify</b><span>workers, health check</span></li></ol>
+<p>Deployer and Composer always use <strong>the app's PHP version</strong>, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a <a href="/docs/manage-apps#edit">front-end build</a> run it before the swap.</p>
+<h2 id="commands">Commands<a class="anchor" href="#commands" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>cipi deploy myapp</code></td><td>Deploy the latest commit of the branch</td></tr><tr><td><code>cipi deploy myapp --rollback</code></td><td>Back to the previous release, instantly</td></tr><tr><td><code>cipi deploy myapp --status</code></td><td>Is a deploy running, queued or interrupted? (safe to poll)</td></tr><tr><td><code>cipi deploy myapp --history</code></td><td>Past deploys and rollbacks: result, release, duration, trigger</td></tr><tr><td><code>cipi deploy --last</code></td><td>The last deploy of every app</td></tr><tr><td><code>cipi deploy myapp --releases</code></td><td>Releases on disk with date, duration, commit</td></tr><tr><td><code>cipi deploy myapp --log=200</code></td><td>Timestamped deploy log</td></tr><tr><td><code>cipi deploy myapp --audit</code></td><td>Who deployed what, from where (<a href="/docs/deploy-audit">audit ledger</a>)</td></tr><tr><td><code>cipi deploy myapp --snapshot</code></td><td>Dump the database first (<a href="/docs/safe-deploy">safe deploy</a>)</td></tr><tr><td><code>cipi deploy myapp --rollback-on-unhealthy</code></td><td>Undo the release if the <a href="/docs/health-checks">health check</a> fails</td></tr><tr><td><code>cipi deploy myapp --key</code> / <code>--webhook</code></td><td>Show the deploy key / webhook URL and token</td></tr><tr><td><code>cipi deploy myapp --unlock</code></td><td>Clear the lock of an interrupted deploy</td></tr><tr><td><code>cipi deploy myapp --trust-host=git.example.com:2222</code></td><td>Trust a self-hosted Git server</td></tr></tbody></table></div>
+<h2 id="outcome">Know whether it worked<a class="anchor" href="#outcome" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Signal</th><th>Detail</th></tr></thead><tbody><tr><td>Exit code</td><td>Non-zero on failure, so CI and scripts can react</td></tr><tr><td>Email / alerts</td><td>Success and failure, with branch, release, commit, author, duration and health verdict (<a href="/docs/notifications">notifications</a>)</td></tr><tr><td>Log</td><td><code>~/logs/deploy.log</code>: every line timestamped, each run framed by trigger, branch, release and duration</td></tr><tr><td>History</td><td><code>--history</code> reads rotated logs too, so last month's webhook deploy still shows how long it took</td></tr></tbody></table></div>
+<p>The success notice is sent only <strong>after</strong> the post-deploy health check, so it never announces a release that returns errors.</p>
+<h2 id="status">Status values<a class="anchor" href="#status" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th><code>--status</code></th><th>Meaning</th></tr></thead><tbody><tr><td><code>running</code></td><td>Building (<code>deploy</code>) or verifying (<code>post-deploy</code>); shows trigger, branch and elapsed time</td></tr><tr><td><code>queued</code></td><td>A push arrived; the deploy starts within a minute</td></tr><tr><td><code>interrupted</code></td><td>The process died (reboot, kill); clear with <code>--unlock</code></td></tr><tr><td><code>idle</code></td><td>Nothing running; shows how the last run ended</td></tr></tbody></table></div>
+<p>A failed deploy releases its own lock; only an interrupted one needs <code>--unlock</code>.</p>
 </section>
 
 </div>
@@ -408,15 +211,13 @@ $ cipi deploy shop --rollback</pre><script type="application/json" class="term-s
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#deployer-version">Deployer version (v5.10.0+)</a></li>
-<li><a class="l2" href="#deploy-pipeline">Deploy pipeline</a></li>
-<li><a class="l2" href="#knowing-whether-a-deploy-worked-v5-1-0">Knowing whether a deploy worked (v5.1.0+)</a></li>
-<li><a class="l2" href="#reading-the-deploy-log">Reading the deploy log</a></li>
-<li><a class="l2" href="#deploy-status">Is a deploy running? (v5.8.4+)</a></li>
-<li><a class="l2" href="#deploy-history">Past deploys, and how long each took (v5.9.0+)</a></li>
+<li><a class="l2" href="#pipeline">The pipeline</a></li>
+<li><a class="l2" href="#commands">Commands</a></li>
+<li><a class="l2" href="#outcome">Know whether it worked</a></li>
+<li><a class="l2" href="#status">Status values</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploying.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploying.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

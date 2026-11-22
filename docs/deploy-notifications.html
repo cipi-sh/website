@@ -185,202 +185,33 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">Deploy notifications</li></ol>
 <h1>Deploy notifications</h1>
 <p class="docs-lead">Hear about successful and failed deploys.</p>
-<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploy-notifications.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploy-notifications.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="deploy-notifications">
-                <p><strong>Pipeline use case:</strong> the webhook path deploys silently — Git returns 200 and the team
-                    finds out only if they watch the logs. With an <a href="/docs/ci-pipelines#ci-pipeline-ssh">SSH pipeline</a>, add
-                    notification steps after <code>cipi deploy</code> to broadcast success, failure, and automatic
-                    rollbacks to Slack or Telegram. Both examples below work with GitHub Actions and GitLab CI using
-                    only standard HTTP calls — no extra platform dependencies.</p>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Since <strong>v5.3.0</strong> the server can post for you — webhook deploys included:
-                        <code>cipi notification add slack ops --url=…</code> sends every
-                        <code>deploy_success</code>, <code>deploy_fail</code> and <code>deploy_rollback</code> (and every
-                        other trigger) to Slack, Discord, Telegram, ntfy or a custom webhook. See
-                        <a href="/docs/notifications#cipi-alert-channels">notification channels</a>. The pipeline examples
-                        below are still the way to go when the message should come from CI.</div>
-                </div>
-
-                <h3 id="slack">Slack<a class="anchor" href="#slack" aria-label="Link to this section">#</a></h3>
-                <p>Add a final step that posts to a Slack webhook regardless of deploy outcome. Use
-                    <code>if: always()</code> in GitHub Actions so the notification fires on both success and failure.
-                </p>
-
-                <p>Create an <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener">Incoming
-                        Webhook</a> in your Slack workspace and store the URL as
-                    <code>SLACK_WEBHOOK_URL</code> in your CI secrets.
-                </p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># GitHub Actions — deploy + Slack notification</span>
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy
-        id: deploy
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: root
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: cipi deploy myapp
-
-      - name: Notify Slack — success
-        if: success()
-        uses: slackapi/slack-github-action@v2
-        with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            {
-              "text": ":white_check_mark: *myapp* deployed successfully",
-              "attachments": [{
-                "color": "good",
-                "fields": [
-                  { "title": "Branch",  "value": "${{ github.ref_name }}", "short": true },
-                  { "title": "By",      "value": "${{ github.actor }}",    "short": true },
-                  { "title": "Commit",  "value": "${{ github.sha }}",      "short": false }
-                ]
-              }]
-            }
-
-      - name: Notify Slack — failure
-        if: failure()
-        uses: slackapi/slack-github-action@v2
-        with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            {
-              "text": ":x: *myapp* deploy FAILED — rolling back",
-              "attachments": [{
-                "color": "danger",
-                "fields": [
-                  { "title": "Branch", "value": "${{ github.ref_name }}", "short": true },
-                  { "title": "By",     "value": "${{ github.actor }}",    "short": true },
-                  { "title": "Run",    "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}", "short": false }
-                ]
-              }]
-            }
-
-      - name: Rollback on failure
-        if: failure()
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: root
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: cipi deploy myapp --rollback</pre>
-                </div>
-
-                <p>For GitLab CI, use <code>curl</code> directly — no plugin needed:</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># .gitlab-ci.yml — deploy stage with Slack notification</span>
-deploy:
-  stage: deploy
-  script:
-    - ssh root@$SERVER_HOST "cipi deploy myapp" && export DEPLOY_STATUS="success" || export DEPLOY_STATUS="failed"
-    - |
-      if [ "$DEPLOY_STATUS" = "success" ]; then
-        curl -s -X POST "$SLACK_WEBHOOK_URL" \
-          -H "Content-Type: application/json" \
-          -d "{\"text\":\":white_check_mark: *myapp* deployed by $GITLAB_USER_LOGIN on \`$CI_COMMIT_REF_NAME\`\"}"
-      else
-        curl -s -X POST "$SLACK_WEBHOOK_URL" \
-          -H "Content-Type: application/json" \
-          -d "{\"text\":\":x: *myapp* deploy FAILED — &lt;$CI_PIPELINE_URL|view pipeline&gt;\"}"
-        ssh root@$SERVER_HOST "cipi deploy myapp --rollback"
-        exit 1
-      fi</pre>
-                </div>
-
-                <h3 id="telegram">Telegram<a class="anchor" href="#telegram" aria-label="Link to this section">#</a></h3>
-                <p>Create a Telegram bot via <a href="https://t.me/BotFather" target="_blank"
-                        rel="noopener">@BotFather</a>, get the bot token, and find your chat/group ID.
-                    Store them as <code>TELEGRAM_BOT_TOKEN</code> and <code>TELEGRAM_CHAT_ID</code> in CI secrets.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># GitHub Actions — deploy + Telegram notification</span>
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy
-        id: deploy
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: root
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: cipi deploy myapp
-
-      - name: Notify Telegram — success
-        if: success()
+<p>Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for <strong>every</strong> trigger, webhook deploys included.</p>
+<h2 id="server">From the server (recommended)<a class="anchor" href="#server" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi notification add slack ops --url=https://hooks.slack.com/services/…
+<span class="p"></span>cipi notification add telegram team --token=&lt;bot-token&gt; --chat=&lt;chat-id&gt;
+<span class="p"></span>cipi notification test</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Event</th><th>Sent when</th></tr></thead><tbody><tr><td><code>deploy_success</code></td><td>After the post-deploy health check passes</td></tr><tr><td><code>deploy_fail</code></td><td>The deploy failed; the live release is unchanged</td></tr><tr><td><code>deploy_rollback</code></td><td>A rollback ran (manual or automatic)</td></tr></tbody></table></div>
+<p>Messages include app, branch, release, commit and author, duration and health verdict. Channels: email (SMTP, Resend, SES), Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, signed webhook. See <a href="/docs/notifications">Notifications</a>.</p>
+<h2 id="ci">From CI<a class="anchor" href="#ci" aria-label="Link to this section">#</a></h2>
+<p>When the message should come from the pipeline (with the CI run link), add a step after <code>cipi deploy</code>:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># GitHub Actions, after the deploy step</span>
+      - name: Notify Slack
+        if: always()
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode="Markdown" \
-            -d text="✅ *myapp* deployed successfully%0ABranch: \`${{ github.ref_name }}\`%0ABy: ${{ github.actor }}"
-
-      - name: Notify Telegram — failure + rollback
-        if: failure()
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode="Markdown" \
-            -d text="❌ *myapp* deploy FAILED — rolling back%0ABranch: \`${{ github.ref_name }}\`%0A[View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          ssh -o StrictHostKeyChecking=no -i <(echo "${{ secrets.SERVER_SSH_KEY }}") \
-            root@${{ secrets.SERVER_HOST }} "cipi deploy myapp --rollback"</pre>
-                </div>
-
-                <p>GitLab CI equivalent (pure <code>curl</code>, no extra dependencies):</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># .gitlab-ci.yml — deploy stage with Telegram notification</span>
+          STATUS=${{ job.status == 'success' &amp;&amp; '✅ deployed' || '❌ FAILED, rolled back' }}
+          curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" -H 'Content-Type: application/json' \
+            -d "{\"text\":\"*myapp* $STATUS · ${{ github.ref_name }} by ${{ github.actor }}\"}"</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># GitLab CI</span>
 deploy:
-  stage: deploy
   script:
-    - ssh root@$SERVER_HOST "cipi deploy myapp" && RESULT="✅ deployed" || RESULT="❌ FAILED"
-    - |
-      curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -d chat_id="$TELEGRAM_CHAT_ID" \
-        -d parse_mode="Markdown" \
-        -d text="*myapp* ${RESULT}%0ABranch: \`$CI_COMMIT_REF_NAME\`%0ABy: $GITLAB_USER_LOGIN"
-    - |
-      if echo "$RESULT" | grep -q "FAILED"; then
-        ssh root@$SERVER_HOST "cipi deploy myapp --rollback"
-        exit 1
-      fi</pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>To find your Telegram chat ID, add the bot to the target group/channel, then call
-                        <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> and look for the
-                        <code>chat.id</code> field in the response. For private chats, just message the bot first.
-                    </div>
-                </div>
-            
+    - ssh cipi@$SERVER_HOST "sudo cipi deploy myapp" &amp;&amp; R="✅ deployed" || R="❌ FAILED"
+    - curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" -d chat_id="$TELEGRAM_CHAT_ID" -d text="myapp $R on $CI_COMMIT_REF_NAME"
+    - '[ "$R" = "✅ deployed" ] || (ssh cipi@$SERVER_HOST "sudo cipi deploy myapp --rollback"; exit 1)'</pre></div>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Telegram chat ID: add the bot to the group, open <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> and read <code>chat.id</code>.</p></div></div>
 </section>
 
 </div>
@@ -388,11 +219,11 @@ deploy:
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#slack">Slack</a></li>
-<li><a class="l2" href="#telegram">Telegram</a></li>
+<li><a class="l2" href="#server">From the server (recommended)</a></li>
+<li><a class="l2" href="#ci">From CI</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploy-notifications.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploy-notifications.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

@@ -185,240 +185,32 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">Auto-deploy on push</li></ol>
 <h1>Auto-deploy on push</h1>
 <p class="docs-lead">The signed webhook that deploys when you push.</p>
-<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/auto-deploy.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/auto-deploy.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="ci-webhook">
-                <p><strong>cipi-agent</strong> (<code>cipi/agent</code>) is a Laravel package that exposes
-                    <code>POST /cipi/webhook</code> inside your running application. When the forge sends a push
-                    event, the agent validates the payload signature, acknowledges immediately, and queues a deploy on
-                    the server — no SSH from the CI runner, no <code>sudo</code>, no open inbound ports beyond HTTPS.
-                    Since <strong>v5.2.3</strong> that covers GitHub, GitLab, <strong>Bitbucket Cloud</strong>
-                    (<code>repo:push</code> with an HMAC <code>secret</code>) and <strong>Azure DevOps</strong>
-                    (a <code>git.push</code> service hook sending <code>X-Gitlab-Token</code>) — the agent's existing
-                    checks accept both unchanged; <strong>cipi/agent 2.0</strong> adds Gitea / Forgejo
-                    (<code>X-Gitea-Signature</code>), answers GitHub <code>ping</code> with <code>pong</code>, ignores
-                    non-push events with <code>202</code>, and writes the pusher, commit, delivery id and client IP into
-                    the trigger file so they land as <code>claimed</code> fields in the
-                    <a href="/docs/deploy-audit#deploy-audit">deploy audit ledger</a>.
-                </p>
-                <div class="term" data-term data-autoplay="view" style="--term-min:calc(6 * 1.65em + 36px)" data-prompt="you@laptop:~/shop$"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">A push deploys</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: A push deploys">$ git commit -am &quot;checkout: round tax per line&quot; &amp;&amp; git push
+<p>Push to your branch and the app is live a minute later. The Git provider calls a signed webhook on your app; the deploy itself runs on the server as the app user. CI needs no SSH key and the server opens no extra port.</p>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(6 * 1.65em + 36px)" data-prompt="you@laptop:~/shop$"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">A push deploys</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: A push deploys">$ git commit -am &quot;checkout: round tax per line&quot; &amp;&amp; git push
 $ ssh cipi@203.0.113.10 sudo cipi deploy shop --history --limit=1</pre><script type="application/json" class="term-script">[{"c": "git commit -am \"checkout: round tax per line\" && git push"}, {"o": [["To github.com:acme/shop.git   e4a8b1c..9d1f3a5  main -> main", "dim"]], "d": 600}, {"c": "ssh cipi@203.0.113.10 sudo cipi deploy shop --history --limit=1", "wait": 1400}, {"o": [["Deploy history — shop", "hl"]], "d": 400}, {"o": [["  ✓ ", "ok"], ["published  release 133  58s  webhook push  github 140.82.115.14", ""]], "d": 200}]</script></div>
-
-                <h3 id="how-the-webhook-flow-works">How the webhook flow works<a class="anchor" href="#how-the-webhook-flow-works" aria-label="Link to this section">#</a></h3>
-                <p>The design separates <strong>fast HTTP acknowledgement</strong> from <strong>slow Deployer
-                        work</strong>. A deploy can take several minutes; Git providers time out webhook HTTP calls
-                    after ~10 seconds. Cipi solves this with a flag file and the app user's crontab.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">flow</span></div>
-                    <pre>  Developer                    Git provider              Your Laravel app (Cipi Agent)           Server (app user cron)
-      │                              │                              │                                        │
-      │  git push main               │                              │                                        │
-      │ ───────────────────────────► │                              │                                        │
-      │                              │  POST /cipi/webhook          │                                        │
-      │                              │  (signed with secret)        │                                        │
-      │                              │ ───────────────────────────► │                                        │
-      │                              │                              │ 1. Verify CIPI_WEBHOOK_TOKEN           │
-      │                              │                              │ 2. Check branch (CIPI_DEPLOY_BRANCH)   │
-      │                              │                              │ 3. Write ~/.deploy-trigger             │
-      │                              │ ◄─────────────────────────── │ 4. Return 200 immediately              │
-      │                              │                              │                                        │
-      │                              │                              │         every minute (* * * * *)       │
-      │                              │                              │ ◄──────────────────────────────────────│
-      │                              │                              │         cron sees .deploy-trigger      │
-      │                              │                              │         removes file, runs Deployer    │
-      │                              │                              │         in background as app user      │
-      │                              │                              │                                        │
-      │                              │                              │         clone → composer → migrate     │
-      │                              │                              │         → symlink swap → workers       │</pre>
-                </div>
-
-                <p>Deployer always runs as the <strong>app Linux user</strong> (e.g. <code>myapp</code>), with the
-                    correct PHP binary and file permissions — the same context as a manual
-                    <code>cipi deploy myapp</code>. The webhook never shells out to Deployer directly; it only drops the
-                    trigger file that Cipi's crontab already watches.
-                </p>
-
-                <h3 id="prerequisites">Prerequisites<a class="anchor" href="#prerequisites" aria-label="Link to this section">#</a></h3>
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Requirement</th>
-                                                <th>Why</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Cipi app created with Git repository</td>
-                                                <td>Deploy key must clone the repo — see <a href="/docs/git#git-auto-setup">Git auto-setup</a></td>
-                                            </tr>
-                                            <tr>
-                                                <td>At least one successful manual deploy</td>
-                                                <td>The agent package must be present in the <code>current</code> release before the webhook
-                                                    route exists</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>composer require cipi/agent</code> in the project</td>
-                                                <td>Registers the <code>/cipi/webhook</code> route and signature validation</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Webhook URL reachable over HTTPS</td>
-                                                <td>Git providers require a public URL; use <code>cipi ssl install</code> first</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>CIPI_WEBHOOK_TOKEN</code> in <code>shared/.env</code></td>
-                                                <td>Auto-generated at <code>cipi app create</code>; shared across all releases</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <h3 id="step-by-step-setup">Step-by-step setup<a class="anchor" href="#step-by-step-setup" aria-label="Link to this section">#</a></h3>
-                <p><strong>1. Create the app and deploy once manually</strong> so the server can clone your repository:
-                </p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi app create --user=myapp --domain=myapp.com \
-    --repository=git@github.com:you/myapp.git --branch=main --php=8.5
-<span class="p"></span>cipi deploy myapp</pre>
-                </div>
-
-                <p><strong>2. Install Cipi Agent</strong> in your Laravel project locally, commit, and push:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>composer require cipi/agent
-<span class="p"></span>git add composer.json composer.lock
-<span class="p"></span>git commit -m "Add Cipi Agent for webhook deploys"
-<span class="p"></span>git push origin main
-<span class="p"></span>cipi deploy myapp   <span class="c"># one more manual deploy until webhook is live</span></pre>
-                </div>
-
-                <p><strong>3. Configure the webhook.</strong> If you saved a GitHub or GitLab token, Cipi may have
-                    already created the webhook during <code>app create</code> — check with
-                    <code>cipi git status</code>. Otherwise, retrieve the URL and secret:
-                </p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi deploy myapp --webhook</pre>
-                </div>
-
-                <p>Add the webhook in your Git provider:</p>
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Provider</th>
-                                                <th>Payload URL</th>
-                                                <th>Secret field</th>
-                                                <th>Events</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>GitHub</td>
-                                                <td><code>https://myapp.com/cipi/webhook</code></td>
-                                                <td>Secret → value from <code>--webhook</code></td>
-                                                <td>Just the <code>push</code> event</td>
-                                            </tr>
-                                            <tr>
-                                                <td>GitLab</td>
-                                                <td><code>https://myapp.com/cipi/webhook</code></td>
-                                                <td>Secret token → same value</td>
-                                                <td>Push events</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <p><strong>4. Restrict to your deploy branch</strong> (recommended for production):</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
-                    <pre>CIPI_DEPLOY_BRANCH=main</pre>
-                </div>
-                <p>Since <strong>5.7.2</strong> Cipi writes it at <code>cipi app create</code> and keeps it in step with
-                    <code>cipi app edit --branch</code> (and, since 5.8.0, with a <code>deploy.branch</code> applied from
-                    <a href="/docs/yml#cli-yml-more"><code>cipi.yml</code></a>); on older apps set it in <code>shared/.env</code>
-                    via <code>cipi app env myapp</code>. Pushes to other branches receive a <code>skipped</code> response
-                    and no deploy runs.</p>
-
-                <p><strong>5. Verify.</strong> Push a small commit to <code>main</code> and watch the deploy log:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi app logs myapp --type=deploy
-<span class="c"># or on the server as the app user:</span>
-<span class="p"></span>tail -f /home/myapp/logs/deploy.log</pre>
-                </div>
-
-                <p>Within about one minute of the webhook delivery, a new Deployer release should appear. Confirm the
-                    live commit with <code>php artisan cipi:status</code> or the <a href="/docs/agent-webhook#agent-health">health
-                        check</a> endpoint.</p>
-
-                <h3 id="git-auto-setup">Git auto-setup<a class="anchor" href="#git-auto-setup" aria-label="Link to this section">#</a></h3>
-                <p>When a <a href="/docs/git#git-auto-setup">token for the repository's forge</a> is configured on the
-                    server, Cipi registers the deploy key <em>and</em> creates the webhook automatically on every
-                    <code>cipi app create</code>. The app summary shows <em>"auto-configured ✓"</em> instead of manual
-                    instructions. Lifecycle events (<code>app edit --repository</code>, <code>app delete</code>) keep
-                    keys and webhooks in sync. Cursor Origin and AWS CodeCommit get the deploy key only — neither
-                    exposes a per-repository HTTP webhook, so deploy those with <code>cipi deploy</code> or from CI.
-                </p>
-
-                <h3 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h3>
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Symptom</th>
-                                                <th>Likely cause</th>
-                                                <th>Fix</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Webhook returns 404</td>
-                                                <td>Agent not deployed yet</td>
-                                                <td>Run <code>cipi deploy myapp</code> after adding <code>cipi/agent</code> to
-                                                    <code>composer.json</code>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>Webhook returns 403 / invalid signature</td>
-                                                <td>Secret mismatch</td>
-                                                <td>Re-copy token from <code>cipi deploy myapp --webhook</code> into the provider settings
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>200 OK but no deploy</td>
-                                                <td>Branch filtered out</td>
-                                                <td>Check <code>CIPI_DEPLOY_BRANCH</code> matches the pushed branch</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Deploy stuck / lock error</td>
-                                                <td>Previous deploy interrupted</td>
-                                                <td><code>cipi deploy myapp --unlock</code> then retry</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Deploy runs twice on one push</td>
-                                                <td>Webhook + pipeline both active</td>
-                                                <td>Disable one trigger — see <a href="/docs/how-deploys-work#ci-overview">overview</a></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>The agent also supports manual and AI-triggered deploys via the MCP <code>deploy</code> tool —
-                        it uses the same <code>.deploy-trigger</code> mechanism. See <a href="/docs/agent">Cipi Agent</a>
-                        for health checks, MCP, and anonymizer features.</div>
-                </div>
-            
+<h2 id="flow">How it works<a class="anchor" href="#flow" aria-label="Link to this section">#</a></h2>
+<ol class="flow"><li><b>git push</b><span>to the deploy branch</span></li><li><b>Provider → /cipi/webhook</b><span>signed request over HTTPS</span></li><li><b>Verify &amp; queue</b><span>signature, branch; answers 200 at once</span></li><li><b>Cron, within a minute</b><span>starts the deploy as the app user</span></li><li><b>Deploy</b><span>the normal zero-downtime pipeline</span></li></ol>
+<p>The webhook only drops a trigger file; it never runs the deploy itself. That keeps the HTTP answer instant (providers time out after ~10 s) and the deploy in the same safe context as <code>cipi deploy</code>.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Receiver</th><th>Used by</th><th>Verifies</th></tr></thead><tbody><tr><td><a href="/docs/agent-install">Cipi Agent</a> (<code>cipi/agent</code>)</td><td>Laravel apps</td><td>GitHub/Bitbucket HMAC, GitLab/Azure token, Gitea/Forgejo signature</td></tr><tr><td>Built-in receiver</td><td>Node apps</td><td>GitHub/Bitbucket HMAC, GitLab/Azure token</td></tr></tbody></table></div>
+<h2 id="setup">Set it up<a class="anchor" href="#setup" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># in your Laravel project</span>
+<span class="p"></span>composer require cipi/agent &amp;&amp; git commit -am "Add Cipi Agent" &amp;&amp; git push
+<span class="c"># on the server: one manual deploy, so the route exists</span>
+<span class="p"></span>cipi deploy myapp
+<span class="p"></span>cipi git status<span class="c">                 # webhook already created?</span>
+<span class="p"></span>cipi deploy myapp --webhook<span class="c">     # if not: URL and secret to add by hand</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Provider</th><th>Payload URL</th><th>Secret</th><th>Events</th></tr></thead><tbody><tr><td>GitHub</td><td><code>https://myapp.com/cipi/webhook</code></td><td>the token from <code>--webhook</code></td><td>push</td></tr><tr><td>GitLab</td><td>same</td><td>Secret token: same value</td><td>Push events</td></tr></tbody></table></div>
+<p>Only pushes to <code>CIPI_DEPLOY_BRANCH</code> deploy; others get <code>skipped</code>. Cipi keeps it in step with <code>cipi app edit --branch</code>. Use HTTPS (<a href="/docs/ssl">cipi ssl install</a>) so the secret never travels in clear text.</p>
+<p>Verify with a small commit:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi deploy myapp --status
+<span class="p"></span>cipi app logs myapp --type=deploy</pre></div>
+<p>Every webhook deploy lands in the <a href="/docs/deploy-audit">audit ledger</a> with pusher, commit, delivery ID and source IP.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td>404</td><td>Agent not deployed yet</td><td><code>cipi deploy myapp</code> after adding <code>cipi/agent</code></td></tr><tr><td>403, invalid signature</td><td>Secret mismatch</td><td>Copy the token from <code>cipi deploy myapp --webhook</code> again</td></tr><tr><td>200 but no deploy</td><td>Another branch was pushed</td><td>Check <code>CIPI_DEPLOY_BRANCH</code></td></tr><tr><td>Lock error</td><td>An interrupted deploy</td><td><code>cipi deploy myapp --unlock</code></td></tr><tr><td>Two deploys per push</td><td>Webhook and pipeline both active</td><td>Keep <a href="/docs/how-deploys-work">one trigger</a></td></tr></tbody></table></div>
 </section>
 
 </div>
@@ -426,14 +218,12 @@ $ ssh cipi@203.0.113.10 sudo cipi deploy shop --history --limit=1</pre><script t
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#how-the-webhook-flow-works">How the webhook flow works</a></li>
-<li><a class="l2" href="#prerequisites">Prerequisites</a></li>
-<li><a class="l2" href="#step-by-step-setup">Step-by-step setup</a></li>
-<li><a class="l2" href="#git-auto-setup">Git auto-setup</a></li>
+<li><a class="l2" href="#flow">How it works</a></li>
+<li><a class="l2" href="#setup">Set it up</a></li>
 <li><a class="l2" href="#troubleshooting">Troubleshooting</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/auto-deploy.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/auto-deploy.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
