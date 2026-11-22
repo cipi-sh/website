@@ -384,7 +384,9 @@
 <span class="p"></span>cipi app create --octane=frankenphp   <span class="c"># explicit (same as --octane)</span></pre>
                 </div>
                 <p>See <a href="/docs/apps#cli-app-octane">Laravel Octane</a> for requirements, convert, and how the vhost
-                    differs from FPM.</p>
+                    differs from FPM. Since <strong>v5.10.0</strong> the new app is pinned to the newest
+                    <a href="#cli-frankenphp">FrankenPHP build</a> already on the server, so create downloads nothing;
+                    on a server with no build yet the first deploy adopts the one Octane fetches.</p>
 
                 <h3>Non-interactive (flags)</h3>
                 <div class="code-block">
@@ -500,6 +502,12 @@
                     <code>php artisan octane:install --server=frankenphp</code>. Octane starts after the first
                     successful deploy.
                 </p>
+                <p>Since <strong>v5.10.0</strong> <code>octane:install</code> is still needed for the worker file
+                    and the <code>.gitignore</code> entries, but the <code>frankenphp</code> binary itself no longer
+                    comes from the repository or from Octane's own download: right after Composer vendors, the
+                    deploy links the app's <a href="#cli-frankenphp">pinned build</a> into the release. If
+                    <code>laravel/octane</code> requires a newer FrankenPHP than the pin, the deploy stops before the
+                    release goes live and tells you to run <code>cipi frankenphp upgrade &lt;app&gt;</code>.</p>
 
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
@@ -517,7 +525,11 @@
                 </div>
 
                 <p><code>cipi app convert --to=octane|fpm</code> rewrites the pool / vhost / Supervisor / Deployer
-                    template / <code>.env</code>, and re-applies SSL when a certificate is already present.</p>
+                    template / <code>.env</code>, and re-applies SSL when a certificate is already present. Since
+                    <strong>v5.10.0</strong> convert also turns the app's <a href="#cli-app-jit">JIT</a> off (the
+                    setting lives in a different place for FPM and Octane, so it is not carried over: run
+                    <code>cipi app jit</code> again after converting) and pins the app to a FrankenPHP build when it
+                    becomes Octane, or drops the pin when it goes back to FPM.</p>
 
                 <h3 id="cli-frankenphp">FrankenPHP builds, pinned per app (v5.10.0+)</h3>
                 <p>An Octane app answers on the PHP built into its FrankenPHP binary, which apt never patches. Up to
@@ -896,7 +908,13 @@
                                             <tr>
                                                 <td>cipi app edit &lt;app&gt; --php=8.5</td>
                                                 <td>Hot-swap PHP version. Updates FPM pool, Nginx socket, Supervisor, crontab, Deployer
-                                                    config, and <code>.env</code> — zero downtime</td>
+                                                    config, and <code>.env</code> — zero downtime. Since <strong>v5.10.0</strong>, on an FPM app with
+                                                    <a href="#cli-app-jit">JIT</a> on the setting moves to the new
+                                                    version's pool and the shared JIT buffer file is rewritten for both
+                                                    versions; on an Octane app Cipi warns when the pinned
+                                                    <a href="#cli-frankenphp">FrankenPHP build</a> carries a different PHP
+                                                    (the CLI, cron and workers move, the web workers stay on the binary's
+                                                    PHP until you pin a matching build)</td>
                                             </tr>
                                             <tr>
                                                 <td>cipi app edit &lt;app&gt; --branch=develop</td>
@@ -959,7 +977,26 @@
                                             <tr>
                                                 <td>cipi app convert &lt;app&gt; --to=octane|fpm</td>
                                                 <td>Convert between PHP-FPM and <strong>Laravel Octane</strong> (since
-                                                    <strong>v5.0</strong>). See <a href="#cli-app-octane">Laravel Octane</a></td>
+                                                    <strong>v5.0</strong>). See <a href="#cli-app-octane">Laravel Octane</a>. Since
+                                                    <strong>v5.10.0</strong> it turns JIT off and pins or unpins
+                                                    FrankenPHP</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app jit &lt;app&gt; [status|on|off] [--mode=tracing|function] [--buffer=128M]</td>
+                                                <td>Show or set PHP JIT for one app (since <strong>v5.10.0</strong>),
+                                                    FPM or Octane. Checked with the app's own PHP before it is applied and
+                                                    rolled back if the reload fails. REST:
+                                                    <code>GET|PUT /api/apps/{name}/jit</code> (API <strong>1.40.0+</strong>).
+                                                    See <a href="#cli-app-jit"><code>app jit</code></a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi frankenphp status|upgrade|use|fetch|import|adopt|remove|prune</td>
+                                                <td>Manage the FrankenPHP builds Octane apps are pinned to (since
+                                                    <strong>v5.10.0</strong>): several PHP versions side by side, one pin
+                                                    per app, upgrades on the same PHP minor with a health check and
+                                                    rollback. REST: <code>GET /api/frankenphp</code>,
+                                                    <code>POST /api/frankenphp/upgrade</code>. See
+                                                    <a href="#cli-frankenphp">FrankenPHP builds</a></td>
                                             </tr>
                                             <tr>
                                                 <td>cipi app env &lt;app&gt; [--show|--get|--set|--unset]</td>
@@ -1016,6 +1053,10 @@
                                                     Since <strong>v5.6.4</strong>, also removes its
                                                     <code>cipi.yml</code> auto-apply sudoers rule
                                                     (<code>/etc/sudoers.d/cipi-&lt;app&gt;-yml</code>).
+                                                    Since <strong>v5.10.0</strong>, also removes the app's FrankenPHP pin
+                                                    and its Octane ini directory, and rewrites the shared JIT buffer file
+                                                    without it (builds no other app uses are left for
+                                                    <code>cipi frankenphp prune</code>).
                                                     Asks for confirmation.</td>
                                             </tr>
                                             <tr>
@@ -1356,7 +1397,12 @@ myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
                     cloned Scout app gets its own Meilisearch key and <code>SCOUT_PREFIX</code>; the source's
                     <code>MEILISEARCH_*</code> keys are excluded from the copied <code>.env</code>, because a
                     clone that inherited them would reindex into production. See
-                    <a href="/docs/infrastructure#cli-search"><code>cipi search</code></a>.</p>
+                    <a href="/docs/infrastructure#cli-search"><code>cipi search</code></a>. Since
+                    <strong>v5.10.0</strong>, an Octane clone is pinned to the same
+                    <a href="#cli-frankenphp">FrankenPHP build</a> as its source when that build is a trusted one
+                    (fetched or imported; a build adopted from the source's own release is trusted only for the
+                    source, so the clone keeps the newest build it got at create). <a href="#cli-app-jit">JIT</a> is not
+                    copied: turn it on for the clone with <code>cipi app jit</code> if you want it there too.</p>
                 <div class="code-block">
                     <div class="code-block-header"><span class="code-block-lang">bash</span><button
                             class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -1403,7 +1449,11 @@ myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
                     <div class="option-item"><code>--memory-limit</code><span>PHP <code>memory_limit</code>.</span>
                     </div>
                     <div class="option-item"><code>--octane-workers</code><span>Octane worker count for
-                            FrankenPHP apps.</span></div>
+                            FrankenPHP apps. Since <strong>v5.10.0</strong>, rewriting the Octane Supervisor program
+                            also applies its new environment: the app's own ini directory on
+                            <code>PHP_INI_SCAN_DIR</code> (where <a href="#cli-app-jit">JIT</a> lives) and
+                            <code>/home/&lt;app&gt;/current</code> first on <code>PATH</code>, so Octane finds the
+                            pinned binary.</span></div>
                     <div class="option-item"><code>--worker-procs</code><span>Supervisor queue worker process
                             count.</span></div>
                     <div class="option-item"><code>--disk</code><span>Soft disk limit in GB for files and database
