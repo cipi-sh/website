@@ -185,1866 +185,178 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/integrations">API &amp; integrations</a></li><li aria-current="page">CLI client (cipi-cli)</li></ol>
 <h1>CLI client (cipi-cli)</h1>
 <p class="docs-lead">Manage your servers from your own terminal, without SSH.</p>
-<div class="docs-meta"><span>API &amp; integrations</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/cli-client.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>API &amp; integrations</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/cli-client.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-install">
-                <h2 id="installing-cipi-cli">Installing cipi-cli<a class="anchor" href="#installing-cipi-cli" aria-label="Link to this section">#</a></h2>
-                <p><code>cipi-cli</code> is a standalone Go binary that talks to the Cipi REST API from your local
-                    machine. No SSH required — manage apps, deployments, SSL, databases (including anonymized dumps),
-                    PHP versions, services, SSH keys, SMTP, healthchecks and disk usage from any terminal. Binaries are
-                    available for Linux and macOS (amd64 and arm64).</p>
-                <div class="term" data-term data-autoplay="view" style="--term-min:calc(11 * 1.65em + 36px)" data-prompt="you@laptop:~$"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">cipi-cli on your laptop</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: cipi-cli on your laptop">$ cipi-cli api token add prod
+<p><code>cipi-cli</code> manages your Cipi servers <strong>from your laptop, without SSH</strong>. It's a single Go binary (Linux and macOS, amd64 and arm64, MIT) that talks to each server's <a href="/docs/api">Cipi API</a>: apps, deploys, <code>cipi.yml</code>, SSL, databases and anonymized dumps, PHP, services, keys, SMTP, health checks and disk usage. One profile per server, so a fleet is one command away.</p>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(11 * 1.65em + 36px)" data-prompt="you@laptop:~$"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">cipi-cli on your laptop</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: cipi-cli on your laptop">$ cipi-cli api token add prod
 $ cipi-cli status
 $ cipi-cli staging deploy myapp</pre><script type="application/json" class="term-script">[{"c": "cipi-cli api token add prod"}, {"o": "Cipi API endpoint: https://api.example.com", "d": 400}, {"o": "API token: 1|yourtoken...", "d": 400}, {"o": [["Server profile \"prod\" saved → ~/.cipi/config.json", ""]], "d": 300}, {"c": "cipi-cli status", "wait": 300}, {"o": [["NAME      IP              CPU   RAM   APPS  CIPI", "dim"]], "d": 400}, {"o": "prod*     203.0.113.10    12%   48%   6     5.10.0"}, {"o": "staging   203.0.113.20     4%   31%   2     5.10.0"}, {"c": "cipi-cli staging deploy myapp", "wait": 300}, {"o": [["✓ ", "ok"], ["Deployed to release #14. Zero downtime.", ""]], "d": 1400}]</script></div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>The Cipi server must have the API package installed and configured before using
-                        <code>cipi-cli</code>. See <a href="/docs/api#cipi-api"><code>cipi api</code></a> for
-                        setup instructions.</span>
-                </div>
-
-                <h3 id="download-binary">Download binary<a class="anchor" href="#download-binary" aria-label="Link to this section">#</a></h3>
-                <p>Download the latest release for your platform from the
-                    <a href="https://github.com/cipi-sh/cli/releases" target="_blank">Releases page</a>, then:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre>chmod +x cipi-cli-*
-sudo mv cipi-cli-* /usr/local/bin/cipi-cli</pre>
-                </div>
-
-                <h3 id="build-from-source">Build from source<a class="anchor" href="#build-from-source" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre>git clone https://github.com/cipi-sh/cli.git
-cd cli
-make build
-sudo make install</pre>
-                </div>
-
-                <h3 id="verify-installation">Verify installation<a class="anchor" href="#verify-installation" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli version
-<span class="c">cipi-cli v1.6.0 (linux/amd64)</span></pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Configuration ── -->
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>Each server needs <a href="/docs/api"><code>cipi api</code></a> installed, and a token from <code>cipi api token create</code>.</p></div></div>
+<h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>chmod +x cipi-cli-* &amp;&amp; sudo mv cipi-cli-* /usr/local/bin/cipi-cli<span class="c">   # from GitHub Releases</span>
+<span class="p"></span>cipi-cli version</pre></div>
+<p>Binaries ship with SHA-256 checksums on <a href="https://github.com/cipi-sh/cli/releases">GitHub Releases</a>. From source: <code>git clone https://github.com/cipi-sh/cli &amp;&amp; cd cli &amp;&amp; make build &amp;&amp; sudo make install</code>.</p>
 </section>
-
 <section class="doc-section" id="cli-configure">
-                <h2 id="configuration">Configuration<a class="anchor" href="#configuration" aria-label="Link to this section">#</a></h2>
-                <p>A <strong>profile</strong> is a named connection to one Cipi server (API endpoint + token). Use as
-                    many profiles as you have servers — for example <code>prod</code>, <code>staging</code>, or
-                    <code>client-a</code>. You need the API endpoint URL and a Sanctum token created with
-                    <code>cipi api token create</code> on each server.</p>
+<h2 id="configure">Configure a server<a class="anchor" href="#configure" aria-label="Link to this section">#</a></h2>
+<p>A <strong>profile</strong> is one server: API endpoint plus token, stored in <code>~/.cipi/config.json</code> (mode <code>0600</code>).</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli api token add prod
+Cipi API endpoint: https://api.example.com
+API token: 1|yourtoken...
+Server profile "prod" saved → ~/.cipi/config.json
 
-                <p>Credentials are stored per profile in <code>~/.cipi/config.json</code> with permissions
-                    <code>0600</code>. Always pass a profile name — if you omit it, the CLI prompts for one instead of
-                    silently writing to <code>default</code>.</p>
-
-                <h3 id="interactive-setup">Interactive setup<a class="anchor" href="#interactive-setup" aria-label="Link to this section">#</a></h3>
-                <p>Recommended: store the token with <code>api token add</code>. Equivalent helpers are
-                    <code>configure --profile</code> and <code>profiles add</code>:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli api token add prod
-<span class="c">Cipi API endpoint: https://api.example.com</span>
-<span class="c">API token: 1|yourtoken...</span>
-<span class="s">Server profile "prod" saved → ~/.cipi/config.json</span>
-
-<span class="p"></span>cipi-cli api token add staging
-<span class="c">Cipi API endpoint: https://staging-api.example.com</span>
-<span class="c">API token: 1|stagingtoken...</span>
-<span class="s">Server profile "staging" saved → ~/.cipi/config.json</span>
-
-<span class="c"># Same flow via configure / profiles add</span>
-<span class="p"></span>cipi-cli configure --profile prod
-<span class="p"></span>cipi-cli profiles add staging</pre>
-                </div>
-
-                <h3 id="non-interactive-setup">Non-interactive setup<a class="anchor" href="#non-interactive-setup" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli api token add prod \
-    --endpoint https://api.example.com --token "1|yourtoken..."
-
-<span class="p"></span>cipi-cli profiles add staging \
-    --endpoint https://staging.example.com --token "1|yourtoken..."</pre>
-                </div>
-
-                <h3 id="show-configuration">Show configuration<a class="anchor" href="#show-configuration" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli profiles show prod
-<span class="c">Profile:   prod</span>
-<span class="c">Endpoint:  https://api.example.com</span>
-<span class="c">Token:     1|a8Kz...4f2a</span>
-
-<span class="p"></span>cipi-cli profiles show
-<span class="c"># Shows all configured server profiles</span></pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Profiles ── -->
+<span class="p"></span>cipi-cli profiles add staging --endpoint https://api.staging.example.com --token "1|…"</pre></div>
 </section>
-
 <section class="doc-section" id="cli-profiles">
-                <h2 id="profiles"><code>profiles</code><a class="anchor" href="#profiles" aria-label="Link to this section">#</a></h2>
-                <p>Manage multiple server connections from a single <code>cipi-cli</code> installation. One profile
-                    equals one server. Prefix any command with a profile name to target that server, or set a default
-                    with <code>profiles use</code> to omit the prefix. The aliases <code>servers</code> /
-                    <code>server</code> work the same as <code>profiles</code>.</p>
-
-                <h3 id="targeting-a-server">Targeting a server<a class="anchor" href="#targeting-a-server" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli prod apps list
-<span class="p"></span>cipi-cli staging apps show myapp
-<span class="p"></span>cipi-cli prod deploy myapp
-<span class="p"></span>cipi-cli prod ssl install myapp</pre>
-                </div>
-
-                <p>With a default server set, you can run commands without the prefix:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli profiles use prod
-<span class="s">Default profile set to "prod"</span>
-
-<span class="p"></span>cipi-cli apps list
-<span class="c"># Uses the prod profile</span>
-
-<span class="p"></span>cipi-cli staging apps list
-<span class="c"># Explicit prefix still targets staging</span></pre>
-                </div>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli api token add [profile]</td>
-                                                <td>Add or update API endpoint + token for a named server profile</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli profiles</td>
-                                                <td>List configured servers (alias: <code>cipi-cli servers</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli profiles add [name] [flags]</td>
-                                                <td>Add or update a server profile (same as <code>configure --profile</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli profiles list</td>
-                                                <td>List configured servers</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli profiles show [profile]</td>
-                                                <td>Show one server profile, or all if omitted</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli profiles use &lt;profile&gt;</td>
-                                                <td>Set the default server (alias: <code>profiles default</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli profiles delete &lt;profile&gt; [-y]</td>
-                                                <td>Delete a local server profile (credentials only — nothing changes on the remote server)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <p><code>api token add</code>, <code>profiles add</code>, and <code>configure</code> accept the same
-                    flags: <code>--endpoint</code> and <code>--token</code> (plus <code>--profile</code> when the name
-                    is not positional).</p>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>Aliases: <code>servers</code> / <code>server</code> → <code>profiles</code>;
-                        <code>profiles use</code> → <code>profiles default</code>. The same management commands are
-                        also available under <code>cipi-cli configure list</code>, <code>configure show</code>,
-                        <code>configure default</code>, and <code>configure delete</code> — prefer
-                        <code>profiles</code> or <code>api token add</code> for storing credentials.</span>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Apps ── -->
+<h2 id="profiles">Profiles<a class="anchor" href="#profiles" aria-label="Link to this section">#</a></h2>
+<p>Prefix any command with a profile to target that server, or set a default.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli prod deploy shop
+<span class="p"></span>cipi-cli profiles use prod
+<span class="p"></span>cipi-cli apps list<span class="c">               # uses prod</span>
+<span class="p"></span>cipi-cli staging apps list<span class="c">       # an explicit prefix still wins</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>profiles</code> / <code>profiles list</code></td><td>List servers (alias <code>servers</code>)</td></tr><tr><td><code>profiles add &lt;name&gt;</code></td><td>Add or update (<code>--endpoint</code>, <code>--token</code>)</td></tr><tr><td><code>profiles show [name]</code></td><td>One profile, token masked, or all</td></tr><tr><td><code>profiles use &lt;name&gt;</code></td><td>Default server</td></tr><tr><td><code>profiles delete &lt;name&gt;</code></td><td>Local credentials only; nothing changes on the server</td></tr></tbody></table></div>
 </section>
-
 <section class="doc-section" id="cli-apps">
-                <h2 id="apps"><code>apps</code><a class="anchor" href="#apps" aria-label="Link to this section">#</a></h2>
-                <p>Manage applications on your Cipi server.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli apps list</td>
-                                                <td>List all applications</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps show &lt;name&gt;</td>
-                                                <td>Show application details — the environment label included (cipi-cli 1.9.0+, Cipi 5.8.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps create [flags]</td>
-                                                <td>Create a new application</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps edit &lt;name&gt; [flags]</td>
-                                                <td>Edit an application</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps delete &lt;name&gt; [-y]</td>
-                                                <td>Delete an application</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps suspend &lt;name&gt;</td>
-                                                <td>Take an app offline (HTTP 503 maintenance page) without deleting it</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps unsuspend &lt;name&gt;</td>
-                                                <td>Restore a suspended app to normal service</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps logs &lt;name&gt; [flags]</td>
-                                                <td>Read paginated application logs (nginx, PHP-FPM, Laravel, worker, deploy)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps fix-permissions &lt;name&gt;</td>
-                                                <td>Restore the app home permissions (Cipi 5.2.1+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps artisan &lt;name&gt; [command...]</td>
-                                                <td>Run an Artisan command as an async job (Cipi 5.0.3+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps run &lt;name&gt; [command...]</td>
-                                                <td>Run a whitelisted app binary — see <code>cipi-cli run-commands</code> (Cipi 5.0.3+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps env show|set &lt;name&gt;</td>
-                                                <td>Read <code>.env</code>, or merge keys with <code>--set KEY=VALUE</code> / <code>--unset KEY</code> (Cipi 5.0.3+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps auth show|create|update|delete &lt;name&gt;</td>
-                                                <td>Manage the shared Composer <code>auth.json</code> (Cipi 5.0.3+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps basicauth status|enable|disable &lt;name&gt;</td>
-                                                <td>HTTP Basic Auth in front of the app (<code>--user</code>, <code>--password</code>; auto-generated when omitted)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps node status|restart &lt;name&gt;</td>
-                                                <td>Node app status and blue-green restart (Cipi 5.4.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps search enable|disable &lt;name&gt;</td>
-                                                <td>Meilisearch / Laravel Scout for one app (Cipi 5.2.2+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli apps webhook recreate &lt;name&gt; [--rotate-secret]</td>
-                                                <td>Recreate the Git deploy webhook, optionally rotating <code>CIPI_WEBHOOK_TOKEN</code> (Cipi 5.0.6+)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <p>Alias: <code>app</code> → <code>apps</code>. The <code>artisan</code>, <code>run</code>, <code>env</code>
-                    and <code>auth</code> subcommands need the matching token abilities (<code>apps-artisan</code>,
-                    <code>apps-run</code>, <code>apps-env</code>, <code>apps-auth</code>) and a Laravel app — custom
-                    apps have no <code>.env</code> or Artisan.</p>
-
-                <h3 id="create-flags">Create flags<a class="anchor" href="#create-flags" aria-label="Link to this section">#</a></h3>
-                <div class="options-list">
-                    <div class="option-item">
-                        <code>--user</code>
-                        <span>Application name (used as Linux user and database name)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--domain</code>
-                        <span>Primary domain for the application</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--php</code>
-                        <span>PHP version (e.g. <code>8.5</code>)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--repository</code>
-                        <span>Git repository URL</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--branch</code>
-                        <span>Git branch to deploy from</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--env</code>
-                        <span>Environment label, e.g. <code>production</code> (default) or <code>staging</code> —
-                            lowercase letters, digits, <code>-</code>, <code>_</code>, max 32 characters (cipi-cli 1.9.0+, API 1.36+, Cipi 5.8.0+).
-                            Written to the app's <code>.env</code> as <code>APP_ENV</code> / <code>CIPI_ENV</code> and
-                            picks the <a href="/docs/yml#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> the app
-                            reads before <code>cipi.yml</code></span>
-                    </div>
-                    <div class="option-item">
-                        <code>--custom</code>
-                        <span>Create a custom (non-Laravel) app with <code>htdocs</code> deploy</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--docroot</code>
-                        <span>Document root relative to <code>htdocs</code> (custom apps only)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--engine</code>
-                        <span>Database engine: <code>mariadb</code> or <code>pgsql</code> (Cipi 4.8+)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--octane</code>
-                        <span>Laravel Octane mode: <code>true</code>, <code>false</code> or <code>frankenphp</code> (Cipi 5.0+)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--node</code>
-                        <span>Create a Node app: <code>spa</code>, <code>static</code> or <code>ssr</code> (Cipi 5.4.0+). A repository is required and <code>--php</code> is not accepted</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--framework</code>
-                        <span>Node framework preset: <code>next</code>, <code>nuxt</code>, <code>sveltekit</code>, <code>astro</code>, <code>remix</code> or <code>vite</code></span>
-                    </div>
-                    <div class="option-item">
-                        <code>--node-version</code>
-                        <span>Node major version (e.g. <code>22</code> or <code>24</code>)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--build</code>
-                        <span>Node build command</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--start</code>
-                        <span>Node start command (SSR apps)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--output</code>
-                        <span>Node build output directory (spa / static apps)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--health-path</code>
-                        <span>Node health path checked during blue-green restarts (SSR apps)</span>
-                    </div>
-                </div>
-
-                <h3 id="edit-flags">Edit flags<a class="anchor" href="#edit-flags" aria-label="Link to this section">#</a></h3>
-                <div class="options-list">
-                    <div class="option-item">
-                        <code>--php</code>
-                        <span>Change PHP version</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--repository</code>
-                        <span>Update Git repository URL</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--branch</code>
-                        <span>Change deploy branch</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--env</code>
-                        <span>Change the environment label (cipi-cli 1.9.0+, Cipi 5.8.0+); same as <code>cipi app edit --env</code></span>
-                    </div>
-                    <div class="option-item">
-                        <code>--domain</code>
-                        <span>Rename the primary domain (requires Cipi <strong>4.6.2+</strong> and API
-                            <strong>1.9.0+</strong>)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--node …</code>
-                        <span><code>--node</code>, <code>--node-version</code>, <code>--build</code>, <code>--start</code>,
-                            <code>--output</code>, <code>--health-path</code> — update the Node app settings listed
-                            under create flags</span>
-                    </div>
-                </div>
-
-                <h3 id="logs-flags">Logs flags<a class="anchor" href="#logs-flags" aria-label="Link to this section">#</a></h3>
-                <div class="options-list">
-                    <div class="option-item">
-                        <code>--type</code>
-                        <span>Log type filter: <code>all</code> (default), <code>nginx</code>, <code>php</code>,
-                            <code>worker</code>, <code>deploy</code>, or <code>laravel</code></span>
-                    </div>
-                    <div class="option-item">
-                        <code>--page</code>
-                        <span>Page number, starting at <code>1</code> for the most recent lines (default
-                            <code>1</code>)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--per-page</code>
-                        <span>Lines per log file per page (default <code>50</code>, max <code>1000</code>; requires API
-                            <strong>1.11.9+</strong>)</span>
-                    </div>
-                </div>
-
-                <h3 id="examples">Examples<a class="anchor" href="#examples" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># List all apps</span>
-<span class="p"></span>cipi-cli apps list
-
-<span class="c"># Create a Laravel app</span>
-<span class="p"></span>cipi-cli apps create --user=myapp --domain=myapp.com \
-    --php=8.5 --repository=git@github.com:acme/myapp.git --branch=main \
-    --node-build=<span class="s">'npm ci &amp;&amp; npm run build'</span>   <span class="c"># asset build on every deploy (1.7.0+)</span>
-
-<span class="c"># A staging app of the same repository (cipi-cli 1.9.0+, Cipi 5.8.0+): reads cipi-staging.yml before cipi.yml</span>
-<span class="p"></span>cipi-cli apps create --user=myapp-stg --domain=staging.myapp.com \
-    --repository=git@github.com:acme/myapp.git --branch=develop --env=staging
-
-<span class="c"># Create a custom (non-Laravel) app</span>
-<span class="p"></span>cipi-cli apps create --user=landing --domain=landing.acme.com \
-    --custom --docroot=dist
-
-<span class="c"># Edit an existing app</span>
-<span class="p"></span>cipi-cli apps edit myapp --php=8.4
-
-<span class="c"># Suspend staging for maintenance</span>
-<span class="p"></span>cipi-cli apps suspend staging
-
-<span class="c"># Read recent deploy logs (page 1 = newest lines)</span>
-<span class="p"></span>cipi-cli apps logs myapp --type=deploy
-
-<span class="c"># Paginate older nginx lines</span>
-<span class="p"></span>cipi-cli apps logs myapp --type=nginx --page=2 --per-page=100
-
-<span class="c"># Run Artisan, read and update .env</span>
-<span class="p"></span>cipi-cli apps artisan myapp migrate --force
-<span class="p"></span>cipi-cli apps env show myapp
-<span class="p"></span>cipi-cli apps env set myapp --set APP_DEBUG=false --unset OLD_KEY
-
-<span class="c"># Create a Node SSR app</span>
+<h2 id="apps"><code>apps</code><a class="anchor" href="#apps" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>apps list</code>, <code>apps show &lt;app&gt;</code></td><td>List, details (environment included)</td></tr><tr><td><code>apps create [flags]</code></td><td>Create; prints credentials, deploy key and whether the key can read the repository</td></tr><tr><td><code>apps edit &lt;app&gt; [flags]</code></td><td>PHP, repository, branch, environment, domain, Node settings</td></tr><tr><td><code>apps delete &lt;app&gt; [-y]</code></td><td>Delete</td></tr><tr><td><code>apps suspend</code>, <code>unsuspend &lt;app&gt;</code></td><td>503 maintenance page, without deleting</td></tr><tr><td><code>apps logs &lt;app&gt; [--type --page --per-page]</code></td><td>nginx, php, laravel, worker, deploy; page 1 is newest</td></tr><tr><td><code>apps artisan &lt;app&gt; &lt;cmd&gt;</code></td><td>Artisan as an async job</td></tr><tr><td><code>apps run &lt;app&gt; &lt;cmd&gt;</code></td><td>Allowlisted binaries (<code>cipi-cli run-commands</code>)</td></tr><tr><td>`apps env show</td><td>set &lt;app&gt;`</td><td>Read <code>.env</code>, or <code>--set KEY=VALUE</code> / <code>--unset KEY</code></td></tr><tr><td>`apps auth show</td><td>create</td><td>update</td><td>delete &lt;app&gt;`</td><td>Composer <code>auth.json</code></td></tr><tr><td>`apps basicauth status</td><td>enable</td><td>disable &lt;app&gt;`</td><td>HTTP Basic Auth</td></tr><tr><td>`apps node status</td><td>restart &lt;app&gt;`</td><td>Node status, blue/green restart</td></tr><tr><td>`apps search enable</td><td>disable &lt;app&gt;`</td><td>Meilisearch for one app</td></tr><tr><td><code>apps webhook recreate &lt;app&gt; [--rotate-secret]</code></td><td>New Git webhook, optionally a new secret</td></tr><tr><td><code>apps fix-permissions &lt;app&gt;</code></td><td>Restore home permissions</td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Create flag</th><th>Meaning</th></tr></thead><tbody><tr><td><code>--user</code>, <code>--domain</code></td><td>App name (Linux user, database), primary domain</td></tr><tr><td><code>--repository</code>, <code>--branch</code></td><td>Git source</td></tr><tr><td><code>--php</code></td><td>e.g. <code>8.6</code></td></tr><tr><td><code>--env</code></td><td>Environment label; picks <a href="/docs/yml"><code>cipi-&lt;env&gt;.yml</code></a></td></tr><tr><td><code>--engine</code></td><td><code>mariadb</code> or <code>pgsql</code></td></tr><tr><td><code>--octane</code></td><td><code>true</code> / <code>frankenphp</code></td></tr><tr><td><code>--node-build</code></td><td>Asset build on every deploy, e.g. <code>npm ci &amp;&amp; npm run build</code></td></tr><tr><td><code>--custom</code>, <code>--docroot</code></td><td>Non-Laravel app</td></tr><tr><td><code>--node</code>, <code>--framework</code>, <code>--node-version</code>, <code>--build</code>, <code>--start</code>, <code>--output</code>, <code>--health-path</code></td><td><a href="/docs/node-apps">Node apps</a></td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli apps create --user=shop --domain=shop.com --php=8.6 \
+    --repository=git@github.com:acme/shop.git --branch=main --node-build='npm ci &amp;&amp; npm run build'
+<span class="p"></span>cipi-cli apps create --user=shop-stg --domain=staging.shop.com \
+    --repository=git@github.com:acme/shop.git --branch=develop --env=staging
 <span class="p"></span>cipi-cli apps create --user=web --domain=web.acme.com --node=ssr --framework=next \
-    --repository=git@github.com:acme/web.git --branch=main
-
-<span class="c"># Recreate the Git webhook with a new secret</span>
-<span class="p"></span>cipi-cli apps webhook recreate myapp --rotate-secret
-
-<span class="c"># Delete an app (skip confirmation)</span>
-<span class="p"></span>cipi-cli apps delete myapp -y</pre>
-                </div>
-                <p>Since <strong>1.7.0</strong> (Cipi <strong>5.6.0</strong>, API <strong>1.34+</strong>),
-                    <code>apps create</code> prints the app's credentials, deploy key and build when the job finishes,
-                    and both <code>apps create</code> and <code>apps edit</code> (new repository or branch) report
-                    whether the deploy key can read the repository. When it cannot, the output names git's error and
-                    the command to run on the server — for example
-                    <code>cipi git github-token &lt;token&gt; &amp;&amp; cipi git refresh myapp</code>. Interactive
-                    <code>apps create</code> also asks for the build command of a Laravel app; Enter skips it.
-                    <code>--json</code> returns the job result, <code>repository_access</code> included.</p>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Domains ── -->
+    --repository=git@github.com:acme/web.git
+<span class="p"></span>cipi-cli apps artisan shop migrate --force
+<span class="p"></span>cipi-cli apps env set shop --set APP_DEBUG=false --unset OLD_KEY
+<span class="p"></span>cipi-cli apps logs shop --type=deploy</pre></div>
+<p>Subcommands need the matching token abilities (<code>apps-artisan</code>, <code>apps-run</code>, <code>apps-env</code>, <code>apps-auth</code>).</p>
 </section>
-
 <section class="doc-section" id="cli-domains">
-                <h2 id="domains"><code>domains</code><a class="anchor" href="#domains" aria-label="Link to this section">#</a></h2>
-                <p>List every primary domain and alias across all apps on the server in a single table — the remote
-                    counterpart to <a href="/docs/domains#cli-domains"><code>cipi domains</code></a> on the server.
-                    Useful for auditing DNS coverage or spotting domains missing SSL before a certificate renewal.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli domains</td>
-                                                <td>List every domain and alias across all apps</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli domains
-<span class="c">  DOMAIN              APP     KIND    TYPE     PHP   SSL</span>
-<span class="c">  api.myapp.com       myapp   alias   Laravel  8.5   ✓</span>
-<span class="c">  myapp.com           myapp   primary Laravel  8.5   ✓</span>
-<span class="c">  www.myapp.com       myapp   alias   Laravel  8.5   ✓</span>
-
-<span class="c">3 domains · 1 app · 3 certificates</span></pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>The global domain map is built from <code>GET /api/apps</code> on the server. It requires
-                        Cipi <strong>4.5.5+</strong> on the server (for the underlying
-                        <code>cipi domains</code> data) but no minimum API package version.</span>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Deploy ── -->
+<h2 id="domains"><code>domains</code><a class="anchor" href="#domains" aria-label="Link to this section">#</a></h2>
+<p>Every primary domain and alias on the server in one table: handy to audit DNS or spot missing certificates.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli domains
+ DOMAIN          APP    KIND     TYPE     PHP  SSL
+ shop.com        shop   primary  Laravel  8.6  ✓
+ www.shop.com    shop   alias    Laravel  8.6  ✓</pre></div>
 </section>
-
 <section class="doc-section" id="cli-deploy">
-                <h2 id="deploy"><code>deploy</code><a class="anchor" href="#deploy" aria-label="Link to this section">#</a></h2>
-                <p>Trigger deployments, rollback to the previous release, or unlock a stuck deployment.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli deploy &lt;app&gt;</td>
-                                                <td>Trigger a zero-downtime deployment</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli deploy rollback &lt;app&gt; [-y]</td>
-                                                <td>Rollback to previous release</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli deploy unlock &lt;app&gt;</td>
-                                                <td>Unlock a stuck deployment</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli deploy config show|set &lt;app&gt;</td>
-                                                <td>Read or update structured <code>deploy.php</code> options (Cipi 5.0.3+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli deploy audit &lt;app&gt; [--days N]</td>
-                                                <td>Deploy audit ledger: origin, operator, IP and commit of every deploy (Cipi 5.4.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli yml &lt;app&gt;</td>
-                                                <td>The app's <code>cipi.yml</code>: file, validity, auto-apply and what applying would change (Cipi 5.6.4+); the environment and the <code>cipi-&lt;env&gt;.yml</code> in use (cipi-cli 1.9.0+, Cipi 5.8.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli yml apply &lt;app&gt;</td>
-                                                <td>Apply the committed <code>cipi.yml</code> as an async job (Cipi 5.6.4+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli yml auto &lt;app&gt; on|off|status</td>
-                                                <td>Apply <code>cipi.yml</code> after every successful deploy, or stop (Cipi 5.6.4+)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <p><code>deploy config set</code> flags: <code>--keep-releases N</code>, <code>--migrate</code>,
-                    <code>--optimize</code>, <code>--storage-link</code>, <code>--queue-restart</code>,
-                    <code>--horizon-terminate</code>, <code>--predeploy-snapshot</code>, <code>--node-build CMD</code>
-                    and <code>--extra-artisan CMD</code> (repeatable). The remote counterparts of
-                    <a href="/docs/deploy-script#cli-deploy-config"><code>cipi deploy-config</code></a> and the
-                    <a href="/docs/deploy-audit#deploy-audit">deploy audit ledger</a>.</p>
-                <p>The <code>yml</code> commands are the remote side of
-                    <a href="/docs/yml#cli-yml"><code>cipi yml plan | apply | auto</code></a>. They need API
-                    <strong>1.35+</strong>, Cipi <strong>5.6.4+</strong> and a token with <code>yml-view</code> (read)
-                    and <code>yml-manage</code> (apply, auto). A token created before 1.35 has neither, so expect a 403
-                    until you issue a new one. Turning auto-apply on asks for confirmation: from then on, anyone who can
-                    push to the repository can change the app's server settings.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli deploy myapp
-<span class="c">Deploying myapp...</span>
-<span class="c">Polling job #42...</span> <span class="s">completed</span>
-<span class="s">Deployed to release #14. Zero downtime.</span>
-
-<span class="p"></span>cipi-cli deploy rollback myapp
-<span class="s">Rolled back to release #13.</span></pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── SSL ── -->
+<h2 id="deploy"><code>deploy</code> and <code>yml</code><a class="anchor" href="#deploy" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>deploy &lt;app&gt;</code></td><td>Zero-downtime deploy, waits for the job</td></tr><tr><td><code>deploy rollback &lt;app&gt; [-y]</code></td><td>Previous release</td></tr><tr><td><code>deploy unlock &lt;app&gt;</code></td><td>Clear a stuck lock</td></tr><tr><td>`deploy config show</td><td>set &lt;app&gt;`</td><td><code>deploy.php</code> options: <code>--optimize</code>, <code>--storage-link</code>, <code>--queue-restart</code>, <code>--horizon-terminate</code>, <code>--predeploy-snapshot</code>, <code>--node-build</code>, <code>--extra-artisan</code></td></tr><tr><td><code>deploy audit &lt;app&gt; [--days N]</code></td><td><a href="/docs/deploy-audit">Deploy ledger</a>: origin, operator, IP, commit</td></tr><tr><td><code>yml &lt;app&gt;</code></td><td>The live <code>cipi.yml</code>: file, environment, validity, what applying would change</td></tr><tr><td><code>yml apply &lt;app&gt;</code></td><td>Apply it as a job</td></tr><tr><td>`yml auto &lt;app&gt; on</td><td>off</td><td>status`</td><td>Apply after every deploy (asks for confirmation)</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli deploy shop
+Deploying shop...
+Polling job #42... completed
+Deployed to release #14. Zero downtime.</pre></div>
+<p><code>yml</code> needs a token with <code>yml-view</code> / <code>yml-manage</code>. With auto-apply on, anyone who can push can change the app's server settings: that's the point, and the reason it asks first.</p>
 </section>
-
 <section class="doc-section" id="cli-ssl">
-                <h2 id="ssl"><code>ssl</code><a class="anchor" href="#ssl" aria-label="Link to this section">#</a></h2>
-                <p>Install Let's Encrypt certificates for your applications.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli ssl install &lt;app&gt;</td>
-                                                <td>Install Let's Encrypt certificate (covers primary domain and all aliases)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli ssl force &lt;app&gt;</td>
-                                                <td>Re-apply the HTTP → HTTPS redirect (Cipi 4.8+)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli ssl install myapp
-<span class="s">Certificate provisioned for myapp.com</span></pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-                        <!-- ── WWW ── -->
+<h2 id="ssl"><code>ssl</code><a class="anchor" href="#ssl" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>ssl install &lt;app&gt;</code></td><td>Let's Encrypt for the primary domain and all aliases</td></tr><tr><td><code>ssl force &lt;app&gt;</code></td><td>Re-apply the HTTP → HTTPS redirect</td></tr></tbody></table></div>
 </section>
-
 <section class="doc-section" id="cli-www">
-                <h2 id="www"><code>www</code><a class="anchor" href="#www" aria-label="Link to this section">#</a></h2>
-                <p>Manage the <code>www</code> ↔ apex counterpart of an app — the remote side of
-                    <a href="/docs/domains#cli-www"><code>cipi www</code></a>. DNS for the domain (and its
-                    aliases) must already point to the server. Requires Cipi <strong>4.8+</strong> (API 1.12+) and the
-                    <code>www-manage</code> ability.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli www status &lt;app&gt;</td>
-                                                <td>Show the www / apex redirect status</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli www add &lt;app&gt;</td>
-                                                <td>Add the www or apex counterpart as an alias</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli www force-to-root &lt;app&gt;</td>
-                                                <td>301 redirect <code>www</code> → apex</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli www force-from-root &lt;app&gt;</td>
-                                                <td>301 redirect apex → <code>www</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli www clear &lt;app&gt;</td>
-                                                <td>Remove the canonical www redirect</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># Add www.myapp.com and make it canonical</span>
-<span class="p"></span>cipi-cli www add myapp
-<span class="p"></span>cipi-cli www force-from-root myapp
-<span class="p"></span>cipi-cli www status myapp</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Redirects & proxies ── -->
+<h2 id="www"><code>www</code><a class="anchor" href="#www" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>www status &lt;app&gt;</code></td><td>Current www / apex setup</td></tr><tr><td><code>www add &lt;app&gt;</code></td><td>Add the counterpart as an alias</td></tr><tr><td><code>www force-to-root</code> / <code>force-from-root &lt;app&gt;</code></td><td>301 to apex / to www</td></tr><tr><td><code>www clear &lt;app&gt;</code></td><td>Remove the canonical redirect</td></tr></tbody></table></div>
 </section>
-
 <section class="doc-section" id="cli-redirect">
-                <h2 id="redirect-proxies"><code>redirect</code> / <code>proxies</code><a class="anchor" href="#redirect-proxies" aria-label="Link to this section">#</a></h2>
-                <p>Whole-app and path redirects, plus prefix reverse proxies — the remote side of
-                    <a href="/docs/redirects-proxies#cli-redirect"><code>cipi redirect</code></a> and
-                    <a href="/docs/redirects-proxies#cli-proxy"><code>cipi proxy</code></a>. Requires Cipi
-                    <strong>5.4.1+</strong> (API sudoers, API 1.31+) and the <code>redirects-view|manage</code> /
-                    <code>proxies-view|manage</code> abilities. Aliases: <code>redirects</code> →
-                    <code>redirect</code>, <code>proxy</code> → <code>proxies</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli redirect list &lt;app&gt;</td>
-                                                <td>List the whole-app redirect and every path redirect</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli redirect set &lt;app&gt; --to URL [--code 301] [--keep-path]</td>
-                                                <td>Redirect the whole app to a URL (one hop; path and query kept unless <code>--keep-path=false</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli redirect enable|disable &lt;app&gt;</td>
-                                                <td>Toggle the whole-app redirect without removing it</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli redirect unset &lt;app&gt;</td>
-                                                <td>Remove the whole-app redirect</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli redirect add &lt;app&gt; --from /path --to URL [--code] [--keep-path]</td>
-                                                <td>Add a path redirect — a trailing slash on <code>--from</code> means prefix match</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli redirect remove &lt;app&gt; --from /path</td>
-                                                <td>Remove a path redirect</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli proxies list &lt;app&gt;</td>
-                                                <td>List prefix reverse proxies</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli proxies add &lt;app&gt; --prefix /api --upstream URL [flags]</td>
-                                                <td>Proxy a path prefix to an upstream (<code>--strip-prefix</code>, <code>--preserve-host</code>, <code>--timeout 60</code>, <code>--buffering</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli proxies remove &lt;app&gt; --prefix /api</td>
-                                                <td>Remove a prefix proxy</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># Send the old blog to the new one, keep paths</span>
-<span class="p"></span>cipi-cli redirect add myapp --from /blog/ --to https://blog.acme.com/
-
-<span class="c"># Proxy /api to an internal service</span>
-<span class="p"></span>cipi-cli proxies add myapp --prefix /api --upstream http://127.0.0.1:8080 --strip-prefix
-<span class="p"></span>cipi-cli proxies list myapp</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-<!-- ── Aliases ── -->
+<h2 id="redirect"><code>redirect</code> and <code>proxies</code><a class="anchor" href="#redirect" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>redirect list &lt;app&gt;</code></td><td>Whole-app and path redirects</td></tr><tr><td><code>redirect set &lt;app&gt; --to URL [--code] [--keep-path]</code></td><td>Whole app to a URL, one hop</td></tr><tr><td>`redirect enable</td><td>disable</td><td>unset &lt;app&gt;`</td><td>Toggle or remove it</td></tr><tr><td><code>redirect add &lt;app&gt; --from /path --to URL</code></td><td>Path redirect; a trailing <code>/</code> means prefix</td></tr><tr><td><code>redirect remove &lt;app&gt; --from /path</code></td><td>Remove</td></tr><tr><td>`proxies list</td><td>add</td><td>remove &lt;app&gt;`</td><td>Prefix proxies (<code>--prefix</code>, <code>--upstream</code>, <code>--strip-prefix</code>, <code>--preserve-host</code>, <code>--timeout</code>, <code>--buffering</code>)</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli redirect add shop --from /blog/ --to https://blog.acme.com/
+<span class="p"></span>cipi-cli proxies add shop --prefix /api --upstream http://127.0.0.1:8080 --strip-prefix</pre></div>
 </section>
-
 <section class="doc-section" id="cli-aliases">
-                <h2 id="aliases"><code>aliases</code><a class="anchor" href="#aliases" aria-label="Link to this section">#</a></h2>
-                <p>Manage domain aliases for an application.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli aliases list &lt;app&gt;</td>
-                                                <td>List all aliases for an app</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli aliases add &lt;app&gt; &lt;domain&gt;</td>
-                                                <td>Add a domain alias</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli aliases remove &lt;app&gt; &lt;domain&gt; [-y]</td>
-                                                <td>Remove a domain alias</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli aliases add myapp www.myapp.com
-<span class="s">Alias www.myapp.com added to myapp.</span>
-
-<span class="p"></span>cipi-cli aliases list myapp
-<span class="c">  www.myapp.com</span>
-<span class="c">  api.myapp.com</span>
-
-<span class="c"># Re-run ssl install to include new aliases in the certificate</span>
-<span class="p"></span>cipi-cli ssl install myapp</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Databases ── -->
+<h2 id="aliases"><code>aliases</code><a class="anchor" href="#aliases" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli aliases add shop www.shop.com
+<span class="p"></span>cipi-cli aliases list shop
+<span class="p"></span>cipi-cli aliases remove shop old.shop.com -y
+<span class="p"></span>cipi-cli ssl install shop<span class="c">      # re-issue to cover new aliases</span></pre></div>
 </section>
-
 <section class="doc-section" id="cli-db">
-                <h2 id="db"><code>db</code><a class="anchor" href="#db" aria-label="Link to this section">#</a></h2>
-                <p>Manage MariaDB and PostgreSQL databases on the server, and request anonymized dumps from Laravel
-                    apps that run <a href="/docs/anonymizer#agent-anonymizer">cipi/agent</a>. Aliases:
-                    <code>database</code>, <code>dbs</code> → <code>db</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli db engines</td>
-                                                <td>List installed database engines and the server default (Cipi 4.8+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db install &lt;engine&gt;</td>
-                                                <td>Install an engine: <code>mariadb</code> or <code>pgsql</code> (Cipi 5.0.6+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db list [--engine E]</td>
-                                                <td>List databases with their size, optionally filtered by engine</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db create &lt;name&gt; [--engine E]</td>
-                                                <td>Create a database (MariaDB unless <code>--engine pgsql</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db delete &lt;name&gt; [-y]</td>
-                                                <td>Delete a database — API &lt; 1.19 only; newer servers use <code>cipi db delete</code> on the host</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db backup &lt;name&gt;</td>
-                                                <td>Create a compressed backup on the server</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db restore &lt;name&gt; [-y]</td>
-                                                <td>Restore the latest backup (overwrites current data)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db password &lt;name&gt; [-y]</td>
-                                                <td>Regenerate the password and update the linked app <code>.env</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db anonymize &lt;app&gt; --email &lt;addr&gt;</td>
-                                                <td>Request an anonymized dump of the app database via cipi/agent (cipi-cli 1.5.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli db anonymize download &lt;url&gt; [-o file]</td>
-                                                <td>Download the dump from the signed link received by email</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli db list
-<span class="c">  NAME       SIZE</span>
-<span class="c">  myapp      24.5 MB</span>
-<span class="c">  blog       8.2 MB</span>
-
-<span class="p"></span>cipi-cli db backup myapp
-<span class="s">Backup created: myapp_20260402_143022.sql.gz</span>
-
-<span class="p"></span>cipi-cli db restore myapp -y
-<span class="s">Database restored successfully.</span></pre>
-                </div>
-
-                <h3 id="cli-db-anonymize">Anonymized dumps (cipi/agent)<a class="anchor" href="#cli-db-anonymize" aria-label="Link to this section">#</a></h3>
-                <p>The anonymizer is not part of the Cipi API: it lives in the
-                    <a href="/docs/anonymizer#agent-anonymizer">cipi/agent</a> package inside the Laravel app. The CLI reads
-                    the app URL (<code>APP_URL</code>, else <code>https://&lt;primary domain&gt;</code>) and
-                    <code>CIPI_ANONYMIZER_TOKEN</code> from the app <code>.env</code> through the API
-                    (<code>apps-view</code> + <code>apps-env</code> abilities), then calls
-                    <code>POST /&lt;CIPI_ROUTE_PREFIX&gt;/db</code> on the app itself. The agent runs the job in the
-                    app queue and emails a signed download link valid for 15 minutes.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># One-time setup on the app (all through the Cipi API)</span>
-<span class="p"></span>cipi-cli apps artisan myapp cipi:service anonymize --enable
-<span class="p"></span>cipi-cli apps artisan myapp cipi:generate-token anonymize
-<span class="p"></span>cipi-cli apps artisan myapp cipi:init-anonymize
-<span class="c"># then edit /home/myapp/.db/anonymization.json on the server</span>
-
-<span class="c"># Request a dump — the signed link arrives by email</span>
-<span class="p"></span>cipi-cli prod db anonymize myapp --email dev@example.com
-<span class="s">✓ Anonymization job queued for 'myapp'</span>
-
-<span class="c"># Download it: default name from the server, -o - streams to stdout</span>
-<span class="p"></span>cipi-cli db anonymize download "https://myapp.com/cipi/db/&lt;token&gt;?expires=…&amp;signature=…" -o myapp.sql
-<span class="p"></span>cipi-cli db anonymize download "&lt;signed url&gt;" -o - | mysql -u root myapp_local</pre>
-                </div>
-
-                <div class="options-list">
-                    <div class="option-item">
-                        <code>--email, -e</code>
-                        <span>Address that receives the signed download link (prompted when omitted)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--url</code>
-                        <span>Override the app base URL, e.g. when the app redirects to <code>www</code> — redirects are never followed</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--token</code>
-                        <span>Override the bearer token read from <code>.env</code></span>
-                    </div>
-                    <div class="option-item">
-                        <code>--output, -o</code>
-                        <span><code>download</code>: output file (<code>-</code> for stdout)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--force, -f</code>
-                        <span><code>download</code>: overwrite an existing file</span>
-                    </div>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>Requires <code>cipi-cli</code> <strong>1.5.0+</strong>, Cipi <strong>5.0.3+</strong> / API
-                        <strong>1.14+</strong> (for <code>apps env</code>) and <code>cipi/agent</code>
-                        <strong>1.1.1+</strong> with the anonymizer enabled in the app. Custom and Node apps are
-                        refused. Every failure names the fix — anonymizer disabled, missing token, missing
-                        <code>anonymization.json</code>, invalid token, or an app that redirects (pass
-                        <code>--url</code>). Links expire after 15 minutes; request a new dump when they do.</span>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-                        <!-- ── PHP ── -->
+<h2 id="db"><code>db</code><a class="anchor" href="#db" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>db engines</code>, <code>db install &lt;engine&gt;</code></td><td>Installed engines; install <code>mariadb</code> or <code>pgsql</code></td></tr><tr><td><code>db list [--engine]</code></td><td>Databases with sizes</td></tr><tr><td><code>db create &lt;name&gt; [--engine]</code></td><td>Create</td></tr><tr><td><code>db backup &lt;name&gt;</code></td><td>Compressed backup on the server</td></tr><tr><td><code>db restore &lt;name&gt; [-y]</code></td><td>Restore the latest backup</td></tr><tr><td><code>db password &lt;name&gt;</code></td><td>New password, linked app <code>.env</code> updated</td></tr><tr><td><code>db anonymize &lt;app&gt; --email</code></td><td>Anonymized dump through <code>cipi/agent</code></td></tr><tr><td><code>db anonymize download &lt;url&gt; [-o file]</code></td><td>Download from the signed link (<code>-o -</code> for stdout)</td></tr></tbody></table></div>
+<h3 id="cli-db-anonymize">Anonymized dumps<a class="anchor" href="#cli-db-anonymize" aria-label="Link to this section">#</a></h3>
+<p>The CLI reads <code>APP_URL</code> and the anonymizer token from the app's <code>.env</code> through the API and calls the <a href="/docs/anonymizer">agent</a> on the app. The signed link arrives by e-mail and lasts 15 minutes.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli apps artisan shop cipi:service anonymize --enable
+<span class="p"></span>cipi-cli apps artisan shop cipi:generate-token anonymize
+<span class="p"></span>cipi-cli apps artisan shop cipi:init-anonymize
+<span class="p"></span>cipi-cli prod db anonymize shop --email dev@example.com
+✓ Anonymization job queued for 'shop'
+<span class="p"></span>cipi-cli db anonymize download "&lt;signed url&gt;" -o - | mysql -u root shop_local</pre></div>
+<p>Flags: <code>--email</code>, <code>--url</code> (when the app redirects, redirects are never followed), <code>--token</code>, <code>-o</code>, <code>--force</code>. Custom and Node apps are refused.</p>
 </section>
-
 <section class="doc-section" id="cli-php">
-                <h2 id="php"><code>php</code><a class="anchor" href="#php" aria-label="Link to this section">#</a></h2>
-                <p>Installed PHP versions and PHP-FPM status — the remote side of
-                    <a href="/docs/php#cli-php"><code>cipi php</code></a>. Requires Cipi
-                    <strong>5.0.6+</strong> (API 1.15+) and the <code>php-view</code> / <code>php-manage</code>
-                    abilities. Switching the default version and removing versions stay host-only
-                    (<code>cipi php switch|remove</code>). <a href="/docs/php#php-legacy">Legacy versions</a>
-                    (7.4–8.2 on a server installed before Cipi 4.5.4) are listed and marked <code>(legacy)</code>;
-                    no app can be created on or moved to one.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli php list</td>
-                                                <td>Installed versions, FPM status and the server default</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli php install &lt;version&gt;</td>
-                                                <td>Install PHP <code>8.3</code>, <code>8.4</code>, <code>8.5</code> or <code>8.6</code> (async job; 8.6 needs Cipi 5.9.1+ / API 1.39.2+)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli php list
-<span class="p"></span>cipi-cli prod php install 8.5</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Services & SSH keys ── -->
+<h2 id="php"><code>php</code><a class="anchor" href="#php" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>php list</code></td><td>Installed versions, FPM status, default; legacy versions marked</td></tr><tr><td><code>php install &lt;version&gt;</code></td><td><code>8.3</code>, <code>8.4</code>, <code>8.5</code> or <code>8.6</code> (async job)</td></tr></tbody></table></div>
+<p>Switching the default and removing versions stay on the server (<code>cipi php switch|remove</code>).</p>
 </section>
-
 <section class="doc-section" id="cli-services">
-                <h2 id="services-ssh-keys"><code>services</code> / <code>ssh-keys</code><a class="anchor" href="#services-ssh-keys" aria-label="Link to this section">#</a></h2>
-                <p>System services and the authorized SSH keys of the <code>cipi</code> user — the remote side of
-                    <a href="/docs/services#cli-services"><code>cipi service</code></a> and
-                    <a href="/docs/ssh-keys#cli-ssh"><code>cipi ssh</code></a>. Requires Cipi
-                    <strong>5.0.6+</strong> (API 1.15+) with <code>services-view|manage</code> and
-                    <code>ssh-view|manage</code>. Aliases: <code>service</code> → <code>services</code>,
-                    <code>ssh</code> → <code>ssh-keys</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli services list [name]</td>
-                                                <td>System services and their status, or one service</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli services restart &lt;name&gt;</td>
-                                                <td>Restart a service (<code>nginx</code>, <code>mariadb</code>, <code>php8.5-fpm</code>, …)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli ssh-keys list</td>
-                                                <td>Authorized keys of the <code>cipi</code> user, with ids</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli ssh-keys add [key] [--file F]</td>
-                                                <td>Add a public key, inline or from a <code>.pub</code> file</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli ssh-keys remove &lt;id&gt; [-y]</td>
-                                                <td>Remove a key by id</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli services list
-<span class="p"></span>cipi-cli services restart nginx
-
-<span class="p"></span>cipi-cli ssh-keys add --file ~/.ssh/id_ed25519.pub
-<span class="p"></span>cipi-cli ssh-keys list</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── SMTP ── -->
+<h2 id="services"><code>services</code> and <code>ssh-keys</code><a class="anchor" href="#services" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>services list [name]</code></td><td>Status of system services</td></tr><tr><td><code>services restart &lt;name&gt;</code></td><td>e.g. <code>nginx</code>, <code>mariadb</code>, <code>php8.6-fpm</code></td></tr><tr><td><code>ssh-keys list</code></td><td>Authorized keys of the <code>cipi</code> user, with ids</td></tr><tr><td><code>ssh-keys add [key] [--file F]</code></td><td>Add a public key</td></tr><tr><td><code>ssh-keys remove &lt;id&gt;</code></td><td>Remove one</td></tr></tbody></table></div>
 </section>
-
 <section class="doc-section" id="cli-smtp">
-                <h2 id="smtp"><code>smtp</code><a class="anchor" href="#smtp" aria-label="Link to this section">#</a></h2>
-                <p>Configure the outgoing email the server uses for notifications — the remote side of
-                    <a href="/docs/notifications#cipi-smtp">email notifications</a>. The stored password is never shown.
-                    Requires Cipi <strong>5.0.7+</strong> (API 1.15+) and <code>smtp-view|manage</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli smtp show</td>
-                                                <td>Current SMTP configuration</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli smtp set [flags]</td>
-                                                <td>Create or update the configuration; omitted flags keep the stored values</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli smtp test</td>
-                                                <td>Send a test email</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli smtp enable|disable</td>
-                                                <td>Toggle notifications</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli smtp delete [-y]</td>
-                                                <td>Remove the configuration</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <h3 id="set-flags">Set flags<a class="anchor" href="#set-flags" aria-label="Link to this section">#</a></h3>
-                <div class="options-list">
-                    <div class="option-item">
-                        <code>--host</code>
-                        <span>SMTP host</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--port</code>
-                        <span>SMTP port (default <code>587</code>)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--user</code>
-                        <span>SMTP username</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--password</code>
-                        <span>SMTP password — required the first time; omit to keep the stored one</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--from</code>
-                        <span>Sender address</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--to</code>
-                        <span>Notification recipient</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--tls</code>
-                        <span>Use STARTTLS / TLS (default on)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--enabled</code>
-                        <span>Enable notifications after saving (default on)</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--no-test</code>
-                        <span>Do not send a test email after saving</span>
-                    </div>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli smtp set --host smtp.example.com --port 587 --user notify@example.com \
+<h2 id="smtp"><code>smtp</code><a class="anchor" href="#smtp" aria-label="Link to this section">#</a></h2>
+<p>Server notification e-mail. The stored password is never shown.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli smtp set --host smtp.example.com --port 587 --user notify@example.com \
     --password "s3cret" --from notify@example.com --to ops@example.com
-<span class="p"></span>cipi-cli smtp test</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Healthchecks ── -->
+<span class="p"></span>cipi-cli smtp test</pre></div>
+<p>Also <code>smtp show</code>, <code>smtp enable|disable</code>, <code>smtp delete</code>. Omitted flags keep stored values; <code>--no-test</code> skips the test e-mail.</p>
 </section>
-
 <section class="doc-section" id="cli-health">
-                <h2 id="health"><code>health</code><a class="anchor" href="#health" aria-label="Link to this section">#</a></h2>
-                <p>HTTP healthchecks per app — the remote side of
-                    <a href="/docs/health-checks#cli-health"><code>cipi health</code></a>. Requires Cipi
-                    <strong>5.0.7+</strong> (API 1.15+) and <code>health-view|manage</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli health list</td>
-                                                <td>All configured app healthchecks and their state</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli health show &lt;app&gt;</td>
-                                                <td>One app's healthcheck and last result</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli health set &lt;app&gt; [--url] [--expect]</td>
-                                                <td>Enable or update the check</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli health unset &lt;app&gt;</td>
-                                                <td>Disable the check</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli health check &lt;app&gt;</td>
-                                                <td>Run the check now; exits <code>1</code> when unhealthy</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <p>Without <code>--url</code>, <code>https://&lt;primary domain&gt;/up</code> is checked
-                    (wildcard-domain apps need an explicit URL). <code>--expect</code> is the HTTP status considered
-                    healthy (default <code>200</code>). The exit code of <code>health check</code> makes it usable as
-                    a CI gate.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli health set myapp --url https://myapp.com/up --expect 200
-<span class="p"></span>cipi-cli health check myapp
-<span class="p"></span>cipi-cli health list</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── IP whitelist ── -->
+<h2 id="health"><code>health</code><a class="anchor" href="#health" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>health list</code>, <code>health show &lt;app&gt;</code></td><td>Checks and last result</td></tr><tr><td><code>health set &lt;app&gt; [--url] [--expect]</code></td><td>Enable (default <code>https://&lt;domain&gt;/up</code>, expect <code>200</code>)</td></tr><tr><td><code>health unset &lt;app&gt;</code></td><td>Disable</td></tr><tr><td><code>health check &lt;app&gt;</code></td><td>Run now; <strong>exits 1 when unhealthy</strong>, a ready-made CI gate</td></tr></tbody></table></div>
 </section>
-
 <section class="doc-section" id="cli-ip-whitelist">
-                <h2 id="ip-whitelist"><code>ip-whitelist</code><a class="anchor" href="#ip-whitelist" aria-label="Link to this section">#</a></h2>
-                <p>Restrict which client IPs may call the panel API (default <code>*</code> = allow all). Requires Cipi
-                    <strong>5.0.8+</strong> (API 1.15+) and <code>ip-whitelist-view|manage</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli ip-whitelist show</td>
-                                                <td>Show the API client IP allowlist</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli ip-whitelist set &lt;entries...&gt;</td>
-                                                <td>Replace the whitelist (<code>*</code> = allow all)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli ip-whitelist add|remove &lt;ip&gt;</td>
-                                                <td>Add or remove one IP / CIDR</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli ip-whitelist allow-all</td>
-                                                <td>Reset to <code>*</code></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>When restricting, the IP you are calling from is kept in the list so you do not lock yourself out.
-                        Pass <code>--no-ensure-client-ip</code> to <code>set</code> to skip that safety net.</span>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli ip-whitelist set 203.0.113.10 198.51.100.0/24
-<span class="p"></span>cipi-cli ip-whitelist show</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Server insights ── -->
+<h2 id="ip-whitelist"><code>ip-whitelist</code><a class="anchor" href="#ip-whitelist" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli ip-whitelist set 203.0.113.10 198.51.100.0/24
+<span class="p"></span>cipi-cli ip-whitelist add|remove &lt;ip&gt;
+<span class="p"></span>cipi-cli ip-whitelist allow-all</pre></div>
+<p>Your current IP is kept when tightening the list (<code>--no-ensure-client-ip</code> to skip).</p>
 </section>
-
 <section class="doc-section" id="cli-insights">
-                <h2 id="server-insights">Server insights<a class="anchor" href="#server-insights" aria-label="Link to this section">#</a></h2>
-                <p>Read-only views of host features, each mirroring its <code>cipi</code> counterpart on the server and
-                    needing the matching <code>*-view</code> ability. All support <code>--json</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli search status</td>
-                                                <td><a href="/docs/search#cli-search">Meilisearch</a> status (Cipi 5.2.2+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli node list</td>
-                                                <td>Installed <a href="/docs/nodejs#cli-node">Node runtimes</a> (Cipi 5.4.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli monitor</td>
-                                                <td><a href="/docs/monitor#cli-monitor">System monitor</a> checks and state (Cipi 5.3.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli packages</td>
-                                                <td>Optional <a href="/docs/packages#cli-package">host packages</a> catalog (Cipi 5.2.2+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli zt</td>
-                                                <td><a href="/docs/zero-trust#cli-zt">Cloudflare Zero Trust</a> status (Cipi 5.3.0+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli run-commands</td>
-                                                <td>Whitelisted binaries accepted by <code>apps run</code> (Cipi 5.0.3+)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli prod monitor
-<span class="p"></span>cipi-cli node list --json</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-<!-- ── Status ── -->
+<h2 id="insights">Server insights<a class="anchor" href="#insights" aria-label="Link to this section">#</a></h2>
+<p>Read-only, <code>--json</code> everywhere: <code>search status</code>, <code>node list</code>, <code>monitor</code>, <code>packages</code>, <code>zt</code> (Zero Trust), <code>run-commands</code>.</p>
 </section>
-
 <section class="doc-section" id="cli-status">
-                <h2 id="status"><code>status</code><a class="anchor" href="#status" aria-label="Link to this section">#</a></h2>
-                <p>Read the same host snapshot as <a href="/docs/server-commands#cli-cipi"><code>cipi status</code></a> on
-                    the server — via <code>GET /api/status</code>. Bare <code>status</code> shows a global overview
-                    (one row per configured server). Pass a profile name (or use a profile prefix) for full details.</p>
+<h2 id="status"><code>status</code><a class="anchor" href="#status" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli status
+ NAME      IP             CPU   RAM          HDD          APPS  SVC     CIPI
+ prod*     203.0.113.10   12%   48% (3840M)  42G/80G 53%  3     8/8 ok  5.10.0
+ staging   203.0.113.20    4%   31% (2048M)  18G/40G 45%  1     8/8 ok  5.10.0
 
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli status</td>
-                                                <td>Global overview — one row per server (alias: <code>status all</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli status &lt;profile&gt;</td>
-                                                <td>Full details for one server</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli &lt;profile&gt; status</td>
-                                                <td>Same detail view, via profile prefix</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <p>Global columns: <code>NAME</code>, <code>IP</code>, <code>CPU</code>, <code>RAM</code>,
-                    <code>HDD</code>, <code>APPS</code>, <code>SVC</code>, <code>CIPI</code>. The default profile is
-                    marked with <code>*</code>.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli status
-<span class="c">  NAME      IP             CPU   RAM           HDD          APPS  SVC     CIPI</span>
-<span class="c">  prod*     203.0.113.10   12%   48% (3840M)   42G/80G 53%  3     8/8 ok  4.6.3</span>
-<span class="c">  staging   203.0.113.20   4%    31% (2048M)   18G/40G 45%  1     8/8 ok  4.6.3</span>
-
-<span class="c">  * default profile</span>
-<span class="c">  Detail: cipi-cli status &lt;name&gt;</span>
-
-<span class="p"></span>cipi-cli status prod
-<span class="c">Server status — prod</span>
-<span class="c">  Endpoint   https://api.example.com</span>
-<span class="c">  Hostname   prod-01</span>
-<span class="c">  IP         203.0.113.10</span>
-<span class="c">  OS         Ubuntu 24.04</span>
-<span class="c">  Uptime     12 days</span>
-<span class="c">  Cipi       4.6.3</span>
-<span class="c">  CPU        12%</span>
-<span class="c">  RAM        3840/8192 MB (48%)</span>
-<span class="c">  HDD        42G/80G (53%)</span>
-<span class="c">  Apps       3</span></pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>Requires the API token ability <code>status-view</code> and
-                        <code>GET /api/status</code> on the server (API <strong>1.11.6+</strong>). Create or rotate the
-                        token with <code>cipi api token create</code> and include <code>status-view</code>.</span>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Disk ── -->
+<span class="p"></span>cipi-cli status prod<span class="c">      # full detail for one server</span></pre></div>
 </section>
-
 <section class="doc-section" id="cli-disk">
-                <h2 id="disk"><code>disk</code><a class="anchor" href="#disk" aria-label="Link to this section">#</a></h2>
-                <p>Who is filling the disk — the same figures as
-                    <a href="/docs/disk#cli-disk"><code>cipi disk</code></a> on the host, read from
-                    <code>GET /api/disk</code> and <code>GET /api/disk/dbs</code>. An app is its home (releases, shared
-                    storage, logs) plus its database, largest first. The server measures sizes when asked, so the CLI
-                    waits up to three minutes. Requires <code>cipi-cli</code> <strong>1.6.0+</strong>, Cipi
-                    <strong>5.5.2+</strong> (API sudoers; the host command exists since 5.5.0), API
-                    <strong>1.33+</strong> and the <code>disk-view</code> ability.</p>
-
-                <div class="table-scroll">
-                    <table class="cmd-table">
-                        <thead>
-                            <tr>
-                                <th>Command</th>
-                                <th>Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>cipi-cli disk</td>
-                                <td>The filesystem <code>/home</code> is on, then every app (GB and %)</td>
-                            </tr>
-                            <tr>
-                                <td>cipi-cli disk db</td>
-                                <td>Every database per engine, in MB (aliases: <code>dbs</code>, <code>databases</code>)</td>
-                            </tr>
-                            <tr>
-                                <td>cipi-cli disk --json</td>
-                                <td>The same figures for scripts (<code>disk db --json</code> too)</td>
-                            </tr>
-                            <tr>
-                                <td>cipi-cli &lt;profile&gt; disk</td>
-                                <td>Same reading, on one server</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli disk
-<span class="p"></span>cipi-cli prod disk db
-<span class="p"></span>cipi-cli disk --json</pre>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">output</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre>  Server disk
-  MOUNT                          SIZE         USED         FREE     USE
-  /                         100.00 GB     40.00 GB     60.00 GB     40%
-
-  Apps (3) — % of the 100.00 GB on /
-  APP                           FILES     DATABASE        TOTAL    DISK  LIMIT
-  shop                        2.00 GB      1.00 GB      3.00 GB    3.0%  10 GB (30%)
-  blog                        0.50 GB     120.4 MB      0.62 GB    0.6%  —
-  front                       0.10 GB      0.00 GB      0.10 GB    0.1%  —
-  All apps                                              3.72 GB    3.7%
-  Everything else                                      36.28 GB   36.3%</pre>
-                </div>
-
-                <p><strong>FILES</strong> is the app home. <strong>DATABASE</strong> is the database named after the
-                    app and, when <code>shared/.env</code> points <code>DB_DATABASE</code> at another one, that one
-                    too. <strong>TOTAL</strong> is both; <strong>DISK</strong> is that total as a percentage of the
-                    filesystem. <strong>LIMIT</strong> is the soft limit set on the host with
-                    <a href="/docs/limits#cli-app-limits"><code>cipi app limits &lt;app&gt; --disk=&lt;GB&gt;</code></a>
-                    — alerts only, nothing is blocked — and reads <code>over</code> once passed,
-                    <code>—</code> when the app has none. <strong>Everything else</strong> is the rest of the used
-                    space: system, packages, logs, local backups, databases that belong to no app. Sizes below 0.01 GB
-                    are printed in MB. <code>--json</code> carries <code>files_kb</code>, <code>database_kb</code> and
-                    <code>total_kb</code> next to the rounded GB, plus <code>limit_gb</code>,
-                    <code>limit_percent</code> and <code>over_limit</code>.</p>
-
-                <h3 id="disk-db-every-database-in-mb"><code>disk db</code> — every database, in MB<a class="anchor" href="#disk-db-every-database-in-mb" aria-label="Link to this section">#</a></h3>
-                <p>MariaDB and PostgreSQL report one size per database. Valkey only knows how many keys each logical
-                    database holds, and Meilisearch how many documents each index has: for those two the size is the
-                    engine's, in memory and on disk. An engine that is not installed is left out. How each engine is
-                    measured is on the <a href="/docs/disk#cli-disk">host command</a>.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">output</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre>  MariaDB — sizes in MB
-  DATABASE                                               SIZE
-  blog                                                 2.0 MB
-  shop                                               200.0 MB
-  On disk                                          500.0 MB (whole engine)
-
-  Valkey — sizes in MB
-  DATABASE                                     KEYS      SIZE
-  db0                                          1204         —
-  Memory in use                                    12.3 MB
-  On disk                                        3.0 MB (whole engine)</pre>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>Requires the API token ability <code>disk-view</code>. A token created before API
-                        <strong>1.33</strong> does not have it — run <code>cipi api token create</code> on the host and
-                        include <code>disk-view</code>. HTTP 503, or <code>terminal is required</code>, means the
-                        server is older than Cipi <strong>5.5.2</strong>: <code>cipi self-update</code> so the API
-                        sudoers allow <code>cipi disk</code>.</span>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Jobs ── -->
+<h2 id="disk"><code>disk</code><a class="anchor" href="#disk" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli disk
+ APP    FILES    DATABASE  TOTAL    DISK  LIMIT
+ shop   2.00 GB  1.00 GB   3.00 GB  3.0%  10 GB (30%)
+ blog   0.50 GB  120.4 MB  0.62 GB  0.6%  —
+<span class="p"></span>cipi-cli disk db<span class="c">          # every database, in MB</span></pre></div>
+<p>Same figures as <a href="/docs/disk"><code>cipi disk</code></a>. Sizes are measured on request (up to three minutes). LIMIT is the soft limit from <a href="/docs/limits"><code>cipi app limits</code></a>: alerts only.</p>
 </section>
-
 <section class="doc-section" id="cli-jobs">
-                <h2 id="jobs"><code>jobs</code><a class="anchor" href="#jobs" aria-label="Link to this section">#</a></h2>
-                <p>Write operations (create, edit, delete, deploy, SSL, etc.) are asynchronous on the Cipi API. The CLI
-                    automatically polls for job completion and displays a spinner while waiting. If you prefer to handle
-                    polling manually, use the <code>jobs</code> commands.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli jobs show &lt;id&gt;</td>
-                                                <td>Show job status</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli jobs wait &lt;id&gt;</td>
-                                                <td>Wait for a job to complete (blocking)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli jobs show 42
-<span class="c">Job #42: deploy myapp — completed</span>
-
-<span class="p"></span>cipi-cli jobs wait 43
-<span class="c">Waiting for job #43...</span> <span class="s">completed</span></pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Update ── -->
+<h2 id="jobs"><code>jobs</code><a class="anchor" href="#jobs" aria-label="Link to this section">#</a></h2>
+<p><code>jobs show &lt;id&gt;</code> and <code>jobs wait &lt;id&gt;</code> (blocking). Write commands wait for their job by default.</p>
 </section>
-
 <section class="doc-section" id="cli-update">
-                <h2 id="update"><code>update</code><a class="anchor" href="#update" aria-label="Link to this section">#</a></h2>
-                <p>Update <code>cipi-cli</code> to the newest release from GitHub. The command picks the
-                    <strong>highest semver</strong> among published releases (not GitHub’s “latest” flag, which can
-                    point at an older tag), downloads the matching binary for your platform, verifies its SHA-256
-                    checksum, and replaces the running binary in place. Aliases: <code>self-update</code>,
-                    <code>upgrade</code>.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli update</td>
-                                                <td>Update to the highest published semver</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli update --force</td>
-                                                <td>Reinstall even if already up to date (allows downgrade)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli update
-<span class="s">Downloading cipi-cli v1.6.0...</span>
-<span class="s">Checksum verified. Updated to v1.6.0.</span>
-
-<span class="c"># Aliases work the same</span>
-<span class="p"></span>cipi-cli self-update
-<span class="p"></span>cipi-cli upgrade
-
-<span class="c"># If installed in a system path, use sudo</span>
-<span class="p"></span>sudo cipi-cli update</pre>
-                </div>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Shell completion ── -->
+<h2 id="update"><code>update</code><a class="anchor" href="#update" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli update<span class="c">          # highest release, checksum verified (aliases self-update, upgrade)</span>
+<span class="p"></span>cipi-cli update --force<span class="c">  # reinstall, allows downgrade</span></pre></div>
 </section>
-
 <section class="doc-section" id="cli-completion">
-                <h2 id="completion"><code>completion</code><a class="anchor" href="#completion" aria-label="Link to this section">#</a></h2>
-                <p>Install shell autocompletion for <code>cipi-cli</code>. The recommended path is
-                    <code>completion install</code>, which detects your shell, writes the completion script, and hooks
-                    it into your rc file (idempotent).</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi-cli completion install</td>
-                                                <td>Auto-detect shell and install completion</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli completion install --shell zsh</td>
-                                                <td>Install for a specific shell (<code>zsh</code>, <code>bash</code>, or
-                                                    <code>fish</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli completion zsh</td>
-                                                <td>Print the zsh completion script to stdout</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli completion bash</td>
-                                                <td>Print the bash completion script to stdout</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi-cli completion fish</td>
-                                                <td>Print the fish completion script to stdout</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi-cli completion install
-<span class="c">Installing zsh completion...</span>
-<span class="s">Completion installed → ~/.cipi/completions/cipi-cli.zsh</span>
-<span class="c">Hooked into ~/.zshrc</span>
-
-<span class="c"># Or pin a shell explicitly</span>
-<span class="p"></span>cipi-cli completion install --shell bash</pre>
-                </div>
-
-                <p>For zsh and bash, the script is written under <code>~/.cipi/completions/</code> and a source line is
-                    appended to your shell rc file. For fish, the script goes to
-                    <code>~/.config/fish/completions/</code> (auto-loaded). Reload the shell afterwards, then try
-                    <code>cipi-cli &lt;TAB&gt;</code>.</p>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Global Flags ── -->
+<h2 id="completion"><code>completion</code><a class="anchor" href="#completion" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli completion install<span class="c">                # detects zsh, bash or fish</span>
+<span class="p"></span>cipi-cli completion install --shell bash</pre></div>
 </section>
-
 <section class="doc-section" id="cli-global-flags">
-                <h2 id="global-flags">Global Flags<a class="anchor" href="#global-flags" aria-label="Link to this section">#</a></h2>
-                <p>These flags are available on all commands.</p>
-
-                <div class="options-list">
-                    <div class="option-item">
-                        <code>--json</code>
-                        <span>Output in JSON format — useful for scripting and CI/CD pipelines</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--no-color</code>
-                        <span>Disable colored output</span>
-                    </div>
-                    <div class="option-item">
-                        <code>--help</code>
-                        <span>Show help for any command</span>
-                    </div>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># JSON output for scripting</span>
-<span class="p"></span>cipi-cli apps list --json
-<span class="c">[{"name":"myapp","domain":"myapp.com","php":"8.5"}, ...]</span>
-
-<span class="c"># Pipe to jq for filtering</span>
-<span class="p"></span>cipi-cli apps list --json | jq '.[].name'
-<span class="s">"myapp"</span>
-<span class="s">"blog"</span>
-
-<span class="c"># Help for a specific command</span>
-<span class="p"></span>cipi-cli apps create --help</pre>
-                </div>
-
-                <h3 id="releases">Releases<a class="anchor" href="#releases" aria-label="Link to this section">#</a></h3>
-                <p>Releases are automated via GitHub Actions. Pre-built binaries for Linux (amd64/arm64) and macOS
-                    (amd64/arm64) are published with SHA-256 checksums on the
-                    <a href="https://github.com/cipi-sh/cli/releases" target="_blank">GitHub Releases page</a>.</p>
-
-                <h3 id="source-code">Source code<a class="anchor" href="#source-code" aria-label="Link to this section">#</a></h3>
-                <p><code>cipi-cli</code> is open source, MIT licensed, and written in Go. Contributions welcome on
-                    <a href="https://github.com/cipi-sh/cli" target="_blank">GitHub</a>.</p>
-            
-
-            <hr class="doc-divider">
-
-            <!-- ── Requirements ── -->
+<h2 id="flags">Global flags<a class="anchor" href="#flags" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Effect</th></tr></thead><tbody><tr><td><code>--json</code></td><td>Machine-readable output for scripts and CI</td></tr><tr><td><code>--no-color</code></td><td>Plain output</td></tr><tr><td><code>--help</code></td><td>Help for any command</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli apps list --json | jq '.[].name'</pre></div>
 </section>
-
 <section class="doc-section" id="cli-requirements">
-                <h2 id="requirements">Requirements<a class="anchor" href="#requirements" aria-label="Link to this section">#</a></h2>
-                <p>The Cipi server must have the <a href="/docs/api#cipi-api">API package</a> installed and configured
-                    before using <code>cipi-cli</code>:</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi api &lt;domain&gt;
-<span class="p"></span>cipi api ssl
-<span class="p"></span>cipi api token create</pre>
-                </div>
-
-                <p>New app PHP versions must be <strong>8.3</strong>, <strong>8.4</strong>, <strong>8.5</strong>
-                    (Cipi 4.5.4+) or <strong>8.6</strong> (Cipi 5.9.1+ / API 1.39.2+). Some CLI features depend on specific server and API versions:</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Feature</th>
-                                                <th>Minimum Cipi</th>
-                                                <th>Minimum API</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Suspend / unsuspend (<code>apps suspend</code>)</td>
-                                                <td>4.5.8</td>
-                                                <td>1.8.1</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Rename primary domain (<code>apps edit --domain</code>)</td>
-                                                <td>4.6.2</td>
-                                                <td>1.9.0</td>
-                                            </tr>
-                                            <tr>
-                                                <td>App logs (<code>apps logs</code>)</td>
-                                                <td>—</td>
-                                                <td>1.11.9</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Server status (<code>status</code>)</td>
-                                                <td>—</td>
-                                                <td><code>GET /api/status</code> + <code>status-view</code> (1.11.6+)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Global domain map (<code>domains</code>)</td>
-                                                <td>4.5.5</td>
-                                                <td>— (built from <code>/api/apps</code>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Multi-engine DB (<code>db engines</code>, <code>--engine</code>)</td>
-                                                <td>4.8</td>
-                                                <td>1.12+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>www</code> / <code>ssl force</code></td>
-                                                <td>4.8</td>
-                                                <td>1.12+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>apps env</code> / <code>auth</code> / <code>artisan</code> / <code>run</code> / <code>deploy config</code></td>
-                                                <td>5.0.3</td>
-                                                <td>1.14+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>php</code> / <code>ssh-keys</code> / <code>services</code> / <code>db install</code> / <code>apps webhook recreate</code></td>
-                                                <td>5.0.6</td>
-                                                <td>1.15+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>smtp</code> / <code>health</code></td>
-                                                <td>5.0.7</td>
-                                                <td>1.15+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>ip-whitelist</code></td>
-                                                <td>5.0.8</td>
-                                                <td>1.15+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>apps fix-permissions</code></td>
-                                                <td>5.2.1</td>
-                                                <td>1.31+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>apps search</code> / <code>search status</code> / <code>packages</code></td>
-                                                <td>5.2.2</td>
-                                                <td>1.31+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>monitor</code> / <code>zt</code></td>
-                                                <td>5.3.0</td>
-                                                <td>1.31+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>redirect</code> / <code>proxies</code> (API sudoers)</td>
-                                                <td>5.4.1</td>
-                                                <td>1.31+</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Node apps / <code>deploy audit</code></td>
-                                                <td>5.4.0</td>
-                                                <td>1.31+</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Disk usage (<code>disk</code>, <code>disk db</code>, cipi-cli 1.6.0+)</td>
-                                                <td>5.5.2 (API sudoers)</td>
-                                                <td>1.33+ and <code>disk-view</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>apps create --node-build</code>, repository check on create/edit (cipi-cli 1.7.0+)</td>
-                                                <td>5.6.0</td>
-                                                <td>1.34+</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>yml</code> (plan, apply, auto-apply)</td>
-                                                <td>5.6.4 (API sudoers)</td>
-                                                <td>1.35+ and <code>yml-view</code> / <code>yml-manage</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>apps create|edit --env</code>, environment in <code>apps show</code> and <code>yml</code> (cipi-cli 1.9.0+)</td>
-                                                <td>5.8.0</td>
-                                                <td>1.36+</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Anonymized dumps (<code>db anonymize</code>, cipi-cli 1.5.0+)</td>
-                                                <td>5.0.3</td>
-                                                <td>1.14+ (plus <code>cipi/agent</code> 1.1.1+ in the app)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-            
+<h2 id="requirements">Token abilities by command<a class="anchor" href="#requirements" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Commands</th><th>Abilities</th></tr></thead><tbody><tr><td><code>apps list/show</code>, <code>domains</code>, <code>apps logs</code></td><td><code>apps-view</code></td></tr><tr><td><code>apps create/edit/delete/suspend</code></td><td><code>apps-create</code>, <code>apps-edit</code>, <code>apps-delete</code>, <code>apps-suspend</code></td></tr><tr><td><code>apps env/auth/artisan/run</code>, <code>deploy config</code></td><td><code>apps-env</code>, <code>apps-auth</code>, <code>apps-artisan</code>, <code>apps-run</code>, <code>apps-deploy-config</code></td></tr><tr><td><code>deploy</code>, <code>deploy audit</code></td><td><code>deploy-manage</code></td></tr><tr><td><code>yml</code></td><td><code>yml-view</code>, <code>yml-manage</code></td></tr><tr><td><code>ssl</code>, <code>www</code>, <code>aliases</code>, <code>redirect</code>, <code>proxies</code></td><td><code>ssl-manage</code>, <code>www-manage</code>, <code>aliases-*</code>, <code>redirects-*</code>, <code>proxies-*</code></td></tr><tr><td><code>db</code></td><td><code>dbs-view</code>, <code>dbs-create</code>, <code>dbs-manage</code> (anonymize: <code>apps-view</code> + <code>apps-env</code>)</td></tr><tr><td><code>php</code>, <code>services</code>, <code>ssh-keys</code>, <code>smtp</code>, <code>health</code>, <code>ip-whitelist</code></td><td>matching <code>*-view</code> / <code>*-manage</code></td></tr><tr><td><code>status</code>, <code>disk</code>, insights</td><td><code>status-view</code>, <code>disk-view</code>, <code>*-view</code></td></tr></tbody></table></div>
+<p>Simplest: <code>cipi api token create --name=laptop --full-access</code>. Keep server and API current with <code>cipi self-update</code> so every command is available.</p>
 </section>
 
 </div>
@@ -2052,33 +364,34 @@ sudo make install</pre>
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#installing-cipi-cli">Installing cipi-cli</a></li>
-<li><a class="l2" href="#configuration">Configuration</a></li>
-<li><a class="l2" href="#profiles">profiles</a></li>
+<li><a class="l2" href="#install">Install</a></li>
+<li><a class="l2" href="#configure">Configure a server</a></li>
+<li><a class="l2" href="#profiles">Profiles</a></li>
 <li><a class="l2" href="#apps">apps</a></li>
 <li><a class="l2" href="#domains">domains</a></li>
-<li><a class="l2" href="#deploy">deploy</a></li>
+<li><a class="l2" href="#deploy">deploy and yml</a></li>
 <li><a class="l2" href="#ssl">ssl</a></li>
 <li><a class="l2" href="#www">www</a></li>
-<li><a class="l2" href="#redirect-proxies">redirect / proxies</a></li>
+<li><a class="l2" href="#redirect">redirect and proxies</a></li>
 <li><a class="l2" href="#aliases">aliases</a></li>
 <li><a class="l2" href="#db">db</a></li>
+<li><a class="l3" href="#cli-db-anonymize">Anonymized dumps</a></li>
 <li><a class="l2" href="#php">php</a></li>
-<li><a class="l2" href="#services-ssh-keys">services / ssh-keys</a></li>
+<li><a class="l2" href="#services">services and ssh-keys</a></li>
 <li><a class="l2" href="#smtp">smtp</a></li>
 <li><a class="l2" href="#health">health</a></li>
 <li><a class="l2" href="#ip-whitelist">ip-whitelist</a></li>
-<li><a class="l2" href="#server-insights">Server insights</a></li>
+<li><a class="l2" href="#insights">Server insights</a></li>
 <li><a class="l2" href="#status">status</a></li>
 <li><a class="l2" href="#disk">disk</a></li>
 <li><a class="l2" href="#jobs">jobs</a></li>
 <li><a class="l2" href="#update">update</a></li>
 <li><a class="l2" href="#completion">completion</a></li>
-<li><a class="l2" href="#global-flags">Global Flags</a></li>
-<li><a class="l2" href="#requirements">Requirements</a></li>
+<li><a class="l2" href="#flags">Global flags</a></li>
+<li><a class="l2" href="#requirements">Token abilities by command</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/cli-client.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/cli-client.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
