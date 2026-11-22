@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Zero Trust — Cipi docs</title>
+    <meta name="description" content="Reach SSH through Cloudflare and close port 22.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/zero-trust">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/zero-trust">
+    <meta property="og:title" content="Cloudflare Zero Trust — Cipi docs">
+    <meta property="og:description" content="Reach SSH through Cloudflare and close port 22.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Cloudflare Zero Trust", "description": "Reach SSH through Cloudflare and close port 22.", "url": "https://cipi.sh/docs/zero-trust", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Security", "item": "https://cipi.sh/docs/security"}, {"@type": "ListItem", "position": 3, "name": "Cloudflare Zero Trust", "item": "https://cipi.sh/docs/zero-trust"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group"><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group" open><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust" aria-current="page">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/security">Security</a></li><li aria-current="page">Cloudflare Zero Trust</li></ol>
+<h1>Cloudflare Zero Trust</h1>
+<p class="docs-lead">Reach SSH through Cloudflare and close port 22.</p>
+<div class="docs-meta"><span>Security</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/zero-trust.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="cli-zt">
+                <p>Available since <strong>v5.3.0</strong>, and <strong>off until you ask</strong> — the same contract
+                    as <a href="/docs/crowdsec#cli-crowdsec">CrowdSec</a>: <code>setup.sh</code> and <code>cipi self-update</code>
+                    never install <code>cloudflared</code> and never call <code>cipi zt enable</code>. Fail2ban and UFW
+                    stay; this feature teaches them about Cloudflare rather than replacing them.</p>
+                <p>Public sites stay public — visitors of a shop go through Cloudflare's CDN/WAF over the same tunnel,
+                    with no login. Staging, the <a href="/docs/gui">GUI</a> and SSH are what you put behind Cloudflare
+                    Access. Every step that could cut you off is a separate, explicit command.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># 1 — API token, saved root-only</span>
+<span class="p"></span>cipi zt token set --token=CF_API_TOKEN --account=ACCOUNT_ID
+<span class="p"></span>cipi zt token show                         <span class="c"># whether a token is saved — never the secret</span>
+
+<span class="c"># 2 — tunnel + nginx real_ip (22/80/443 stay open)</span>
+<span class="p"></span>cipi zt enable
+<span class="p"></span>cipi zt status                             <span class="c"># tunnel, hostnames, Access, locks, apps not on the tunnel</span>
+
+<span class="c"># 3 — route traffic</span>
+<span class="p"></span>cipi zt hostname add myapp                 <span class="c"># public, through Cloudflare's CDN/WAF</span>
+<span class="p"></span>cipi zt hostname add --gui                 <span class="c"># the control panel hostname</span>
+<span class="p"></span>cipi zt access enable staging              <span class="c"># Cloudflare Access in front of an app</span>
+<span class="p"></span>cipi zt access enable --gui
+<span class="p"></span>cipi zt ssh enable --hostname=ssh.example.com
+
+<span class="c"># 4 — close the origin, when you are ready</span>
+<span class="p"></span>cipi zt lock http --yes                    <span class="c"># 80/443: closed, or Cloudflare IPs only</span>
+<span class="p"></span>cipi zt lock ssh --yes                     <span class="c"># port 22 — refuses unless the tunnel carries SSH</span>
+
+<span class="c"># rescue and teardown</span>
+<span class="p"></span>cipi zt ssh unlock                         <span class="c"># reopen port 22</span>
+<span class="p"></span>cipi zt unlock http                        <span class="c"># 80/443 world-open again</span>
+<span class="p"></span>cipi zt refresh                            <span class="c"># reload Cloudflare IP ranges (also a daily cron)</span>
+<span class="p"></span>cipi zt disable                            <span class="c"># restore UFW 22/80/443, remove cloudflared</span></pre>
+                </div>
+
+                <h3 id="the-api-token">The API token<a class="anchor" href="#the-api-token" aria-label="Link to this section">#</a></h3>
+                <p><code>cipi zt token set</code> stores the token root-only at <code>/etc/cipi/zt.token</code>. If
+                    <code>--account</code> is omitted and the token sees exactly one account, Cipi uses it. The token
+                    needs <strong>Account &middot; Cloudflare Tunnel: Edit</strong>, <strong>Account &middot; Access:
+                        Apps and Policies: Edit</strong> and <strong>Zone &middot; DNS: Edit</strong>;
+                    <a href="/docs/zero-trust#cli-zt-origin-cert">Origin CA</a> also needs <strong>Zone &middot; SSL and Certificates:
+                        Edit</strong>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>This is <strong>not</strong> <code>/etc/cipi/cloudflare.ini</code>. That file belongs to
+                        certbot's DNS-01 challenge (<a href="/docs/ssl#cli-ssl"><code>cipi ssl dns set</code></a>) and needs
+                        Zone.DNS only. The two credentials stay separate.</div>
+                </div>
+
+                <h3 id="what-enable-does-and-what-it-leaves-alone">What <code>enable</code> does — and what it leaves alone<a class="anchor" href="#what-enable-does-and-what-it-leaves-alone" aria-label="Link to this section">#</a></h3>
+                <ul>
+                    <li>Installs the official <code>cloudflared</code> package and runs a <strong>locally-managed
+                            tunnel</strong> under its own systemd unit.</li>
+                    <li>Writes Nginx <code>real_ip</code> from <code>https://api.cloudflare.com/client/v4/ips</code>,
+                        reading <code>CF-Connecting-IP</code> (<code>/etc/nginx/conf.d/cipi-cloudflare-realip.conf</code>),
+                        so logs, fail2ban and your app see the visitor instead of Cloudflare.</li>
+                    <li>Adds the same ranges to fail2ban's <code>ignoreip</code> as a backup and, when CrowdSec is
+                        already on, to a CrowdSec allowlist.</li>
+                    <li>Installs a daily <code>cipi zt refresh</code> cron. A failed fetch keeps the previous list.</li>
+                    <li><strong>Does not close 22, 80 or 443.</strong></li>
+                </ul>
+
+                <h3 id="hostnames-access-and-ssh">Hostnames, Access and SSH<a class="anchor" href="#hostnames-access-and-ssh" aria-label="Link to this section">#</a></h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Command</th>
+                                <th>What it does</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>cipi zt hostname add &lt;app|--gui&gt;</code></td>
+                                <td>CNAME to <code>{tunnel-id}.cfargotunnel.com</code>, ingress
+                                    <code>http://127.0.0.1:80</code>. <strong>Public</strong> — CDN/WAF, no Access.
+                                    <code>cipi app create</code> does not do this on its own; <code>cipi zt status</code>
+                                    lists the apps that are not on the tunnel yet.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt hostname remove &lt;app|--gui&gt;</code></td>
+                                <td>Removes the DNS records and Access applications Cipi created for it, and the
+                                    ingress rule.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt access enable &lt;app|--gui&gt;</code></td>
+                                <td>Cloudflare Access in front of that hostname, allowing any authenticated user —
+                                    tighten the identity provider in the Zero Trust dashboard. If the app has a Git
+                                    webhook, a <strong>Bypass</strong> application is created for
+                                    <code>/cipi/webhook</code> so GitHub, GitLab and Bitbucket are not answered with a
+                                    403.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt access disable &lt;app|--gui&gt;</code></td>
+                                <td>Drops Access; the hostname stays public on the tunnel.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt ssh enable --hostname=</code></td>
+                                <td>Ingress <code>ssh://127.0.0.1:22</code> plus an Access SSH application, then prints
+                                    the <code>~/.ssh/config</code> block below. <strong>Port 22 stays open.</strong></td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt ssh disable</code></td>
+                                <td>Removes SSH from the tunnel — reopening port 22 first if it was locked.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">ssh config</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># ~/.ssh/config on your laptop</span>
+Host ssh.example.com
+  ProxyCommand cloudflared access ssh --hostname %h
+  User cipi
+  IdentityFile ~/.ssh/id_ed25519</pre>
+                </div>
+                <p>Deployer still SSHs to <code>localhost</code>, so deploys are not affected by any of this.</p>
+
+                <h3 id="locking-the-origin">Locking the origin<a class="anchor" href="#locking-the-origin" aria-label="Link to this section">#</a></h3>
+                <p><code>cipi zt lock http [--yes]</code> <strong>refuses while any app still renews Let's Encrypt over
+                        HTTP-01</strong>: validation does not come from Cloudflare's IPs, so those certificates would
+                    quietly stop renewing. Move each app to <code>cipi ssl install &lt;app&gt; --dns=cloudflare</code>
+                    or <code>cipi zt origin-cert &lt;app&gt;</code> first; <code>--force</code> skips the check if you
+                    accept the consequence. Then:</p>
+                <ul>
+                    <li>if <strong>every</strong> HTTP hostname — the GUI included — is on the tunnel, 80/443 are closed
+                        entirely: the origin goes dark;</li>
+                    <li>otherwise 80/443 are allowed <strong>only from Cloudflare's ranges</strong>, kept current by
+                        the daily refresh.</li>
+                </ul>
+                <p><code>cipi zt lock ssh [--yes]</code> closes port 22 <strong>only if <code>cloudflared</code> is
+                        active and the tunnel already has SSH ingress</strong>; otherwise it would lock you out. The
+                    way back is <code>cipi zt ssh unlock</code>. A CrowdSec rescue listener, if enabled, stays
+                    reachable.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Lock SSH only after <code>ssh ssh.example.com</code> through <code>cloudflared</code> already
+                        works from your own machine. If the tunnel stops while port 22 is closed, the way in is your
+                        VPS provider's console — keep it at hand before you run <code>lock ssh</code>.</div>
+                </div>
+
+                <h3 id="cli-zt-origin-cert">Origin CA certificates (optional)<a class="anchor" href="#cli-zt-origin-cert" aria-label="Link to this section">#</a></h3>
+                <p><code>cipi zt origin-cert &lt;app&gt;</code> requests a <strong>15-year Cloudflare Origin CA</strong>
+                    certificate for the app's domains, stores it under <code>/etc/ssl/cipi-origin/&lt;app&gt;/</code>
+                    and swaps the <code>ssl_certificate</code> paths when the vhost already has a <code>:443</code>
+                    block. The app is marked so a later <code>cipi ssl install</code> over HTTP-01 will not overwrite
+                    it.</p>
+                <p>It is not a default replacement for Let's Encrypt. Full (Strict) still needs <em>an</em> origin
+                    certificate, but the tunnel talks HTTP to <code>:80</code> and does not need one.</p>
+
+                <h3 id="how-it-fits-the-rest-of-cipi">How it fits the rest of Cipi<a class="anchor" href="#how-it-fits-the-rest-of-cipi" aria-label="Link to this section">#</a></h3>
+                <ul>
+                    <li><a href="/docs/ssl#cli-ssl"><code>cipi ssl install</code></a> over HTTP-01 refuses while
+                        <code>lock http</code> is on, and on an app with an Origin CA certificate. Apps on the tunnel
+                        get certbot <code>--no-redirect</code>, and <code>cipi ssl force</code> refuses on them: an
+                        origin HTTP&rarr;HTTPS redirect would break <code>cloudflared</code>.</li>
+                    <li>CrowdSec's reverse-proxy check still refuses without <code>real_ip</code>; the error now points
+                        at <code>cipi zt enable</code>, after which the check finds the Cloudflare config.</li>
+                    <li>Notification triggers: <code>zt_enable</code>, <code>zt_disable</code>,
+                        <code>zt_lock_http</code> and <code>zt_lock_ssh</code>.</li>
+                    <li>The panel API sudoers grant <code>cipi zt status</code> only. <code>enable</code>,
+                        <code>lock</code> and everything else stay with the operator on the CLI.</li>
+                </ul>
+                <p><code>cipi zt disable</code> reopens UFW 22/80/443, removes the Access applications and DNS records
+                    Cipi created, deletes the tunnel, purges <code>cloudflared</code> and removes the real_ip, fail2ban
+                    and CrowdSec files and the cron. Fail2ban stays, and your Let's Encrypt certificates are left
+                    alone.</p>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/crowdsec" rel="prev"><small>Previous</small><b>CrowdSec</b></a><a class="next" href="/docs/malware-scan" rel="next"><small>Next</small><b>Malware scan</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#the-api-token">The API token</a></li>
+<li><a class="l2" href="#what-enable-does-and-what-it-leaves-alone">What enable does — and what it leaves alone</a></li>
+<li><a class="l2" href="#hostnames-access-and-ssh">Hostnames, Access and SSH</a></li>
+<li><a class="l2" href="#locking-the-origin">Locking the origin</a></li>
+<li><a class="l2" href="#cli-zt-origin-cert">Origin CA certificates (optional)</a></li>
+<li><a class="l2" href="#how-it-fits-the-rest-of-cipi">How it fits the rest of Cipi</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/zero-trust.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/zero-trust" width="1" height="1" alt=""></noscript>
+</body>
+</html>

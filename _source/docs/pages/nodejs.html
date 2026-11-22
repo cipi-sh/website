@@ -1,0 +1,66 @@
+<section class="doc-section" id="cli-node">
+                <p>Available since <strong>v5.4.0</strong>; from the panel too (<em>Server → Node</em>) since
+                    <strong>v5.9.0</strong> with API 1.39. Node runtimes for <a href="/docs/node-apps#cli-app-node">Node
+                    apps</a>, and a server-wide Node for Laravel asset builds too. Official nodejs.org builds (x64 and
+                    arm64) are checked against <code>SHASUMS256.txt</code>, unpacked to
+                    <code>/opt/cipi/node/v&lt;version&gt;</code> and exposed as <code>/opt/cipi/node/&lt;major&gt;</code>
+                    through an atomic symlink, with corepack enabled for pnpm and yarn. Even (LTS) majors only.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi node install 24             <span class="c"># official build, checksum-verified (default major: 22)</span>
+<span class="p"></span>cipi node list                   <span class="c"># installed majors, the default, and the apps on each</span>
+<span class="p"></span>cipi node upgrade 22 --restart   <span class="c"># latest patch; SSR apps restart blue/green</span>
+<span class="p"></span>cipi node remove 20              <span class="c"># refused while an app or the default uses it</span>
+<span class="p"></span>cipi node default 22             <span class="c"># server-wide Node for Laravel builds, app run, deploy.post</span>
+<span class="p"></span>cipi node default system         <span class="c"># back to the NodeSource package</span>
+
+<span class="c"># per app</span>
+<span class="p"></span>cipi node status &lt;app&gt;
+<span class="p"></span>cipi node restart &lt;app&gt;          <span class="c"># zero-downtime (SSR)</span>
+<span class="p"></span>cipi node logs &lt;app&gt; [--lines=100]</pre>
+                </div>
+
+                <h3>A server-wide Node for Laravel apps</h3>
+                <p><code>cipi node default &lt;major&gt;</code> installs the major if needed and links
+                    <code>node npm npx corepack pnpm pnpx yarn yarnpkg</code> from
+                    <code>/opt/cipi/node/&lt;major&gt;/bin</code> into <code>/usr/local/bin</code>, which comes before
+                    NodeSource's <code>/usr/bin</code> on the PATH of SSH sessions (Deployer), sudo
+                    (<code>secure_path</code>, <code>cipi app run</code>) and each app's <code>.bashrc</code>. Laravel
+                    <code>--node-build</code> asset builds, <code>cipi app run &lt;app&gt; npm …</code> and
+                    <code>cipi.yml</code> <code>deploy.post</code> all use it from their next run.</p>
+                <ul>
+                    <li>The links point at the major, not at a patch, so <code>cipi node upgrade</code> updates every app
+                        on the default.</li>
+                    <li><code>system</code> removes only Cipi's links and falls back to the NodeSource package, which is
+                        never removed.</li>
+                    <li>A file in <code>/usr/local/bin</code> that Cipi did not create — a global pnpm, a hand-installed
+                        node — is left alone and named in a warning.</li>
+                    <li>New Node apps start on the default unless <code>--node-version</code> says otherwise. The default
+                        major cannot be removed. Changing it sends the <code>node_default</code>
+                        <a href="/docs/notifications#cipi-smtp">notification</a>.</li>
+                    <li>One Laravel app can keep its own major with
+                        <a href="/docs/manage-apps#cli-app-manage"><code>cipi app edit &lt;app&gt; --node-version=24</code></a>;
+                        <code>--node-version=default</code> follows the server again.</li>
+                </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Node 20 → 22.</strong> Node 20 reached end of life in April 2026. Fresh installs get
+                        Node 22 from NodeSource. On update, <a href="/docs/server-commands#migration-5-4-0">migration
+                        5.4.0</a> switches servers still on 20 to <code>cipi node default 22</code>; the NodeSource
+                        package stays, so <code>cipi node default system</code> restores 20. Servers already on another
+                        major, or with no Node, are left alone.</div>
+                </div>
+
+                <p>The panel API (<strong>1.31+</strong>, Cipi <strong>5.4.1+</strong>) can list runtimes and read and
+                    restart Node apps (<code>node list|status|restart</code>). Installing, upgrading, removing runtimes
+                    and changing the default stay CLI-root: installing software on the server is not something a web
+                    panel should be able to do.</p>
+            
+</section>

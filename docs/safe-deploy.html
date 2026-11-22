@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe deploy &amp; DB snapshots — Cipi docs</title>
+    <meta name="description" content="Back up before a release and snapshot the database before migrations.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/safe-deploy">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/safe-deploy">
+    <meta property="og:title" content="Safe deploy &amp; DB snapshots — Cipi docs">
+    <meta property="og:description" content="Back up before a release and snapshot the database before migrations.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Safe deploy & DB snapshots", "description": "Back up before a release and snapshot the database before migrations.", "url": "https://cipi.sh/docs/safe-deploy", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Deploy", "item": "https://cipi.sh/docs/deploy"}, {"@type": "ListItem", "position": 3, "name": "Safe deploy & DB snapshots", "item": "https://cipi.sh/docs/safe-deploy"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group" open><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy" aria-current="page">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">Safe deploy &amp; DB snapshots</li></ol>
+<h1>Safe deploy &amp; DB snapshots</h1>
+<p class="docs-lead">Back up before a release and snapshot the database before migrations.</p>
+<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/safe-deploy.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="safe-deploy">
+                <h2 id="safe-deploy-backup-before-release">Safe deploy — backup before release<a class="anchor" href="#safe-deploy-backup-before-release" aria-label="Link to this section">#</a></h2>
+                <p>For a built-in dump right before Deployer runs (no pipeline stage required), use
+                    <a href="/docs/safe-deploy#predeploy-snapshot"><code>--snapshot</code> / <code>--snapshot-required</code></a>
+                    or enable <code>cipi app edit &lt;app&gt; --predeploy-snapshot</code>.</p>
+                <p><strong>Pipeline use case:</strong> a webhook deploy cannot run a backup step before releasing code —
+                    the push event fires deploy immediately. In a <a href="/docs/ci-pipelines#ci-pipeline-ssh">CI/CD pipeline</a>, add a
+                    dedicated <code>backup</code> stage that must succeed before <code>deploy</code> starts. A
+                    production-grade workflow should always create a restore point <em>before</em> the new code goes
+                    live. Cipi provides two complementary backup commands that map to two different safety levels:
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span></div>
+                    <pre><span class="c"># local DB snapshot — fast, on-disk, instant rollback</span>
+<span class="p"></span>cipi db backup myapp
+<span class="c"># → /var/log/cipi/backups/myapp_20260303_143012.sql.gz</span>
+
+<span class="c"># S3 backup — DB dump + shared/ folder uploaded to your bucket</span>
+<span class="p"></span>cipi backup run myapp
+<span class="c"># → s3://your-bucket/cipi/myapp/2026-03-03_143015/db.sql.gz</span>
+<span class="c"># → s3://your-bucket/cipi/myapp/2026-03-03_143015/shared.tar.gz</span></pre>
+                </div>
+
+                <p>Used together in a pipeline, they give you both a fast local restore point and an off-server copy of
+                    the database and all uploaded files. The deploy only starts if both backups succeed.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Pre-requisite:</strong> run <code>cipi backup configure</code> once on the server to
+                        link your S3 credentials before <code>cipi backup run</code> can be used.
+                        <code>cipi db backup</code> works without any configuration — it is always available.
+                    </div>
+                </div>
+
+                <h3 id="what-each-command-does-internally">What each command does internally<a class="anchor" href="#what-each-command-does-internally" aria-label="Link to this section">#</a></h3>
+
+                <p><strong><code>cipi db backup &lt;app&gt;</code></strong> calls
+                    <code>mysqldump --single-transaction --routines --triggers</code> and gzips the output to
+                    <code>/var/log/cipi/backups/&lt;app&gt;_&lt;timestamp&gt;.sql.gz</code>. The file stays on the
+                    server and is never deleted automatically — add a cleanup step or a cron if disk space matters.
+                </p>
+
+                <p><strong><code>cipi backup run &lt;app&gt;</code></strong> does two things: dumps the database with
+                    <code>mariadb-dump --single-transaction</code> into a temp dir, and archives the entire
+                    <code>/home/&lt;app&gt;/shared/</code> folder (which contains <code>.env</code>,
+                    <code>storage/</code>, and any user-uploaded files). Both archives are then uploaded to S3 under the
+                    path <code>cipi/&lt;app&gt;/&lt;timestamp&gt;/</code>. The temp files are deleted after a successful
+                    upload.
+                </p>
+
+                <h3 id="github-actions-safe-deploy-workflow">GitHub Actions — safe deploy workflow<a class="anchor" href="#github-actions-safe-deploy-workflow" aria-label="Link to this section">#</a></h3>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># .github/workflows/deploy.yml</span>
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: php artisan test
+
+  backup:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Local DB backup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: cipi db backup myapp
+
+      - name: S3 backup (DB + shared)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: cipi backup run myapp
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: backup          <span class="c"># only runs if backup job succeeds</span>
+    steps:
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: cipi deploy myapp
+
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cipi deploy myapp --rollback
+            echo "Deploy failed — rolled back to previous release"</pre>
+                </div>
+
+                <p>The job graph enforces the order: <code>test</code> → <code>backup</code> → <code>deploy</code>. If
+                    any job fails, the subsequent ones are skipped. If the deploy step itself fails, the
+                    <code>rollback</code> step fires automatically and restores the previous Deployer release.
+                </p>
+
+                <h3 id="gitlab-ci-cd-safe-deploy-pipeline">GitLab CI/CD — safe deploy pipeline<a class="anchor" href="#gitlab-ci-cd-safe-deploy-pipeline" aria-label="Link to this section">#</a></h3>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># .gitlab-ci.yml</span>
+stages:
+  - test
+  - backup
+  - deploy
+
+variables:
+  APP: myapp
+
+.ssh: &ssh
+  before_script:
+    - apt-get install -y openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SERVER_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H "$SERVER_HOST" >> ~/.ssh/known_hosts
+
+test:
+  stage: test
+  script: php artisan test
+  only: [main]
+
+backup-local:
+  stage: backup
+  <<: *ssh
+  only: [main]
+  script:
+    - ssh root@$SERVER_HOST "cipi db backup $APP"
+
+backup-s3:
+  stage: backup
+  <<: *ssh
+  only: [main]
+  script:
+    - ssh root@$SERVER_HOST "cipi backup run $APP"
+
+deploy:
+  stage: deploy
+  <<: *ssh
+  only: [main]
+  script:
+    - |
+      ssh root@$SERVER_HOST "
+        cipi deploy $APP || {
+          cipi deploy $APP --rollback
+          echo 'Deploy failed — rolled back'
+          exit 1
+        }
+      "
+  after_script:
+    - echo "Released → https://myapp.com"</pre>
+                </div>
+
+                <p><code>backup-local</code> and <code>backup-s3</code> are in the same stage so they run in parallel if
+                    you have multiple runners, cutting overall pipeline time. Both must succeed before the
+                    <code>deploy</code> stage starts.
+                </p>
+
+                <h3 id="restore-from-local-backup">Restore from local backup<a class="anchor" href="#restore-from-local-backup" aria-label="Link to this section">#</a></h3>
+                <p>If you need to roll back the database to the snapshot taken just before the deploy:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># list available local snapshots</span>
+<span class="p"></span>ls -lh /var/log/cipi/backups/myapp_*.sql.gz
+
+<span class="c"># restore the most recent one</span>
+<span class="p"></span>cipi db restore myapp /var/log/cipi/backups/myapp_20260303_143012.sql.gz
+
+<span class="c"># also roll back the code release</span>
+<span class="p"></span>cipi deploy myapp --rollback</pre>
+                </div>
+
+                <h3 id="restore-from-s3-backup">Restore from S3 backup<a class="anchor" href="#restore-from-s3-backup" aria-label="Link to this section">#</a></h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># list available S3 snapshots for this app</span>
+<span class="p"></span>cipi backup list myapp
+
+<span class="c"># download the DB snapshot from S3</span>
+<span class="p"></span>aws s3 cp s3://your-bucket/cipi/myapp/2026-03-03_143015/db.sql.gz /tmp/db.sql.gz
+
+<span class="c"># restore the database</span>
+<span class="p"></span>cipi db restore myapp /tmp/db.sql.gz
+
+<span class="c"># (optional) restore shared/ files</span>
+<span class="p"></span>aws s3 cp s3://your-bucket/cipi/myapp/2026-03-03_143015/shared.tar.gz /tmp/shared.tar.gz
+<span class="p"></span>tar -xzf /tmp/shared.tar.gz -C /home/myapp/</pre>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>
+                        <strong>Local backups are never deleted automatically.</strong> Each deploy adds a new
+                        <code>.sql.gz</code> file to <code>/var/log/cipi/backups/</code>. On a busy deployment schedule,
+                        add a cleanup cron or keep only the last N files:<br><br>
+                        <code>ls -t /var/log/cipi/backups/myapp_*.sql.gz | tail -n +6 | xargs rm -f</code><br><br>
+                        This example keeps the 5 most recent snapshots and deletes older ones.
+                    </div>
+                </div>
+            
+</section>
+
+<section class="doc-section" id="predeploy-snapshot">
+                <h2 id="pre-deploy-db-snapshots">Pre-deploy DB snapshots<a class="anchor" href="#pre-deploy-db-snapshots" aria-label="Link to this section">#</a></h2>
+                <p>Since <strong>v5.0</strong>, <code>cipi deploy &lt;app&gt;</code> can dump the database
+                    <em>before</em> the release pipeline runs. Snapshots land under
+                    <code>/var/log/cipi/backups/</code> — the same path used by
+                    <a href="/docs/databases#cli-db"><code>cipi db backup</code></a>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi deploy shop --snapshot            <span class="c"># dump first; warn and continue on failure</span>
+<span class="p"></span>cipi deploy shop --snapshot-required   <span class="c"># dump first; abort deploy if snapshot fails</span></pre>
+                </div>
+
+                <h3 id="what-happens">What happens<a class="anchor" href="#what-happens" aria-label="Link to this section">#</a></h3>
+                <ol>
+                    <li>Before Deployer starts, Cipi takes a DB dump into <code>/var/log/cipi/backups/</code>.</li>
+                    <li>With <code>--snapshot-required</code>, a failed dump (or a missing DB engine) <strong>blocks</strong> the deploy.</li>
+                    <li>With <code>--snapshot</code> alone, a failed dump prints a warning and the deploy <strong>continues</strong>.</li>
+                </ol>
+
+                <div class="options-list">
+                    <div class="option-item"><code>--snapshot</code><span>Opt-in dump before deploy; warn and continue if the snapshot cannot be taken.</span></div>
+                    <div class="option-item"><code>--snapshot-required</code><span>Same dump, but fail the deploy when the snapshot (or engine) is unavailable.</span></div>
+                </div>
+
+                <h3 id="enable-on-every-deploy">Enable on every deploy<a class="anchor" href="#enable-on-every-deploy" aria-label="Link to this section">#</a></h3>
+                <p>Turn it on permanently for an app so every deploy (CLI, webhook, or pipeline) takes a snapshot first:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app edit shop --predeploy-snapshot</pre>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><code>cipi deploy --rollback</code> restores the previous <strong>code</strong> release only.
+                        It does <strong>not</strong> restore the database. If you need the pre-deploy dump back, use
+                        <a href="/docs/databases#cli-db"><code>cipi db restore</code></a>.</div>
+                </div>
+
+                <p>For pipeline workflows that also archive <code>shared/</code> to S3 before release, see
+                    <a href="/docs/safe-deploy#safe-deploy">Safe deploy — backup before release</a>.</p>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/deploy-script" rel="prev"><small>Previous</small><b>Customize the pipeline</b></a><a class="next" href="/docs/deploy-audit" rel="next"><small>Next</small><b>Deploy audit ledger</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#safe-deploy-backup-before-release">Safe deploy — backup before release</a></li>
+<li><a class="l3" href="#what-each-command-does-internally">What each command does internally</a></li>
+<li><a class="l3" href="#github-actions-safe-deploy-workflow">GitHub Actions — safe deploy workflow</a></li>
+<li><a class="l3" href="#gitlab-ci-cd-safe-deploy-pipeline">GitLab CI/CD — safe deploy pipeline</a></li>
+<li><a class="l3" href="#restore-from-local-backup">Restore from local backup</a></li>
+<li><a class="l3" href="#restore-from-s3-backup">Restore from S3 backup</a></li>
+<li><a class="l2" href="#pre-deploy-db-snapshots">Pre-deploy DB snapshots</a></li>
+<li><a class="l3" href="#what-happens">What happens</a></li>
+<li><a class="l3" href="#enable-on-every-deploy">Enable on every deploy</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/safe-deploy.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/safe-deploy" width="1" height="1" alt=""></noscript>
+</body>
+</html>

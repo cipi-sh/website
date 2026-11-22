@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD pipelines — Cipi docs</title>
+    <meta name="description" content="Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/ci-pipelines">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/ci-pipelines">
+    <meta property="og:title" content="CI/CD pipelines — Cipi docs">
+    <meta property="og:description" content="Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "CI/CD pipelines", "description": "Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.", "url": "https://cipi.sh/docs/ci-pipelines", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Deploy", "item": "https://cipi.sh/docs/deploy"}, {"@type": "ListItem", "position": 3, "name": "CI/CD pipelines", "item": "https://cipi.sh/docs/ci-pipelines"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group" open><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines" aria-current="page">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">CI/CD pipelines</li></ol>
+<h1>CI/CD pipelines</h1>
+<p class="docs-lead">Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.</p>
+<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/ci-pipelines.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="ci-pipeline-ssh">
+                <p>When the webhook model is not enough, run <strong>GitHub Actions</strong> or <strong>GitLab
+                        CI/CD</strong> jobs that SSH into the server and invoke <code>cipi deploy</code>. This is the
+                    right choice whenever deploy must be <em>conditional</em> — gated on tests, preceded by backups,
+                    followed by notifications, or orchestrating new preview apps.</p>
+
+                <h3 id="when-you-need-a-pipeline-instead-of-a-webhook">When you need a pipeline instead of a webhook<a class="anchor" href="#when-you-need-a-pipeline-instead-of-a-webhook" aria-label="Link to this section">#</a></h3>
+                <ul>
+                    <li><strong>Quality gate</strong> — run <code>php artisan test</code>, static analysis, or frontend
+                        builds before any code reaches production</li>
+                    <li><strong>Safe release</strong> — snapshot the database and <code>shared/</code> to S3 before
+                        swapping the symlink (<a href="/docs/safe-deploy#safe-deploy">safe deploy</a>)</li>
+                    <li><strong>Team visibility</strong> — post success/failure to Slack or Telegram with rollback on
+                        failure (<a href="/docs/deploy-notifications#deploy-notifications">deploy notifications</a>)</li>
+                    <li><strong>Review apps</strong> — create or update a full Cipi app per feature branch (<a
+                            href="/docs/preview-environments#preview-environments">preview environments</a>)</li>
+                    <li><strong>Multi-app monorepo</strong> — deploy <code>frontend</code> and <code>api</code> in
+                        parallel after a single test job</li>
+                </ul>
+
+                <p>For these workflows, <strong>disable the production webhook</strong> (or never create one) so only
+                    the pipeline triggers deploys. You can still use Cipi Agent in the app for health checks and MCP.</p>
+
+                <h3 id="ssh-access-for-ci">SSH access for CI<a class="anchor" href="#ssh-access-for-ci" aria-label="Link to this section">#</a></h3>
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Generate a dedicated <strong>ed25519</strong> key pair for the CI runner. Add the
+                        <strong>public key</strong> to <code>/root/.ssh/authorized_keys</code> on the server (or the
+                        <code>cipi</code> user if you prefer <code>sudo cipi deploy</code>) and store the
+                        <strong>private key</strong> as a CI secret. Never reuse Git deploy keys or personal SSH keys.
+                    </div>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># on your local machine</span>
+<span class="p"></span>ssh-keygen -t ed25519 -C "ci-deploy" -f ~/.ssh/ci_deploy -N ""
+
+<span class="c"># copy the public key to the server</span>
+<span class="p"></span>ssh-copy-id -i ~/.ssh/ci_deploy.pub root@your-server-ip
+
+<span class="c"># copy the private key content → add it as a CI secret (SERVER_SSH_KEY)</span>
+<span class="p"></span>cat ~/.ssh/ci_deploy</pre>
+                </div>
+
+                <p>Store <code>SERVER_HOST</code> (server IP or hostname) alongside <code>SERVER_SSH_KEY</code> in your
+                    repository secrets (GitHub) or CI/CD variables (GitLab).</p>
+
+                <h3 id="github-actions-test-then-deploy">GitHub Actions — test then deploy<a class="anchor" href="#github-actions-test-then-deploy" aria-label="Link to this section">#</a></h3>
+                <p>Add the private key as a repository secret named <code>SERVER_SSH_KEY</code> and the server IP as
+                    <code>SERVER_HOST</code>.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># .github/workflows/deploy.yml</span>
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: php artisan test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test          <span class="c"># only deploy if tests pass</span>
+    steps:
+      - name: Deploy via Cipi
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: cipi
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: sudo cipi deploy myapp</pre>
+                </div>
+
+                <p>For rollback on failure, extend the script step:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>          script: |
+            sudo cipi deploy myapp || (sudo cipi deploy myapp --rollback && exit 1)</pre>
+                </div>
+
+                <h3 id="gitlab-ci-cd">GitLab CI / CD<a class="anchor" href="#gitlab-ci-cd" aria-label="Link to this section">#</a></h3>
+                <p>Add the private key as a CI/CD variable named <code>SERVER_SSH_KEY</code> (type: File) and the server
+                    IP as <code>SERVER_HOST</code>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># .gitlab-ci.yml</span>
+stages:
+  - test
+  - deploy
+
+test:
+  stage: test
+  script:
+    - php artisan test
+
+deploy:
+  stage: deploy
+  environment: production
+  only:
+    - main
+  before_script:
+    - apt-get install -y openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SERVER_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+  script:
+    - ssh root@$SERVER_HOST "cipi deploy myapp"</pre>
+                </div>
+
+                <p>With rollback on failure:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>  script:
+    - ssh root@$SERVER_HOST "cipi deploy myapp || (cipi deploy myapp --rollback && exit 1)"</pre>
+                </div>
+
+                <h3 id="multi-app-deploy">Multi-app deploy<a class="anchor" href="#multi-app-deploy" aria-label="Link to this section">#</a></h3>
+                <p>If the same pipeline manages multiple apps on the same server:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># GitHub Actions — deploy multiple apps in parallel</span>
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cipi deploy frontend &
+            cipi deploy api &
+            wait</pre>
+                </div>
+
+                <h3 id="advanced-pipeline-patterns">Advanced pipeline patterns<a class="anchor" href="#advanced-pipeline-patterns" aria-label="Link to this section">#</a></h3>
+                <p>Once SSH deploy works, compose these sections into a single production workflow:</p>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Pattern</th>
+                                                <th>What the pipeline adds</th>
+                                                <th>Guide</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Notifications</td>
+                                                <td>Slack or Telegram message on success, failure, and auto-rollback</td>
+                                                <td><a href="/docs/deploy-notifications#deploy-notifications">Deploy notifications</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Safe deploy</td>
+                                                <td><code>cipi db backup</code> + <code>cipi backup run</code> before
+                                                    <code>cipi deploy</code>; rollback on failure
+                                                </td>
+                                                <td><a href="/docs/safe-deploy#safe-deploy">Safe deploy w/ backup</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Preview environments</td>
+                                                <td>Create/update/delete per-branch Cipi apps with wildcard DNS + SSL</td>
+                                                <td><a href="/docs/preview-environments#preview-environments">Preview environments</a></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <p>A typical mature setup uses the <strong>webhook</strong> for a staging app (instant feedback on every
+                    push) and a <strong>pipeline</strong> for production (tests → backup → deploy → notify). Each app has
+                    its own trigger — they never conflict because they target different Cipi app users.</p>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/auto-deploy" rel="prev"><small>Previous</small><b>Auto-deploy on push</b></a><a class="next" href="/docs/yml" rel="next"><small>Next</small><b>cipi.yml</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#when-you-need-a-pipeline-instead-of-a-webhook">When you need a pipeline instead of a webhook</a></li>
+<li><a class="l2" href="#ssh-access-for-ci">SSH access for CI</a></li>
+<li><a class="l2" href="#github-actions-test-then-deploy">GitHub Actions — test then deploy</a></li>
+<li><a class="l2" href="#gitlab-ci-cd">GitLab CI / CD</a></li>
+<li><a class="l2" href="#multi-app-deploy">Multi-app deploy</a></li>
+<li><a class="l2" href="#advanced-pipeline-patterns">Advanced pipeline patterns</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/ci-pipelines.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/ci-pipelines" width="1" height="1" alt=""></noscript>
+</body>
+</html>

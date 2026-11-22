@@ -1,0 +1,135 @@
+<section class="doc-section" id="cli-app-create">
+                <p><code>cipi app create</code> supports three app types: <strong>Laravel</strong> (default),
+                    <strong>Node</strong> (<code>--node=spa|static|ssr</code>, since <strong>v5.4.0</strong>) and
+                    <strong>Custom</strong> (<code>--custom</code>). Laravel apps get a fully isolated environment:
+                    Linux user, PHP-FPM pool <em>or</em> <strong>Laravel Octane (FrankenPHP)</strong> since
+                    <strong>v5.0</strong>, Nginx vhost, database (MariaDB by default; optional PostgreSQL since
+                    <strong>v4.8.0</strong>), Supervisor worker, crontab entry, Deployer zero-downtime releases, SSH
+                    deploy key, and auto-compiled <code>.env</code>. Node apps build a React, Vue, Svelte, Next.js,
+                    Nuxt, SvelteKit, Astro or Remix project on every deploy — see
+                    <a href="/docs/node-apps#cli-app-node">Node apps</a>. Custom apps are simpler — see
+                    <a href="/docs/custom-apps#cli-app-custom">custom apps</a> for details.
+                </p>
+                <cipi-term name="create-app"></cipi-term>
+
+                <h3>Laravel app (default — PHP-FPM)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app create</pre>
+                </div>
+                <p>Since <strong>v5.6.0</strong> the wizard opens with numbered menus, the default pre-selected
+                    (press Enter to take it): the <strong>app type</strong> — Laravel, custom, or a Node
+                    <code>spa</code> / <code>static</code> / <code>ssr</code> app — then, for Laravel,
+                    <strong>PHP-FPM or Octane</strong> and the <strong>database engine</strong> (MariaDB or
+                    PostgreSQL, when both are installed). The details follow: username, domain, repository, branch,
+                    PHP version and an optional <strong>asset build</strong> such as
+                    <code>npm ci &amp;&amp; npm run build</code>, which runs inside every deploy before the release
+                    goes live (the same setting as <code>cipi app edit --node-build</code>; non-interactive:
+                    <code>--node-build=</code>). A Node app asks for its framework (or build/output for a static site).
+                    Any type flag (<code>--custom</code>, <code>--octane</code>, <code>--node=</code>,
+                    <code>--framework=</code>) skips the menus, and without a terminal every default applies.</p>
+                <p>Before the summary, the deploy key is <strong>tested against the repository</strong>
+                    (<code>git ls-remote</code> as the app user, branch included). When it cannot read it, the summary
+                    says so and, on a terminal, Cipi offers to save or replace the forge token, registers the key
+                    and checks again — see <a href="/docs/git#git-auto-setup">Git auto-setup</a>.
+                    <code>cipi git check &lt;app&gt;</code> repeats the test later.</p>
+
+                <h3>Laravel Octane (FrankenPHP)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app create --octane
+<span class="p"></span>cipi app create --octane=frankenphp   <span class="c"># explicit (same as --octane)</span></pre>
+                </div>
+                <p>See <a href="/docs/octane#cli-app-octane">Laravel Octane</a> for requirements, convert, and how the vhost
+                    differs from FPM. Since <strong>v5.10.0</strong> the new app is pinned to the newest
+                    <a href="/docs/octane#cli-frankenphp">FrankenPHP build</a> already on the server, so create downloads nothing;
+                    on a server with no build yet the first deploy adopts the one Octane fetches.</p>
+
+                <h3>Non-interactive (flags)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app create \
+    --user=myapp \
+    --domain=myapp.com \
+    --repository=git@github.com:you/myapp.git \
+    --branch=main \
+    --php=8.5
+
+<span class="c"># Laravel Octane (FrankenPHP) — v5.0+</span>
+<span class="p"></span>cipi app create --user=myapp --domain=myapp.com \
+    --repository=git@github.com:you/myapp.git --octane
+
+<span class="c"># optional PostgreSQL (v4.8.0+, after cipi db install pgsql)</span>
+<span class="p"></span>cipi app create --user=myapp --domain=myapp.com \
+    --repository=git@github.com:you/myapp.git --engine=pgsql
+
+<span class="c"># since v5.9.0 a Laravel app gets a Valkey instance of its own (REDIS_* in its .env);
+# --valkey=shared keeps the server's shared instance for this app</span>
+<span class="p"></span>cipi app create --user=myapp --domain=myapp.com \
+    --repository=git@github.com:you/myapp.git --valkey=shared
+
+<span class="c"># a staging app of the same repository (v5.8.0+): it reads cipi-staging.yml before cipi.yml</span>
+<span class="p"></span>cipi app create --user=myapp-stg --domain=staging.myapp.com \
+    --repository=git@github.com:you/myapp.git --branch=develop --env=staging</pre>
+                </div>
+
+                <div class="options-list">
+                    <div class="option-item"><code>--user</code><span>Linux username for the app. Must be unique,
+                            lowercase, alphanumeric.</span></div>
+                    <div class="option-item"><code>--domain</code><span>Primary domain (e.g. <code>myapp.com</code>).
+                            Used for Nginx vhost and <code>APP_URL</code>.</span></div>
+                    <div class="option-item"><code>--repository</code><span>SSH Git URL (e.g.
+                            <code>git@github.com:you/repo.git</code>). Must be SSH, not HTTPS.</span></div>
+                    <div class="option-item"><code>--branch</code><span>Branch to deploy. Defaults to
+                            <code>main</code>.</span></div>
+                    <div class="option-item"><code>--env</code><span>Environment label for the app (since
+                            <strong>v5.8.0</strong>): lowercase letters, digits, <code>-</code> and <code>_</code>, at
+                            most 32 characters, e.g. <code>production</code> or <code>staging</code>. Defaults to
+                            <code>production</code>, which is also what every app created before 5.8.0 is. Cipi writes it
+                            to the app's <code>.env</code> as <code>APP_ENV</code> (Laravel apps) and
+                            <code>CIPI_ENV</code> (Laravel and Node apps), <code>cipi app show</code> prints it, and it
+                            picks the <a href="/docs/yml#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> the app
+                            reads before <code>cipi.yml</code>. Change it later with
+                            <code>cipi app edit --env=</code>.</span>
+                    </div>
+                    <div class="option-item"><code>--php</code><span>PHP version for this app (e.g. <code>8.5</code>).
+                            Defaults to the server's PHP: 8.6 on a server installed with v5.9.1 or later, 8.5 on the ones
+                            installed before (or what <code>cipi php switch</code> chose since). Must be an installed version — only <code>8.3</code>, <code>8.4</code>
+                            and <code>8.5</code> are accepted since v4.5.4 (Deployer 8 requires PHP &ge; 8.3), and
+                            <a href="/docs/php#php-86"><code>8.6</code></a> since v5.9.1.</span>
+                    </div>
+                    <div class="option-item"><code>--octane</code> / <code>--octane=frankenphp</code><span>Serve HTTP
+                            via <strong>Laravel Octane (FrankenPHP)</strong> instead of PHP-FPM (since
+                            <strong>v5.0</strong>). Laravel apps only — rejected with <code>--custom</code>. See
+                            <a href="/docs/octane#cli-app-octane">Laravel Octane</a>.</span>
+                    </div>
+                    <div class="option-item"><code>--engine</code><span>Database engine:
+                            <code>mariadb</code> (default) or <code>pgsql</code> (since v4.8.0; requires
+                            <code>cipi db install pgsql</code>). Interactive create prompts when PostgreSQL is
+                            installed. Writes matching <code>.env</code> / connection URL.</span>
+                    </div>
+                    <div class="option-item"><code>--node-build</code><span>Asset build run inside every deploy,
+                            after <code>composer install</code> and before the release goes live, e.g.
+                            <code>'npm ci &amp;&amp; npm run build'</code> (Laravel apps; since
+                            <strong>v5.6.0</strong>). Same setting as
+                            <code>cipi app edit --node-build</code> and <code>deploy.node_build</code> in
+                            <code>cipi.yml</code>. Runners allowed: npm, npx, yarn, pnpm, bun, node.</span>
+                    </div>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>If a token for the forge (GitHub, GitLab, Bitbucket Cloud, Azure DevOps, Cursor Origin,
+                        AWS CodeCommit) is configured, Cipi automatically adds the SSH deploy key and creates the
+                        webhook on the repository — no manual steps needed. See
+                        <a href="/docs/git#git-auto-setup">Git auto-setup</a> for setup instructions and
+                        fallback options when auto-configuration is not available.
+                    </div>
+                </div>
+            
+</section>

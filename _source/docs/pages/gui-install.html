@@ -1,0 +1,181 @@
+<section class="doc-section" id="gui-requirements">
+                <h2>Requirements</h2>
+                <p>The panel talks to your servers exclusively through the Cipi REST API. Before installing it, make sure
+                    each server you want to manage has the API enabled with a token that covers the full ability set.</p>
+                <cipi-term name="gui-install"></cipi-term>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>Each managed server needs <a href="/docs/api#cipi-api"><code>cipi api</code></a> installed and a
+                        Bearer token with all abilities. See the <a href="/docs/api#cipi-api">API setup guide</a> to
+                        generate one; since Cipi <strong>5.9.0</strong>, <code>cipi api token create --name=gui
+                        --full-access</code> creates a token that has every ability, including the ones later
+                        releases add.</span>
+                </div>
+
+                <ul>
+                    <li>A running Cipi server (Ubuntu 24.04 / 26.04) to host the panel — this can be one of the servers
+                        you manage or a small dedicated box.</li>
+                    <li>A <strong>domain or subdomain of its own</strong>, pointed at that server with a DNS
+                        <code>A</code> (and <code>AAAA</code>) record, e.g. <code>panel.example.com</code>. The panel
+                        is a separate Laravel application with its own Nginx vhost and certificate. It cannot share a
+                        hostname with an app, or with the API, which needs its own too, e.g. <code>api.example.com</code>
+                        (see <a href="/docs/api#cipi-api-domain">a domain of its own</a>). Since Cipi
+                        <strong>5.7.0</strong>, Cipi refuses a domain that is already taken.</li>
+                    <li><code>cipi api</code> enabled on every server you want to control, each with a full-ability
+                        token (include <code>www-manage</code>, <code>status-view</code>, and for app tooling
+                        <code>apps-env</code>, <code>apps-auth</code>, <code>apps-artisan</code>,
+                        <code>apps-run</code>, <code>apps-deploy-config</code>). For Node apps, redirects and proxies,
+                        managed servers need API <strong>1.31+</strong> and Cipi <strong>5.4.1+</strong> (the
+                        5.4.1 migration opens those commands to the panel sudoers); the deploy audit needs Cipi
+                        <strong>5.4.0+</strong>. Server → Disk needs API <strong>1.33+</strong>, the
+                        <code>disk-view</code> ability and Cipi <strong>5.5.2+</strong> (migration 5.5.2). The app's
+                        <code>cipi.yml</code> tab needs API <strong>1.35+</strong>, the <code>yml-view</code> /
+                        <code>yml-manage</code> abilities and Cipi <strong>5.6.4+</strong>; the Environment field and
+                        the environment shown on the <code>cipi.yml</code> tab need panel <strong>4.0</strong>, API
+                        <strong>1.36+</strong> and Cipi <strong>5.8.0+</strong>. For server cockpit (PHP, SSH,
+                        services, SMTP, health, IP whitelist), managed servers need API <strong>1.15+</strong> and Cipi
+                        <strong>5.0.6+</strong>. For <code>.env</code> /
+                        <code>auth.json</code> / Artisan / App commands, managed servers need API
+                        <strong>1.14+</strong> and Cipi <strong>5.0.3+</strong>. For Octane create and
+                        FPM/Octane indicators, API <strong>1.13+</strong> and Cipi <strong>5.0+</strong>. For
+                        multi-engine MariaDB/PostgreSQL and www redirects, API <strong>1.12+</strong> and Cipi
+                        <strong>4.8+</strong>.</li>
+                </ul>
+                <p>A token covering everything the panel uses (API <strong>1.35</strong>):</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>cipi api token create --name=gui --abilities=apps-view,apps-create,apps-edit,apps-delete,apps-suspend,apps-basicauth,apps-env,apps-auth,apps-artisan,apps-run,apps-deploy-config,aliases-view,aliases-create,aliases-delete,www-manage,redirects-view,redirects-manage,proxies-view,proxies-manage,node-view,node-manage,search-view,search-manage,deploy-manage,ssl-manage,dbs-view,dbs-create,dbs-manage,php-view,php-manage,ssh-view,ssh-manage,services-view,services-manage,smtp-view,smtp-manage,health-view,health-manage,packages-view,monitor-view,zt-view,disk-view,yml-view,yml-manage,ip-whitelist-view,ip-whitelist-manage,status-view</pre>
+                </div>
+                <p>PHP, the FPM pool, the Nginx vhost and the scheduler are all provisioned for you by the installer —
+                    you do not set up a Laravel environment by hand.</p>
+            
+
+            <!-- ── Installation ── -->
+</section>
+
+<section class="doc-section" id="gui-install">
+                <h2>Installation — <code>cipi gui &lt;domain&gt;</code></h2>
+                <p>One command provisions the whole panel on a Cipi server: a dedicated PHP-FPM pool, an Nginx vhost for
+                    your domain, and a scheduler cron job. The Laravel app is bundled at <code>/opt/cipi/gui</code>,
+                    the same model used by the <code>cipi-api</code> package. Since Cipi <strong>5.8.2</strong> the
+                    command checks the DNS first — the domain must already point at the server, or it stops with the
+                    record to create (<code>--skip-dns-check</code> behind a NAT or proxy it cannot see through) — and
+                    ends with the Let's Encrypt certificate (<code>--no-ssl</code> to skip it).</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>cipi gui panel.example.com</pre>
+                </div>
+
+                <p>The installer prompts interactively for the first administrator account — an email and a password.
+                    The password must satisfy the panel's policy:</p>
+
+                <ul>
+                    <li>Minimum <strong>12 characters</strong>.</li>
+                    <li>At least one uppercase, one lowercase, one digit, and one special character.</li>
+                    <li>No more than <strong>4 identical consecutive</strong> characters.</li>
+                </ul>
+
+                <p>Configuration is written to <code>/etc/cipi/gui.json</code>. Once the command finishes, open your
+                    domain in a browser and log in with the admin account you just created.</p>
+
+                <p>The domain you pass is the panel's alone. If you have an app on <code>example.com</code> on the same
+                    server, the panel goes on a subdomain such as <code>panel.example.com</code>, not on
+                    <code>example.com</code> or one of the app's aliases. Cipi refuses those, and refuses the API's domain.
+                    Picked the wrong one? <a href="/docs/gui-install#gui-move"><code>cipi gui move</code></a> changes it.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span><code>cipi gui &lt;domain&gt;</code> issues the certificate itself (Cipi 5.8.2+). Before
+                        that, or after <code>--no-ssl</code>, the panel is served over plain HTTP until you run
+                        <a href="/docs/gui-install#gui-ssl"><code>cipi gui ssl</code></a>.</span>
+                </div>
+            
+
+            <!-- ── SSL ── -->
+</section>
+
+<section class="doc-section" id="gui-ssl">
+                <h2>SSL — <code>cipi gui ssl</code></h2>
+                <p>Issue (or re-issue) a free Let's Encrypt certificate for the panel's domain and switch it to HTTPS.
+                    <code>cipi gui &lt;domain&gt;</code> does this itself since Cipi 5.8.2; the command stays for a
+                    certificate skipped with <code>--no-ssl</code> or one that failed. It checks first that the domain
+                    points at the server (<code>--skip-dns-check</code> to go ahead anyway). The panel is
+                    HTTPS-aware and sets the correct forwarded headers behind the Cipi Nginx vhost.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>cipi gui ssl</pre>
+                </div>
+                <p>The certificate renews automatically through the same ACME renewal that Cipi uses for app domains.
+                    Since <strong>5.7.0</strong> a failed certbot run is reported as a failure (exit 1). Before, the
+                    command could print &ldquo;SSL installed&rdquo; anyway.</p>
+            
+
+            <!-- ── SSO ── -->
+</section>
+
+<section class="doc-section" id="gui-move">
+                <h2>Changing domain — <code>cipi gui move</code></h2>
+                <p>Moves the panel to a new domain or subdomain. Admin accounts, 2FA enrolments and saved server
+                    connections stay; admins sign in again, since their sessions belong to the old domain.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>cipi gui move panel.newdomain.com            # move and issue the new certificate
+cipi gui move panel.newdomain.com --no-ssl   # move now, certificate later (cipi gui ssl)</pre>
+                </div>
+                <ol>
+                    <li>Point the new domain at the server first (DNS <code>A</code>/<code>AAAA</code> record).</li>
+                    <li>The Nginx vhost is rewritten for the new domain. If <code>nginx -t</code> rejects it, the old
+                        vhost goes back and nothing else changes.</li>
+                    <li><code>/etc/cipi/gui.json</code> and <code>APP_URL</code> are updated.</li>
+                    <li><strong>SSL:</strong> the old domain's certificate is deleted, so nothing keeps renewing it,
+                        and one is issued for the new domain. If that fails, the panel is already on the new domain
+                        over HTTP: fix DNS or port 80 and run <code>cipi gui ssl</code>.</li>
+                </ol>
+                <p>The managed servers need no change: the panel calls their API URLs, and their IP whitelists are by
+                    IP, not by domain. To move a <em>managed server's</em> API instead, run
+                    <a href="/docs/api#cipi-api-move"><code>cipi api move</code></a> on that server and update
+                    its URL under Connections.</p>
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span><strong>Cloudflare Zero Trust:</strong> a panel routed through the tunnel is tied to its
+                        hostname (DNS record, tunnel route, Access app). Run <code>cipi zt hostname remove --gui</code>
+                        before the move, then <code>cipi zt hostname add --gui</code> and
+                        <code>cipi zt access enable --gui</code> after it. <code>cipi gui move</code> refuses to run
+                        until the hostname is off the tunnel.</span>
+                </div>
+            
+
+            <!-- ── 2FA ── -->
+</section>
+
+<section class="doc-section" id="gui-2fa">
+                <h2>Two-factor authentication (TOTP)</h2>
+                <p>The panel uses classic session login and supports <strong>optional TOTP two-factor
+                    authentication</strong>. Each administrator can enrol an authenticator app (Google Authenticator,
+                    1Password, Aegis, …) from their profile. 2FA is opt-in per user, not forced. With
+                    <a href="/docs/gui-sso#gui-sso">single sign-on</a> the identity provider is the authority for MFA: the TOTP step is
+                    skipped after an SSO sign-in and kept for password sign-ins.</p>
+                <p>If an administrator loses access to their second factor, an operator with shell access can clear it
+                    from the server with <a href="/docs/gui-maintenance#gui-operations"><code>cipi gui reset-user</code></a>, which rewrites
+                    the account and removes the 2FA enrolment.</p>
+            
+
+            <!-- ── Updating ── -->
+</section>

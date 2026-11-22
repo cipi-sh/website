@@ -1,0 +1,189 @@
+<section class="doc-section" id="cli-app-env">
+                <p>Every <strong>Laravel</strong> app has a single <code>.env</code> file living at
+                    <code>/home/&lt;app&gt;/shared/.env</code>. Custom apps have no <code>.env</code>.
+                    It is created and pre-populated by Cipi during <code>app create</code> with the database
+                    credentials, <code>APP_KEY</code>, <code>APP_URL</code>, cache/session/queue settings, and the
+                    webhook token. The <code>shared/</code> directory is symlinked into every release, so the same
+                    <code>.env</code> is always active regardless of which release is current.
+                </p>
+
+                <h3>Edit interactively via CLI</h3>
+                <p>The safest way to change ENV values is through Cipi itself — it opens the file in nano as the app
+                    user, with the correct permissions:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app env myapp</pre>
+                </div>
+                <p>Save with <kbd>Ctrl+O</kbd> then exit with <kbd>Ctrl+X</kbd>. Changes take effect immediately for new
+                    requests — no restart needed for most values. If you change queue connection or cache driver,
+                    restart the workers:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi worker restart myapp</pre>
+                </div>
+
+                <h3>Non-interactive flags (v5.0.3+)</h3>
+                <p>Since <strong>v5.0.3</strong>, scripts, the panel API, and the web GUI can manage
+                    <code>.env</code> without opening an editor:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app env myapp --show
+<span class="p"></span>cipi app env myapp --show --json
+<span class="p"></span>cipi app env myapp --get=APP_URL
+<span class="p"></span>cipi app env myapp --set=APP_DEBUG=false
+<span class="p"></span>cipi app env myapp --unset=LEGACY_KEY</pre>
+                </div>
+                <p>REST: <code>GET|PUT /api/apps/{name}/env</code> (ability <code>apps-env</code>, API
+                    <strong>1.14+</strong>). MCP: <code>AppEnvShow</code>, <code>AppEnvUpdate</code>.</p>
+
+                <h3>Edit directly via SSH</h3>
+                <p>You can also edit the file directly over SSH as root or as the app user:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># as root</span>
+<span class="p"></span>nano /home/myapp/shared/.env
+
+<span class="c"># or switch to the app user first</span>
+<span class="p"></span>su - myapp
+<span class="p"></span>nano ~/shared/.env</pre>
+                </div>
+
+                <h3>Key ENV variables set by Cipi</h3>
+                                <div class="table-scroll">
+                    <table class="env-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Variable</th>
+                                                <th>Description</th>
+                                                <th>Set by</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>APP_KEY</td>
+                                                <td>Laravel encryption key — generated once at app creation</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>APP_URL</td>
+                                                <td>Updated automatically by <code>cipi ssl install</code></td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DB_CONNECTION</td>
+                                                <td><code>mysql</code> for MariaDB (drop-in compatible), or <code>pgsql</code> when the app
+                                                    engine is PostgreSQL (v4.8.0+)</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>DB_DATABASE / DB_USERNAME / DB_PASSWORD</td>
+                                                <td>Auto-generated credentials for the app's isolated database</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CACHE_STORE</td>
+                                                <td><code>database</code> — uses the app's database</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>SESSION_DRIVER</td>
+                                                <td><code>database</code></td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>QUEUE_CONNECTION</td>
+                                                <td><code>database</code></td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>BROADCAST_CONNECTION</td>
+                                                <td>Set to <code>reverb</code> on enable; restored to the previous driver (or <code>log</code>) on disable (v5.1.2+)</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REVERB_APP_ID / KEY / SECRET</td>
+                                                <td>Generated once on the first <code>cipi app reverb enable</code>, then never rotated. An existing non-empty value always wins.</td>
+                                                <td>Cipi (v5.1.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REVERB_HOST / PORT / SCHEME</td>
+                                                <td>Public socket: derived from the certificate (<code>https</code>/443 or <code>http</code>/80). A wildcard domain resolves to a concrete host.</td>
+                                                <td>Cipi (v5.1.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>VITE_REVERB_APP_KEY / HOST / PORT / SCHEME</td>
+                                                <td>Copies of the public Reverb values, baked into the frontend by Vite at build time. Redeploy after enable, a domain change or SSL.</td>
+                                                <td>Cipi (v5.1.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REVERB_SERVER_HOST / PORT</td>
+                                                <td>Localhost bind for the Supervisor program. Removed on disable; the credentials stay.</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_WEBHOOK_TOKEN</td>
+                                                <td>HMAC secret for cipi-agent webhook validation</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_APP_USER</td>
+                                                <td>Linux username owning this app</td>
+                                                <td>Cipi</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_DEPLOY_BRANCH</td>
+                                                <td>The branch the cipi/agent webhook deploys; a push to any other branch is skipped. Written at create, kept in step by <code>cipi app edit --branch</code>, <code>cipi sync import</code> and, since 5.8.0, a <code>deploy.branch</code> applied from <code>cipi.yml</code></td>
+                                                <td>Cipi (v5.7.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>APP_ENV</td>
+                                                <td>The app's environment label — <code>cipi app create --env</code>, default <code>production</code> — which Laravel reads as its application environment. Laravel apps only. Kept in step by <code>cipi app edit --env</code> and <code>cipi sync import|update</code></td>
+                                                <td>Cipi (v5.8.0+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_ENV</td>
+                                                <td>The same label for Cipi's own tooling, Laravel and Node apps alike: it is what picks the <a href="/docs/yml#cli-yml-env"><code>cipi-&lt;env&gt;.yml</code></a> the app reads before <code>cipi.yml</code>. Written next to <code>CIPI_DEPLOY_BRANCH</code>; migration 5.8.0 adds <code>CIPI_ENV=production</code> to existing apps that lack it and leaves a value already there alone</td>
+                                                <td>Cipi (v5.8.0+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>REDIS_HOST / REDIS_PASSWORD / REDIS_PORT</td>
+                                                <td>The local Valkey with the password Cipi set at install. Cache, session and queue stay on the database until you switch them</td>
+                                                <td>Cipi (v5.7.2+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>CIPI_MCP</td>
+                                                <td>Enable or disable the built-in MCP server at <code>/cipi/mcp</code></td>
+                                                <td>User (<code>true</code> by default)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Do not change DB credentials manually.</strong> If you need to regenerate the database
+                        password use <code>cipi db password myapp</code> (or
+                        <code>cipi app reset-db-password myapp</code>) — it updates both the engine and the
+                        <code>.env</code> atomically. Editing them by hand risks leaving the two out of sync.
+                    </div>
+                </div>
+
+                <h3>Adding your own variables</h3>
+                <p>Add any custom variable at the bottom of the file as you normally would in a Laravel project. They
+                    are preserved across deploys because the <code>.env</code> lives in <code>shared/</code> and is
+                    never overwritten by Deployer.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
+                    <pre><span class="c"># your custom variables</span>
+STRIPE_KEY=sk_live_...
+STRIPE_SECRET=sk_live_...
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.mailgun.org</pre>
+                </div>
+            
+</section>

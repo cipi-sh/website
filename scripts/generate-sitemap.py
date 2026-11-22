@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "https://cipi.sh"
 TODAY = date.today().isoformat()
-SKIP_DIRS = {".git", "scripts", "netlify", "css"}
+SKIP_DIRS = {".git", "scripts", "netlify", "css", "_source", "assets", "img", "brand"}
 
 
 def file_to_canon(path: Path) -> str | None:
@@ -17,6 +17,9 @@ def file_to_canon(path: Path) -> str | None:
         return None
     name = rel.as_posix()
     if name.endswith("404.html"):
+        return None
+    head = path.read_text(encoding="utf-8", errors="ignore")[:4000]
+    if 'name="robots" content="noindex' in head:
         return None
     if name == "index.html":
         return "/"

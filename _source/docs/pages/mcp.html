@@ -1,0 +1,387 @@
+<section class="doc-section" id="agent-mcp">
+                <p><strong>cipi-agent</strong> includes a built-in <strong>MCP server</strong> (Model Context Protocol)
+                    that exposes your application to AI assistants such as <strong>Cursor</strong>,
+                    <strong>VS Code</strong> (with GitHub Copilot), <strong>Claude Code</strong> and <strong>Claude
+                    Desktop</strong> — or any MCP client. The endpoint speaks Streamable HTTP with JSON-RPC 2.0 and is
+                    protected by the <code>CIPI_MCP_TOKEN</code> Bearer token.</p>
+
+                <p>Since 2.0 it speaks <strong>every current MCP revision</strong>: the handshake-based revisions
+                    <code>2024-11-05</code>, <code>2025-03-26</code>, <code>2025-06-18</code> and <code>2025-11-25</code>
+                    (<code>initialize</code>, what today's clients use) and the stateless revision
+                    <code>2026-07-28</code> (<code>server/discover</code>, per-request <code>_meta</code>,
+                    <code>resultType</code>, <code>Mcp-Method</code> / <code>Mcp-Name</code> header validation). Every tool
+                    declares a title, behaviour annotations (<code>readOnlyHint</code>, <code>destructiveHint</code>, …)
+                    and a JSON Schema, returns text <em>and</em> <code>structuredContent</code>, and reports failures with
+                    <code>isError</code>. <code>GET</code> and <code>DELETE</code> answer <code>405</code> (no SSE stream, no
+                    sessions), notifications get <code>202</code>, and the <code>Origin</code> header is validated against
+                    the app host.</p>
+
+                <p>The MCP endpoint is available at <code>POST /cipi/mcp</code> and is disabled by default. To enable
+                    it:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>php artisan cipi:service mcp --enable
+<span class="p"></span>php artisan cipi:generate-token mcp
+<span class="p"></span>php artisan cipi:mcp          <span class="c"># endpoint, tools, resources and client snippets</span></pre>
+                </div>
+
+                <h3>Available tools</h3>
+                <p>The server exposes eleven tools scoped to <em>this</em> application, plus five
+                    <a href="/docs/mcp#agent-mcp-panel">panel tools</a> when <code>cipi/sdk</code> is configured. Tools are listed
+                    in a fixed order so clients can cache the list:</p>
+
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tool</th>
+                                                <th>Mode</th>
+                                                <th>What it does</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>health</code></td>
+                                                <td>read-only</td>
+                                                <td>Same report as <code>GET /cipi/health</code>: app, database, cache, queue (pending and failed jobs), storage, deploy state</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>app_info</code></td>
+                                                <td>read-only</td>
+                                                <td>Versions, drivers, Cipi endpoints, enabled features, the app's environment (<code>CIPI_ENV</code>, agent 2.1.0 / Cipi 5.8.0+), live release and commit, whether a <code>cipi.yml</code> exists — never secrets</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>deploy</code></td>
+                                                <td>action</td>
+                                                <td>Queue a zero-downtime deploy; records <code>actor</code>, <code>ref</code> and <code>request_id</code> as <a href="/docs/deploy-audit#deploy-audit">audit-ledger</a> claims; refuses while a deploy is running</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>deploy_status</code></td>
+                                                <td>read-only</td>
+                                                <td>Live release and commit, the releases kept for rollback, queued/running state, outcome of the last automatic deploy, optional tail of the deploy log; the app's environment since 2.1.0</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>logs</code></td>
+                                                <td>read-only</td>
+                                                <td><code>laravel</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>, <code>horizon</code>, <code>reverb</code>, <code>deploy</code> or <code>all</code>; severity and keyword filters; stack traces intact; secrets redacted</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>artisan</code></td>
+                                                <td>can change data</td>
+                                                <td>Run an Artisan command (<code>--no-interaction</code> is added); interactive, long-running and data-destroying commands are blocked</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>db_query</code></td>
+                                                <td>configurable</td>
+                                                <td><code>SELECT</code> / <code>WITH</code> / <code>SHOW</code> / <code>DESCRIBE</code> / <code>EXPLAIN</code> as table or JSON, auto-capped; <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code> unless <code>CIPI_MCP_DB_WRITE=false</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>db_schema</code></td>
+                                                <td>read-only</td>
+                                                <td>Tables with row counts, or one table's columns, indexes, foreign keys and the columns that look like personal data</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>env_check</code></td>
+                                                <td>read-only</td>
+                                                <td>Which <code>.env</code> keys are set or empty, compared with <code>.env.example</code> and the <code>env.required</code> of <code>cipi.yml</code> — names only, never values</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi_yml</code></td>
+                                                <td>read-only</td>
+                                                <td><code>validate</code>, <code>show</code>, <code>generate</code> or <code>example</code> for <code>cipi.yml</code>; validates a draft passed as <code>content</code> before you commit it</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>anonymizer</code></td>
+                                                <td>action</td>
+                                                <td><code>audit</code>, <code>config</code>, <code>scan</code>, <code>transformations</code>, or <code>start</code> an anonymized dump (e-mail required)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_*</code></td>
+                                                <td>see below</td>
+                                                <td>Rollback, deploy audit ledger, database backup, job status, app and server status — <a href="/docs/mcp#agent-mcp-panel">through the panel API</a></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <h4><code>logs</code> tool parameters</h4>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Parameter</th>
+                                                <th>Values</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>type</code></td>
+                                                <td><code>laravel</code>, <code>nginx</code>, <code>php</code>, <code>worker</code>, <code>horizon</code>, <code>reverb</code>, <code>deploy</code>, <code>all</code></td>
+                                                <td>Log file(s) to read — the same types as <code>cipi app logs</code>, plus Horizon and Reverb</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>lines</code></td>
+                                                <td>1–500 (default 50)</td>
+                                                <td>Lines per file before filtering</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>level</code></td>
+                                                <td><code>debug</code> … <code>emergency</code></td>
+                                                <td>Minimum severity — Laravel entries only (<code>error</code> = error, critical, alert, emergency)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>search</code></td>
+                                                <td>any string</td>
+                                                <td>Case-insensitive keyword filter; multi-line entries stay intact</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <h4>Resources</h4>
+                <p>Files the assistant benefits from reading whole, exposed as MCP resources:
+                    <code>cipi://cipi.yml</code> (the committed file), <code>cipi://cipi.yml/schema</code> (JSON Schema),
+                    <code>cipi://cipi.yml/example</code> (the commented template in the app's namespace),
+                    <code>cipi://anonymization.json</code> and <code>cipi://anonymization.json/schema</code>.</p>
+
+                <h4>Blocked operations (MCP safety)</h4>
+                <ul>
+                    <li><strong>Artisan:</strong> <code>serve</code>, <code>tinker</code>, <code>pail</code>,
+                        <code>queue:work</code>, <code>queue:listen</code>, <code>schedule:work</code>,
+                        <code>horizon</code>, <code>horizon:work</code>, <code>horizon:supervisor</code>,
+                        <code>octane:start</code>, <code>reverb:start</code>, <code>db</code>, <code>db:wipe</code>,
+                        <code>migrate:fresh</code>, <code>migrate:reset</code> — extend the list with
+                        <code>cipi.mcp_blocked_artisan</code> in the published config</li>
+                    <li><strong>SQL:</strong> DDL (<code>DROP</code>, <code>ALTER</code>, <code>TRUNCATE</code>,
+                        <code>CREATE …</code>, <code>RENAME</code>), <code>GRANT</code> / <code>REVOKE</code>, file I/O,
+                        <code>SET GLOBAL</code>, <code>KILL</code> / <code>SHUTDOWN</code>, PostgreSQL file functions and
+                        multi-statement input; reads without <code>LIMIT</code> are capped at
+                        <code>CIPI_MCP_MAX_ROWS</code> (default 100, max 500); <code>CIPI_MCP_DB_WRITE=false</code>
+                        makes the tool read-only</li>
+                    <li><strong>Redaction:</strong> logs and command output are prefixed with a production-content
+                        warning and common secrets (env assignments, bearer tokens, DSNs, <code>APP_KEY</code>,
+                        provider keys, Cipi tokens) are masked — the same guard as the panel API MCP
+                        (<code>CIPI_MCP_REDACT</code>)</li>
+                    <li><strong>Origin:</strong> a browser <code>Origin</code> that is not the app host is refused with
+                        <code>403</code> (DNS-rebinding guard); extend with <code>CIPI_MCP_ALLOWED_ORIGINS</code></li>
+                </ul>
+
+                <h3>Setup instructions</h3>
+                <p>Run the <code>cipi:mcp</code> Artisan command to get the endpoint URL and ready-to-paste
+                    configuration snippets for your AI client (<code>--json</code> prints just the Cursor/VS Code
+                    configuration):</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>php artisan cipi:mcp</pre>
+                </div>
+
+                <h4>Cursor</h4>
+                <p>Add the following to <code>~/.cursor/mcp.json</code> (or go to Cursor &rarr; Settings &rarr; MCP):
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"cipi-myapp"</span>: {
+      <span class="s">"type"</span>: <span class="s">"http"</span>,
+      <span class="s">"url"</span>: <span class="s">"https://yourdomain.com/cipi/mcp"</span>,
+      <span class="s">"headers"</span>: {
+        <span class="s">"Authorization"</span>: <span class="s">"Bearer YOUR_CIPI_MCP_TOKEN"</span>
+      }
+    }
+  }
+}</pre>
+                </div>
+                <p>Replace <code>cipi-myapp</code> with your app user name, <code>yourdomain.com</code> with your
+                    actual domain, and <code>YOUR_CIPI_MCP_TOKEN</code> with the token from your
+                    <code>.env</code>. Cursor connects natively over HTTP — no bridge needed.</p>
+
+                <h4>VS Code</h4>
+                <p>VS Code (with GitHub Copilot) supports MCP natively since version 1.102. Add the following to
+                    <code>.vscode/mcp.json</code> in your project (or run <strong>MCP: Open User Configuration</strong>
+                    for a global setup). The token is asked once and stored by VS Code — nothing to commit:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>{
+  <span class="s">"inputs"</span>: [
+    { <span class="s">"type"</span>: <span class="s">"promptString"</span>, <span class="s">"id"</span>: <span class="s">"cipi-token"</span>, <span class="s">"description"</span>: <span class="s">"Cipi MCP token for myapp"</span>, <span class="s">"password"</span>: <span class="k">true</span> }
+  ],
+  <span class="s">"servers"</span>: {
+    <span class="s">"cipi-myapp"</span>: {
+      <span class="s">"type"</span>: <span class="s">"http"</span>,
+      <span class="s">"url"</span>: <span class="s">"https://yourdomain.com/cipi/mcp"</span>,
+      <span class="s">"headers"</span>: {
+        <span class="s">"Authorization"</span>: <span class="s">"Bearer ${input:cipi-token}"</span>
+      }
+    }
+  }
+}</pre>
+                </div>
+
+                <h4>Claude Code</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>claude mcp add --transport http cipi-myapp https://yourdomain.com/cipi/mcp \
+    --header <span class="s">"Authorization: Bearer YOUR_CIPI_MCP_TOKEN"</span></pre>
+                </div>
+
+                <h4>Claude Desktop</h4>
+                <p>Claude Desktop requires the <strong>mcp-remote</strong> bridge to convert stdio to HTTP. Add the
+                    following to <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">json</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>{
+  <span class="s">"mcpServers"</span>: {
+    <span class="s">"cipi-myapp"</span>: {
+      <span class="s">"command"</span>: <span class="s">"npx"</span>,
+      <span class="s">"args"</span>: [
+        <span class="s">"-y"</span>,
+        <span class="s">"mcp-remote"</span>,
+        <span class="s">"https://yourdomain.com/cipi/mcp"</span>,
+        <span class="s">"--header"</span>,
+        <span class="s">"Authorization: Bearer YOUR_CIPI_MCP_TOKEN"</span>
+      ]
+    }
+  }
+}</pre>
+                </div>
+                <p>Install <code>mcp-remote</code> globally once with:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>npm install -g mcp-remote</pre>
+                </div>
+
+                <h3>What you can do with it</h3>
+                <p>Once connected, your AI assistant can interact with the Cipi-managed application in natural
+                    language. For example:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">conversation</span></div>
+                    <pre><span class="c">User:</span>  Is production healthy, and what commit is live?
+
+<span class="c">Claude:</span> Calling health and deploy_status...
+         Status: healthy — database, cache, queue (0 pending, 0 failed) and storage OK.
+         Live release 20261009103000, commit 0123456 (webhook deploy, 42 s, OK).
+
+<span class="c">User:</span>  Show me the last errors and tell me which job is failing.
+
+<span class="c">Claude:</span> Calling logs (type: laravel, level: error, lines: 200)...
+         3 entries: InvoiceJob — SQLSTATE[42S22]: column invoices.paid_at not found.
+         Calling artisan (migrate:status)... 2026_10_08_add_paid_at is pending.
+
+<span class="c">User:</span>  Which columns of the users table look like personal data?
+
+<span class="c">Claude:</span> Calling db_schema (table: users)...
+         email → fakeEmail, phone → fakePhoneNumber, remember_token → null, password → password.
+
+<span class="c">User:</span>  Validate this cipi.yml draft, then queue a deploy and record that Jane asked.
+
+<span class="c">Claude:</span> Calling cipi_yml (validate, content: …)... valid, 0 warnings.
+         Calling deploy (actor: jane@example.com)... queued — Deployer runs within 1 minute.</pre>
+                </div>
+
+                <h3 id="agent-mcp-panel">Panel tools via cipi/sdk</h3>
+                <p>The agent only knows the app it runs in. With the <a href="/docs/php-sdk">PHP SDK</a> installed and
+                    a Sanctum token created on the server with the abilities you want to allow, the same MCP server
+                    gains tools that no in-app process could offer — rolling a release back, reading the deploy audit
+                    ledger, taking a server-side database backup:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>composer require cipi/sdk
+<span class="c"># on the server, once:</span>
+<span class="p p-root"></span>cipi api token create     <span class="c"># abilities: apps-view, deploy-manage, dbs-manage, status-view</span></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
+                    <pre>CIPI_BASE_URL=https://api.myserver.com
+CIPI_TOKEN=your-sanctum-token
+<span class="c"># CIPI_PANEL_APP=myapp      # app name on the panel, default: CIPI_APP_USER</span></pre>
+                </div>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tool</th>
+                                                <th>Panel operation</th>
+                                                <th>Token ability</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>panel_status</code></td>
+                                                <td>The app as the panel sees it (domain, PHP, repository, branch, workers, aliases, limits) plus the server snapshot</td>
+                                                <td><code>apps-view</code>, <code>status-view</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_deploy_audit</code></td>
+                                                <td>The hash-chained deploy audit ledger (<code>cipi deploy --audit</code>)</td>
+                                                <td><code>deploy-manage</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_rollback</code></td>
+                                                <td><code>cipi deploy --rollback</code> — code symlink only, migrations stay; <code>wait=true</code> blocks until the job ends</td>
+                                                <td><code>deploy-manage</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_db_backup</code></td>
+                                                <td><code>cipi db backup</code> server-side snapshot, e.g. right before a risky data fix</td>
+                                                <td><code>dbs-manage</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>panel_job</code></td>
+                                                <td>Status, structured result and CLI output of an asynchronous panel job</td>
+                                                <td>any</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+                <p>The tools appear automatically when the SDK is installed and <code>CIPI_BASE_URL</code> /
+                    <code>CIPI_TOKEN</code> are set (<code>CIPI_PANEL=false</code> hides them). Both packages read
+                    <code>config/cipi.php</code>; publish the agent's copy with <code>--tag=cipi-agent-config</code>.
+                    Scope the panel token to exactly these abilities — it is the one credential that reaches beyond
+                    this app.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>The MCP server does not require SSH access to the VPS. It works entirely over HTTPS with its
+                        own Bearer token. This makes it ideal for teams where developers should be able to monitor,
+                        debug and deploy without root access.</div>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Keep your <code>CIPI_MCP_TOKEN</code> secret. Anyone with the token can trigger deploys,
+                        read logs, run database queries, and run Artisan commands through the MCP endpoint. If you
+                        suspect a leak, regenerate the token with <code>php artisan cipi:generate-token mcp</code> —
+                        the configuration cache is rebuilt for you; Octane and workers need a restart.
+                    </div>
+                </div>
+
+                <div class="callout info" id="agent-vs-api">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Two MCP servers in Cipi:</strong> <em>Agent MCP</em> (<code>POST /cipi/mcp</code> on
+                        the app domain, 11 tools + 5 panel tools, one app's DB, logs, Artisan and <code>cipi.yml</code>)
+                        vs <em>panel API MCP</em> (<code>POST /mcp</code> on the API domain, 73 tools in
+                        <code>cipi/api</code> 1.31, whole server). Use Agent MCP for app-specific debugging; use
+                        <a href="/docs/api#cipi-api">panel API MCP</a> to create apps, manage SSL, or list all
+                        databases.</div>
+                </div>
+            
+</section>

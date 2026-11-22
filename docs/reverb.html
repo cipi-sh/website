@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverb WebSockets — Cipi docs</title>
+    <meta name="description" content="Enable Laravel Reverb behind Nginx for an app.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/reverb">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/reverb">
+    <meta property="og:title" content="Reverb WebSockets — Cipi docs">
+    <meta property="og:description" content="Enable Laravel Reverb behind Nginx for an app.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Reverb WebSockets", "description": "Enable Laravel Reverb behind Nginx for an app.", "url": "https://cipi.sh/docs/reverb", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Apps", "item": "https://cipi.sh/docs/apps"}, {"@type": "ListItem", "position": 3, "name": "Reverb WebSockets", "item": "https://cipi.sh/docs/reverb"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group" open><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb" aria-current="page">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group"><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/apps">Apps</a></li><li aria-current="page">Reverb WebSockets</li></ol>
+<h1>Reverb WebSockets</h1>
+<p class="docs-lead">Enable Laravel Reverb behind Nginx for an app.</p>
+<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/reverb.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="cli-app-reverb">
+                <p><strong>Laravel Reverb</strong> is Laravel's first-party WebSocket server. Cipi has run it since
+                    <strong>v5.0</strong>; <strong>v5.1.2</strong> is the release that made it work in production —
+                    generated credentials, a scheme derived from the certificate, raised connection limits, and a proxy
+                    rule that no longer swallows your own routes.</p>
+                <p>Enabling Reverb on a Laravel app wires four things:</p>
+                <div class="options-list">
+                    <div class="option-item"><code>127.0.0.1:9000–9099</code><span>A free localhost port, allocated per
+                            app and recorded in <code>apps.json</code>. Reverb never listens on a public
+                            interface.</span></div>
+                    <div class="option-item"><code>${app}-reverb</code><span>A Supervisor program running
+                            <code>artisan reverb:start</code> as the app user, logging to
+                            <code>/home/&lt;app&gt;/logs/reverb.log</code>.</span></div>
+                    <div class="option-item"><code>nginx</code><span>A proxy block on the app's own domain for
+                            <code>/app/{key}</code> (the WebSocket handshake) and <code>/apps/{id}/…</code> (the HTTP
+                            API the application broadcasts through).</span></div>
+                    <div class="option-item"><code>.env</code><span><code>REVERB_*</code> and
+                            <code>VITE_REVERB_*</code>, generated on first enable and never rotated
+                            afterwards.</span></div>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app reverb enable myapp
+<span class="p"></span>cipi app reverb enable myapp --restart-supervisor   <span class="c"># also apply the new open-file limit now</span>
+<span class="p"></span>cipi app reverb status myapp
+<span class="p"></span>cipi app reverb disable myapp</pre>
+                </div>
+                <div class="options-list">
+                    <div class="option-item"><code>--restart-supervisor</code><span>Restart Supervisor as part of
+                            <code>enable</code>, so the raised file-descriptor limit applies immediately. This restarts
+                            <strong>every queue worker on the server</strong>, which is why Cipi never does it on its
+                            own.</span></div>
+                </div>
+                <p>Reverb is <strong>Laravel only</strong> — <code>enable</code> refuses a <code>--custom</code> app.
+                    Running <code>enable</code> again on an app that already has Reverb is safe and useful: it does not
+                    reallocate the port or touch the credentials, it re-derives the public host and scheme and fills in
+                    any <code>.env</code> key that went missing.</p>
+
+                <h3 id="enabling-it-end-to-end">Enabling it end to end<a class="anchor" href="#enabling-it-end-to-end" aria-label="Link to this section">#</a></h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># 1. In the project, on your machine — require the package and the client side,</span>
+<span class="c">#    then commit. `install:broadcasting` writes resources/js/echo.js and config/reverb.php.</span>
+<span class="p"></span>composer require laravel/reverb
+<span class="p"></span>php artisan install:broadcasting
+
+<span class="c"># 2. On the server — allocate the port, the Supervisor program and the nginx proxy.</span>
+<span class="p"></span>cipi app reverb enable myapp
+
+<span class="c"># 3. A certificate, so clients get wss:// instead of ws:// (skip if the app already has one).</span>
+<span class="p"></span>cipi ssl install myapp
+
+<span class="c"># 4. Deploy: composer install, the Node build, then Reverb starts on the new release.</span>
+<span class="p"></span>cipi deploy myapp
+<span class="p"></span>cipi app reverb status myapp</pre>
+                </div>
+                <p>Order matters only in that the Node build has to run <em>after</em> <code>reverb enable</code>: Vite
+                    bakes <code>VITE_REVERB_*</code> into the bundle at build time. Cipi's
+                    <a href="/docs/deploy-script#cli-deploy-config"><code>node_build</code></a> step runs after Deployer has
+                    linked the shared <code>.env</code>, so a deploy that follows <code>enable</code> produces a
+                    frontend that can find the socket. Change the domain or install a certificate later and you need
+                    another deploy for the bundle to catch up.</p>
+
+                <h3 id="what-cipi-writes-in-env">What Cipi writes in <code>.env</code><a class="anchor" href="#what-cipi-writes-in-env" aria-label="Link to this section">#</a></h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">env</span></div>
+                    <pre><span class="c"># Laravel Reverb — managed by Cipi (cipi app reverb status myapp)</span>
+<span class="c"># Where the Supervisor program listens. Cipi owns this pair outright.</span>
+REVERB_SERVER_HOST=127.0.0.1
+REVERB_SERVER_PORT=9000
+
+BROADCAST_CONNECTION=reverb
+
+<span class="c"># Generated once on the first enable, then never touched again.</span>
+REVERB_APP_ID=482913
+REVERB_APP_KEY=3f9c1ab27de40518b6c4
+REVERB_APP_SECRET=a71f0e5c8d24b93a6f10c7e5482db9af
+
+<span class="c"># The public side — derived from what nginx actually serves.</span>
+REVERB_HOST=myapp.com
+REVERB_PORT=443
+REVERB_SCHEME=https
+
+<span class="c"># Read by Vite at build time and baked into the frontend bundle.</span>
+VITE_REVERB_APP_KEY=<span class="s">"${REVERB_APP_KEY}"</span>
+VITE_REVERB_HOST=<span class="s">"${REVERB_HOST}"</span>
+VITE_REVERB_PORT=<span class="s">"${REVERB_PORT}"</span>
+VITE_REVERB_SCHEME=<span class="s">"${REVERB_SCHEME}"</span></pre>
+                </div>
+                <p>Before <strong>5.1.2</strong> the three credentials were left blank for you to invent — and an empty
+                    <code>REVERB_APP_KEY</code> is exactly what stops <code>reverb:start</code> from booting. They are
+                    now generated on the first <code>enable</code> and an existing non-empty value always wins, so an
+                    app that arrived with its own credentials keeps them. Cipi never rotates them: a new key would
+                    disconnect every live client and invalidate any frontend bundle already built against the old
+                    one.</p>
+
+                <h3 id="connecting-from-the-frontend">Connecting from the frontend<a class="anchor" href="#connecting-from-the-frontend" aria-label="Link to this section">#</a></h3>
+                <p>The stock <code>resources/js/echo.js</code> from <code>install:broadcasting</code> already reads
+                    exactly the variables Cipi writes — nothing to change:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">js</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>import Echo from <span class="s">'laravel-echo'</span>;
+import Pusher from <span class="s">'pusher-js'</span>;
+
+window.Pusher = Pusher;
+
+window.Echo = new Echo({
+    broadcaster: <span class="s">'reverb'</span>,
+    key: import.meta.env.VITE_REVERB_APP_KEY,
+    wsHost: import.meta.env.VITE_REVERB_HOST,
+    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
+    wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
+    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? <span class="s">'https'</span>) === <span class="s">'https'</span>,
+    enabledTransports: [<span class="s">'ws'</span>, <span class="s">'wss'</span>],
+});</pre>
+                </div>
+                <p>Because nginx fronts Reverb on the app's own domain and port, there is no extra port to open in the
+                    firewall and no second certificate to manage. <code>cipi app reverb status</code> prints the exact
+                    URL a client ends up dialling.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong><code>/app</code> and <code>/apps</code> belong to the protocol.</strong> Up to
+                        <strong>5.1.1</strong> the proxy was written as <code>location /app</code>, which in nginx is a
+                        <em>prefix</em> match, not a path — so on every app with Reverb enabled,
+                        <code>/appointments</code>, <code>/apple</code> and <code>/application/…</code> were proxied
+                        into Reverb instead of reaching Laravel. Since <strong>5.1.2</strong> the block is the regex
+                        <code>~ ^/apps?(/|$)</code>, which matches only <code>/app/{key}</code> and
+                        <code>/apps/{id}/…</code>. An app that has its own <code>/app</code> or <code>/apps</code> route
+                        still cannot use Reverb behind the same domain — put it on a dedicated subdomain instead.
+                    </div>
+                </div>
+
+                <h3 id="ws-or-wss"><code>ws://</code> or <code>wss://</code><a class="anchor" href="#ws-or-wss" aria-label="Link to this section">#</a></h3>
+                <p>Cipi derives the public host, port and scheme from what the server actually serves rather than
+                    assuming HTTPS:</p>
+                <div class="options-list">
+                    <div class="option-item"><code>no certificate</code><span><code>http</code> on port 80 — the app is
+                            served over HTTP, so the socket is <code>ws://</code>.</span></div>
+                    <div class="option-item"><code>certificate present</code><span><code>https</code> on port 443 —
+                            <code>wss://</code>.</span></div>
+                    <div class="option-item"><code>wildcard domain</code><span><code>*.example.com</code> resolves to a
+                            concrete host (<code>www.example.com</code>), because no browser can open a socket to a
+                            wildcard. A multi-tenant frontend has to pick its own host at runtime.</span></div>
+                </div>
+                <p>Installing a certificate later — HTTP-01 or DNS-01 — moves the app's Reverb settings to
+                    <code>wss://</code> on the spot, and a domain change re-derives them too. Before 5.1.2 these values
+                    were hardcoded to <code>https</code>/443 at enable time, which on an app without a certificate meant
+                    a browser silently refusing the connection as mixed content, with nothing in the Reverb log to
+                    explain it. <code>reverb status</code> now warns when the app has a certificate but the
+                    <code>.env</code> still says <code>ws://</code>.</p>
+
+                <h3 id="concurrent-connections-and-open-files">Concurrent connections and open files<a class="anchor" href="#concurrent-connections-and-open-files" aria-label="Link to this section">#</a></h3>
+                <p>Every open WebSocket costs one file descriptor inside Reverb and two connections inside nginx, and
+                    the stock soft limit of 1024 stops an app at roughly a thousand concurrent clients — with nothing in
+                    any log to say why. Since <strong>5.1.2</strong> Cipi raises both ceilings:</p>
+                <div class="options-list">
+                    <div class="option-item"><code>Supervisor</code><span>A systemd drop-in at
+                            <code>/etc/systemd/system/supervisor.service.d/cipi-nofile.conf</code> setting
+                            <code>LimitNOFILE=65535</code>, inherited by every program Supervisor runs.</span></div>
+                    <div class="option-item"><code>nginx</code><span><code>worker_rlimit_nofile 65535</code> and
+                            <code>worker_connections 8192</code> in <code>nginx.conf</code>, applied on a
+                            reload.</span></div>
+                </div>
+                <p>nginx picks its new limits up on the reload Cipi performs. Supervisor picks its own up only on a
+                    <strong>restart</strong>, which also restarts every queue worker on the server — so Cipi configures
+                    the drop-in, tells you it is pending, and leaves the decision to you:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>systemctl restart supervisor
+<span class="c"># or, in one go, at enable time:</span>
+<span class="p"></span>cipi app reverb enable myapp --restart-supervisor</pre>
+                </div>
+                <p>The proxy read timeout was another silent limit: it used to be exactly Reverb's 60-second ping
+                    interval, so every idle client was a coin flip between the ping and the timeout. It now sits well
+                    clear of it, and Reverb's own ping/prune cycle is what reaps dead connections.</p>
+
+                <h3 id="cipi-app-reverb-status"><code>cipi app reverb status</code><a class="anchor" href="#cipi-app-reverb-status" aria-label="Link to this section">#</a></h3>
+                <p>Reports the port, what Supervisor is doing with the process, the URL a client should be dialling,
+                    and the three failure modes that leave nothing in any log:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app reverb status myapp
+  Reverb: enabled 127.0.0.1:9000
+myapp-reverb                     RUNNING   pid 21847, uptime 3 days, 4:12:07
+  Clients dial: wss://myapp.com:443/app/3f9c1ab27de40518b6c4
+  Open files: 65535 (supervisor)</pre>
+                </div>
+                <div class="options-list">
+                    <div class="option-item"><code>Missing in .env: …</code><span>A credential is absent or empty —
+                            <code>reverb:start</code> will not boot. Re-run <code>cipi app reverb enable</code>.</span>
+                    </div>
+                    <div class="option-item"><code>certificate but REVERB_SCHEME is 'http'</code><span>The app gained a
+                            certificate after Reverb was enabled. Re-run <code>enable</code> to move it to
+                            <code>wss://</code>, then deploy so the bundle catches up.</span></div>
+                    <div class="option-item"><code>default open-file limit</code><span>The drop-in is in place but
+                            Supervisor has not been restarted, so the process is still capped near a thousand
+                            clients.</span></div>
+                </div>
+                <p>The process log is <code>/home/&lt;app&gt;/logs/reverb.log</code>, and
+                    <code>supervisorctl status myapp-reverb</code> / <code>restart myapp-reverb</code> control the
+                    program directly.</p>
+
+                <h3 id="disabling">Disabling<a class="anchor" href="#disabling" aria-label="Link to this section">#</a></h3>
+                <p><code>cipi app reverb disable</code> stops and removes the Supervisor program, regenerates the vhost
+                    without the proxy block, re-applies SSL, and — since <strong>5.1.2</strong> — points
+                    <code>BROADCAST_CONNECTION</code> back at whatever the app was broadcasting through before Reverb
+                    took over, falling back to <code>log</code>. Previously it left <code>BROADCAST_CONNECTION=reverb</code>
+                    behind, so every broadcast failed against a server that was no longer running.</p>
+                <p>Only <code>REVERB_SERVER_HOST</code> and <code>REVERB_SERVER_PORT</code> are removed from the
+                    <code>.env</code>. The credentials stay: they are what a re-enable — or a frontend bundle already
+                    built against them — depends on.</p>
+
+                <h3 id="cloning-and-cipi-yml">Cloning and <code>cipi.yml</code><a class="anchor" href="#cloning-and-cipi-yml" aria-label="Link to this section">#</a></h3>
+                <p><a href="/docs/manage-apps#cli-app-clone"><code>cipi app clone</code></a> used to copy the source's
+                    <code>REVERB_*</code> keys into the clone's <code>.env</code> — pointing a staging frontend at the
+                    production socket and handing it the production app secret — while never starting a Reverb for it.
+                    Since <strong>5.1.2</strong> a cloned Reverb app gets its own port, its own credentials and its own
+                    domain, the way it already got its own Octane.</p>
+                <p>Reverb can also be declared in the project file with
+                    <a href="/cipi-yml"><code>workers.reverb: true|false</code></a>, planned and applied by
+                    <code>cipi yml apply</code> like Horizon and the queue workers, and emitted by
+                    <code>cipi yml generate</code>. Declaring it on a <code>--custom</code> app is refused up front.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>workers:
+  horizon: false
+  reverb: true             <span class="c"># adds a Reverb WebSocket server to this app</span></pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Upgrading from 5.0.x or 5.1.1?</strong> <code>cipi self-update</code> runs
+                        <strong>migration 5.1.2</strong>, which raises both limits (and reports whether Supervisor still
+                        needs a restart), rewrites the vhost of every app whose Reverb location is still the greedy
+                        <code>/app</code> prefix — backed up to <code>/var/lib/cipi/vhost-backup-5.1.2</code>, tested
+                        with <code>nginx -t</code>, SSL re-applied, and rolled back as a batch on failure — and fills in
+                        the missing <code>.env</code> keys <strong>without overwriting anything already there</strong>,
+                        so an app whose socket settings were tuned by hand keeps them. Re-deploy your Reverb apps
+                        afterwards so the frontend bundle picks up the <code>VITE_REVERB_*</code> values.
+                    </div>
+                </div>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/scheduler" rel="prev"><small>Previous</small><b>Scheduler &amp; cron</b></a><a class="next" href="/docs/limits" rel="next"><small>Next</small><b>Limits &amp; suspension</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#enabling-it-end-to-end">Enabling it end to end</a></li>
+<li><a class="l2" href="#what-cipi-writes-in-env">What Cipi writes in .env</a></li>
+<li><a class="l2" href="#connecting-from-the-frontend">Connecting from the frontend</a></li>
+<li><a class="l2" href="#ws-or-wss">ws:// or wss://</a></li>
+<li><a class="l2" href="#concurrent-connections-and-open-files">Concurrent connections and open files</a></li>
+<li><a class="l2" href="#cipi-app-reverb-status">cipi app reverb status</a></li>
+<li><a class="l2" href="#disabling">Disabling</a></li>
+<li><a class="l2" href="#cloning-and-cipi-yml">Cloning and cipi.yml</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/reverb.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/reverb" width="1" height="1" alt=""></noscript>
+</body>
+</html>

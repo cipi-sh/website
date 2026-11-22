@@ -1,0 +1,148 @@
+<section class="doc-section" id="cli-disk">
+                <p>Available since <strong>v5.5.0</strong>. <a href="/docs/monitor#cli-monitor"><code>cipi monitor</code></a> tells
+                    you the disk is filling up; <code>cipi disk</code> tells you <strong>who</strong> is filling it. It
+                    prints every local filesystem, then every app, largest first, in GB and as a share of the disk.
+                    The same reading from your laptop is
+                    <a href="/docs/cli-client#cli-disk"><code>cipi-cli disk</code></a>
+                    (<code>cipi-cli</code> <strong>1.6.0+</strong>, API <strong>1.33+</strong>, ability
+                    <code>disk-view</code>; the server needs <strong>5.5.2+</strong> so the API may run
+                    <code>cipi disk</code>).</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi disk                        <span class="c"># the server, then every app</span>
+<span class="p"></span>cipi disk db                     <span class="c"># every database, engine by engine, in MB</span>
+<span class="p"></span>cipi disk --json                 <span class="c"># same figures for scripts (also: cipi disk db --json)</span>
+<span class="p"></span>cipi app limits shop --disk=10   <span class="c"># soft limit: alert at 90% and when over, block nothing</span></pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">output</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>  Server disk
+  MOUNT                          SIZE         USED         FREE     USE
+  /                         100.00 GB     40.00 GB     60.00 GB     40%
+
+  Apps (3) — % of the 100.00 GB on /
+  APP                           FILES     DATABASE        TOTAL    DISK  LIMIT
+  shop                        2.00 GB      1.00 GB      3.00 GB    3.0%  10 GB (30%)
+  blog                        0.50 GB     120.4 MB      0.62 GB    0.6%  —
+  front                       0.10 GB      0.00 GB      0.10 GB    0.1%  —
+  All apps                                              3.72 GB    3.7%
+  Everything else                                      36.28 GB   36.3%</pre>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>What it measures</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>FILES</strong></td>
+                                <td>The app's home: releases, shared storage, logs</td>
+                            </tr>
+                            <tr>
+                                <td><strong>DATABASE</strong></td>
+                                <td>The database named after the app and, when <code>shared/.env</code> points
+                                    <code>DB_DATABASE</code> at another one, that one too. The size is what the server
+                                    reports (<code>information_schema</code> for MariaDB, <code>pg_database_size</code>
+                                    for PostgreSQL); for MariaDB it is compared with the database's directory in the data
+                                    dir and the larger of the two is used. If the server does not answer, the directory
+                                    alone is measured. Custom and Node apps have no database and show 0.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>TOTAL</strong> / <strong>DISK</strong></td>
+                                <td>Files plus database, and that total as a percentage of the filesystem that holds
+                                    <code>/home</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>LIMIT</strong></td>
+                                <td>The app's soft disk limit and how much of it is used — <code>over</code> once
+                                    passed, <code>—</code> when the app has none</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Everything else</strong></td>
+                                <td>The rest of the used space: system, packages, logs, local backups, databases that
+                                    belong to no app</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>Sizes below 0.01 GB are printed in MB (<code>4.2 MB</code>), so a small database does not read as
+                    <code>0.00 GB</code>. <code>--json</code> carries the exact <code>files_kb</code>,
+                    <code>database_kb</code> and <code>total_kb</code> next to the rounded GB, plus
+                    <code>limit_gb</code>, <code>limit_percent</code> and <code>over_limit</code> for every app. Sizes
+                    are measured with <code>du</code> when the command runs — nothing is stored — so a server with large
+                    apps takes a few seconds. Read-only, root CLI; <code>cipi help server</code> and tab-completion
+                    know it.</p>
+
+                <h3><code>cipi disk db</code> — every database, in MB</h3>
+                <p>Next to the per-app figure, a listing of the databases themselves, for every engine installed on
+                    the server. It shows what the app table cannot: databases that belong to no app, and the engines
+                    that are not SQL.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">output</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>  MariaDB
+  DATABASE                                               SIZE
+  blog                                                 2.0 MB
+  shop                                               200.0 MB
+  On disk, whole engine                              500.0 MB
+
+  Valkey
+  DATABASE                                     KEYS      SIZE
+  db0                                          1204         —
+  Memory in use                                       12.3 MB
+  On disk, whole engine                                3.0 MB
+
+  Meilisearch
+  INDEX                                   DOCUMENTS      SIZE
+  shop-products                               12000    8.4 MB
+  On disk, whole engine                               45.0 MB</pre>
+                </div>
+
+                <ul>
+                    <li><strong>MariaDB</strong> — one row per database, empty ones included. The size is the larger of
+                        what the server reports and the database's directory in the data dir, since the files include
+                        space the server has not handed back. These are the figures the DATABASE column of
+                        <code>cipi disk</code> uses.</li>
+                    <li><strong>PostgreSQL</strong> — one row per database (<code>pg_database_size</code>).</li>
+                    <li><strong>Valkey</strong> — one row per logical database (<code>db0</code>, <code>db1</code>, …)
+                        with its number of keys. Valkey does not know the size of a single database, so the size is the
+                        instance's: memory in use and files on disk. The password reaches <code>valkey-cli</code>
+                        through the environment, not the command line.</li>
+                    <li><strong>Meilisearch</strong> — one row per index with its number of documents, and the size of
+                        its documents where the installed version reports it. The total is the <code>data.ms</code>
+                        directory.</li>
+                </ul>
+                <p>Every engine closes with its size on disk as a whole (data directory, logs included). An engine that
+                    is installed but does not answer gets a note and still shows that total; an engine that is not
+                    installed is left out.</p>
+
+                <h3>A soft disk limit per app</h3>
+                <p>No app has a limit until you give it one — the default is unlimited, on new and existing servers
+                    alike. A limit is a number of GB for files and database together (the TOTAL column), set with
+                    <a href="/docs/limits#cli-app-limits"><code>cipi app limits &lt;app&gt; --disk=&lt;GB&gt;</code></a>.
+                    It is <strong>soft</strong>: nothing is blocked when it is passed and the app keeps working. The
+                    limit is a threshold for the <a href="/docs/monitor#cli-monitor"><code>app_disk</code></a> monitor check, which
+                    warns at 90% of it, goes critical once the app is over, and sends a recovery when it is back
+                    under — through email and every chat channel, trigger <code>monitor_app_disk</code>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>A hard limit (filesystem quotas) is deliberately not part of this: it cannot cover the
+                        database, needs quotas enabled on the filesystem, and takes a site down when it is reached. The
+                        whole-server alert did not change: the <code>disk</code> check has warned at 80% and gone
+                        critical at 90% of any filesystem since 5.3.0, on by default.</div>
+                </div>
+            
+</section>

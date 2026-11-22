@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server commands &amp; updates — Cipi docs</title>
+    <meta name="description" content="cipi status, self-update and shell completion.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/server-commands">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/server-commands">
+    <meta property="og:title" content="Server commands &amp; updates — Cipi docs">
+    <meta property="og:description" content="cipi status, self-update and shell completion.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Server commands & updates", "description": "cipi status, self-update and shell completion.", "url": "https://cipi.sh/docs/server-commands", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Server & runtime", "item": "https://cipi.sh/docs/infrastructure"}, {"@type": "ListItem", "position": 3, "name": "Server commands & updates", "item": "https://cipi.sh/docs/server-commands"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group"><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group" open><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands" aria-current="page">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/infrastructure">Server &amp; runtime</a></li><li aria-current="page">Server commands &amp; updates</li></ol>
+<h1>Server commands &amp; updates</h1>
+<p class="docs-lead">cipi status, self-update and shell completion.</p>
+<div class="docs-meta"><span>Server &amp; runtime</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/server-commands.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="cli-cipi">
+                <h2 id="cipi-server-self-update"><code>cipi</code> — Server &amp; Self-Update<a class="anchor" href="#cipi-server-self-update" aria-label="Link to this section">#</a></h2>
+                <p>Top-level commands for server status and Cipi self-management.</p>
+                <div class="term" data-term data-autoplay="view" style="--term-min:calc(10 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Server status and updates</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Server status and updates">$ cipi status
+$ cipi self-update --check
+$ cipi self-update</pre><script type="application/json" class="term-script">[{"c": "cipi status"}, {"o": [["Cipi 5.10.0", "hl"], ["  production  203.0.113.10  up 6 weeks", "dim"]], "d": 300}, {"o": "  CPU 18%    RAM 66% of 7.8 GB    Disk 40% of 154 GB    Apps 6"}, {"o": [["  ● ", "ok"], ["nginx  ", ""], ["● ", "ok"], ["php8.5-fpm  ", ""], ["● ", "ok"], ["mariadb  ", ""], ["● ", "ok"], ["postgresql  ", ""], ["● ", "ok"], ["valkey  ", ""], ["● ", "ok"], ["supervisor", ""]]}, {"c": "cipi self-update --check", "wait": 500}, {"o": [["Installed 5.9.4, latest 5.10.0", ""]], "d": 500}, {"c": "cipi self-update", "wait": 300}, {"bar": "Migrations 5.9.4 → 5.10.0 ", "ms": 1500}, {"o": [["✓ ", "ok"], ["Cipi 5.10.0", ""]], "d": 300}]</script></div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi status              <span class="c"># CPU, RAM, disk, services, PHP versions, apps</span>
+<span class="p"></span>cipi disk                <span class="c"># disk usage of the server and of every app (v5.5.0+)</span>
+<span class="p"></span>cipi version             <span class="c"># show installed Cipi version</span>
+<span class="p"></span>cipi self-update         <span class="c"># update Cipi to the latest version</span>
+<span class="p"></span>cipi self-update --check <span class="c"># check for updates without installing</span></pre>
+                </div>
+
+                <h3 id="password-credential-reset">Password &amp; credential reset<a class="anchor" href="#password-credential-reset" aria-label="Link to this section">#</a></h3>
+                <p>Cipi provides commands to regenerate server-level passwords. New passwords are stored in
+                    <code>/etc/cipi/server.json</code> (encrypted via Vault) and displayed on screen.
+                    <strong>Save them immediately</strong>. Since <strong>5.8.2</strong> <code>cipi credentials</code>
+                    prints the current ones again, in the installer's layout (root, MariaDB, PostgreSQL, Valkey, the
+                    Meilisearch master key, the backup encryption key, with connection URLs), and
+                    <code>cipi credentials export</code> writes them as a plain CSV
+                    (<code>title,url,username,password,notes</code>) that any password manager imports — to stdout, so
+                    nothing is left on the server: <code>ssh cipi@&lt;ip&gt; sudo cipi credentials export &gt; cipi.csv</code>
+                    from your own machine (<code>--output=FILE</code> writes a mode-600 file instead). Every show or
+                    export is logged and raises the <code>credentials_show</code> notification trigger.
+                </p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi reset root-password              <span class="c"># regenerate the root Linux user SSH password</span>
+<span class="p"></span>cipi reset db-password [--engine=…]   <span class="c"># regenerate root password (default or chosen engine)</span>
+<span class="p"></span>cipi reset valkey-password           <span class="c"># regenerate the Valkey password and restart the service</span>
+<span class="p"></span>cipi credentials                      <span class="c"># the install summary again: root, MariaDB, PostgreSQL, Valkey, Meilisearch, backup key</span>
+<span class="p"></span>cipi credentials export [--output=…]  <span class="c"># CSV (title,url,username,password,notes) for any password manager</span></pre>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><code>cipi reset valkey-password</code> (alias <code>cipi reset redis-password</code>)
+                        restarts the Valkey service. Connected clients will be temporarily disconnected. If your apps
+                        use Valkey for cache or sessions, expect a brief interruption.</div>
+                </div>
+            
+
+            <hr class="doc-divider">
+
+            <!-- ── Advanced ── -->
+</section>
+
+<section class="doc-section" id="self-update">
+                <h2 id="self-update-2">Self-Update<a class="anchor" href="#self-update-2" aria-label="Link to this section">#</a></h2>
+                <p>Cipi can update itself from GitHub without affecting any app, database, or configuration.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi self-update --check   <span class="c"># check for a new version</span>
+<span class="p"></span>cipi self-update           <span class="c"># update to latest</span></pre>
+                </div>
+
+                <h3 id="update-process">Update process<a class="anchor" href="#update-process" aria-label="Link to this section">#</a></h3>
+                <ol>
+                    <li>Downloads the latest version from GitHub</li>
+                    <li>Backs up the current installation to <code>/opt/cipi.bak.YYYYMMDDHHMMSS/</code></li>
+                    <li>Replaces CLI and lib scripts</li>
+                    <li>Runs any pending <strong>migration scripts</strong> in order (e.g. new Nginx directives, new
+                        packages)</li>
+                    <li>Updates the version file</li>
+                </ol>
+
+                <p>Migration scripts live in <code>lib/migrations/</code> and are named by version (e.g.
+                    <code>4.1.0.sh</code>, <code>5.0.18.sh</code>). When updating from v4.0.0 to v4.2.0, Cipi automatically runs
+                    <code>4.1.0.sh</code> and <code>4.2.0.sh</code> in order. Your apps, databases, and configurations
+                    are never touched.
+                </p>
+
+                <p>Recent migrations improve reliability without changing app data:
+                    <strong>5.0.6</strong> — default IP whitelist file and regenerated API sudoers;
+                    <strong>5.0.9</strong> — <code>cipi php switch</code> in sudoers for
+                    <code>PUT /api/php/default</code>; <strong>5.0.13</strong> — reclaim API/GUI ownership after update;
+                    <strong>5.0.14&ndash;5.0.17</strong> — timed GitHub/Packagist panel package updates (no more hung
+                    <code>cipi self-update</code> on API/GUI Composer VCS clones);
+                    <strong>5.0.18</strong> — repair Panel GUI after symlink/<code>open_basedir</code> HTTP 500
+                    (<code>cipi gui fix-permissions</code>). Run
+                    <code>cipi self-update</code> to reach <strong>5.1.0</strong>.</p>
+
+                <h3 id="migration-5-1-0">Migration 5.1.0<a class="anchor" href="#migration-5-1-0" aria-label="Link to this section">#</a></h3>
+                <p>The <strong>5.1.0</strong> migration is the largest of the 5.x line. On an existing server it:</p>
+                <ul>
+                    <li>installs the automatic-deploy wrapper and repoints each app's webhook cron at it;</li>
+                    <li>backfills the CLI <code>99-cipi.ini</code> and rewrites FPM pools so they inherit the
+                        server-wide file — see <a href="/docs/php#cli-ini"><code>cipi ini</code></a>;</li>
+                    <li>converts the hardcoded nightly backup job into a <code>default</code>
+                        <a href="/docs/backups#cli-backup">backup profile</a>, carrying over its existing
+                        <code>--weeks</code> retention;</li>
+                    <li>takes over the backup schedule with the managed crontab block;</li>
+                    <li>claims the <code>:443</code>
+                        <a href="/docs/nginx#cli-nginx">default server</a> when nothing else does.</li>
+                </ul>
+                <p>Every step degrades to a warning and carries on. That matters: on an early 5.1.0 build a
+                    <code>grep</code> that matched nothing could fail the migration under <code>set -o pipefail</code>,
+                    and a failed migration makes <code>cipi self-update</code> refuse the release and retry it, failing
+                    again, every night.</p>
+
+                <h3 id="migration-5-4-0">Migrations 5.4.0 and 5.4.1<a class="anchor" href="#migration-5-4-0" aria-label="Link to this section">#</a></h3>
+                <p><strong>5.4.0</strong> turns on the <a href="/docs/deploy-audit#deploy-audit">deploy audit ledger</a> for
+                    existing apps: it installs <code>cipi-deploy-audit</code>, adds one sudoers rule per app (validated
+                    with <code>visudo</code> and restored if rejected), appends the audit hooks to each
+                    <code>deploy.php</code> without touching the rest of the file, switches the deploy-trigger cron from
+                    <code>rm</code> to <code>mv</code>, and writes the audit start marker.</p>
+                <p>It also moves servers off <strong>Node 20</strong>, which reached end of life in April 2026:</p>
+                <ul>
+                    <li><strong>Fresh installs:</strong> <code>setup.sh</code> installs Node 22 from NodeSource.</li>
+                    <li><strong>Servers still on Node 20</strong> (the NodeSource package, or
+                        <code>cipi node default 20</code>) are switched with
+                        <a href="/docs/nodejs#cli-node"><code>cipi node default 22</code></a>, which downloads
+                        and verifies the official build and links it into <code>/usr/local/bin</code> ahead of
+                        <code>/usr/bin</code>. The NodeSource package is not touched, so
+                        <code>cipi node default system</code> restores 20. Laravel asset builds,
+                        <code>cipi app run npm</code> and <code>deploy.post</code> use 22 from their next run.</li>
+                    <li><strong>Servers on another major</strong>, or with no Node at all, are left as they are.</li>
+                    <li><strong>A failed download</strong> leaves the server on 20, prints how to retry and lets the
+                        update carry on. A <code>node_default</code> notification is sent.</li>
+                </ul>
+                <p><strong>5.4.1</strong> regenerates <code>/etc/sudoers.d/cipi-api</code> so the
+                    <a href="/docs/api#cipi-api-host">panel API</a> can drive redirects, proxies and Node apps. Neither
+                    migration deploys, reloads or restarts anything.</p>
+
+                <h3 id="migration-5-5-0">Migration 5.5.0<a class="anchor" href="#migration-5-5-0" aria-label="Link to this section">#</a></h3>
+                <p>The <strong>5.5.0</strong> migration moves Laravel apps from dated log files to one
+                    <code>laravel.log</code> — see <a href="/docs/log-retention#cipi-log-retention">log retention</a>. It runs for every
+                    Laravel app; custom and Node apps are not touched:</p>
+                <ol>
+                    <li>Rewrites <code>/etc/logrotate.d/cipi-app-logs</code> with the new
+                        <code>storage/logs/*[!0-9].log</code> pattern.</li>
+                    <li>In <code>shared/.env</code>, <code>LOG_CHANNEL=daily</code> becomes <code>single</code>, and so
+                        does a <code>daily</code> inside <code>LOG_STACK</code>. Any other channel (<code>stack</code>,
+                        <code>stderr</code>, <code>slack</code>, …) is left as it is. The rewrite runs as the app user and
+                        goes through a copy that replaces the <code>.env</code> in one rename, with the same owner and
+                        mode: the file is never truncated in place, so a write that fails (a full disk) leaves it
+                        exactly as it was. An <code>.env</code> the app user cannot rewrite is reported with a
+                        warning.</li>
+                    <li>Where the <code>.env</code> changed, so that no process keeps the old channel in memory:
+                        <ul>
+                            <li><code>artisan config:cache</code> as the app user, if the current release has a cached
+                                config. Other <code>.env</code> edits that were waiting for a deploy become active with
+                                it.</li>
+                            <li>SIGTERM to the app's <strong>running</strong> Supervisor programs (queue workers,
+                                Horizon, Octane, Reverb). They finish the job in hand and Supervisor starts them again;
+                                stopped programs stay stopped. Octane and Reverb drop their connections for the few
+                                seconds of the restart, as on a deploy.</li>
+                            <li>One <code>systemctl reload</code> of PHP-FPM per PHP version in use by those apps.</li>
+                        </ul>
+                    </li>
+                    <li>Folds the dated files into <code>laravel.log</code>, oldest first:
+                        <code>laravel-&lt;date&gt;.log</code>, <code>.log.N</code>, <code>.log.N.gz</code> and the empty
+                        stubs. It runs as the app user. A file is removed only after its content is in
+                        <code>laravel.log</code>; an existing <code>laravel.log</code> is appended to, never replaced; a
+                        file a process still has open, or an archive that cannot be read, is left where it is and named
+                        in the output.</li>
+                </ol>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Unlike the 5.4 migrations, this one restarts processes: running workers, Horizon, Octane and
+                        Reverb get a graceful SIGTERM, and PHP-FPM is reloaded. The nightly <code>cipi self-update</code>
+                        (03:50) will apply it unattended — if you would rather watch Octane and Reverb reconnect, run
+                        <code>cipi self-update</code> yourself first. The migration also needs free disk space for one
+                        uncompressed copy of an app's dated logs while it folds them; if that fails, the app's files are
+                        left as they were. A second run finds nothing to do.</div>
+                </div>
+
+                <p>Everything else in 5.5.0 needs no migration step: <code>cipi disk</code>,
+                    <code>cipi firewall attempts</code>, <code>cipi ssh apps</code>, the named Cloudflare accounts and
+                    the soft disk limits change nothing until they are used, and the tab-completion fixes arrive with
+                    the completion files <code>self-update</code> rewrites on every run.</p>
+
+                <h3 id="migration-5-5-1">Migration 5.5.1<a class="anchor" href="#migration-5-5-1" aria-label="Link to this section">#</a></h3>
+                <p>From <strong>5.5.1</strong> Cipi writes the HTTPS server block of every vhost itself and certbot
+                    only issues and renews (<a href="/docs/wildcard-domains#wildcard-domains">wildcard domains</a>). The migration brings
+                    existing servers in line:</p>
+                <ol>
+                    <li>Writes the certbot deploy hook
+                        <code>/etc/letsencrypt/renewal-hooks/deploy/cipi-reload-nginx</code>
+                        (<code>nginx -t -q &amp;&amp; systemctl reload nginx</code>), so nginx serves a renewed
+                        certificate whether certbot.timer or Cipi's weekly cron renewed it.</li>
+                    <li>Removes <code>--nginx</code> from the <code>certbot renew</code> line of root's crontab: on the
+                        command line it overrode how each certificate was issued, and would have renewed a DNS-01
+                        wildcard over HTTP-01.</li>
+                    <li>Writes <code>/etc/nginx/snippets/cipi-ssl.conf</code> (TLS 1.2/1.3, Mozilla intermediate
+                        ciphers), included by every HTTPS block Cipi writes.</li>
+                    <li>Apps whose certificate renews over DNS-01 but are not recorded as DNS-01 — the install stopped
+                        at the old <code>certbot install</code> step — get <code>ssl_dns_provider</code> and
+                        <code>ssl_dns_account</code>; a certificate issued with <code>--wildcard</code> gets
+                        <code>ssl_wildcard</code>. The next <code>cipi ssl install</code> keeps DNS-01 and the
+                        wildcard.</li>
+                    <li>Rewrites, with the HTTPS block written by Cipi, the vhost of every app that has a certificate
+                        and a wildcard name, a Cloudflare Origin CA certificate, or no HTTPS in its vhost at all. One app
+                        at a time, with <code>nginx -t</code> after each: the previous file is kept in
+                        <code>/var/lib/cipi/vhost-backup-5.5.1</code> and put back if nginx refuses the new one.</li>
+                </ol>
+                <p>Other apps keep their certbot-written vhost until it is next regenerated (any alias, www, basic
+                    auth, redirect or proxy change), which switches it. No certificate is requested or renewed, and
+                    nothing is deployed. <code>cipi ssl status</code> then shows, per app, what it is served with and
+                    which of its names the certificate does not cover.</p>
+
+                <h3 id="migration-5-5-2">Migration 5.5.2<a class="anchor" href="#migration-5-5-2" aria-label="Link to this section">#</a></h3>
+                <p>From <strong>5.5.2</strong> the panel API can run <code>cipi disk</code>. The migration regenerates
+                    <code>/etc/sudoers.d/cipi-api</code> so <code>www-data</code> may run <code>cipi disk</code> and
+                    <code>cipi disk *</code> (<code>--json</code>, <code>db --json</code>). Nothing else on the server
+                    changes, and nothing is deployed. <code>cipi disk</code> itself has existed since 5.5.0; until this
+                    sudoers line, <code>GET /api/disk</code> and <code>GET /api/disk/dbs</code> (API
+                    <strong>1.33.0+</strong>, ability <code>disk-view</code>) answer 503. Setting a soft limit was
+                    already on the API in 1.32.0.</p>
+                <p>The same release also ships the <code>cipi.yml</code> fixes in the CLI itself:
+                    <code>deploy.node_build</code>, <code>predeploy_snapshot</code>,
+                    <code>cipi yml generate --save</code>, removal of backup profiles the file no longer lists, and a
+                    <code>cipi.yml</code> line on the deploy-success mail. Those arrive with the updated scripts and
+                    need no further migration step. See <a href="/docs/yml#cli-yml">cipi.yml</a>.</p>
+
+                <h3 id="when-the-update-itself-fails">When the update itself fails<a class="anchor" href="#when-the-update-itself-fails" aria-label="Link to this section">#</a></h3>
+                <p>Up to 5.0.x, <code>cipi self-update</code> reported only “Download failed” — git's stderr was
+                    discarded, so the one message that explains what happened (no DNS, no outbound HTTPS, a missing
+                    branch, a full disk, an expired CA bundle) never reached anyone. Since <strong>v5.1.0</strong> the
+                    real error is printed, the likely cause is named, and the command to reproduce it by hand is shown.
+                    The clone also runs under a 180-second timeout instead of being able to hang indefinitely, and a
+                    missing <code>git</code> is reported as such. An unattended nightly update now also sends the
+                    <code>self_update</code> notification, so it no longer lands without a word. Since
+                    <strong>v5.2.1</strong> that mail is decided from a snapshot taken before
+                    <code>/etc/cipi/version</code> is rewritten, and is sent only when that snapshot differs from the
+                    downloaded version. A nightly refresh that stays on the same release is silent. 5.2.1 itself has
+                    no migration: <code>self-update</code> copies the libs and refreshes shell completion.</p>
+
+                <p>For example, the <strong>4.5.5 migration</strong> retro-fits existing apps with the new
+                    <code>ll='ls -al'</code> shell alias: it appends the alias to each app's <code>~/.bashrc</code>
+                    once (only when missing, preserving ownership), so apps created before 4.5.5 get it on the next
+                    <code>cipi self-update</code>.</p>
+
+                <h3 id="automatic-maintenance-crons">Automatic maintenance crons<a class="anchor" href="#automatic-maintenance-crons" aria-label="Link to this section">#</a></h3>
+                <p>Cipi schedules several root-level jobs during installation. App-level crontabs (scheduler, deploy
+                    trigger) are separate — see <a href="/docs/scheduler#cli-app-cron">User crontab</a>.</p>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Schedule</th>
+                                                <th>Job</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Daily 02:00</td>
+                                                <td><code>cipi backup run</code> — S3 backups for all apps</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Daily 03:00</td>
+                                                <td><code>cipi backup prune --weeks=4</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Daily 03:30</td>
+                                                <td><code>cipi php upgrade</code> — security patches for all installed PHP versions
+                                                    (wrapped by <code>cipi-cron-notify</code>; weekly on Sundays before 5.6.3)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Daily 03:50</td>
+                                                <td><code>cipi self-update</code> (wrapped by <code>cipi-cron-notify</code>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Sun 04:10</td>
+                                                <td><code>cipi ssl renew</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Daily 04:15</td>
+                                                <td>Panel API maintenance (<code>cipi-api-maintain</code> — prune jobs/metrics)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Daily 04:30</td>
+                                                <td><code>cipi api update</code> — soft-update panel Laravel + <code>cipi/api</code></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+            
+</section>
+
+<section class="doc-section" id="cli-completion">
+                <h2 id="cipi-completion"><code>cipi completion</code><a class="anchor" href="#cipi-completion" aria-label="Link to this section">#</a></h2>
+                <p>Since <strong>v5.2.0</strong>, tab-completion for bash and zsh is installed <strong>for
+                        you</strong>. <code>setup.sh</code> and every <code>cipi self-update</code> write it, and
+                    <code>setup.sh</code> also installs the <code>bash-completion</code> package. Nobody edits a
+                    dotfile — a new login shell simply has it.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app &lt;TAB&gt;               <span class="c"># create  list  show  edit  clone  limits  …</span>
+<span class="p"></span>sudo cipi dep&lt;TAB&gt;           <span class="c"># → deploy</span>
+<span class="p"></span>sudo cipi deploy sh&lt;TAB&gt;     <span class="c"># → shop  shop2 (your apps)</span>
+<span class="p"></span>sudo cipi firewall &lt;TAB&gt;     <span class="c"># → allow  list  attempts</span>
+<span class="p"></span>cipi help &lt;TAB&gt;              <span class="c"># help topics</span>
+
+<span class="c"># only needed for another user or a custom rc file</span>
+<span class="p"></span>cipi completion bash
+<span class="p"></span>cipi completion zsh --print  <span class="c"># write the script to stdout, change nothing</span></pre>
+                </div>
+
+                <p>The files written: <code>/etc/bash_completion.d/cipi</code>,
+                    <code>/usr/share/zsh/vendor-completions/_cipi</code> (when that directory exists), an
+                    <code>/etc/profile.d/cipi-completion.sh</code> loader for every interactive login shell, and — since
+                    <strong>v5.5.0</strong> — a loader in the <code>~/.bashrc</code> of root and the <code>cipi</code>
+                    user, the two who can run cipi (added once, existing content untouched, interactive shells
+                    only).</p>
+                <p>It completes the top-level verbs, each verb's sub-commands and flags, <code>cipi help
+                        &lt;topic&gt;</code>, and <strong>app names</strong>: from
+                    <code>/etc/cipi/apps-public.json</code> when the shell's user can read it (root or the
+                    <code>cipi-api</code> group), otherwise from the members of the <code>cipi-apps</code> group, which
+                    every user can list.</p>
+
+                <h3 id="where-it-did-not-work-before-5-5-0">Where it did not work before 5.5.0<a class="anchor" href="#where-it-did-not-work-before-5-5-0" aria-label="Link to this section">#</a></h3>
+                <p>Completion has been installed since 5.2.0, but in three everyday situations <code>&lt;Tab&gt;</code>
+                    did nothing. <strong>v5.5.0</strong> fixes all three:</p>
+                <ul>
+                    <li><strong><code>sudo cipi …</code></strong> — how the <code>cipi</code> user runs every command.
+                        It relied on the sudo completion of the <code>bash-completion</code> package; without the
+                        package <code>&lt;Tab&gt;</code> offered file names. The script now brings its own for that case
+                        (<code>_cipi_sudo_complete</code>): it skips sudo's options, completes <code>cipi</code> as the
+                        command even though the binary is root-only, and hands the rest of the line to the cipi
+                        completion. With <code>bash-completion</code> loaded nothing changes.</li>
+                    <li><strong>Non-login shells</strong> — <code>sudo -s</code>, <code>su</code>, tmux, screen. The
+                        loader lived only in <code>/etc/profile.d</code>, which those shells do not read; the new
+                        <code>~/.bashrc</code> loader covers them.</li>
+                    <li><strong>App names for the <code>cipi</code> user</strong> — they came only from
+                        <code>/etc/cipi/apps-public.json</code>, which the <code>cipi</code> user cannot read, so
+                        <code>sudo cipi deploy &lt;Tab&gt;</code> offered nothing. They now fall back to the
+                        <code>cipi-apps</code> group.</li>
+                </ul>
+                <p>New servers get this from <code>setup.sh</code>; existing servers from their next
+                    <code>cipi self-update</code>, which rewrites the completion files on every run — no migration step,
+                    no package to install. A shell that is already open needs to be reopened. All of the above holds
+                    for bash; zsh loads the same completion from its vendor directory and
+                    <code>/etc/profile.d</code>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>The completion is hand-written, not framework-generated:
+                        <code>tests/verify-5.2.0.sh</code> fails if the verb list drifts from the dispatch table in
+                        <code>cipi</code> itself.</div>
+                </div>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/stack-upgrades" rel="prev"><small>Previous</small><b>Stack upgrades</b></a><a class="next" href="/docs/uninstall" rel="next"><small>Next</small><b>Uninstall</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#cipi-server-self-update">cipi — Server &amp; Self-Update</a></li>
+<li><a class="l3" href="#password-credential-reset">Password &amp; credential reset</a></li>
+<li><a class="l2" href="#self-update-2">Self-Update</a></li>
+<li><a class="l3" href="#update-process">Update process</a></li>
+<li><a class="l3" href="#migration-5-1-0">Migration 5.1.0</a></li>
+<li><a class="l3" href="#migration-5-4-0">Migrations 5.4.0 and 5.4.1</a></li>
+<li><a class="l3" href="#migration-5-5-0">Migration 5.5.0</a></li>
+<li><a class="l3" href="#migration-5-5-1">Migration 5.5.1</a></li>
+<li><a class="l3" href="#migration-5-5-2">Migration 5.5.2</a></li>
+<li><a class="l3" href="#when-the-update-itself-fails">When the update itself fails</a></li>
+<li><a class="l3" href="#automatic-maintenance-crons">Automatic maintenance crons</a></li>
+<li><a class="l2" href="#cipi-completion">cipi completion</a></li>
+<li><a class="l3" href="#where-it-did-not-work-before-5-5-0">Where it did not work before 5.5.0</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/server-commands.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/term.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/server-commands" width="1" height="1" alt=""></noscript>
+</body>
+</html>

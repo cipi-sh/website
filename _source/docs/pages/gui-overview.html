@@ -1,0 +1,395 @@
+<section class="doc-section" id="gui-overview">
+                <h2>The optional web control panel</h2>
+                <p>Cipi is, and always will be, <strong>CLI-first</strong>. Everything a server needs — apps, databases,
+                    SSL, deploys, backups, firewall — is a single <code>cipi</code> command away over SSH. But from
+                    <strong>v4.7.0</strong> Cipi also ships an <strong>optional</strong> web control panel: a
+                    self-hosted Laravel dashboard that manages one or more Cipi servers from the browser, over the same
+                    <a href="/docs/api#cipi-api">REST API</a> the CLI client and WHMCS module use.</p>
+                <cipi-panel></cipi-panel>
+                <p class="term-caption">A working replica of the panel with demo data. The real screenshots follow below.</p>
+
+                <div class="callout success">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    <span><strong>100% optional.</strong> The panel is a separate package you install only if you want
+                        it. Skip it and Cipi runs exactly as before — a lean CLI with no daemon, no web surface, and
+                        nothing extra listening. Install it and your team or clients get a friendly UI without giving up
+                        the terminal. Your server, your choice.</span>
+                </div>
+
+                <p>The panel is a thin visual layer on top of the API — it does not replace the CLI or add a proprietary
+                    control plane. Anything you do in the browser, you can still do from the terminal, and vice versa.
+                    A single panel can drive many servers, so it doubles as a lightweight multi-server cockpit.</p>
+
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/dashboard-light.webp" width="1440" height="900" alt="Cipi control panel dashboard with three connected servers, CPU, memory and disk" class="shot-light" fetchpriority="high" decoding="async">
+                        <img src="/img/gui/dashboard.webp" width="1440" height="900" alt="Cipi control panel dashboard with three connected servers, CPU, memory and disk" class="shot-dark" fetchpriority="high" decoding="async">
+                    </div>
+                    <figcaption>The dashboard queries every connected server at once — status, resources, services and Cipi version.</figcaption>
+                </figure>
+
+                <h3>What you can do from the panel</h3>
+                <ul>
+                    <li>Manage <strong>apps</strong> — create, edit, deploy, suspend/unsuspend, fix permissions and
+                        delete Laravel, <strong>Node</strong> (SPA / static / SSR) and custom apps; manage aliases,
+                        WWW/apex redirects, SSL (install + force HTTPS), and HTTP basic auth. Wildcard primary domains
+                        (<code>*.example.com</code>) are accepted. The create and edit forms have an
+                        <strong>Environment</strong> field (<code>production</code>, <code>staging</code>, … — panel
+                        <strong>4.0</strong>, API <strong>1.36</strong> / Cipi <strong>5.8.0+</strong>), the same label as
+                        <a href="/docs/create-app#cli-app-create"><code>cipi app create --env</code></a>, and the app page
+                        shows it.</li>
+                    <li>Create <strong>Node apps</strong> with a framework preset (Next.js, Nuxt, SvelteKit, Astro,
+                        Remix, Vite), Node major, build/start commands, output directory and health path; edit them
+                        later, restart SSR apps blue/green, and pin a Laravel app's asset build to its own Node major
+                        (API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong>). See
+                        <a href="/docs/node-apps#cli-app-node">Node apps</a>.</li>
+                    <li><strong>Routing</strong> — whole-app redirects (set, enable, disable, unset), path redirects
+                        and prefix reverse proxies, with the same validation as
+                        <a href="/docs/redirects-proxies#cli-redirect"><code>cipi redirect</code></a> and
+                        <a href="/docs/redirects-proxies#cli-proxy"><code>cipi proxy</code></a> (API <strong>1.31+</strong>
+                        / Cipi <strong>5.4.1+</strong>).</li>
+                    <li><strong>Deploy</strong> — deploy, rollback and unlock; structured <code>deploy.php</code>
+                        options; and the app's <a href="/docs/deploy-audit#deploy-audit">deploy audit ledger</a> — who or
+                        what deployed each release, from where (API <strong>1.31+</strong> / Cipi
+                        <strong>5.4.0+</strong>). Since panel <strong>4.1.0</strong> (API <strong>1.37.0</strong> /
+                        Cipi <strong>5.8.4+</strong>) a deploy in progress — started by a Git push, the command line,
+                        the panel or a rollback — is shown on the app page while it runs, with its trigger, branch,
+                        elapsed time and the live tail of the deploy log, listed first in the audit, and announced
+                        when it ends; every audit row opens its own deploy log.</li>
+                    <li><strong><code>cipi.yml</code></strong> — the app's tab shows the file of the live release,
+                        whether it is valid, what applying would change and what blocks it; apply it as a job, and turn
+                        auto-apply after every deploy on or off, with a confirmation that says who can then change the
+                        server (API <strong>1.35+</strong> / Cipi <strong>5.6.4+</strong>). With panel
+                        <strong>4.0</strong> (API <strong>1.36</strong> / Cipi <strong>5.8.0+</strong>) the tab also names the app's environment and the file in use —
+                        <code>cipi-staging.yml</code> for a staging app, <code>cipi.yml</code> otherwise. See
+                        <a href="/docs/yml#cli-yml"><code>cipi.yml</code></a> and
+                        <a href="/docs/yml#cli-yml-env">staging and production from one repository</a>.</li>
+                    <li><strong>Search</strong> — Meilisearch status and per-app enable/disable for Laravel Scout (API
+                        <strong>1.31+</strong> / Cipi <strong>5.2.2+</strong>).</li>
+                    <li>Create Laravel apps with optional <strong>Laravel Octane (FrankenPHP)</strong> (API
+                        <strong>1.13+</strong> / Cipi <strong>5.0+</strong>); list and detail views show FPM vs
+                        Octane.</li>
+                    <li>Edit app <strong><code>.env</code></strong>, manage Composer
+                        <strong><code>auth.json</code></strong>, run <strong>Artisan</strong>, and execute
+                        whitelisted <strong>App commands</strong> (<code>cipi app run</code>) — requires API
+                        <strong>1.14+</strong> / Cipi <strong>5.0.3+</strong> (terminal output supports Markdown
+                        copy).</li>
+                    <li>Pick a database <strong>engine</strong> at app create (<code>mariadb</code> or
+                        <code>pgsql</code>) and manage multi-engine databases — list, create, back up, restore,
+                        regenerate passwords (API <strong>1.12+</strong> / Cipi <strong>4.8+</strong>). Deleting a
+                        database stays on the host CLI since API <strong>1.19</strong>.</li>
+                    <li>Browse application and server <strong>logs</strong> with type filter, pagination, and
+                        auto-refresh.</li>
+                    <li>Watch <strong>async jobs</strong> in an interactive overlay (spinner + terminal output while
+                        polling <code>GET /api/jobs/{id}</code>).</li>
+                    <li>A <strong>time zone per account</strong> (panel <strong>4.1.1</strong>, Settings → Profile, UTC
+                        until chosen, with a <em>Use my browser's</em> shortcut): the deploy in progress, the deploy audit
+                        and the dashboard clock all follow it, and say which zone they are in. Every button that calls
+                        the server shows a spinner while it waits.</li>
+                    <li>Live <strong>dashboard</strong> — CPU, memory, disk, services, and app count via
+                        <code>GET /api/status</code>.</li>
+                    <li><strong>Server cockpit</strong> (API <strong>1.15+</strong> / Cipi <strong>5.0.6+</strong>) —
+                        install PHP versions, manage SSH keys, services, SMTP notifications, HTTP healthchecks, and
+                        panel API IP whitelist from the browser. The versions offered are the ones the server
+                        lists: <a href="/docs/php#php-86">PHP 8.6</a> appears on a server with Cipi
+                        <strong>5.9.1</strong> and API <strong>1.39.2</strong>, with no panel update.
+                        <a href="/docs/php#php-legacy">Legacy versions</a> a server still has (7.4–8.2)
+                        are listed with a <em>legacy</em> badge; an app that runs on one keeps it in its
+                        configuration form, and no other app is offered it. Since API <strong>1.31</strong> the same page shows
+                        <strong>Node runtimes</strong>, Meilisearch, the optional <strong>host packages</strong>
+                        catalog, the <strong>system monitor</strong> and <strong>Cloudflare Zero Trust</strong> status
+                        — read-only by design: installing software, changing monitor thresholds and every
+                        <code>zt</code> change stay with the operator on the CLI. Since API <strong>1.33</strong>
+                        (panel <strong>3.1</strong>, Cipi <strong>5.5.2+</strong>) the same page has a
+                        <strong>Disk</strong> tab: who is filling the disk, the figures of
+                        <a href="/docs/disk#cli-disk"><code>cipi disk</code></a> and
+                        <code>cipi disk db</code>.</li>
+                    <li>Register <strong>multiple servers</strong> under one login. In the default <strong>fleet
+                        view</strong> (panel <strong>4.0</strong>) Apps and Databases list every server in one place,
+                        with a server column and filter, and the sidebar has one entry per server; admins can switch the
+                        panel back to one server at a time, picked from the header. App links carry the server so they
+                        can be bookmarked and shared.</li>
+                    <li><strong>Roles</strong> (panel <strong>4.0</strong>): admins see and do everything; users get what
+                        an admin grants — View or Manage on whole servers, and View, Deploy, Edit, Environment, Logs,
+                        Commands or Delete on single apps. People are invited with a copyable link that carries the role
+                        and the grants; nothing is emailed.</li>
+                    <li><strong>Deploy in progress</strong> (panel <strong>4.1.0</strong>, API <strong>1.37.0</strong>,
+                        Cipi <strong>5.8.4+</strong>): the app page polls
+                        <a href="/docs/deploying#deploy-status"><code>cipi deploy &lt;app&gt; --status</code></a> and shows a
+                        deploy it did not start — a Git push through the webhook, the command line, another panel, a
+                        rollback — as a banner with the trigger, the branch, the phase (Deployer building the release,
+                        then post-deploy steps, cipi.yml and healthcheck), a ticking elapsed time and the live log tail;
+                        Deploy and Roll back are held while it runs; when it ends a toast gives the result and the
+                        page, the audit and the logs reload. A push waiting for the per-minute cron shows as queued, a
+                        run that died shows as interrupted with the Unlock action. Each audit row has a Log button that
+                        opens that deploy's own slice of the deploy log, post-deploy verdict included. The app header
+                        links to the app's server, and the healthcheck card says the check also runs after every deploy.
+                        On an older server the panel simply shows none of this.</li>
+                    <li><strong>Deploy times</strong> (panel <strong>4.0</strong>, Cipi <strong>5.6+</strong>): the deploy
+                        audit shows how long each deploy took and the Deploy card the last and average time, read from
+                        the deploy log's end banners. Dialogs with a form keep what was typed, and IPs copy on click.</li>
+                    <li><strong>One-time credentials</strong> (SSH and database passwords, deploy key, webhook URL and
+                        token) are listed with copy buttons when a job returns them, instead of being buried in CLI
+                        output.</li>
+                    <li><strong>Single sign-on</strong> (panel <strong>4.0.2</strong>, Cipi 5.8.2): sign in through
+                        Microsoft Entra ID, Google Workspace, Okta or any OpenID Connect provider, configured from the
+                        server with <a href="/docs/gui-sso#gui-sso"><code>cipi gui sso</code></a>; accounts matched by email, optional
+                        auto-created accounts per domain, an SSO-only mode with the break-glass on the CLI.</li>
+                    <li><strong>Repository check and build at creation</strong> (panel <strong>3.2</strong>, API
+                        <strong>1.34</strong>, Cipi <strong>5.6.0+</strong>): creating a Laravel app takes an optional
+                        build command (<code>npm ci &amp;&amp; npm run build</code>) that runs on every deploy before
+                        the release goes live, and the job overlay says whether the deploy key can read the repository
+                        — after a create, or an edit that changed the repository or branch. When it cannot, it shows
+                        git's error and the command to run on the server, with a copy button: the API cannot save Git
+                        tokens, so that step stays on SSH.</li>
+                    <li><strong>A deploy that published and then failed</strong> (panel <strong>4.0.1</strong>) is told
+                        apart from a failed deploy: when the job output says the release went live
+                        (<code>Successfully deployed!</code>) and the command still exited non-zero, the overlay shows a
+                        warning with the post-deploy error or the exit code and what to check — the release is live,
+                        nothing was rolled back — instead of "The job failed" with the Git-key hints. Cipi before
+                        <strong>5.8.1</strong> exited 1 after every successful deploy started through the API, which is
+                        why every panel deploy looked failed; the overlay names it, and <code>cipi self-update</code>
+                        on the server clears it.</li>
+                    <li><strong>The last deploy in the app list</strong> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>) — when each app was last
+                        deployed and how it went (OK, failed, a rollback), with release, duration and who started it
+                        in the tooltip. It is asked after the list is on the page, of every server at once. The
+                        database column counts the databases <a href="/docs/databases#cli-db-link">linked to the
+                        app</a>.</li>
+                    <li><strong>Deploy durations that stay</strong> (same versions). The Deploy tab took them from
+                        <code>deploy.log</code>, which the server rotates every night: a deploy kept its time until
+                        the first rotation, and one started by a Git push — looked at the day after — never showed
+                        any. They come from the server's <a href="/docs/deploying#deploy-history">deploy history</a>
+                        now, rotated logs included.</li>
+                    <li><strong>Backups</strong> — <em>Server → Backups</em> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>): a matrix of every app and
+                        every database against the <a href="/docs/backups#cli-backup">backup profiles</a>. A
+                        column per profile says what it takes, how often, where it sends it, how long it keeps it and
+                        how its last run went (OK, failed, overdue, running); a mark says which apps and databases it
+                        covers, and a row no enabled profile covers is flagged. Create, edit, pause, run now (on the
+                        server, in the background), verify and delete profiles; test the destinations; list the stored
+                        runs. Buckets are added on the server (<code>cipi backup destination add</code>): their
+                        secret key does not go through the panel. Since panel <strong>4.2.1</strong> the tab never
+                        guesses: <em>Backups are not configured</em> is shown only when the server answers so — with
+                        the host that answered and the file it looked for
+                        (<code>/etc/cipi/backup.json</code>) — and a status that could not be read is shown as an
+                        error, with what the server answered and <em>Try again</em>. To read on the server exactly
+                        what the panel reads:
+                        <code>sudo -u www-data sudo -n /usr/local/bin/cipi backup status --json</code>.</li>
+                    <li><strong>Node runtimes</strong> — <em>Server → Node</em> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>): install a major, upgrade
+                        to the latest patch (the SSR apps move to the new binary blue/green, without downtime), choose
+                        the server default, remove one nothing uses.</li>
+                    <li><strong>Databases that belong to apps, and dumps from your computer</strong> (panel <strong>4.2.0</strong>, API <strong>1.39.0</strong> / Cipi <strong>5.9.0+</strong>).
+                        The Databases page shows the app of each database and links or unlinks one from its row;
+                        <em>Create database</em> takes an app. <em>Restore</em> accepts a <code>.sql</code> or
+                        <code>.sql.gz</code> from your computer as well as a file on the server: the browser cuts it
+                        into chunks and the panel hands each one on — it keeps nothing, so a dump of any size passes
+                        through request limits that were never meant for it — up to the size the server allows (2 GB
+                        by default), with a progress bar and a Stop.</li>
+                    <li><strong>Saved commands</strong> (panel <strong>4.2.0</strong>) — the one-click commands above
+                        the Artisan and Commands inputs are a list the panel's admins edit from the tab: add the ones
+                        the team runs, remove the ones it never does — the defaults included — or go back to the
+                        defaults. One list for every app and everyone.</li>
+                    <li><strong>A confirmation dialog of the panel's own</strong> (panel <strong>4.2.0</strong>) in
+                        place of the browser's: the question, what it will do, the action's own word on the button —
+                        red, and not focused, when it destroys something.</li>
+                    <li><strong>Pages before answers</strong> (panel <strong>4.2.0</strong>) — Server and the log
+                        viewer are shown at once and load their data after, like Dashboard, Apps and Databases; what a
+                        page still needs first is asked in one round instead of one request after the other. Nothing a
+                        server says is cached between requests: a panel that shows a worker or a backup that is no
+                        longer there is worse than one that takes a moment.</li>
+                    <li><strong>What a user may do is asked at every request</strong> (panel <strong>4.2.0</strong>,
+                        a security fix): the abilities on an app, the app, the server and the job a page works on
+                        can no longer be changed from the browser — a user with <em>View</em> on one app could act on
+                        another app of the same server. Update the panel: <code>cipi gui update</code>.</li>
+                    <li>Light and dark themes, a phone layout, and per-section fallbacks: a server whose API is older
+                        or whose token is narrower still works for everything it supports.</li>
+                </ul>
+                <p>Panel <strong>3.0</strong> (October 2026) redesigned every page around the same design system as
+                    this site. Panel <strong>3.1</strong> adds Server → Disk; <strong>4.0</strong> roles with invite
+                    links, the fleet view, deploy times, the Environment field and the
+                    environment on the <code>cipi.yml</code> tab; <strong>4.1.0</strong> a deploy in progress — whoever started it — on the app page with its live log, a log per audit row, a link to the app's server; <strong>4.1.1</strong> every button that calls the server ignores further clicks and shows a spinner until the answer arrives, and a time zone per account (UTC until chosen) that every time in the panel follows (API 1.37.0 / Cipi 5.8.4); <strong>4.0.2</strong> single sign-on over OpenID
+                    Connect, a header and lists that follow every change without a reload, and jobs run in the
+                    background that still report back; <strong>4.2.0</strong> backups as a matrix, Node runtimes,
+                    the last deploy of every app, dump upload, databases linked to apps, saved commands, the panel's
+                    own confirmation dialog, and a security fix; <strong>4.2.1</strong> a Backups tab that says
+                    "not configured" only when the server does, the server's own reason under every "Not available
+                    on this server", the API version each server runs next to its Cipi version (API 1.39.1), and
+                    "Cipi" instead of the host app's name in the browser tab. See the
+                    <a href="/docs/gui-overview#gui-tour">screenshot tour</a> and the
+                    <a href="https://github.com/cipi-sh/gui/blob/main/CHANGELOG.md" target="_blank" rel="noopener">changelog</a>.</p>
+            
+
+            <!-- ── Screenshot tour ── -->
+</section>
+
+<section class="doc-section" id="gui-tour">
+                <h2>Screenshot tour</h2>
+                <p>Every image below is a real screenshot of the panel, taken against its demo environment — a
+                    stand-in for the panel API with three fictional servers that ships with the package
+                    (<code>./dev/demo.sh</code>; <code>--reset</code> picks up the API 1.33 disk fixtures). Domains and
+                    IPs are documentation ranges.</p>
+
+                <h3>Apps</h3>
+                <p>Laravel (PHP-FPM or Octane), Node (SPA, static, SSR) and custom PHP apps of every connected server in one list — a server column and filter, type filters, search and a deploy button on every row. The Dashboard and Server pages open the list narrowed to one server; a user sees only the apps granted to them.</p>
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/apps-light.webp" width="1440" height="900" alt="Apps of three servers in one list, with a server column and filter" class="shot-light" loading="lazy" decoding="async">
+                        <img src="/img/gui/apps.webp" width="1440" height="900" alt="Apps of three servers in one list, with a server column and filter" class="shot-dark" loading="lazy" decoding="async">
+                    </div>
+                </figure>
+
+                <p>Creating an app starts with its type. Node framework presets (Next.js, Nuxt, SvelteKit, Astro, Remix, Vite) fill the mode and show the same defaults <code>cipi app create --node</code> uses.</p>
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/create-app.webp" width="1440" height="900" alt="Create app dialog with the server picker and the Node type selected" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Create a Node SSR app with the Nuxt preset — with several servers connected, pick where it goes.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/job-credentials.webp" width="1440" height="900" alt="Job overlay with one-time credentials after creating an app" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Credentials returned by the job, with reveal and copy.</figcaption>
+                    </figure>
+                </div>
+
+                <h3>App detail</h3>
+                <p>A header with status, type, runtime and quick actions, then one tab per area. Tabs are part of the URL, so <code>?tab=deploy</code> can be bookmarked.</p>
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/app-overview.webp" width="1440" height="945" alt="App overview with details, configuration, healthcheck and search" loading="lazy" decoding="async">
+                    </div>
+                    <figcaption>Overview: details, configuration (PHP, Node pin, repository, branch, domain), HTTP healthcheck and Meilisearch.</figcaption>
+                </figure>
+
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/app-deploy-light.webp" width="1440" height="1240" alt="Deploy tab with deploy actions, deploy times, the deploy audit ledger and the deploy pipeline options" class="shot-light" loading="lazy" decoding="async">
+                        <img src="/img/gui/app-deploy.webp" width="1440" height="1240" alt="Deploy tab with deploy actions, deploy times, the deploy audit ledger and the deploy pipeline options" class="shot-dark" loading="lazy" decoding="async">
+                    </div>
+                    <figcaption>Deploy: actions, Git webhook, how long the last deploys took, the hash-chained deploy audit with a Took column, and the structured deploy.php pipeline.</figcaption>
+                </figure>
+
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-routing.webp" width="1440" height="1006" alt="Routing tab with whole-app redirect, path redirects and reverse proxies" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Routing: whole-app and path redirects, prefix proxies.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-domains.webp" width="1440" height="907" alt="Domains and SSL tab" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Domains, Let&rsquo;s Encrypt and www &harr; apex.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-env.webp" width="1440" height="960" alt="Environment editor with masked secrets and one unsaved change" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>.env editing with masked secrets and change tracking.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/app-logs.webp" width="1440" height="960" alt="Laravel log viewer with errors highlighted" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Logs by type, paginated, with live refresh.</figcaption>
+                    </figure>
+                </div>
+
+                <h3>Jobs</h3>
+                <p>Deploys, SSL, app and database operations run as async jobs on the server. The overlay polls <code>GET /api/jobs/{id}</code>, shows the elapsed time and colour-codes the CLI output; closing it leaves the job running.</p>
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/job-deploy.webp" width="1440" height="900" alt="Completed deploy job with Deployer output" loading="lazy" decoding="async">
+                    </div>
+                </figure>
+
+                <h3>Databases and server</h3>
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/databases.webp" width="1440" height="900" alt="Databases page with backup, restore and password actions" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Databases: create, back up, restore, rotate passwords.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/server-monitor.webp" width="1440" height="900" alt="System monitor checks with states and thresholds" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Monitor checks with thresholds and last alert.</figcaption>
+                    </figure>
+                </div>
+
+                <figure class="gui-shot">
+                    <div class="gui-shot-frame">
+                        <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                        <img src="/img/gui/server-overview-light.webp" width="1440" height="1000" alt="Server overview with system, resources, attention list, services and PHP-FPM pools" class="shot-light" loading="lazy" decoding="async">
+                        <img src="/img/gui/server-overview.webp" width="1440" height="1000" alt="Server overview with system, resources, attention list, services and PHP-FPM pools" class="shot-dark" loading="lazy" decoding="async">
+                    </div>
+                    <figcaption>Server overview: system, resources, monitor and healthcheck alerts, services with restart, PHP-FPM pools.</figcaption>
+                </figure>
+
+                <h3>Connections, security and phones</h3>
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/connections.webp" width="1440" height="900" alt="Connections page with the three servers and the token command" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Connections (admins) — IPs copy on click — and token rotation.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/settings-2fa.webp" width="1440" height="1040" alt="Settings page with the panel settings and two-factor setup" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Panel settings (admins), profile with its time zone, password and TOTP two-factor setup.</figcaption>
+                    </figure>
+                </div>
+
+                <div class="gui-shot-phones">
+                    <img src="/img/gui/mobile-apps.webp" width="585" height="1266" alt="Apps list on a phone" loading="lazy" decoding="async">
+                    <img src="/img/gui/mobile-app.webp" width="585" height="1266" alt="App detail on a phone" loading="lazy" decoding="async">
+                    <img src="/img/gui/mobile-nav.webp" width="585" height="1266" alt="Navigation drawer on a phone" loading="lazy" decoding="async">
+                </div>
+
+                <h3>Team and roles</h3>
+                <p>Admins see and do everything. A user gets what an admin grants — View or Manage on whole servers, and View, Deploy, Edit, Environment, Logs, Commands or Delete on single apps — and is invited with a copyable link that carries that access. Nothing is emailed; a link works once and expires after seven days.</p>
+                <div class="gui-shot-grid">
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/team.webp" width="1440" height="900" alt="Team page with an admin, a user and a pending invite" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Team: accounts, roles, access and pending invite links.</figcaption>
+                    </figure>
+                    <figure class="gui-shot">
+                        <div class="gui-shot-frame">
+                            <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+                            <img src="/img/gui/team-invite.webp" width="1440" height="900" alt="Invite dialog with a level per server and abilities per app" loading="lazy" decoding="async">
+                        </div>
+                        <figcaption>Inviting a user: a level per server, abilities per app, then a link to copy.</figcaption>
+                    </figure>
+                </div>
+            
+
+            <!-- ── Requirements ── -->
+</section>

@@ -1,0 +1,632 @@
+<section class="doc-section" id="cli-yml">
+                <p>Available since <strong>v5.1.0</strong>. An app can carry a <code>cipi.yml</code> file in its
+                    repository describing the state it expects: <strong>domain aliases</strong>, <strong>PHP version
+                        and settings</strong>, <strong>extra databases</strong>, <strong>queue workers</strong> or
+                        <strong>Horizon</strong>, <strong>Reverb</strong>, the
+                    <strong>scheduler</strong>, its <strong>healthcheck</strong> and its <strong>backup
+                        strategy</strong>. Since <strong>v5.2.3</strong> it can also declare
+                    <a href="/docs/yml#cli-yml-deploy-post"><strong>post-deploy steps</strong></a>, and since
+                    <strong>v5.4.0</strong> the <a href="/docs/yml#cli-yml-routes">www redirect, basic auth, redirects and
+                    proxies</a>, <a href="/docs/yml#cli-yml-more">Meilisearch, recipe options, limits, forced HTTPS, required
+                    <code>.env</code> names and crons</a>, and a <a href="/docs/yml#cli-yml-node">Node app's build</a>. Since
+                    <strong>v5.8.0</strong> an app with an environment label reads a
+                    <a href="/docs/yml#cli-yml-env">per-environment <code>cipi-&lt;env&gt;.yml</code></a> before
+                    <code>cipi.yml</code>, and the file can set the <a href="/docs/yml#cli-yml-more">deploy branch</a>. The file
+                    lives next to the code, so server configuration is reviewed, versioned and shipped like everything
+                    else.</p>
+
+                <h3>Commands</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi yml generate myapp          <span class="c"># print this app's current config</span>
+<span class="p"></span>cipi yml generate myapp --save   <span class="c"># write /home/myapp/cipi.yml (5.5.2+)</span>
+<span class="p"></span>cipi yml example myapp           <span class="c"># blank commented template, in myapp's namespace</span>
+<span class="p"></span>cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
+<span class="p"></span>cipi yml plan myapp              <span class="c"># show exactly what would change</span>
+<span class="p"></span>cipi yml plan myapp --json       <span class="c"># the same plan as one JSON object (5.6.4+)</span>
+<span class="p"></span>cipi yml apply myapp [--yes]     <span class="c"># apply it</span>
+<span class="p"></span>cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy; status names the env and the file in use (5.8.0+)</span>
+<span class="p"></span>cipi yml auto myapp status --json  <span class="c"># {app, env (5.8.0+), auto, sudoers, file} (5.6.4+)</span>
+<span class="p"></span>cipi yml post-deploy myapp       <span class="c"># run the declared deploy.post steps now (5.2.3+)</span></pre>
+                </div>
+
+                <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
+                    <code>htdocs/cipi.yml</code> and <code>htdocs/cipi.yaml</code> (since <strong>v5.2.3</strong>, where
+                    a <a href="/docs/custom-apps#cli-app-custom">custom app</a>'s repository actually lives), then
+                    <code>shared/cipi.yml</code>. Since <strong>v5.8.0</strong> an app whose environment is
+                    <code>&lt;label&gt;</code> (<a href="/docs/create-app#cli-app-create"><code>cipi app create --env</code></a>,
+                    default <code>production</code>) tries <code>cipi-&lt;label&gt;.yml</code>, then
+                    <code>cipi-&lt;label&gt;.yaml</code>, before <code>cipi.yml</code> / <code>cipi.yaml</code> in each of
+                    those places: a production app reads <code>cipi-production.yml</code>, then <code>cipi.yml</code>;
+                    a staging app <code>cipi-staging.yml</code>, then <code>cipi.yml</code> — see
+                    <a href="/docs/yml#cli-yml-env">staging and production from one repository</a>. Override with
+                    <code>--file=&lt;path&gt;</code> — except through the panel API, which only ever reads the app's own
+                    file (5.6.4+).</p>
+
+                <p id="cli-yml-json">Since <strong>v5.6.4</strong>, <code>cipi yml plan &lt;app&gt; --json</code> prints
+                    <code>app</code>, <code>file</code> (<code>null</code> when the release has none), <code>auto</code>,
+                    <code>valid</code>, <code>in_sync</code>, <code>errors</code>, <code>warnings</code>,
+                    <code>changes</code> (<code>kind</code> + <code>summary</code>), <code>blockers</code> and
+                    <code>notes</code> — and, since <strong>v5.8.0</strong>, <code>env</code>, the app's environment,
+                    with <code>file</code> naming the <code>cipi-&lt;env&gt;.yml</code> when that is the file in use. A
+                    missing, invalid or blocked file is still a plan and exits 0; only an unknown
+                    app is an error. <code>cipi yml auto &lt;app&gt; status --json</code> prints
+                    <code>{"app","env","auto","sudoers","file"}</code> (<code>env</code> since 5.8.0), where
+                    <code>sudoers</code> says whether the webhook's sudo rule is in place. Both feed the <a href="/docs/api#cipi-api-yml">panel API</a>
+                    (<code>cipi/api</code> 1.35.0+), so <a href="/docs/gui">the control panel</a>,
+                    <a href="/docs/cli-client#cli-deploy"><code>cipi-cli</code></a> and the
+                    <a href="/docs/php-sdk#sdk-deploy">PHP SDK</a> can read the plan, apply it and turn auto-apply on or
+                    off.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Validate before you push.</strong> <a href="/docs/agent-yml#agent-yml"><code>cipi/agent</code>
+                        2.0</a> ships the same validator: <code>php artisan cipi:yml validate</code> gives the server's
+                        verdict and messages locally and in CI (<code>--json</code>), checks <code>env.required</code>
+                        against the local <code>.env</code>, and <code>cipi:yml generate --write</code> infers a first
+                        file from the Laravel app (Horizon, Reverb, Scout, scheduler, <code>/up</code>). A JSON Schema
+                        for editors comes with <code>cipi:yml schema --write</code>.</div>
+                </div>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div><strong>Fixed in v5.2.3:</strong> on a custom app, <code>htdocs/</code> <em>is</em> the
+                        document root, so a committed <code>cipi.yml</code> was downloadable at
+                        <code>https://&lt;domain&gt;/cipi.yml</code>. Every app vhost now denies
+                        <code>/cipi.yml</code> and <code>/cipi.yaml</code> at any path, Laravel included. Existing
+                        servers get the rule on update, without regenerating the vhost. Update, then check your own
+                        domains. Since <strong>v5.8.0</strong> the same rule denies
+                        <code>/cipi-&lt;anything&gt;.yml</code> and <code>.yaml</code>, so a committed
+                        <code>cipi-staging.yml</code> is not downloadable either; migration 5.8.0 updates the existing
+                        vhosts.</div>
+                </div>
+
+                <h3 id="cli-yml-env">Staging and production from one repository (v5.8.0)</h3>
+                <p>Every app has an <strong>environment label</strong> — <code>production</code> unless it was created
+                    with <a href="/docs/create-app#cli-app-create"><code>cipi app create --env=&lt;label&gt;</code></a>, cloned
+                    with <code>cipi app clone --env=</code> or changed with <code>cipi app edit --env=</code>. Cipi writes
+                    it to the app's <code>.env</code> as <code>APP_ENV</code> (Laravel) and <code>CIPI_ENV</code>
+                    (Laravel and Node), and <code>cipi app show</code> prints it. When the app's environment is
+                    <code>&lt;label&gt;</code>, <code>cipi yml</code> reads <code>cipi-&lt;label&gt;.yml</code> (or
+                    <code>.yaml</code>) first and falls back to <code>cipi.yml</code> only when there is none. That is
+                    how one repository serves a staging app and a production app: commit
+                    <code>cipi-staging.yml</code> next to <code>cipi.yml</code> (or <code>cipi-production.yml</code>),
+                    and each app picks its own. The <a href="/docs/yml#cli-yml-more"><code>deploy.branch</code></a> key is what
+                    makes the pair useful — the staging file deploys <code>develop</code>, the production file
+                    <code>main</code>:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml — cipi-staging.yml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>version: 1
+deploy:
+  branch: develop
+  keep_releases: 3</pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml — cipi.yml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>version: 1
+deploy:
+  branch: main
+  keep_releases: 5</pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app create --user=shop --domain=shop.com --repository=git@github.com:acme/shop.git --branch=main
+<span class="p"></span>cipi app clone shop --domain=staging.shop.com --name=shop-stg --env=staging   <span class="c"># still on main — the file moves it</span>
+<span class="p"></span>cipi yml auto shop-stg status        <span class="c"># environment: staging — file: current/cipi-staging.yml</span>
+<span class="p"></span>cipi yml plan shop-stg               <span class="c"># deploy branch: main → develop (from the next deploy)</span>
+<span class="p"></span>cipi yml generate shop-stg           <span class="c"># names the file to commit: cipi-staging.yml</span></pre>
+                </div>
+                <p>The file is chosen by the <strong>server</strong> — the app's environment — never by anything in the
+                    file itself, so a commit cannot point a production app at the staging file. If
+                    <code>cipi-&lt;label&gt;.yml</code> exists but is invalid there is <strong>no fallback</strong> to
+                    <code>cipi.yml</code>: the error names the file. <code>cipi yml auto &lt;app&gt; status</code> prints
+                    the environment and the file in use, <code>cipi yml plan --json</code> and <code>cipi yml auto
+                    --json</code> carry <code>env</code>, and <code>cipi yml generate &lt;app&gt;</code> names the file to
+                    commit — <code>cipi-&lt;env&gt;.yml</code> when the environment is not production. Apps that existed
+                    before 5.8.0 are <code>production</code>; migration 5.8.0 adds <code>CIPI_ENV=production</code> to
+                    their <code>.env</code> (a value already there is left alone), and <code>cipi sync import|update</code>
+                    keeps both keys in step.</p>
+
+                <h3>Start from what the server already has</h3>
+                <p>You do not have to write it by hand. <code>cipi yml generate &lt;app&gt;</code> prints the app's
+                    configuration as it stands on the server — aliases, PHP version and per-app settings, its extra
+                    databases, its queue workers (read back out of Supervisor), Horizon, Reverb (since
+                    <strong>v5.1.2</strong>), the scheduler and the backup profiles it
+                    owns — as a ready-to-commit file. Declaring <code>horizon: false</code> or
+                    <code>reverb: false</code> is now a real plan (also 5.1.2): previously <code>false</code> was
+                    treated like a missing key.</p>
+
+                <p>Since <strong>v5.5.2</strong>, <code>cipi yml generate &lt;app&gt; --save</code> writes
+                    <code>/home/&lt;app&gt;/cipi.yml</code> (or <code>--save=&lt;path&gt;</code>; <code>--force</code>
+                    overwrites). Apply still reads the copy committed in the release —
+                    <code>current/cipi.yml</code>, <code>htdocs/cipi.yml</code> or <code>shared/cipi.yml</code> — so
+                    commit that file and deploy it. Without <code>--save</code> the command only prints. Since
+                    <strong>v5.8.0</strong> the output names the file to commit: <code>cipi.yml</code> for a production
+                    app, <code>cipi-&lt;env&gt;.yml</code> for any other <a href="/docs/yml#cli-yml-env">environment</a>; it also
+                    emits <code>deploy.branch</code>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi yml generate myapp &gt; cipi.yml   <span class="c"># then commit it</span>
+<span class="p"></span>cipi yml plan myapp                  <span class="c"># reports nothing to do</span></pre>
+                </div>
+
+                <p>Cron expressions come back as the friendlier <code>every: 30m</code> form where they map cleanly,
+                    values are quoted wherever a plain scalar would be misread, and the result is fed through the
+                    validator before printing. Server-wide backup profiles and the app's own database are deliberately
+                    left out — those stay yours.</p>
+
+                <h3>The file</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>version: 1
+
+app:
+  <span class="c"># 8.3, 8.4, 8.5 or 8.6 — must already be installed (cipi php install 8.5)</span>
+  php: <span class="s">"8.5"</span>
+
+  <span class="c"># The declared list replaces the current aliases: one you remove here is
+  # removed from the server. The primary domain is not managed here.</span>
+  aliases:
+    - <span class="s">"www.myapp.com"</span>
+    - <span class="s">"*.myapp.com"</span>      <span class="c"># wildcard, for multi-tenant subdomains</span>
+
+  <span class="c"># Per-app php.ini overrides. Server-wide values stay with `cipi ini set`.</span>
+  ini:
+    upload_max_filesize: 50M
+    post_max_size: 60M
+    memory_limit: 512M
+
+<span class="c"># Extra databases beyond the one created with the app. Credentials land in
+# /home/myapp/shared/cipi-databases.env — never written back to the repo.</span>
+databases:
+  - name: myapp_reporting
+  - name: myapp_analytics
+    engine: pgsql          <span class="c"># mariadb (default) or pgsql</span>
+
+workers:
+  horizon: false           <span class="c"># true replaces the queue workers below</span>
+
+  <span class="c"># Laravel Reverb (5.1.2+). Cipi allocates a localhost port, adds the Supervisor
+  # program, proxies /app/{key} and /apps/{id}/… on this app's own domain, and
+  # generates REVERB_APP_ID/KEY/SECRET plus the VITE_ copies in the .env. Laravel
+  # apps only — declaring it on a --custom app is refused.</span>
+  reverb: false
+
+  queues:
+    - queue: default
+      processes: 2
+    - queue: emails
+      processes: 1
+      tries: 5
+      timeout: 300
+
+<span class="c"># Laravel scheduler (* * * * * artisan schedule:run)</span>
+schedule: true
+
+<span class="c"># HTTP healthcheck. Probed every 5 minutes and right after every deploy.
+# The URL must be one of this app's own domains.
+# To remove an existing healthcheck, write only  health: { enabled: false }  (honoured since 5.3.0).</span>
+health:
+  url: <span class="s">"https://myapp.com/up"</span>
+  expect: 200
+  <span class="c"># grace: 8                      # seconds before the first probe after a deploy
+  # postdeploy: false             # skip the check right after a deploy
+  # rollback_on_unhealthy: true   # undo a release that fails the check
+  #                               # (the code symlink only — migrations are NOT undone)</span>
+
+<span class="c"># branch (5.8.0+) is the git branch the app deploys, like `cipi app edit --branch`;
+# it takes effect from the next deploy. Put develop in cipi-staging.yml, main here.
+# node_build (5.5.2+) is the Laravel asset build, the same command as
+# `cipi app deploy-config --node-build`. It runs inside the release, before
+# the symlink. deploy.post (5.2.3+) runs after the release is live and does
+# not need `cipi yml auto`. false clears node_build. Node apps use node.build.
+# snapshot is still accepted and stored as predeploy_snapshot.</span>
+deploy:
+  branch: main
+  predeploy_snapshot: true
+  node_build: <span class="s">"npm ci &amp;&amp; npm run build"</span>
+  post:
+    - artisan cache:clear
+    - artisan scout:import --force
+    - composer dump-autoload -o
+  <span class="c"># post_on_failure: abort   # default warn</span>
+
+<span class="c"># Backup strategy for this app. Profile names must be myapp or myapp-*.</span>
+backup:
+  profiles:
+    <span class="c"># Frequent and cheap: databases only, without the noisy tables.</span>
+    - name: myapp-db
+      scope: db
+      databases: [<span class="s">"myapp"</span>, <span class="s">"myapp_*"</span>, <span class="s">"tenant_*"</span>]
+      exclude_tables: [<span class="s">"*.jobs"</span>, <span class="s">"*.telescope_*"</span>]
+      every: 30m           <span class="c"># 5m/10m/15m/20m/30m, 1h..12h, 1d..28d</span>
+      keep: 48             <span class="c"># keep the last 48 runs</span>
+      destinations: [local]
+
+    <span class="c"># Slower, complete, off-site and encrypted.</span>
+    - name: myapp-nightly
+      scope: all           <span class="c"># all | files | db</span>
+      cron: <span class="s">"0 2 * * *"</span>
+      keep_days: 14
+      destinations: [s3]
+      encrypt: true</pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><code>cipi yml example</code> takes an optional app name — <code>cipi yml example myapp</code>
+                        — so the placeholder databases and profiles land inside that app's namespace and the template
+                        validates as-is.</div>
+                </div>
+
+                <h3 id="cli-yml-routes">www, basic auth, redirects and proxies (v5.4.0)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>app:
+  aliases: [ <span class="s">"www.myapp.com"</span> ]
+  www: to-root              <span class="c"># to-root | from-root | none</span>
+  basic_auth:
+    users:
+      - admin               <span class="c"># keeps the password already set on the server</span>
+      - name: preview
+        password_hash: <span class="s">"$2y$12$…"</span>   <span class="c"># bcrypt (cost 10+) or SHA-512 crypt only</span>
+
+redirect:                   <span class="c"># whole app, one hop; "redirect: {enabled: false}" removes it</span>
+  to: <span class="s">"https://new.example.com"</span>
+  code: 301
+  keep_path: true
+
+redirects:                  <span class="c"># the declared list replaces the current one</span>
+  - from: /old-page
+    to: /new-page
+  - from: /blog/            <span class="c"># trailing / = prefix</span>
+    to: <span class="s">"https://blog.myapp.com/"</span>
+    code: 308
+
+proxies:
+  - prefix: /api/
+    upstream: <span class="s">"http://127.0.0.1:3000"</span>
+    strip_prefix: true
+    <span class="c"># preserve_host: true   timeout: 60   buffering: false</span></pre>
+                </div>
+                <ul>
+                    <li><code>app.www</code>: when both are declared, the other name of the pair must be in
+                        <code>app.aliases</code>. An alias list that drops a name the current redirect needs is refused
+                        at plan time instead of failing halfway through the apply.</li>
+                    <li><code>app.basic_auth</code>: <strong>no password in the repository.</strong> A name-only user
+                        keeps the password already set with <code>cipi basicauth enable &lt;app&gt; --user=NAME</code>;
+                        a user the server does not know blocks the plan. apr1/MD5 hashes are refused. Server users not
+                        listed are removed, and <code>basic_auth: false</code> turns it off. <code>cipi yml
+                        generate</code> emits names only, never hashes.</li>
+                    <li><code>redirect</code>, <code>redirects[]</code> and <code>proxies[]</code> go through the same
+                        validation as <a href="/docs/redirects-proxies#cli-redirect"><code>cipi redirect</code></a> and
+                        <a href="/docs/redirects-proxies#cli-proxy"><code>cipi proxy</code></a>, checked against the whole
+                        declared set — a redirect and a proxy on the same prefix collide in the plan. The routes apply
+                        as one change: one vhost regeneration, one <code>nginx -t</code>, reverted as a whole if nginx
+                        refuses it.</li>
+                    <li><strong>Proxies are stricter than on the CLI</strong>, because anyone who can commit controls
+                        the file: there is no <code>--force</code>, so Cipi's own loopback ports are always refused, and
+                        link-local and <code>0.0.0.0/8</code> upstreams (cloud metadata included) are refused too, with
+                        resolved hostnames checked as well as literal IPs.</li>
+                </ul>
+
+                <h3 id="cli-yml-more">Search, recipe options, limits, HTTPS, env and crons (v5.4.0)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>app:
+  limits:
+    memory_limit: 512M
+    fpm_max_children: 10    <span class="c"># also octane_workers, worker_procs</span>
+
+search: true                <span class="c"># Meilisearch for Scout, like cipi search enable</span>
+
+deploy:
+  branch: main              <span class="c"># 5.8.0+: the deploy branch, from the next deploy</span>
+  keep_releases: 5          <span class="c"># 1-20</span>
+  migrate: true
+  optimize: true
+  storage_link: true
+  queue_restart: true
+  horizon_terminate: false
+  extra_artisan: [ <span class="s">"view:clear"</span> ]
+  predeploy_snapshot: true  <span class="c"># snapshot: true still accepted</span>
+  node_build: <span class="s">"npm ci &amp;&amp; npm run build"</span>  <span class="c"># before go-live; false clears</span>
+  post:
+    - artisan cache:clear
+
+ssl:
+  force_https: true
+
+env:
+  required: [ STRIPE_KEY, MAIL_HOST ]
+
+crons:
+  - every: 30m
+    run: artisan queue:prune-batches
+  - cron: <span class="s">"15 3 * * *"</span>
+    run: php scripts/cleanup.php</pre>
+                </div>
+                <ul>
+                    <li><code>search</code> mints a key scoped to <code>&lt;app&gt;-*</code> and writes the
+                        <code>SCOUT_*</code> / <code>MEILISEARCH_*</code> variables. The plan is blocked until root has run
+                        <code>cipi search install</code>; <code>false</code> never drops indexes. Refused on custom
+                        apps.</li>
+                    <li><code>deploy:</code> recipe options are the set of
+                        <a href="/docs/deploy-script#cli-deploy-config"><code>cipi app deploy-config</code></a>
+                        (<code>extra_artisan</code> validated, <code>tinker</code> refused). Only declared keys are
+                        reconciled, and a change regenerates <code>deploy.php</code> once. Refused on custom apps; on Node
+                        apps only <code>keep_releases</code> and <code>predeploy_snapshot</code> apply.
+                        <code>deploy.node_build</code> (v5.5.2) is the Laravel asset build: it runs inside the release,
+                        before the symlink, and it is the same command as <code>cipi app deploy-config
+                        --node-build</code>. <code>false</code> or an empty string removes it. On a Node app it blocks
+                        the plan, because that build is <code>node.build</code>. A custom app has no recipe, so its
+                        build stays in <code>deploy.post</code>. The name <code>snapshot</code> is still read and stored
+                        as <code>predeploy_snapshot</code>; declaring both is an error.</li>
+                    <li><code>deploy.branch</code> (v5.8.0) is the git branch the app deploys, with the same
+                        validation as <code>cipi app edit --branch</code> (letters, digits, <code>.</code>,
+                        <code>_</code>, <code>/</code> and <code>-</code>, at most 191 characters, no <code>..</code>).
+                        <code>cipi yml plan</code> shows <code>deploy branch: main → develop (from the next
+                        deploy)</code>, and apply sets it exactly like <code>cipi app edit --branch</code>:
+                        <code>apps.json</code>, <code>deploy.php</code> and the webhook's
+                        <code>CIPI_DEPLOY_BRANCH</code>. It is blocked on an app without a repository. Because it only
+                        applies from the <em>next</em> deploy, the typical pattern is a
+                        <a href="/docs/yml#cli-yml-env"><code>cipi-staging.yml</code></a> with <code>deploy: { branch: develop
+                        }</code> and a <code>cipi.yml</code> with <code>deploy: { branch: main }</code>, one per
+                        environment. <code>cipi yml generate</code> emits it.</li>
+                    <li><code>app.limits</code> reapplies <a href="/docs/limits#cli-app-limits"><code>cipi app
+                        limits</code></a>, but a value outside the CLI's bounds <strong>blocks the plan instead of being
+                        clamped</strong> — nobody is watching an unattended apply. The soft disk limit
+                        (<code>cipi app limits --disk</code>, v5.5.0) is deliberately <strong>not</strong> part of
+                        <code>app.limits</code>: an app's repository must not be able to raise the space its server
+                        grants it.</li>
+                    <li><code>ssl.force_https: true</code> is <code>cipi ssl force</code>. The plan waits for the
+                        certificate (<code>cipi ssl install</code> stays with root), and it can only ever be turned
+                        <strong>on</strong> from the file: <code>false</code> against an app already forced is refused
+                        rather than silently ignored.</li>
+                    <li><code>env.required</code> lists names, never values. A missing or empty variable blocks the
+                        plan, so code that expects <code>STRIPE_KEY</code> is never deployed against a server that does
+                        not have it. Nothing is written.</li>
+                    <li><code>crons:</code> use the same allowlisted runners as <code>deploy.post</code> — no shell, no
+                        pipes — with <code>every:</code> or five cron fields. The list replaces only the crontab lines
+                        the file manages (tagged <code># cipi-yml</code>); the Laravel scheduler line and the rest of the
+                        app user's crontab are never touched. <code>artisan</code> entries on a non-Laravel app block the
+                        plan.</li>
+                </ul>
+
+                <h3 id="cli-yml-node"><code>node:</code> — a Node app's build, applied by the deploy (v5.4.0)</h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>node:
+  framework: next           <span class="c"># next nuxt sveltekit astro remix vite — fills the rest</span>
+  mode: ssr                 <span class="c"># spa | static | ssr</span>
+  version: 22
+  build: npm run build
+  start: npx next start -H 127.0.0.1
+  health_path: /
+  <span class="c"># output: dist            # spa/static</span></pre>
+                </div>
+                <p>Same presets and validation as <a href="/docs/node-apps#cli-app-node"><code>cipi app create
+                    --node</code></a>, but <strong>applied by the deploy itself, not by <code>cipi yml apply</code></strong>.
+                    Right after the checkout, the recipe's <code>node:config</code> runs <code>cipi yml node-sync
+                    &lt;app&gt; &lt;release&gt;</code> as root, which reads the section from <em>that release</em>, and
+                    the commit that changes the build or start command is built and started with it. A mode or output
+                    change moves nginx only after <code>current</code> has moved; a Node major that is not installed
+                    fails the deploy before the build (installing runtimes stays with root); an invalid file leaves the
+                    server's settings in place and sends <code>yml_fail</code>. It needs <code>cipi yml auto &lt;app&gt;
+                    on</code>, which is also what writes the sudo rule for <code>node-sync</code>, and <code>node:</code>
+                    on a Laravel app blocks the plan. <code>cipi yml plan</code> lists the changes the next deploy will
+                    make.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div><strong>Fixed in v5.4.0:</strong> on a custom app, <code>workers.queues</code>,
+                        <code>workers.horizon: true</code> and <code>schedule: true</code> now block the plan instead of
+                        producing artisan workers the app cannot run; <code>cipi yml example</code> no longer prints
+                        <code>every:: command not found</code>. <code>cipi yml generate</code> and <code>cipi yml
+                        example</code> cover every new key.</div>
+                </div>
+
+                <h3>Deploys ignore the file until you opt in</h3>
+                <p>Nothing happens on deploy until you run <code>cipi yml auto &lt;app&gt; on</code>. With that opt-in
+                    given, every <strong>successful</strong> deploy reconciles — <code>cipi deploy</code>, a deploy
+                    started from the control panel or the API, and the Git webhook, the latter through one narrowly
+                    scoped sudoers rule (<code>/etc/sudoers.d/cipi-&lt;app&gt;-yml</code>). A release that carries no
+                    <code>cipi.yml</code> is a quiet no-op, and a file that fails validation is reported by email
+                    (<code>yml_fail</code>) and <strong>never partially applied</strong>. A successful reconcile fires
+                    <code>yml_apply</code>. Since <strong>v5.5.2</strong> the deploy-success mail quotes one line for
+                    that result — applied, unchanged, no file, blocked, invalid or failed — whenever auto is on, from
+                    both <code>cipi deploy</code> and the webhook. The deploy itself still succeeds when the file is
+                    blocked or invalid.</p>
+                <p><strong>Fixed in v5.6.4:</strong> before it, a push never applied the file, even with auto on. The
+                    webhook runs as the app user and looked for its sudoers rule with <code>test -f</code>, but
+                    <code>/etc/sudoers.d</code> is <code>0750 root:root</code>, so the check always failed;
+                    <code>cipi deploy</code> was not affected. The webhook now asks sudo instead. <code>cipi yml auto
+                    &lt;app&gt; status</code> warns when auto is on but the rule is missing, <code>cipi app delete</code>
+                    removes the rule, <code>cipi sync import</code> / <code>update</code> recreate it for apps that have
+                    auto on, and migration 5.6.4 reconciles every app and removes leftovers.</p>
+
+                <h3 id="cli-yml-deploy-post"><code>deploy.post</code> — post-deploy steps that travel with the
+                    code</h3>
+                <p>Available since <strong>v5.2.3</strong>. After every successful deploy, Cipi can run a declared
+                    list of allowlisted commands from the live release directory — on both <code>cipi deploy</code>
+                    and the Git webhook.</p>
+                <p>Since <strong>v5.5.2</strong> the Laravel asset build is <code>deploy.node_build</code>, the same
+                    command as <code>cipi app deploy-config --node-build</code>. It runs inside the release, before the
+                    symlink, so the built files are part of the release that goes live. <code>deploy.post</code> runs
+                    after that. <code>node_build: false</code> removes the command. On a Node app the build is
+                    <code>node.build</code>, and <code>deploy.node_build</code> blocks the plan. A custom app has no
+                    Deployer recipe, so its build stays here.</p>
+                <p>Since <strong>v5.6.1</strong> <code>artisan</code> steps run as
+                    <code>/usr/bin/phpX.Y artisan …</code>. Before, every one of them failed with
+                    <code>/usr/bin/phpX.Yartisan: No such file or directory</code>. A failed step now logs and emails its
+                    real exit code (it always said <code>FAILED (0)</code>), and <code>post_on_failure: abort</code>
+                    makes <code>cipi deploy</code> fail with it.</p>
+                <p>Since <strong>v5.8.1</strong> <code>cipi deploy</code> prints the steps as they run and ends them
+                    with <code>✓ Post-deploy: &lt;summary&gt;</code> (<code>[ERROR] Post-deploy: …</code> when one
+                    failed); before, those lines reached the notification mail only. 5.8.1 also fixes the exit code of
+                    <code>cipi deploy</code> itself: since 5.2.3 it exited 1 after every <em>successful</em> deploy whose
+                    post-deploy steps passed (or that declared none), so the panel API — and the GUI,
+                    <code>cipi-cli</code> and the MCP tools — reported the job as failed while the release was live.
+                    Webhook deploys were not affected.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Unlike aliases, workers and the rest of the file, <code>deploy.post</code> does
+                        <strong>not</strong> require <code>cipi yml auto &lt;app&gt; on</code>. Commit the section and
+                        the steps run as soon as the release is live.</div>
+                </div>
+
+                <h4>Syntax</h4>
+                <p>Plain strings, or structured maps when you want the arguments spelled out. Both forms go through
+                    the same allowlist — see <code>cipi yml example &lt;app&gt;</code> for a commented template.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>deploy:
+  post:
+    - artisan cache:clear
+    - artisan scout:import --force
+    - npm run build
+    - composer dump-autoload -o
+    - php scripts/post-deploy.php
+    - node scripts/warm-cache.mjs
+  <span class="c"># post_on_failure: abort   # default warn</span></pre>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># Structured form — same allowlist, useful for explicit arguments</span>
+deploy:
+  post:
+    - run: artisan
+      command: scout:import
+      args: [--force]
+    - run: npm
+      args: [run, build]
+    - artisan: view:cache</pre>
+                </div>
+
+                <h4>Allowlisted runners only</h4>
+                <p>There is no free shell. What is accepted:</p>
+                <ul>
+                    <li><code>artisan</code> — <code>cache:clear</code>, <code>migrate --force</code>, …</li>
+                    <li><code>npm</code> / <code>npx</code> / <code>yarn</code> / <code>pnpm</code> —
+                        <code>run build</code>, <code>ci</code>, …</li>
+                    <li><code>composer</code> — <code>dump-autoload -o</code>, …</li>
+                    <li><code>php</code> / <code>node</code> — one relative script path under the release, e.g.
+                        <code>scripts/warm.mjs</code></li>
+                </ul>
+                <p>Rejected: unknown runners, <code>bash</code>, pipes, <code>;</code>, <code>..</code> in paths,
+                    <code>artisan tinker</code> and the other interactive subcommands — the same spirit as
+                    <code>cipi app run</code>.</p>
+
+                <h4>Where it sits in the deploy</h4>
+                <p>On a Laravel app, <code>deploy.node_build</code> has already run inside Deployer, after Composer
+                    and before the symlink. After Deployer finishes (migrate, symlink, worker restart, …), then the
+                    optional <code>cipi yml apply</code> (only if auto-apply is on), then <code>deploy.post</code>,
+                    then the post-deploy healthcheck, then the success notification.</p>
+
+                <h4><code>deploy.post_on_failure</code></h4>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Value</th>
+                                <th>Behaviour</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>warn</code> <em>(default)</em></td>
+                                <td>Log the failure and send the <code>yml_post_fail</code> email. The release stays
+                                    live.</td>
+                            </tr>
+                            <tr>
+                                <td><code>abort</code></td>
+                                <td>Post-deploy exits non-zero and <code>cipi deploy</code> fails with it — for CI,
+                                    where e.g. <code>npm run build</code> must pass.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Testing the steps</h4>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># run the declared steps now, against current/</span>
+<span class="p"></span>cipi yml post-deploy myapp
+
+<span class="c"># cipi yml plan lists them under "After deploy" — informational,</span>
+<span class="c"># they are not server state to reconcile</span>
+<span class="p"></span>cipi yml plan myapp</pre>
+                </div>
+
+                <h3>Why it is safe to accept over Git</h3>
+                <p>The file arrives from a repository, so anyone who can commit controls its contents. It is therefore
+                    fail-closed throughout:</p>
+                <ul>
+                    <li>It can only <strong>configure</strong> an app that already exists — never create, rename or
+                        delete one.</li>
+                    <li>Its databases must be named <code>&lt;app&gt;</code> or <code>&lt;app&gt;_*</code>, and its
+                        backup profiles <code>&lt;app&gt;</code> or <code>&lt;app&gt;-*</code>.</li>
+                    <li>Since <strong>v5.5.2</strong> the <code>backup.profiles</code> list is authoritative for the
+                        profiles this file created (recorded on the app as <code>backup_profiles</code>). A profile you
+                        rename or drop is removed from the schedule. Archives stay on disk until
+                        <code>cipi backup prune</code> ages them out. Profiles added by hand with
+                        <code>cipi backup profile add</code> stay unless the file names them. A new profile with no
+                        <code>destinations</code> uses S3 when a bucket is configured, and local otherwise. If backup
+                        was never configured and every profile is local, apply writes a local-only
+                        <code>backup.json</code>.</li>
+                    <li>Its healthcheck URL must resolve to one of the app's own domains — otherwise a commit could aim
+                        the server's five-minute prober at an internal address and read the answer back out of the alert
+                        emails.</li>
+                    <li>Unknown keys are errors, and no field carries a shell command or a path to include.
+                        <code>deploy.post</code> (5.2.3+) and <code>crons</code> (5.4.0+) are the sections that run
+                        something, and they accept only <a href="/docs/yml#cli-yml-deploy-post">allowlisted runners</a> — never a
+                        shell line. Basic auth takes password hashes, never passwords.</li>
+                    <li>The parser implements a deliberately small YAML subset and refuses anchors, aliases, tags, merge
+                        keys, block scalars and flow mappings outright.</li>
+                </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Once <code>yml auto</code> is on, anyone who can push to that repository can change the app's
+                        aliases, PHP settings, workers, healthcheck, backup profiles, basic auth users, redirects,
+                        proxies, crons, its deploy branch (5.8.0) and — on a Node app — its build and start commands.
+                        That is the point of configuration-as-code — treat write access to the repo accordingly. What a
+                        commit cannot do is pick which environment file the server reads: that is the app's own
+                        <a href="/docs/yml#cli-yml-env">environment label</a>.</div>
+                </div>
+            
+</section>

@@ -1,0 +1,114 @@
+<section class="doc-section" id="cli-ssl">
+                <p>Certbot issues and renews Let's Encrypt certificates; since <strong>v5.5.1</strong> Cipi writes the
+                    HTTPS server block of the vhost itself (certbot never edits an app vhost), so every vhost change —
+                    alias, www, basic auth, redirects, Octane, Reverb, suspend — keeps HTTPS, wildcard certificates
+                    included. Certificates renew through certbot.timer and a weekly cron, each the way it was issued,
+                    and nginx reloads after every renewal. <code>cipi ssl status</code> lists the certificates with
+                    their expiry and, per app, what it is served with and which of its names the certificate does not
+                    cover.
+                </p>
+                <cipi-term name="ssl"></cipi-term>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi ssl install myapp   <span class="c"># provision / renew — includes all aliases (SAN)</span>
+<span class="p"></span>cipi ssl force myapp     <span class="c"># re-apply HTTP→HTTPS redirect (no new issuance)</span>
+<span class="p"></span>cipi ssl renew            <span class="c"># force renewal of all certificates</span>
+<span class="p"></span>cipi ssl status           <span class="c"># certificates + per app: served with, names not covered</span>
+
+<span class="c"># DNS-01 via Cloudflare (v5.0+) — wildcard certs</span>
+<span class="p"></span>cipi ssl dns set --token=YOUR_CF_TOKEN               <span class="c"># Zone → DNS → Edit</span>
+<span class="p"></span>cipi ssl install myapp --dns=cloudflare              <span class="c"># includes a '*.myapp.com' alias</span>
+<span class="p"></span>cipi ssl install myapp --dns=cloudflare --wildcard   <span class="c"># adds myapp.com + *.myapp.com anyway</span>
+<span class="p"></span>cipi ssl install myapp --dns=cloudflare --no-wildcard
+<span class="p"></span>cipi ssl install myapp --http                        <span class="c"># back from DNS-01 to HTTP-01 (v5.5.1+)</span>
+
+<span class="c"># Several Cloudflare accounts (v5.5.0+)</span>
+<span class="p"></span>cipi ssl dns set --name=client-a --token=CLIENT_A_TOKEN
+<span class="p"></span>cipi ssl install shop --dns=cloudflare --wildcard --account=client-a
+<span class="p"></span>cipi ssl dns list [--json]      <span class="c"># accounts and the certificates that renew with each</span>
+<span class="p"></span>cipi ssl dns remove client-a    <span class="c"># refused while a certificate still renews with it</span></pre>
+                </div>
+
+                <p>Since <strong>v4.8.0</strong>, <code>cipi ssl force &lt;app&gt;</code> re-applies the HTTP → HTTPS
+                    redirect for an app that already has a Let's Encrypt certificate — without issuing a new one.
+                    <code>cipi ssl install</code> also sets <code>force_https</code> in <code>apps.json</code>
+                    automatically.
+                </p>
+
+                <p>Since <strong>v5.0</strong>, optional <strong>DNS-01</strong> challenges via Cloudflare replace the
+                    default HTTP-01 flow when you need wildcard certificates or cannot expose port 80. Configure once
+                    with <code>cipi ssl dns set</code>, then pass <code>--dns=cloudflare</code> (and optionally
+                    <code>--wildcard</code>) to <code>cipi ssl install</code>. Since <strong>v5.5.1</strong>:</p>
+                <ul>
+                    <li>An app whose certificate was issued over DNS-01 is <strong>reissued over DNS-01</strong> by a
+                        plain <code>cipi ssl install &lt;app&gt;</code> (and by the panel API), with the same account and
+                        wildcard. Before, it fell back to HTTP-01, which replaced the certificate's names and dropped
+                        the wildcard. <code>--http</code> goes back to HTTP-01 on purpose.</li>
+                    <li>The certificate names are primary + aliases (plus <code>&lt;apex&gt;</code> +
+                        <code>*.&lt;apex&gt;</code> with <code>--wildcard</code>), without the names a wildcard already
+                        covers: Let's Encrypt refuses <code>*.example.com</code> and <code>www.example.com</code> in the
+                        same order. <code>--wildcard</code> is remembered; <code>--no-wildcard</code> drops it, and
+                        <code>--wildcard</code> without <code>--dns</code> is an error.</li>
+                    <li>A wildcard certificate does not route anything: when <code>*.&lt;apex&gt;</code> is not one of
+                        the app's names, the install says <code>cipi alias add &lt;app&gt; '*.&lt;apex&gt;'</code>.</li>
+                </ul>
+                <p>Behind the <strong>Cloudflare proxy</strong>, use SSL/TLS mode <strong>Full (strict)</strong> —
+                    Flexible loops on Cipi's HTTPS redirect. Error codes, Origin CA and the setup without Cloudflare:
+                    <a href="/docs/wildcard-domains#wildcard-domains">Wildcard domains &amp; SSL</a>.</p>
+
+                <h3>Domains in different Cloudflare accounts (v5.5.0+)</h3>
+                <p>A DNS-01 certificate needs an API token of the Cloudflare account that holds its zone. Up to 5.4 the
+                    server kept one token, in one file: a server hosting the domains of clients with their own
+                    Cloudflare accounts could serve only one of them, and setting a second token overwrote the first —
+                    the certificates issued with it then stopped renewing. Since <strong>v5.5.0</strong> every account
+                    has a name:</p>
+                <ul>
+                    <li><strong><code>cipi ssl dns set --name=NAME --token=TOKEN</code></strong> adds an account, any
+                        number of them. Without <code>--name</code> it is the <code>default</code> account, in the same
+                        file as before (<code>/etc/cipi/cloudflare.ini</code>), so a server with one token changes
+                        nothing. Named accounts live next to it, one root-only file each in
+                        <code>/etc/cipi/cloudflare/</code>. Running it again on an existing name replaces the token —
+                        that is how a token is rotated.</li>
+                    <li><strong><code>cipi ssl install &lt;app&gt; --dns=cloudflare --account=NAME</code></strong>
+                        issues with that account. Without <code>--account</code> an app keeps the account its
+                        certificate was last issued with, else <code>default</code>. An account that is not configured
+                        is refused before certbot runs, with the list of the ones that are.</li>
+                    <li><strong>Renewals need nothing.</strong> certbot records the credentials file in each
+                        certificate's renewal config, so every certificate renews with the token of its own
+                        account.</li>
+                    <li><strong><code>cipi ssl dns list</code></strong> shows every account with the certificates that
+                        renew with it (<code>--json</code> too); tokens are never printed.
+                        <code>cipi ssl status</code> names the account next to each DNS-01 certificate.</li>
+                    <li><strong><code>cipi ssl dns remove &lt;NAME&gt;</code></strong> refuses while a certificate
+                        still renews with that account: without its token the certificate would fail to renew,
+                        silently, until it expired.</li>
+                </ul>
+                <p>Account names are lowercase letters, digits, <code>-</code> and <code>_</code>. The credentials file
+                    is now written under a umask that keeps the token unreadable by other users even while it is being
+                    written — before 5.5.0 it was world-readable for an instant inside <code>/etc/cipi</code>. When
+                    issuance fails, the error says which account was used and that it must hold the zone.</p>
+
+                <p>Since <strong>v5.3.0</strong>, <code>cipi ssl</code> knows about
+                    <a href="/docs/zero-trust#cli-zt">Cloudflare Zero Trust</a>. HTTP-01 refuses while <code>cipi zt lock http</code>
+                    is on — Let's Encrypt does not validate from Cloudflare's IPs — and on an app that uses a
+                    Cloudflare Origin CA certificate, which it would overwrite; use <code>--dns=cloudflare</code>
+                    instead. Apps routed through the tunnel get certbot's <code>--no-redirect</code>, and
+                    <code>cipi ssl force</code> refuses on them, because <code>cloudflared</code> talks plain HTTP to
+                    <code>:80</code> and an origin redirect would break it.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>After <code>cipi alias add</code>, run the command it prints — <code>cipi ssl install</code> for a
+                        new name, <code>--dns=cloudflare</code> for a wildcard — unless it says the name is already
+                        covered (a <code>*.example.com</code> certificate covers every new tenant subdomain).
+                        <code>cipi ssl force</code> turns the HTTP → HTTPS redirect back on without reissuing.
+                    </div>
+                </div>
+            
+</section>

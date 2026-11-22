@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wildcard domains — Cipi docs</title>
+    <meta name="description" content="Tenant subdomains with a wildcard certificate.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/wildcard-domains">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/wildcard-domains">
+    <meta property="og:title" content="Wildcard domains — Cipi docs">
+    <meta property="og:description" content="Tenant subdomains with a wildcard certificate.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Wildcard domains", "description": "Tenant subdomains with a wildcard certificate.", "url": "https://cipi.sh/docs/wildcard-domains", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Domains & SSL", "item": "https://cipi.sh/docs/domains-ssl"}, {"@type": "ListItem", "position": 3, "name": "Wildcard domains", "item": "https://cipi.sh/docs/wildcard-domains"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group"><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group" open><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains" aria-current="page">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/domains-ssl">Domains &amp; SSL</a></li><li aria-current="page">Wildcard domains</li></ol>
+<h1>Wildcard domains</h1>
+<p class="docs-lead">Tenant subdomains with a wildcard certificate.</p>
+<div class="docs-meta"><span>Domains &amp; SSL</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/wildcard-domains.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="wildcard-domains">
+                <p><strong>Yes, Cipi does wildcards</strong> — one app answering on every
+                    <code>&lt;tenant&gt;.myapp.com</code>, with one certificate that covers all of them. It takes two
+                    separate things, and most problems come from having only one of them:</p>
+                <ul>
+                    <li><strong>Routing</strong> — Nginx sends <code>*.myapp.com</code> to the app when the pattern is
+                        one of its names: <code>cipi alias add myapp '*.myapp.com'</code> (or a wildcard primary
+                        domain). Works since <strong>v5.1.0</strong>, whatever DNS or certificate you use.</li>
+                    <li><strong>Certificate</strong> — Let's Encrypt validates a wildcard name over
+                        <strong>DNS-01 only</strong>: it asks for a TXT record in the zone. Cipi creates that record
+                        through the <strong>Cloudflare API</strong>, the only DNS provider it automates:
+                        <code>cipi ssl install myapp --dns=cloudflare</code>. HTTP-01 (the default, through port 80)
+                        can never issue a wildcard.</li>
+                </ul>
+                <p>Since <strong>v5.5.1</strong> Cipi writes the HTTPS server block of the vhost itself; certbot only
+                    issues and renews the certificate. Before that, a wildcard certificate was issued and then failed
+                    to install (<code>Which server blocks would you like to modify?</code> — certbot's nginx installer
+                    cannot be driven non-interactively for a wildcard name), and the next vhost change dropped HTTPS
+                    without a word. If that happened to you, <code>cipi self-update</code>: the 5.5.1 migration installs
+                    the certificate that is already on disk.</p>
+
+                <h3 id="which-setup-is-yours">Which setup is yours<a class="anchor" href="#which-setup-is-yours" aria-label="Link to this section">#</a></h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>DNS of the zone</th>
+                                <th>Wildcard certificate</th>
+                                <th>Cloudflare SSL/TLS mode</th>
+                                <th>Commands</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Cloudflare, proxied</strong> (orange cloud)<br>— recommended for a SaaS</td>
+                                <td>Let's Encrypt over DNS-01 (proxy can stay on)<br>— or Cloudflare Origin CA</td>
+                                <td><strong>Full (strict)</strong></td>
+                                <td><a href="/docs/wildcard-domains#wildcard-cloudflare">steps below</a></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cloudflare, DNS only</strong><br>(grey cloud)</td>
+                                <td>Let's Encrypt over DNS-01</td>
+                                <td>not used<br>(traffic does not go through Cloudflare)</td>
+                                <td><a href="/docs/wildcard-domains#wildcard-cloudflare">steps below</a>, skip the SSL/TLS mode</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Another DNS provider</strong></td>
+                                <td>not by Cipi — move the DNS to Cloudflare (free),<br>list the subdomains, or bring your own
+                                    certificate</td>
+                                <td>—</td>
+                                <td><a href="/docs/wildcard-domains#wildcard-without-cloudflare">without Cloudflare</a></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cloudflare Tunnel</strong><br>(<code>cipi zt hostname add</code>)</td>
+                                <td>not needed: Cloudflare terminates HTTPS,<br>the tunnel talks HTTP to <code>:80</code></td>
+                                <td>set by the tunnel</td>
+                                <td><a href="/docs/zero-trust#cli-zt"><code>cipi zt</code></a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="wildcard-cloudflare">With Cloudflare — step by step<a class="anchor" href="#wildcard-cloudflare" aria-label="Link to this section">#</a></h3>
+                <ol>
+                    <li><strong>DNS records</strong> in the Cloudflare dashboard: <code>A @ → &lt;server-ip&gt;</code>
+                        and <code>A * → &lt;server-ip&gt;</code> (<code>AAAA</code> too if the server has IPv6). The
+                        <code>*</code> record also covers <code>www</code>, <code>app</code>, <code>admin</code>… unless
+                        a record with that exact name exists. Proxied or DNS only: both work, wildcard records can be
+                        proxied on every plan.</li>
+                    <li><strong>API token</strong> — Cloudflare → My Profile → API Tokens → Create Token → template
+                        <em>Edit zone DNS</em>, Zone Resources: <em>Include → Specific zone → myapp.com</em>. The only
+                        permission needed is <strong>Zone → DNS → Edit</strong>.</li>
+                    <li><strong>Give it to Cipi</strong>, once per server (several accounts:
+                        <a href="/docs/ssl#cli-ssl"><code>--name=</code></a>).</li>
+                    <li><strong>Route the subdomains</strong> to the app with a wildcard alias. Quote it, so the shell
+                        does not expand the <code>*</code>.</li>
+                    <li><strong>Issue the certificate</strong> over DNS-01. Cipi asks for <code>myapp.com</code> +
+                        <code>*.myapp.com</code> + any other alias the wildcard does not cover, writes the HTTPS vhost
+                        and redirects every subdomain from HTTP to HTTPS. It takes about a minute (Cipi waits 30 seconds
+                        for the TXT record to propagate).</li>
+                    <li><strong>Proxied records only:</strong> Cloudflare → SSL/TLS → Overview → <strong>Full
+                        (strict)</strong>. Also check Rules → Configuration Rules / Page Rules: a rule that sets SSL to
+                        Flexible for a hostname wins over the global setting.</li>
+                    <li><strong>Check</strong> — <code>cipi ssl status</code> lists every app with the certificate it
+                        is served with and the names that certificate does <em>not</em> cover.</li>
+                </ol>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi ssl dns set --token=YOUR_CLOUDFLARE_TOKEN          <span class="c"># step 3</span>
+<span class="p"></span>cipi alias add myapp <span class="s">'*.myapp.com'</span>                        <span class="c"># step 4</span>
+<span class="p"></span>cipi ssl install myapp --dns=cloudflare                 <span class="c"># step 5</span>
+<span class="p"></span>cipi ssl status                                          <span class="c"># step 7</span>
+<span class="p"></span>curl -sI https://tenant1.myapp.com | head -1             <span class="c"># HTTP/2 200 (or your app's answer)</span></pre>
+                </div>
+                <p>Renewals need nothing: each certificate renews the way it was issued (certbot.timer twice a day,
+                    plus Cipi's weekly cron), with the Cloudflare token it was issued with, and nginx reloads after
+                    every renewal. A certificate issued over DNS-01 is always reissued over DNS-01 —
+                    <code>cipi ssl install myapp</code> without flags keeps it (<code>--http</code> goes back to
+                    HTTP-01 on purpose).</p>
+                <p><code>--wildcard</code> adds <code>myapp.com</code> + <code>*.myapp.com</code> to the certificate
+                    even when the app does not serve <code>*.myapp.com</code> — useful to cover many explicit aliases
+                    with one name. It does <em>not</em> route anything: subdomains reach the app only through the
+                    wildcard alias. The flag is remembered for later reissues; <code>--no-wildcard</code> drops it.</p>
+
+                <h3 id="wildcard-cloudflare-modes">Cloudflare proxy: the SSL/TLS mode decides everything<a class="anchor" href="#wildcard-cloudflare-modes" aria-label="Link to this section">#</a></h3>
+                <p>With the orange cloud, the visitor talks HTTPS to Cloudflare, and Cloudflare opens a second
+                    connection to your server. The SSL/TLS mode says how:</p>
+                <ul>
+                    <li><strong>Flexible — never with Cipi.</strong> Cloudflare connects to <code>http://</code> on port
+                        80. As soon as the app has a certificate, Cipi answers port 80 with a redirect to HTTPS, which
+                        Cloudflare fetches again over HTTP: an endless loop (<code>ERR_TOO_MANY_REDIRECTS</code>).
+                        Without a certificate it "works", but Laravel sees plain HTTP and builds <code>http://</code>
+                        URLs.</li>
+                    <li><strong>Full</strong> — Cloudflare connects over HTTPS and accepts any certificate. Works, but
+                        does not protect the second hop.</li>
+                    <li><strong>Full (strict)</strong> — HTTPS with a valid certificate for the hostname: the Let's
+                        Encrypt certificate from Cipi, or a Cloudflare Origin CA one. The right setting.</li>
+                </ul>
+                <p>Order for a new site behind the proxy: issue the certificate first with <code>--dns=cloudflare</code>
+                    (DNS-01 does not care about the proxy, the firewall or port 80), then switch to Full (strict).
+                    HTTP-01 behind the proxy depends on Cloudflare settings (Always Use HTTPS, WAF rules, Under Attack
+                    mode, <code>cipi zt lock http</code>) — you do not need to turn the proxy off and on again if you
+                    use DNS-01. The edge certificate Cloudflare shows to visitors (Universal SSL, free) covers
+                    <code>myapp.com</code> and <code>*.myapp.com</code>: one level of subdomains. Deeper names
+                    (<code>a.b.myapp.com</code>) need Cloudflare's Advanced Certificate Manager at the edge, and their
+                    own wildcard at the origin.</p>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>You see</th>
+                                <th>What it means on a Cipi server</th>
+                                <th>Fix</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>ERR_TOO_MANY_REDIRECTS</code></td>
+                                <td>SSL/TLS mode Flexible (or a Configuration Rule setting it for that host)</td>
+                                <td>Full (strict)</td>
+                            </tr>
+                            <tr>
+                                <td>525 SSL handshake failed</td>
+                                <td>No app on the server has that hostname, or the app has no certificate: the catch-all
+                                    default server refuses the TLS handshake</td>
+                                <td><code>cipi alias add myapp '*.myapp.com'</code>, then
+                                    <code>cipi ssl install myapp --dns=cloudflare</code></td>
+                            </tr>
+                            <tr>
+                                <td>526 Invalid SSL certificate</td>
+                                <td>Full (strict) and the origin certificate does not cover that hostname (e.g. a tenant
+                                    with a certificate issued without the wildcard)</td>
+                                <td><code>cipi ssl status</code> → “not covered” →
+                                    <code>cipi ssl install myapp --dns=cloudflare</code></td>
+                            </tr>
+                            <tr>
+                                <td>520 / empty reply on a subdomain</td>
+                                <td>Flexible mode and the hostname matches no app: port 80's catch-all closes the
+                                    connection (444)</td>
+                                <td>wildcard alias, Full (strict)</td>
+                            </tr>
+                            <tr>
+                                <td>500 from the app on a tenant</td>
+                                <td>Nginx and the certificate are fine — the request reached Laravel (tenant resolver,
+                                    <code>.env</code>, logs: <code>cipi app logs myapp</code>)</td>
+                                <td>application side</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 id="wildcard-origin-ca">Alternative behind the proxy: Cloudflare Origin CA<a class="anchor" href="#wildcard-origin-ca" aria-label="Link to this section">#</a></h3>
+                <p>A certificate signed by Cloudflare, valid 15 years, trusted <strong>only by Cloudflare</strong>: fine
+                    for proxied records with Full (strict), a browser warning for a DNS-only record. It covers the app's
+                    names, wildcard alias included. It needs the
+                    <a href="/docs/zero-trust#cli-zt"><code>cipi zt</code></a> API token (Zone → SSL and
+                    Certificates → Edit), not the DNS-01 one. Since 5.5.1 it works on an app that never had HTTPS, and
+                    survives every vhost change.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi zt token set --token=ZT_TOKEN --account=ACCOUNT_ID
+<span class="p"></span>cipi alias add myapp <span class="s">'*.myapp.com'</span>
+<span class="p"></span>cipi zt origin-cert myapp       <span class="c"># reissue after adding names</span></pre>
+                </div>
+
+                <h3 id="wildcard-without-cloudflare">Without Cloudflare<a class="anchor" href="#wildcard-without-cloudflare" aria-label="Link to this section">#</a></h3>
+                <p>When the zone is hosted elsewhere, Cipi cannot create the TXT record, so it cannot issue a wildcard
+                    certificate. Routing still works (<code>cipi alias add myapp '*.myapp.com'</code> plus a
+                    <code>*</code> record at your provider), but HTTPS needs one of these:</p>
+                <ol>
+                    <li><strong>Move the DNS to Cloudflare</strong> (recommended) — free plan, records set to
+                        <em>DNS only</em>: traffic does not change, only who answers DNS. Then follow the
+                        <a href="/docs/wildcard-domains#wildcard-cloudflare">Cloudflare steps</a> and skip the SSL/TLS mode.</li>
+                    <li><strong>List the subdomains</strong> — when tenants are few and known, add each one as an alias
+                        (no wildcard) and let HTTP-01 issue one certificate for all of them:
+                        <code>cipi alias add myapp acme.myapp.com</code>, then <code>cipi ssl install myapp</code>.
+                        Every name needs its own DNS record (or the <code>*</code> record), port 80 must be reachable,
+                        a certificate holds at most 100 names, and every reissue counts toward Let's Encrypt's limit of
+                        50 certificates per domain per week — not a fit for self-service signup.</li>
+                    <li><strong>Bring your own certificate</strong> — issue it with the certbot DNS plugin of your
+                        provider (Route 53, DigitalOcean, OVH, Gandi, …) under the <strong>certificate name Cipi
+                        expects</strong>: the app's primary domain (without <code>*.</code> for a wildcard primary).
+                        Cipi finds it in <code>/etc/letsencrypt/live/&lt;name&gt;/</code> and serves it; certbot renews
+                        it with your plugin and Cipi's hook reloads nginx. Do not run <code>cipi ssl install</code> on
+                        that app afterwards: without <code>--dns=cloudflare</code> it reissues over HTTP-01, without
+                        the wildcard.</li>
+                </ol>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># option 3, example with Route 53 (credentials as the plugin documents them)</span>
+<span class="p"></span>apt install python3-certbot-dns-route53
+<span class="p"></span>certbot certonly --dns-route53 -d myapp.com -d <span class="s">'*.myapp.com'</span> --cert-name myapp.com
+<span class="p"></span>cipi alias add myapp <span class="s">'*.myapp.com'</span>      <span class="c"># rewrites the vhost with the certificate</span>
+<span class="p"></span>cipi ssl force myapp                    <span class="c"># or this, if the alias was already there</span></pre>
+                </div>
+
+                <h3 id="multi-tenant-apps-good-to-know">Multi-tenant apps: good to know<a class="anchor" href="#multi-tenant-apps-good-to-know" aria-label="Link to this section">#</a></h3>
+                <ul>
+                    <li><strong>Other apps still win on their exact names.</strong> With <code>*.myapp.com</code> on
+                        one app, <code>api.myapp.com</code> can still be a separate app: Nginx prefers an exact
+                        <code>server_name</code> to a wildcard.</li>
+                    <li><strong>Unknown hosts are closed</strong> by <a href="/docs/nginx#cli-nginx"><code>cipi
+                        nginx default-server</code></a> (on by default) instead of reaching your tenant resolver.</li>
+                    <li><strong>Laravel</strong>: set <code>SESSION_DOMAIN=.myapp.com</code> only if a login must be
+                        shared across subdomains; resolve the tenant from the <code>Host</code> header.
+                        <code>APP_URL</code> is set to <code>https://www.myapp.com</code> for a wildcard primary.</li>
+                    <li><strong>Depth</strong>: Nginx's <code>*.myapp.com</code> also matches <code>a.b.myapp.com</code>,
+                        certificates do not — keep tenants one label deep.</li>
+                    <li><strong>One app per tenant</strong> is the alternative when tenants need isolation (own
+                        database, own backups, movable to another server): create each tenant as its own Cipi app with
+                        its exact domain through the <a href="/docs/api#cipi-api">Cipi API</a>, and its DNS record through the
+                        Cloudflare API — every tenant then gets a plain HTTP-01 certificate.</li>
+                </ul>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/ssl" rel="prev"><small>Previous</small><b>SSL certificates</b></a><a class="next" href="/docs/redirects-proxies" rel="next"><small>Next</small><b>Redirects &amp; proxies</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#which-setup-is-yours">Which setup is yours</a></li>
+<li><a class="l2" href="#wildcard-cloudflare">With Cloudflare — step by step</a></li>
+<li><a class="l2" href="#wildcard-cloudflare-modes">Cloudflare proxy: the SSL/TLS mode decides everything</a></li>
+<li><a class="l2" href="#wildcard-origin-ca">Alternative behind the proxy: Cloudflare Origin CA</a></li>
+<li><a class="l2" href="#wildcard-without-cloudflare">Without Cloudflare</a></li>
+<li><a class="l2" href="#multi-tenant-apps-good-to-know">Multi-tenant apps: good to know</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/wildcard-domains.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/wildcard-domains" width="1" height="1" alt=""></noscript>
+</body>
+</html>

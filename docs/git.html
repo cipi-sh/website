@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git providers &amp; deploy keys — Cipi docs</title>
+    <meta name="description" content="GitHub, GitLab, Bitbucket, Azure DevOps and more — keys and webhooks set up for you.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/git">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/git">
+    <meta property="og:title" content="Git providers &amp; deploy keys — Cipi docs">
+    <meta property="og:description" content="GitHub, GitLab, Bitbucket, Azure DevOps and more — keys and webhooks set up for you.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Git providers & deploy keys", "description": "GitHub, GitLab, Bitbucket, Azure DevOps and more — keys and webhooks set up for you.", "url": "https://cipi.sh/docs/git", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Deploy", "item": "https://cipi.sh/docs/deploy"}, {"@type": "ListItem", "position": 3, "name": "Git providers & deploy keys", "item": "https://cipi.sh/docs/git"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group" open><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git" aria-current="page">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">Git providers &amp; deploy keys</li></ol>
+<h1>Git providers &amp; deploy keys</h1>
+<p class="docs-lead">GitHub, GitLab, Bitbucket, Azure DevOps and more — keys and webhooks set up for you.</p>
+<div class="docs-meta"><span>Deploy</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/git.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="git-providers">
+                <h2 id="git-providers-2">Git providers<a class="anchor" href="#git-providers-2" aria-label="Link to this section">#</a></h2>
+                <p>Cipi auto-configures <strong>GitHub</strong>, <strong>GitLab</strong> and — since
+                    <strong>v5.2.3</strong> — <strong>Cursor Origin</strong>, <strong>AWS CodeCommit</strong>,
+                    <strong>Bitbucket Cloud</strong> and <strong>Azure DevOps</strong>. Any other provider that
+                    supports SSH deploy keys still works through the manual fallback — no vendor lock-in.</p>
+
+                <p>The forge is detected from the <strong>SSH clone URL</strong> you give the app, never from a flag:
+                </p>
+
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Provider</th>
+                                <th>Host detected</th>
+                                <th>Deploy key</th>
+                                <th>Webhook</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>GitHub</strong></td>
+                                <td><code>github.com</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — HMAC secret</td>
+                            </tr>
+                            <tr>
+                                <td><strong>GitLab</strong></td>
+                                <td><code>gitlab.com</code>, self-hosted via <code>cipi git gitlab-url</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — <code>X-Gitlab-Token</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Bitbucket Cloud</strong> <em>(5.2.3)</em></td>
+                                <td><code>bitbucket.org</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — <code>repo:push</code> + HMAC <code>secret</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Azure DevOps</strong> <em>(5.2.3)</em></td>
+                                <td><code>dev.azure.com</code>, <code>ssh.dev.azure.com</code>,
+                                    <code>*.visualstudio.com</code></td>
+                                <td>Automatic</td>
+                                <td>Automatic — service hook <code>git.push</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cursor Origin</strong> <em>(5.2.3)</em></td>
+                                <td><code>origin.cursor.com</code></td>
+                                <td>Automatic</td>
+                                <td>Not available — deploy with <code>cipi deploy</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>AWS CodeCommit</strong> <em>(5.2.3)</em></td>
+                                <td><code>git-codecommit.*.amazonaws.com</code></td>
+                                <td>Automatic (IAM SSH key)</td>
+                                <td>Not available — deploy with <code>cipi deploy</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Anything else</strong></td>
+                                <td>Gitea, Forgejo, self-hosted…</td>
+                                <td>Manual (<code>cipi deploy &lt;app&gt; --key</code>)</td>
+                                <td>Manual (<code>cipi deploy &lt;app&gt; --webhook</code>)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Origin and CodeCommit have no per-repository HTTP webhook to create — Origin Apps expose a
+                        single Ed25519-signed webhook rather than a per-repo HMAC URL, and CodeCommit only publishes to
+                        SNS/EventBridge. The deploy key is still registered automatically; releases go out with
+                        <code>cipi deploy</code> or from CI over SSH.</div>
+                </div>
+
+                <p>Since <strong>v5.2.3</strong> a new app keyscans <code>bitbucket.org</code>,
+                    <code>origin.cursor.com</code> and <code>ssh.dev.azure.com</code> alongside
+                    <code>github.com</code> and <code>gitlab.com</code>, plus the host of the repository URL you
+                    actually gave it — so a supported forge is trusted before the first clone without any extra flag.
+                </p>
+
+                <p>For self-hosted or custom Git servers, you need to trust the server's host fingerprint before
+                    Deployer can clone over SSH. Use the <code>--trust-host</code> flag to add the fingerprint to the
+                    app user's <code>~/.ssh/known_hosts</code> automatically:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># show the deploy key and add it to your Git provider</span>
+<span class="p"></span>cipi deploy myapp --key
+
+<span class="c"># trust a custom Git server fingerprint (standard port)</span>
+<span class="p"></span>cipi deploy myapp --trust-host=git.mycompany.com
+
+<span class="c"># trust a custom Git server on a non-standard port</span>
+<span class="c"># (also writes ~/.ssh/config automatically)</span>
+<span class="p"></span>cipi deploy myapp --trust-host=git.mycompany.com:2222</pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>When a non-standard port is specified, Cipi also writes the
+                        <code>Host</code> / <code>Port</code> entry to the app user's <code>~/.ssh/config</code> so
+                        that Deployer can reach the server without any extra configuration.
+                    </div>
+                </div>
+            
+</section>
+
+<section class="doc-section" id="git-auto-setup">
+                <h2 id="git-auto-setup-2">Git auto-setup<a class="anchor" href="#git-auto-setup-2" aria-label="Link to this section">#</a></h2>
+                <p>If you save a Personal Access Token for the forge that hosts the repository, Cipi automatically
+                    adds the SSH deploy key and creates the webhook every time you run <code>cipi app create</code>.
+                    No manual steps required. Since <strong>v5.2.3</strong> this covers <strong>GitHub</strong>,
+                    <strong>GitLab</strong>, <strong>Cursor Origin</strong>, <strong>AWS CodeCommit</strong>,
+                    <strong>Bitbucket Cloud</strong> and <strong>Azure DevOps</strong>.
+                </p>
+
+                <h3 id="save-a-token">Save a token<a class="anchor" href="#save-a-token" aria-label="Link to this section">#</a></h3>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># GitHub (fine-grained or classic PAT)</span>
+<span class="p"></span>cipi git github-token ghp_xxxxxxxxxxxxxxxxxxxx
+
+<span class="c"># GitLab (gitlab.com)</span>
+<span class="p"></span>cipi git gitlab-token glpat-xxxxxxxxxxxxxxxxxxxx
+
+<span class="c"># GitLab (self-hosted — set the URL before or after the token)</span>
+<span class="p"></span>cipi git gitlab-url https://gitlab.example.com
+<span class="p"></span>cipi git gitlab-token glpat-xxxxxxxxxxxxxxxxxxxx
+
+<span class="c"># Cursor Origin (5.2.3+)</span>
+<span class="p"></span>cipi git origin-token &lt;token&gt;
+
+<span class="c"># Bitbucket Cloud (5.2.3+) — bearer token, or email:token for Basic auth</span>
+<span class="p"></span>cipi git bitbucket-token &lt;token&gt;
+<span class="p"></span>cipi git bitbucket-token you@example.com:&lt;app-password&gt;
+
+<span class="c"># Azure DevOps (5.2.3+) — a PAT, sent as Basic with an empty user</span>
+<span class="p"></span>cipi git azure-token &lt;pat&gt;
+
+<span class="c"># AWS CodeCommit (5.2.3+) — IAM access key, secret key and IAM user name</span>
+<span class="p"></span>cipi git codecommit-token &lt;access-key&gt; &lt;secret-key&gt; &lt;iam-user&gt;</pre>
+                </div>
+
+                <p>Every provider has a matching <code>remove-*</code> command:
+                    <code>cipi git remove-github</code>, <code>remove-gitlab</code>, <code>remove-origin</code>,
+                    <code>remove-bitbucket</code>, <code>remove-azure</code>, <code>remove-codecommit</code>.</p>
+
+                <h4>GitHub token permissions</h4>
+                <p>Fine-grained tokens (recommended) need <strong>Administration</strong> and
+                    <strong>Webhooks</strong> set to <em>Read and write</em> on the target repositories. Classic tokens
+                    need the <code>repo</code> scope.
+                </p>
+
+                <h4>GitLab token permissions</h4>
+                <p>The <code>api</code> scope is the minimum required — GitLab does not offer a more granular scope
+                    that covers both deploy keys and webhooks.</p>
+
+                <h4>Cursor Origin token permissions</h4>
+                <p>Sent as a <code>Bearer</code> token. Origin registers the deploy key; there is no per-repository
+                    webhook to create.</p>
+
+                <h4>Bitbucket Cloud token permissions</h4>
+                <p>Sent as a <code>Bearer</code> token, or as HTTP Basic when you store it in the
+                    <code>email:token</code> form. It needs to administer <em>repository access keys</em> and
+                    <em>webhooks</em>. The webhook Cipi creates subscribes to <code>repo:push</code> and carries an
+                    HMAC <code>secret</code> — the same token <code>cipi/agent</code> already verifies for GitHub.</p>
+
+                <h4>Azure DevOps token permissions</h4>
+                <p>A PAT with <em>Code (read &amp; write)</em> — sent as Basic auth with an empty user name, which is
+                    what Azure expects. The service hook Cipi creates is a <code>git.push</code> subscription that
+                    sends <code>X-Gitlab-Token</code>, so the existing GitLab header check in the agent accepts it
+                    unchanged.</p>
+
+                <h4>AWS CodeCommit credentials</h4>
+                <p>CodeCommit is not a PAT forge: Cipi calls IAM <code>UploadSSHPublicKey</code> directly with curl's
+                    <code>--aws-sigv4</code> signing, using the access key, secret key and IAM user name you stored.
+                    Two details follow from IAM:</p>
+                <ul>
+                    <li>IAM accepts <strong>RSA only</strong>, not ed25519 — so Cipi mints an extra 4096-bit
+                        <code>id_rsa</code> beside the usual ed25519 deploy key and uploads that one.</li>
+                    <li>The SSH user name for CodeCommit is the <strong>SSH Key ID</strong> IAM returns, so Cipi
+                        writes a <code>Host git-codecommit.*.amazonaws.com</code> block into the app user's
+                        <code>~/.ssh/config</code> pointing at it.</li>
+                </ul>
+                <p>IAM allows <strong>five</strong> SSH keys per user — plan the IAM user accordingly if one account
+                    serves many apps or many servers.</p>
+
+                <h3 id="automatic-lifecycle">Automatic lifecycle<a class="anchor" href="#automatic-lifecycle" aria-label="Link to this section">#</a></h3>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Event</th>
+                                                <th>What Cipi does automatically</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>app create</code></td>
+                                                <td>Adds deploy key + creates webhook on the repository via API. The summary shows
+                                                    <em>"auto-configured &#10003;"</em> instead of manual instructions. Since
+                                                    <strong>v5.6.0</strong> the key is then <strong>tested</strong> against the
+                                                    repository (<code>git ls-remote</code> as the app user, the branch included).
+                                                    When it cannot read it, the summary says so and — on a terminal — Cipi offers
+                                                    to save or replace the forge token, registers the key and checks again.
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>app edit --repository=...</code></td>
+                                                <td>Removes deploy key + webhook from the old repository, then adds them to the new one,
+                                                    and tests the key the same way (also after <code>--branch=</code>).
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>app delete</code></td>
+                                                <td>Removes deploy key + webhook from the repository before deleting the app.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <h3 id="cipi-git-commands"><code>cipi git</code> commands<a class="anchor" href="#cipi-git-commands" aria-label="Link to this section">#</a></h3>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Command</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>cipi git status</code></td>
+                                                <td>Show provider connection status and per-app integration details (deploy key ID,
+                                                    webhook ID)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git refresh [app]</code></td>
+                                                <td>Re-register the SSH deploy key and deploy webhook (since
+                                                    <strong>v5.2.1</strong>; every supported provider since
+                                                    <strong>v5.2.3</strong>). One named app, or every app on a
+                                                    supported forge. Custom/SFTP apps get the key only. Flags:
+                                                    <code>--rotate-keys</code>, <code>--rotate-secret</code>,
+                                                    <code>--force</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git check [app]</code></td>
+                                                <td>Can the deploy key read the repository, and does the branch exist? One app
+                                                    (with the token offer on a terminal) or every app with a repository; exits 1
+                                                    when one cannot be read (<strong>v5.6.0</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git github-token &lt;token&gt;</code></td>
+                                                <td>Save a GitHub Personal Access Token</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git gitlab-token &lt;token&gt;</code></td>
+                                                <td>Save a GitLab Personal Access Token</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git gitlab-url &lt;url&gt;</code></td>
+                                                <td>Set the base URL for a self-hosted GitLab instance</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git origin-token &lt;token&gt;</code></td>
+                                                <td>Save a Cursor Origin token (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git bitbucket-token &lt;token&gt;</code></td>
+                                                <td>Save a Bitbucket Cloud token — bearer, or <code>email:token</code>
+                                                    for Basic (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git azure-token &lt;pat&gt;</code></td>
+                                                <td>Save an Azure DevOps PAT (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git codecommit-token &lt;access-key&gt; &lt;secret-key&gt; &lt;iam-user&gt;</code></td>
+                                                <td>Save AWS IAM credentials for CodeCommit (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git remove-github</code></td>
+                                                <td>Remove the stored GitHub token</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git remove-gitlab</code></td>
+                                                <td>Remove the stored GitLab token and URL</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi git remove-origin</code> · <code>remove-bitbucket</code>
+                                                    · <code>remove-azure</code> · <code>remove-codecommit</code></td>
+                                                <td>Remove the stored credentials for that provider
+                                                    (<strong>v5.2.3</strong>)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <h3 id="cipi-git-refresh"><code>cipi git refresh</code><a class="anchor" href="#cipi-git-refresh" aria-label="Link to this section">#</a></h3>
+                <p>Deploy keys and webhooks on GitHub/GitLab do not vanish when a PAT expires — they only become
+                    unmanageable via API. Refresh is for the case where they were deleted, the stored IDs in
+                    <code>apps.json</code> drifted, or you just installed a new token and want every app re-attached.
+                    A missing or rejected PAT is reported per app: run <code>cipi git github-token</code> /
+                    <code>gitlab-token</code> first.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># every GitHub/GitLab app on this server</span>
+<span class="p"></span>cipi git refresh
+
+<span class="c"># one named app</span>
+<span class="p"></span>cipi git refresh myapp
+
+<span class="c"># mint a new ed25519 key and swap it in authorized_keys</span>
+<span class="p"></span>cipi git refresh --rotate-keys
+
+<span class="c"># mint a new CIPI_WEBHOOK_TOKEN in apps.json and shared/.env</span>
+<span class="p"></span>cipi git refresh --rotate-secret
+
+<span class="c"># skip the confirmation when rotating every app</span>
+<span class="p"></span>cipi git refresh --rotate-keys --force</pre>
+                </div>
+
+                <p>Remote leftovers titled <code>cipi:&lt;app&gt;</code> or pointing at this app's webhook URL are
+                    removed first so duplicates are not left behind. If GitHub refuses the existing pubkey because it
+                    is already a deploy key on another repo, refresh generates a new key for that app and continues.
+                    Both rotate flags ask before touching every app unless <code>--force</code>. Deployer still SSHs
+                    to localhost with the app's deploy key after a rotation.</p>
+
+                <h3 id="git-webhook-firewall">Webhook egress and CrowdSec<a class="anchor" href="#git-webhook-firewall" aria-label="Link to this section">#</a></h3>
+                <p>If <a href="/docs/crowdsec#cli-crowdsec"><code>cipi crowdsec</code></a> is enabled, the forge
+                    has to be able to reach the agent. Cipi already allowlists GitHub's webhook CIDRs from
+                    <code>api.github.com/meta</code>; since <strong>v5.2.3</strong> it also pulls Bitbucket Cloud's
+                    egress ranges from <code>ip-ranges.atlassian.com</code> (product <code>bitbucket</code>,
+                    direction <code>egress</code>), fail-open in the same way — a fetch that does not answer never
+                    blocks the enable.</p>
+                <p>Azure DevOps and Origin do not publish a small, stable list of webhook source addresses, so there
+                    is nothing to allowlist ahead of time. If a delivery is banned, add the address by hand:</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi crowdsec allow 20.37.158.0/23</pre>
+                </div>
+
+                <h3 id="manual-setup-fallback">Manual setup (fallback)<a class="anchor" href="#manual-setup-fallback" aria-label="Link to this section">#</a></h3>
+                <p>Auto-setup is skipped when no token is configured for that provider, when the API call fails
+                    (wrong permissions, repository not found, rate limit), or when the repository is hosted somewhere
+                    Cipi does not integrate with (e.g. Gitea, Forgejo, a self-hosted server). In all these cases Cipi
+                    falls back to the manual workflow and the app creation proceeds normally.</p>
+
+                <p>To configure deploy key and webhook manually:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># print the SSH deploy key to add to your Git provider</span>
+<span class="p"></span>cipi deploy myapp --key
+
+<span class="c"># print the webhook URL and token</span>
+<span class="p"></span>cipi deploy myapp --webhook
+
+<span class="c"># if using a custom Git server, trust the host fingerprint first</span>
+<span class="p"></span>cipi deploy myapp --trust-host=git.mycompany.com</pre>
+                </div>
+
+                <p>Then add them in your provider's repository settings:</p>
+                <ul>
+                    <li><strong>Deploy key</strong> — GitHub: <em>Settings → Deploy keys → Add deploy key</em>;
+                        GitLab: <em>Settings → Repository → Deploy keys</em></li>
+                    <li><strong>Webhook</strong> — GitHub: <em>Settings → Webhooks → Add webhook</em>;
+                        GitLab: <em>Settings → Webhooks → Add new webhook</em>. Set the payload URL and
+                        secret to the values shown by <code>cipi deploy myapp --webhook</code></li>
+                </ul>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>If you remove a provider token after apps have been created with auto-setup, Cipi will not
+                        be able to clean up deploy keys and webhooks when you delete or edit those apps. A warning is
+                        shown and you will need to remove them manually from the provider's repository settings.</div>
+                </div>
+            
+</section>
+
+<section class="doc-section" id="cli-auth">
+                <h2 id="auth-json"><code>auth.json</code><a class="anchor" href="#auth-json" aria-label="Link to this section">#</a></h2>
+                <p>Manage the <code>auth.json</code> file for an app. This file lives at
+                    <code>/home/&lt;app&gt;/shared/auth.json</code> and is automatically symlinked into every release by
+                    Deployer — exactly like <code>.env</code>. Use it to store structured credential data (e.g. API
+                    keys, feature flags, or any JSON payload) that your Laravel app can read at runtime.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi auth create myapp   <span class="c"># create auth.json, then open it in $EDITOR (v5.9.0+; --no-edit to skip)</span>
+<span class="p"></span>cipi auth edit myapp     <span class="c"># open in $EDITOR (fallback: nano), validate JSON on close</span>
+<span class="p"></span>cipi auth show myapp     <span class="c"># print contents formatted with jq</span>
+<span class="p"></span>cipi auth delete myapp   <span class="c"># delete file (asks for confirmation)</span>
+
+<span class="c"># Non-interactive (v5.0.3+) — API / scripts / GUI</span>
+<span class="p"></span>cipi auth create myapp --force
+<span class="p"></span>cipi auth edit myapp --file=/tmp/auth.json
+<span class="p"></span>cipi auth show myapp --json
+<span class="p"></span>cipi auth delete myapp --force</pre>
+                </div>
+                <p>REST: <code>GET|POST|PUT|DELETE /api/apps/{name}/auth</code> (ability <code>apps-auth</code>, API
+                    <strong>1.14+</strong>) — Composer/structured JSON, distinct from HTTP Basic Auth.
+                    MCP: <code>AppAuthJsonShow</code>, <code>AppAuthJsonCreate</code>,
+                    <code>AppAuthJsonUpdate</code>, <code>AppAuthJsonDelete</code>.</p>
+
+                <h3 id="command-details">Command details<a class="anchor" href="#command-details" aria-label="Link to this section">#</a></h3>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Command</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><code>cipi auth create &lt;app&gt;</code></td>
+                                                <td>Creates <code>shared/auth.json</code> with the initial structure
+                                                    <code>{"users":[]}</code>, sets permissions to <code>640</code> (owner
+                                                    <code>app:app</code>), and adds <code>auth.json</code> to
+                                                    <code>shared_files</code> in the app's Deployer config so it is symlinked on every
+                                                    deploy.
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi auth edit &lt;app&gt;</code></td>
+                                                <td>Opens <code>shared/auth.json</code> in <code>$EDITOR</code> (falls back to
+                                                    <code>nano</code>). After the editor closes, validates the JSON with
+                                                    <code>jq</code> and warns if the file is malformed.
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi auth show &lt;app&gt;</code></td>
+                                                <td>Prints the contents of <code>shared/auth.json</code> formatted with
+                                                    <code>jq</code>.
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi auth delete &lt;app&gt;</code></td>
+                                                <td>Asks for confirmation, then deletes <code>shared/auth.json</code> and removes the
+                                                    <code>auth.json</code> entry from <code>shared_files</code> in the app's Deployer
+                                                    config.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <h3 id="deployer-integration">Deployer integration<a class="anchor" href="#deployer-integration" aria-label="Link to this section">#</a></h3>
+                <p><code>cipi auth create</code> automatically appends <code>auth.json</code> to the
+                    <code>shared_files</code> list in <code>/home/&lt;app&gt;/.deployer/deploy.php</code>, and
+                    <code>cipi auth delete</code> removes it. This means the file is treated exactly like
+                    <code>.env</code>: it persists across releases and is never overwritten by a deploy.
+                </p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Every <code>cipi auth</code> operation is logged via <code>log_action</code> for
+                        auditability. The <code>AUTH</code> section is also listed in the output of
+                        <code>cipi help</code>.
+                    </div>
+                </div>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/deploying" rel="prev"><small>Previous</small><b>Deploy &amp; roll back</b></a><a class="next" href="/docs/auto-deploy" rel="next"><small>Next</small><b>Auto-deploy on push</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#git-providers-2">Git providers</a></li>
+<li><a class="l2" href="#git-auto-setup-2">Git auto-setup</a></li>
+<li><a class="l3" href="#save-a-token">Save a token</a></li>
+<li><a class="l3" href="#automatic-lifecycle">Automatic lifecycle</a></li>
+<li><a class="l3" href="#cipi-git-commands">cipi git commands</a></li>
+<li><a class="l3" href="#cipi-git-refresh">cipi git refresh</a></li>
+<li><a class="l3" href="#git-webhook-firewall">Webhook egress and CrowdSec</a></li>
+<li><a class="l3" href="#manual-setup-fallback">Manual setup (fallback)</a></li>
+<li><a class="l2" href="#auth-json">auth.json</a></li>
+<li><a class="l3" href="#command-details">Command details</a></li>
+<li><a class="l3" href="#deployer-integration">Deployer integration</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/git.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/git" width="1" height="1" alt=""></noscript>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<section class="doc-section" id="ci-pipeline-ssh">
+                <p>When the webhook model is not enough, run <strong>GitHub Actions</strong> or <strong>GitLab
+                        CI/CD</strong> jobs that SSH into the server and invoke <code>cipi deploy</code>. This is the
+                    right choice whenever deploy must be <em>conditional</em> — gated on tests, preceded by backups,
+                    followed by notifications, or orchestrating new preview apps.</p>
+
+                <h3>When you need a pipeline instead of a webhook</h3>
+                <ul>
+                    <li><strong>Quality gate</strong> — run <code>php artisan test</code>, static analysis, or frontend
+                        builds before any code reaches production</li>
+                    <li><strong>Safe release</strong> — snapshot the database and <code>shared/</code> to S3 before
+                        swapping the symlink (<a href="/docs/safe-deploy#safe-deploy">safe deploy</a>)</li>
+                    <li><strong>Team visibility</strong> — post success/failure to Slack or Telegram with rollback on
+                        failure (<a href="/docs/deploy-notifications#deploy-notifications">deploy notifications</a>)</li>
+                    <li><strong>Review apps</strong> — create or update a full Cipi app per feature branch (<a
+                            href="/docs/preview-environments#preview-environments">preview environments</a>)</li>
+                    <li><strong>Multi-app monorepo</strong> — deploy <code>frontend</code> and <code>api</code> in
+                        parallel after a single test job</li>
+                </ul>
+
+                <p>For these workflows, <strong>disable the production webhook</strong> (or never create one) so only
+                    the pipeline triggers deploys. You can still use Cipi Agent in the app for health checks and MCP.</p>
+
+                <h3>SSH access for CI</h3>
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>Generate a dedicated <strong>ed25519</strong> key pair for the CI runner. Add the
+                        <strong>public key</strong> to <code>/root/.ssh/authorized_keys</code> on the server (or the
+                        <code>cipi</code> user if you prefer <code>sudo cipi deploy</code>) and store the
+                        <strong>private key</strong> as a CI secret. Never reuse Git deploy keys or personal SSH keys.
+                    </div>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># on your local machine</span>
+<span class="p"></span>ssh-keygen -t ed25519 -C "ci-deploy" -f ~/.ssh/ci_deploy -N ""
+
+<span class="c"># copy the public key to the server</span>
+<span class="p"></span>ssh-copy-id -i ~/.ssh/ci_deploy.pub root@your-server-ip
+
+<span class="c"># copy the private key content → add it as a CI secret (SERVER_SSH_KEY)</span>
+<span class="p"></span>cat ~/.ssh/ci_deploy</pre>
+                </div>
+
+                <p>Store <code>SERVER_HOST</code> (server IP or hostname) alongside <code>SERVER_SSH_KEY</code> in your
+                    repository secrets (GitHub) or CI/CD variables (GitLab).</p>
+
+                <h3>GitHub Actions — test then deploy</h3>
+                <p>Add the private key as a repository secret named <code>SERVER_SSH_KEY</code> and the server IP as
+                    <code>SERVER_HOST</code>.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># .github/workflows/deploy.yml</span>
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: php artisan test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test          <span class="c"># only deploy if tests pass</span>
+    steps:
+      - name: Deploy via Cipi
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: cipi
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: sudo cipi deploy myapp</pre>
+                </div>
+
+                <p>For rollback on failure, extend the script step:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>          script: |
+            sudo cipi deploy myapp || (sudo cipi deploy myapp --rollback && exit 1)</pre>
+                </div>
+
+                <h3>GitLab CI / CD</h3>
+                <p>Add the private key as a CI/CD variable named <code>SERVER_SSH_KEY</code> (type: File) and the server
+                    IP as <code>SERVER_HOST</code>.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># .gitlab-ci.yml</span>
+stages:
+  - test
+  - deploy
+
+test:
+  stage: test
+  script:
+    - php artisan test
+
+deploy:
+  stage: deploy
+  environment: production
+  only:
+    - main
+  before_script:
+    - apt-get install -y openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SERVER_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
+  script:
+    - ssh root@$SERVER_HOST "cipi deploy myapp"</pre>
+                </div>
+
+                <p>With rollback on failure:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre>  script:
+    - ssh root@$SERVER_HOST "cipi deploy myapp || (cipi deploy myapp --rollback && exit 1)"</pre>
+                </div>
+
+                <h3>Multi-app deploy</h3>
+                <p>If the same pipeline manages multiple apps on the same server:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># GitHub Actions — deploy multiple apps in parallel</span>
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cipi deploy frontend &
+            cipi deploy api &
+            wait</pre>
+                </div>
+
+                <h3>Advanced pipeline patterns</h3>
+                <p>Once SSH deploy works, compose these sections into a single production workflow:</p>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Pattern</th>
+                                                <th>What the pipeline adds</th>
+                                                <th>Guide</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Notifications</td>
+                                                <td>Slack or Telegram message on success, failure, and auto-rollback</td>
+                                                <td><a href="/docs/deploy-notifications#deploy-notifications">Deploy notifications</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Safe deploy</td>
+                                                <td><code>cipi db backup</code> + <code>cipi backup run</code> before
+                                                    <code>cipi deploy</code>; rollback on failure
+                                                </td>
+                                                <td><a href="/docs/safe-deploy#safe-deploy">Safe deploy w/ backup</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Preview environments</td>
+                                                <td>Create/update/delete per-branch Cipi apps with wildcard DNS + SSL</td>
+                                                <td><a href="/docs/preview-environments#preview-environments">Preview environments</a></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <p>A typical mature setup uses the <strong>webhook</strong> for a staging app (instant feedback on every
+                    push) and a <strong>pipeline</strong> for production (tests → backup → deploy → notify). Each app has
+                    its own trigger — they never conflict because they target different Cipi app users.</p>
+            
+</section>

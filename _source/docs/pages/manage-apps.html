@@ -1,0 +1,293 @@
+<section class="doc-section" id="cli-app-manage">
+                <h2><code>app list</code> / <code>app show</code> / <code>app edit</code> / <code>app delete</code></h2>
+
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Command</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>cipi app list</td>
+                                                <td>List all apps with domain, PHP version, and status (<code>(suspended)</code> when
+                                                    offline)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app show &lt;app&gt;</td>
+                                                <td>Full details: domain, PHP, deploy key, workers, webhook, suspend state, and since 5.3.1
+                                                    the app redirect, path redirects and proxy prefixes. Since 5.4.0: the Node mode,
+                                                    commands and blue/green slots of a Node app, and for a Laravel app whether its
+                                                    Node builds are pinned to a major or follow the server default. For custom apps:
+                                                    type "Custom", docroot; webhook (and deploy key) omitted when SFTP-only without a
+                                                    repository. Since <strong>5.8.0</strong>: the app's
+                                                    <strong>Environment</strong> (<code>production</code> unless created or
+                                                    edited with <code>--env</code>).
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --php=8.5</td>
+                                                <td>Hot-swap PHP version. Updates FPM pool, Nginx socket, Supervisor, crontab, Deployer
+                                                    config, and <code>.env</code> — zero downtime. Since <strong>v5.10.0</strong>, on an FPM app with
+                                                    <a href="/docs/php-jit#cli-app-jit">JIT</a> on the setting moves to the new
+                                                    version's pool and the shared JIT buffer file is rewritten for both
+                                                    versions; on an Octane app Cipi warns when the pinned
+                                                    <a href="/docs/octane#cli-frankenphp">FrankenPHP build</a> carries a different PHP
+                                                    (the CLI, cron and workers move, the web workers stay on the binary's
+                                                    PHP until you pin a matching build)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --branch=develop</td>
+                                                <td>Change the deploy branch. Since <strong>5.7.2</strong> it also rewrites
+                                                    <code>CIPI_DEPLOY_BRANCH</code> in the app's <code>.env</code>; a
+                                                    <a href="/docs/yml#cli-yml-more"><code>deploy.branch</code></a> in
+                                                    <code>cipi.yml</code> does the same through <code>cipi yml apply</code>
+                                                    (5.8.0+)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --env=staging</td>
+                                                <td>Change the app's environment label (since <strong>v5.8.0</strong>; same
+                                                    rules as <code>cipi app create --env</code>). Rewrites
+                                                    <code>APP_ENV</code> (Laravel) and <code>CIPI_ENV</code> in the app's
+                                                    <code>.env</code>, and from then on the app reads
+                                                    <code>cipi-staging.yml</code> before <code>cipi.yml</code> — see
+                                                    <a href="/docs/yml#cli-yml-env">per-environment
+                                                    <code>cipi.yml</code></a>. Composable with the other
+                                                    <code>app edit</code> flags</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --domain=new.example.com</td>
+                                                <td>Rename the primary domain (since <strong>v4.6.2</strong>). Validates format and
+                                                    uniqueness, moves the old primary to aliases, regenerates the Nginx vhost, updates
+                                                    <code>APP_URL</code>, refreshes Git webhooks when auto-configured, and re-issues
+                                                    Let's Encrypt when a certificate already existed</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --repository=&lt;SSH-URL&gt;</td>
+                                                <td>Attach or change the Git repository (e.g. enable deploy on a custom SFTP-only app
+                                                    created without <code>--repository</code>). Composable with <code>--branch</code>,
+                                                    <code>--php</code>, and <code>--domain</code>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --node-build='npm ci &amp;&amp; npm run build'</td>
+                                                <td>Run a Node build after Composer vendors on every deploy (since
+                                                    <strong>v5.0</strong>). Deployer executes
+                                                    <code>.deployer/node-build.sh</code> (fail-closed; command is validated). Clear with
+                                                    <code>--no-node-build</code></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --node-version=24|default</td>
+                                                <td>Pin one Laravel app's Node builds to its own major, whatever the
+                                                    <a href="/docs/nodejs#cli-node">server default</a> is (since
+                                                    <strong>v5.4.0</strong>). <code>node-build.sh</code> exports that major's PATH, and
+                                                    <code>cipi app run</code> and <code>deploy.post</code> use it too.
+                                                    <code>--node-version=default</code> follows the server again. On a
+                                                    <a href="/docs/node-apps#cli-app-node">Node app</a> it changes the runtime; there
+                                                    <code>--build=</code>, <code>--start=</code>, <code>--output=</code>,
+                                                    <code>--health-path=</code> and <code>--node=</code> are accepted as well</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app edit &lt;app&gt; --predeploy-snapshot</td>
+                                                <td>Enable a database dump before every deploy (since
+                                                    <strong>v5.0</strong>). Same behaviour as passing
+                                                    <code>--snapshot</code> on each <code>cipi deploy</code>. See
+                                                    <a href="/docs/safe-deploy#predeploy-snapshot">Pre-deploy DB snapshots</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app convert &lt;app&gt; --to=octane|fpm</td>
+                                                <td>Convert between PHP-FPM and <strong>Laravel Octane</strong> (since
+                                                    <strong>v5.0</strong>). See <a href="/docs/octane#cli-app-octane">Laravel Octane</a>. Since
+                                                    <strong>v5.10.0</strong> it turns JIT off and pins or unpins
+                                                    FrankenPHP</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app jit &lt;app&gt; [status|on|off] [--mode=tracing|function] [--buffer=128M]</td>
+                                                <td>Show or set PHP JIT for one app (since <strong>v5.10.0</strong>),
+                                                    FPM or Octane. Checked with the app's own PHP before it is applied and
+                                                    rolled back if the reload fails. REST:
+                                                    <code>GET|PUT /api/apps/{name}/jit</code> (API <strong>1.40.0+</strong>).
+                                                    See <a href="/docs/php-jit#cli-app-jit"><code>app jit</code></a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi frankenphp status|upgrade|use|fetch|import|adopt|remove|prune</td>
+                                                <td>Manage the FrankenPHP builds Octane apps are pinned to (since
+                                                    <strong>v5.10.0</strong>): several PHP versions side by side, one pin
+                                                    per app, upgrades on the same PHP minor with a health check and
+                                                    rollback. REST: <code>GET /api/frankenphp</code>,
+                                                    <code>POST /api/frankenphp/upgrade</code>. See
+                                                    <a href="/docs/octane#cli-frankenphp">FrankenPHP builds</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app env &lt;app&gt; [--show|--get|--set|--unset]</td>
+                                                <td>Open the app's <code>.env</code> in nano, or manage keys
+                                                    non-interactively since <strong>v5.0.3</strong>
+                                                    (<code>--show</code>/<code>--get</code>/<code>--set</code>/<code>--unset</code>,
+                                                    optional <code>--json</code>). Exits with error for custom apps
+                                                    (no .env).</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app run &lt;app&gt; &lt;cmd&gt; [args…]</td>
+                                                <td>Whitelisted non-interactive command as the app user (since
+                                                    <strong>v5.0.3</strong>). See <a href="/docs/artisan-logs#cli-app-run"><code>app run</code></a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app deploy-config &lt;app&gt;</td>
+                                                <td>Structured Deployer recipe options (since <strong>v5.0.3</strong>).
+                                                    See <a href="/docs/deploy-script#cli-deploy-config">deploy-config</a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app webhook recreate &lt;app&gt; [--rotate-secret]</td>
+                                                <td>Recreate the GitHub/GitLab deploy webhook; optional secret rotation
+                                                    updates <code>CIPI_WEBHOOK_TOKEN</code> (since
+                                                    <strong>v5.0.6</strong>). REST:
+                                                    <code>POST /api/apps/{name}/webhook/recreate</code> (API
+                                                    <strong>1.15.0+</strong>). Since <strong>5.0.6</strong>,
+                                                    <code>app edit --repository=</code> only recreates webhook/deploy key
+                                                    when the repository URL actually changes.</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app fix-permissions [app]</td>
+                                                <td>Reapply the permission layout Cipi created the home with (since
+                                                    <strong>v5.2.1</strong>). One named app, or every app. See
+                                                    <a href="/docs/manage-apps#cli-app-fix-permissions"><code>app fix-permissions</code></a></td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app reset-password &lt;app&gt;</td>
+                                                <td>Regenerate the app's Linux user SSH password. The new password is displayed on
+                                                    screen — save it immediately</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app reset-db-password &lt;app&gt;</td>
+                                                <td>Regenerate the app's database password (MariaDB or PostgreSQL per app
+                                                    <code>engine</code>) and automatically update <code>DB_PASSWORD</code> in the app's
+                                                    <code>.env</code>. Exits with error for custom apps (no database).
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app delete &lt;app&gt;</td>
+                                                <td>Permanently remove the app, user, database (if Laravel), Nginx vhost, FPM pool, and
+                                                    Supervisor workers. For custom apps, skips database drop (none was created). Since
+                                                    <strong>v5.2.2</strong>, also revokes the app's Meilisearch key and drops its
+                                                    indexes — see <a href="/docs/search#cli-search"><code>cipi search</code></a>.
+                                                    Since <strong>v5.6.4</strong>, also removes its
+                                                    <code>cipi.yml</code> auto-apply sudoers rule
+                                                    (<code>/etc/sudoers.d/cipi-&lt;app&gt;-yml</code>).
+                                                    Since <strong>v5.10.0</strong>, also removes the app's FrankenPHP pin
+                                                    and its Octane ini directory, and rewrites the shared JIT buffer file
+                                                    without it (builds no other app uses are left for
+                                                    <code>cipi frankenphp prune</code>).
+                                                    Asks for confirmation.</td>
+                                            </tr>
+                                            <tr>
+                                                <td>cipi app delete &lt;app&gt; --force</td>
+                                                <td>Same as delete but skips the confirmation prompt — for scripts, the panel API, and
+                                                    <code>cipi-cli</code>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+            
+</section>
+
+<section class="doc-section" id="cli-use">
+                <h2><code>cipi use</code> — a default app</h2>
+                <p>Available since <strong>v5.7.2</strong>. <code>cipi use &lt;app&gt;</code> names the app the per-app
+                    commands act on when none is given: <code>cipi deploy</code>, <code>cipi app logs|env|artisan|edit</code>,
+                    <code>cipi yml plan|apply</code>, <code>cipi worker list</code>, <code>cipi ssl install</code>,
+                    <code>cipi www …</code>, <code>cipi alias …</code>, <code>cipi health …</code> and the others run against
+                    it and print <code>→ &lt;app&gt; (default app — cipi use)</code> on stderr. The default is saved on the
+                    server (<code>/var/lib/cipi/default-app</code>); <code>CIPI_APP=&lt;app&gt;</code> does the same for one
+                    shell and wins over the file.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi use shop                 <span class="c"># the default for the commands that need an app</span>
+<span class="p"></span>cipi deploy                   <span class="c"># → shop (default app — cipi use)</span>
+<span class="p"></span>cipi app logs --type=php
+<span class="p"></span>cipi yml plan
+<span class="p"></span>cipi use                      <span class="c"># show it</span>
+<span class="p"></span>cipi use --clear              <span class="c"># remove it</span></pre>
+                </div>
+                <p>It fills in a missing app only where one is a required argument, so nothing that works changes meaning:
+                    a command for which a missing app means every app (<code>cipi git refresh|check</code>,
+                    <code>cipi scan</code>) keeps it, and <code>cipi app delete|reset-password|reset-db-password|convert|clone</code>
+                    and <code>cipi db …</code> still want the name. The panel API never gets a default. Tab-completion and
+                    <code>cipi help use</code> know the command.</p>
+            
+</section>
+
+<section class="doc-section" id="cli-app-clone">
+                <h2><code>cipi app clone</code></h2>
+                <p>Since <strong>v5.0</strong>, clone an existing Laravel app into a new staging (or review) app with
+                    its own domain. Sets <code>cloned_from</code> in <code>apps.json</code>; does <strong>not</strong>
+                    copy webhook or git IDs. If the source has Reverb, the clone gets its own port, credentials and
+                    public host (since <strong>v5.1.2</strong>) — it no longer inherits the production socket. See
+                    <a href="/docs/reverb#cli-app-reverb"><code>cipi app reverb</code></a>. Since <strong>v5.2.2</strong>, a
+                    cloned Scout app gets its own Meilisearch key and <code>SCOUT_PREFIX</code>; the source's
+                    <code>MEILISEARCH_*</code> keys are excluded from the copied <code>.env</code>, because a
+                    clone that inherited them would reindex into production. See
+                    <a href="/docs/search#cli-search"><code>cipi search</code></a>. Since
+                    <strong>v5.10.0</strong>, an Octane clone is pinned to the same
+                    <a href="/docs/octane#cli-frankenphp">FrankenPHP build</a> as its source when that build is a trusted one
+                    (fetched or imported; a build adopted from the source's own release is trusted only for the
+                    source, so the clone keeps the newest build it got at create). <a href="/docs/php-jit#cli-app-jit">JIT</a> is not
+                    copied: turn it on for the clone with <code>cipi app jit</code> if you want it there too.</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app clone myapp --domain=staging.myapp.com
+<span class="p"></span>cipi app clone myapp --domain=staging.myapp.com --name=myapp-stg --branch=develop --with-db
+<span class="p"></span>cipi app clone myapp --domain=staging.myapp.com --branch=develop --env=staging   <span class="c"># 5.8.0+: the clone reads cipi-staging.yml</span>
+<span class="p"></span>cipi app clone myapp --domain=staging.myapp.com --no-db</pre>
+                </div>
+                <div class="options-list">
+                    <div class="option-item"><code>--domain</code><span>Required. Primary domain for the new app.</span>
+                    </div>
+                    <div class="option-item"><code>--name</code><span>Optional Linux username for the clone.</span>
+                    </div>
+                    <div class="option-item"><code>--branch</code><span>Deploy branch for the clone (defaults to the
+                            source app's branch).</span></div>
+                    <div class="option-item"><code>--env</code><span>Environment label for the clone (since
+                            <strong>v5.8.0</strong>; defaults to the source app's). <code>--env=staging</code> writes
+                            <code>APP_ENV=staging</code> / <code>CIPI_ENV=staging</code> into the clone's
+                            <code>.env</code> and makes it read <code>cipi-staging.yml</code> before
+                            <code>cipi.yml</code>, so one repository can carry both files — see
+                            <a href="/docs/yml#cli-yml-env">staging and production from one repository</a>.</span></div>
+                    <div class="option-item"><code>--with-db</code><span>Create a fresh database for the
+                            clone.</span></div>
+                    <div class="option-item"><code>--no-db</code><span>Skip database provisioning for the
+                            clone.</span></div>
+                </div>
+            
+</section>
+
+<section class="doc-section" id="cli-app-fix-permissions">
+                <h2><code>cipi app fix-permissions</code></h2>
+                <p>The panel already had <code>cipi api fix-permissions</code> and
+                    <code>cipi gui fix-permissions</code>; apps did not. A blunt
+                    <code>chown -R app:app /home/&lt;app&gt;</code> is wrong: nginx writes vhost logs as
+                    <code>www-data</code> into <code>logs/</code> (<code>2775</code> setgid), the home must stay
+                    <strong>750</strong> so <code>www-data</code> (in the app group) can read the docroot,
+                    <code>.ssh</code> must be <strong>700</strong> or OpenSSH StrictModes refuses the deploy key, and
+                    <code>shared/.env</code> is <strong>640</strong>. This command reapplies that layout — ownership of
+                    the tree except <code>logs/</code>, then the log/ACL helper, storage dirs <strong>775</strong>,
+                    Composer <code>auth.json</code> <strong>640</strong>, <code>cipi-databases.env</code>
+                    <strong>600</strong>. One named app, or every app.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app fix-permissions myapp
+<span class="p"></span>cipi app fix-permissions          <span class="c"># every app on this server</span></pre>
+                </div>
+
+                <p><code>cipi deploy</code> already runs the log-ACL helper before Deployer.
+                    <code>fix-permissions</code> is the full home, on demand, after someone unpacked a zip as root or
+                    chmod'd <code>.ssh</code> to 775. Available since <strong>v5.2.1</strong>. No migration:
+                    <code>cipi self-update</code> copies the libs and refreshes shell completion. The panel sudoers
+                    file lists the new command, and since API <strong>1.31</strong> the panel calls it
+                    (<code>POST /api/apps/{name}/fix-permissions</code>, and a button in the <a href="/docs/gui">GUI</a>); existing servers pick that line up the next
+                    time sudoers is rewritten (the CLI runs as root and does not need it).</p>
+            
+</section>

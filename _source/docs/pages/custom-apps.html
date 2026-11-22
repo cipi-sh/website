@@ -1,0 +1,61 @@
+<section class="doc-section" id="cli-app-custom">
+                <p>Creates a <strong>custom app</strong> with classic deploy (no zero-downtime): code is deployed into
+                    <code>htdocs</code> — no <code>current</code>/<code>shared</code> symlinks. Ideal for static sites,
+                    SPAs (Vue, React, Svelte), WordPress, other CMS, or any non-Laravel PHP project or framework.
+                </p>
+                <p>During creation you only choose the document root (default <code>/</code>, or e.g. <code>www</code>,
+                    <code>dist</code>, <code>public</code>). Nginx is pre-configured with <code>index index.html
+                    index.php</code>, <code>try_files $uri $uri/ /index.php?$args</code>, and
+                    <code>error_page 404 /404.html</code> — no prompts for try_files or entry point.
+                </p>
+                <h3>Git optional (SFTP-only)</h3>
+                <p>The Git repository is <strong>optional</strong> for custom apps.
+                    <strong>Laravel</strong> apps still require a repository. If you skip the repository for a custom
+                    app,
+                    Cipi creates <code>/home/&lt;app&gt;/htdocs</code> with a placeholder <code>index.html</code> and
+                    does
+                    not configure a deploy key or webhook — you upload files with <strong>SFTP</strong> (or SCP/rsync)
+                    to
+                    <code>~/htdocs</code> as the app user. The onboarding output explains this “no repo — SFTP only”
+                    workflow. If you do provide a repository, behavior is unchanged: use <code>cipi deploy
+                    &lt;app&gt;</code> to pull code into <code>htdocs</code>.
+                </p>
+                <h3>What’s included and what you add</h3>
+                <p>Custom apps have <strong>no database</strong>, <strong>no <code>.env</code></strong>, no cron, and no
+                    queue workers. When a repository is configured, a deploy key and (with Git auto-setup) webhook are
+                    shown; for SFTP-only apps, those are omitted. The post-creation summary lists SSH access and next
+                    steps accordingly.
+                </p>
+                <p>If your custom app needs a database (e.g. WordPress, Drupal), create one with
+                    <code>cipi db create --name=&lt;app&gt;</code> after deployment. See <a href="/docs/databases#cli-db">cipi db</a>
+                    for backup, restore, and password management.
+                </p>
+                <p>With Git — non-interactive example:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app create --custom --user=mysite --domain=mysite.com \
+    --repository=git@github.com:you/mysite.git --docroot=dist</pre>
+                </div>
+                <p>SFTP-only — omit <code>--repository</code> and <code>--branch</code>:</p>
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="p"></span>cipi app create --custom --user=mysite --domain=mysite.com --docroot=dist</pre>
+                </div>
+                <p>With a repository, use <code>cipi deploy &lt;app&gt;</code> to deploy; code is cloned into
+                    <code>/home/&lt;app&gt;/htdocs</code>.
+                </p>
+
+                <h3><code>cipi.yml</code> is never served (v5.2.3)</h3>
+                <p>A custom app serves <code>htdocs/</code> (or a subdirectory of it) as the Nginx document root, so a
+                    <code>cipi.yml</code> committed at the repository root used to answer at
+                    <code>https://&lt;domain&gt;/cipi.yml</code>. Since <strong>v5.2.3</strong> every app vhost denies
+                    <code>/cipi.yml</code> and <code>/cipi.yaml</code> at any path — Laravel apps included, in case the
+                    file is ever copied into <code>public/</code>. Since <strong>v5.8.0</strong> the rule also covers
+                    the per-environment files, <code>/cipi-&lt;anything&gt;.yml</code> and <code>.yaml</code>
+                    (<code>cipi-staging.yml</code>, <code>cipi-production.yml</code>, …); migration 5.8.0 updates the
+                    existing vhosts.</p>
+                <p>Existing servers get the <code>location</code> block on update, without regenerating the vhost, so
+                    certbot's <code>:443</code> block is left untouched. <code>cipi yml</code> also looks for the file
+                    in <code>htdocs/</code> now, which is where a custom app's repository actually lives.</p>
+            
+</section>

@@ -1,0 +1,184 @@
+<section class="doc-section" id="cli-zt">
+                <p>Available since <strong>v5.3.0</strong>, and <strong>off until you ask</strong> — the same contract
+                    as <a href="/docs/crowdsec#cli-crowdsec">CrowdSec</a>: <code>setup.sh</code> and <code>cipi self-update</code>
+                    never install <code>cloudflared</code> and never call <code>cipi zt enable</code>. Fail2ban and UFW
+                    stay; this feature teaches them about Cloudflare rather than replacing them.</p>
+                <p>Public sites stay public — visitors of a shop go through Cloudflare's CDN/WAF over the same tunnel,
+                    with no login. Staging, the <a href="/docs/gui">GUI</a> and SSH are what you put behind Cloudflare
+                    Access. Every step that could cut you off is a separate, explicit command.</p>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># 1 — API token, saved root-only</span>
+<span class="p"></span>cipi zt token set --token=CF_API_TOKEN --account=ACCOUNT_ID
+<span class="p"></span>cipi zt token show                         <span class="c"># whether a token is saved — never the secret</span>
+
+<span class="c"># 2 — tunnel + nginx real_ip (22/80/443 stay open)</span>
+<span class="p"></span>cipi zt enable
+<span class="p"></span>cipi zt status                             <span class="c"># tunnel, hostnames, Access, locks, apps not on the tunnel</span>
+
+<span class="c"># 3 — route traffic</span>
+<span class="p"></span>cipi zt hostname add myapp                 <span class="c"># public, through Cloudflare's CDN/WAF</span>
+<span class="p"></span>cipi zt hostname add --gui                 <span class="c"># the control panel hostname</span>
+<span class="p"></span>cipi zt access enable staging              <span class="c"># Cloudflare Access in front of an app</span>
+<span class="p"></span>cipi zt access enable --gui
+<span class="p"></span>cipi zt ssh enable --hostname=ssh.example.com
+
+<span class="c"># 4 — close the origin, when you are ready</span>
+<span class="p"></span>cipi zt lock http --yes                    <span class="c"># 80/443: closed, or Cloudflare IPs only</span>
+<span class="p"></span>cipi zt lock ssh --yes                     <span class="c"># port 22 — refuses unless the tunnel carries SSH</span>
+
+<span class="c"># rescue and teardown</span>
+<span class="p"></span>cipi zt ssh unlock                         <span class="c"># reopen port 22</span>
+<span class="p"></span>cipi zt unlock http                        <span class="c"># 80/443 world-open again</span>
+<span class="p"></span>cipi zt refresh                            <span class="c"># reload Cloudflare IP ranges (also a daily cron)</span>
+<span class="p"></span>cipi zt disable                            <span class="c"># restore UFW 22/80/443, remove cloudflared</span></pre>
+                </div>
+
+                <h3>The API token</h3>
+                <p><code>cipi zt token set</code> stores the token root-only at <code>/etc/cipi/zt.token</code>. If
+                    <code>--account</code> is omitted and the token sees exactly one account, Cipi uses it. The token
+                    needs <strong>Account &middot; Cloudflare Tunnel: Edit</strong>, <strong>Account &middot; Access:
+                        Apps and Policies: Edit</strong> and <strong>Zone &middot; DNS: Edit</strong>;
+                    <a href="/docs/zero-trust#cli-zt-origin-cert">Origin CA</a> also needs <strong>Zone &middot; SSL and Certificates:
+                        Edit</strong>.</p>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <div>This is <strong>not</strong> <code>/etc/cipi/cloudflare.ini</code>. That file belongs to
+                        certbot's DNS-01 challenge (<a href="/docs/ssl#cli-ssl"><code>cipi ssl dns set</code></a>) and needs
+                        Zone.DNS only. The two credentials stay separate.</div>
+                </div>
+
+                <h3>What <code>enable</code> does — and what it leaves alone</h3>
+                <ul>
+                    <li>Installs the official <code>cloudflared</code> package and runs a <strong>locally-managed
+                            tunnel</strong> under its own systemd unit.</li>
+                    <li>Writes Nginx <code>real_ip</code> from <code>https://api.cloudflare.com/client/v4/ips</code>,
+                        reading <code>CF-Connecting-IP</code> (<code>/etc/nginx/conf.d/cipi-cloudflare-realip.conf</code>),
+                        so logs, fail2ban and your app see the visitor instead of Cloudflare.</li>
+                    <li>Adds the same ranges to fail2ban's <code>ignoreip</code> as a backup and, when CrowdSec is
+                        already on, to a CrowdSec allowlist.</li>
+                    <li>Installs a daily <code>cipi zt refresh</code> cron. A failed fetch keeps the previous list.</li>
+                    <li><strong>Does not close 22, 80 or 443.</strong></li>
+                </ul>
+
+                <h3>Hostnames, Access and SSH</h3>
+                <div class="table-scroll">
+                    <table class="cmd-table">
+                        <thead>
+                            <tr>
+                                <th>Command</th>
+                                <th>What it does</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>cipi zt hostname add &lt;app|--gui&gt;</code></td>
+                                <td>CNAME to <code>{tunnel-id}.cfargotunnel.com</code>, ingress
+                                    <code>http://127.0.0.1:80</code>. <strong>Public</strong> — CDN/WAF, no Access.
+                                    <code>cipi app create</code> does not do this on its own; <code>cipi zt status</code>
+                                    lists the apps that are not on the tunnel yet.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt hostname remove &lt;app|--gui&gt;</code></td>
+                                <td>Removes the DNS records and Access applications Cipi created for it, and the
+                                    ingress rule.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt access enable &lt;app|--gui&gt;</code></td>
+                                <td>Cloudflare Access in front of that hostname, allowing any authenticated user —
+                                    tighten the identity provider in the Zero Trust dashboard. If the app has a Git
+                                    webhook, a <strong>Bypass</strong> application is created for
+                                    <code>/cipi/webhook</code> so GitHub, GitLab and Bitbucket are not answered with a
+                                    403.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt access disable &lt;app|--gui&gt;</code></td>
+                                <td>Drops Access; the hostname stays public on the tunnel.</td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt ssh enable --hostname=</code></td>
+                                <td>Ingress <code>ssh://127.0.0.1:22</code> plus an Access SSH application, then prints
+                                    the <code>~/.ssh/config</code> block below. <strong>Port 22 stays open.</strong></td>
+                            </tr>
+                            <tr>
+                                <td><code>cipi zt ssh disable</code></td>
+                                <td>Removes SSH from the tunnel — reopening port 22 first if it was locked.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-block-header"><span class="code-block-lang">ssh config</span><button class="code-copy-btn" type="button">Copy</button></div>
+                    <pre><span class="c"># ~/.ssh/config on your laptop</span>
+Host ssh.example.com
+  ProxyCommand cloudflared access ssh --hostname %h
+  User cipi
+  IdentityFile ~/.ssh/id_ed25519</pre>
+                </div>
+                <p>Deployer still SSHs to <code>localhost</code>, so deploys are not affected by any of this.</p>
+
+                <h3>Locking the origin</h3>
+                <p><code>cipi zt lock http [--yes]</code> <strong>refuses while any app still renews Let's Encrypt over
+                        HTTP-01</strong>: validation does not come from Cloudflare's IPs, so those certificates would
+                    quietly stop renewing. Move each app to <code>cipi ssl install &lt;app&gt; --dns=cloudflare</code>
+                    or <code>cipi zt origin-cert &lt;app&gt;</code> first; <code>--force</code> skips the check if you
+                    accept the consequence. Then:</p>
+                <ul>
+                    <li>if <strong>every</strong> HTTP hostname — the GUI included — is on the tunnel, 80/443 are closed
+                        entirely: the origin goes dark;</li>
+                    <li>otherwise 80/443 are allowed <strong>only from Cloudflare's ranges</strong>, kept current by
+                        the daily refresh.</li>
+                </ul>
+                <p><code>cipi zt lock ssh [--yes]</code> closes port 22 <strong>only if <code>cloudflared</code> is
+                        active and the tunnel already has SSH ingress</strong>; otherwise it would lock you out. The
+                    way back is <code>cipi zt ssh unlock</code>. A CrowdSec rescue listener, if enabled, stays
+                    reachable.</p>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <div>Lock SSH only after <code>ssh ssh.example.com</code> through <code>cloudflared</code> already
+                        works from your own machine. If the tunnel stops while port 22 is closed, the way in is your
+                        VPS provider's console — keep it at hand before you run <code>lock ssh</code>.</div>
+                </div>
+
+                <h3 id="cli-zt-origin-cert">Origin CA certificates (optional)</h3>
+                <p><code>cipi zt origin-cert &lt;app&gt;</code> requests a <strong>15-year Cloudflare Origin CA</strong>
+                    certificate for the app's domains, stores it under <code>/etc/ssl/cipi-origin/&lt;app&gt;/</code>
+                    and swaps the <code>ssl_certificate</code> paths when the vhost already has a <code>:443</code>
+                    block. The app is marked so a later <code>cipi ssl install</code> over HTTP-01 will not overwrite
+                    it.</p>
+                <p>It is not a default replacement for Let's Encrypt. Full (Strict) still needs <em>an</em> origin
+                    certificate, but the tunnel talks HTTP to <code>:80</code> and does not need one.</p>
+
+                <h3>How it fits the rest of Cipi</h3>
+                <ul>
+                    <li><a href="/docs/ssl#cli-ssl"><code>cipi ssl install</code></a> over HTTP-01 refuses while
+                        <code>lock http</code> is on, and on an app with an Origin CA certificate. Apps on the tunnel
+                        get certbot <code>--no-redirect</code>, and <code>cipi ssl force</code> refuses on them: an
+                        origin HTTP&rarr;HTTPS redirect would break <code>cloudflared</code>.</li>
+                    <li>CrowdSec's reverse-proxy check still refuses without <code>real_ip</code>; the error now points
+                        at <code>cipi zt enable</code>, after which the check finds the Cloudflare config.</li>
+                    <li>Notification triggers: <code>zt_enable</code>, <code>zt_disable</code>,
+                        <code>zt_lock_http</code> and <code>zt_lock_ssh</code>.</li>
+                    <li>The panel API sudoers grant <code>cipi zt status</code> only. <code>enable</code>,
+                        <code>lock</code> and everything else stay with the operator on the CLI.</li>
+                </ul>
+                <p><code>cipi zt disable</code> reopens UFW 22/80/443, removes the Access applications and DNS records
+                    Cipi created, deletes the tunnel, purges <code>cloudflared</code> and removes the real_ip, fail2ban
+                    and CrowdSec files and the cron. Fail2ban stays, and your Let's Encrypt certificates are left
+                    alone.</p>
+            
+</section>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel architecture — Cipi docs</title>
+    <meta name="description" content="How the panel talks to your servers.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/gui-architecture">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/gui-architecture">
+    <meta property="og:title" content="Panel architecture — Cipi docs">
+    <meta property="og:description" content="How the panel talks to your servers.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Panel architecture", "description": "How the panel talks to your servers.", "url": "https://cipi.sh/docs/gui-architecture", "dateModified": "2026-11-22", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Web panel", "item": "https://cipi.sh/docs/gui"}, {"@type": "ListItem", "position": 3, "name": "Panel architecture", "item": "https://cipi.sh/docs/gui-architecture"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/quickstart">Quickstart</a>
+            <a href="/docs/">Docs</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/alternatives">Compare</a>
+            <a href="/guides/">Guides</a>
+            <a href="/whats-new">What's new</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/quickstart">Quickstart</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/alternatives">Compare</a>
+    <a href="/guides/">Guides</a>
+    <a href="/whats-new">What's new</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group"><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group" open><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture" aria-current="page">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/gui">Web panel</a></li><li aria-current="page">Panel architecture</li></ol>
+<h1>Panel architecture</h1>
+<p class="docs-lead">How the panel talks to your servers.</p>
+<div class="docs-meta"><span>Web panel</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-architecture.html">Edit on GitHub</a></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="gui-architecture">
+                <p>The panel is a standard <strong>Laravel</strong> application (12 or 13, Livewire 3.6+ or 4) distributed as the
+                    <code>cipi/gui</code> package from its own repository
+                    (<a href="https://github.com/cipi-sh/gui" target="_blank">cipi-sh/gui</a>) and installed via a
+                    Composer VCS entry tracking <code>dev-main</code>. It lives at <code>/opt/cipi/gui</code>, mirroring
+                    how the <code>cipi-api</code> package is bundled.</p>
+
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                            <thead>
+                                                <tr><th>Aspect</th><th>Detail</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td>Framework</td><td>Laravel 12 or 13, Livewire 3.6+ or 4 — no asset build step</td></tr>
+                                                <tr><td>Package</td><td><code>cipi/gui</code> (GitHub <code>cipi-sh/gui</code>, Composer VCS <code>dev-main</code>)</td></tr>
+                                                <tr><td>Install path</td><td><code>/opt/cipi/gui</code></td></tr>
+                                                <tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr>
+                                                <tr><td>Isolation</td><td>PHP-FPM <code>open_basedir</code> restricted to <code>/opt/cipi/gui/</code> and <code>/opt/cipi/cipi-gui/</code> (since <strong>5.0.18</strong>)</td></tr>
+                                                <tr><td>Auth</td><td>Session login + optional TOTP 2FA; optional OpenID Connect SSO (<code>cipi gui sso</code>, 4.0.2+)</td></tr>
+                                                <tr><td>Jobs</td><td>No local queue worker — remote async jobs are polled through each managed server's <code>cipi api</code></td></tr>
+                                            </tbody>
+                                        </table>
+                </div>
+
+                <p>Because it holds no local queue worker and stores no server state of its own, the panel stays
+                    stateless with respect to your infrastructure: it authenticates to each server's API, submits jobs,
+                    and polls their status. Tear the panel down and rebuild it elsewhere without touching a single
+                    managed server.</p>
+
+                <h3 id="api-coverage">API coverage<a class="anchor" href="#api-coverage" aria-label="Link to this section">#</a></h3>
+                <p>Panel <strong>4.2.0</strong> uses the routes of API <strong>1.39</strong> on Cipi <strong>5.9.0</strong>:
+                    <code>GET /api/deploys/last</code> and <code>GET /api/apps/{name}/deploy/history</code>, the Node
+                    runtime routes (<code>node-runtimes-manage</code>), <code>/api/backups…</code>
+                    (<code>backups-view</code>, <code>backups-manage</code>), database links and the dump upload. A
+                    token created with a list of abilities needs the three new ones — the Connections page prints
+                    the command — or is a full-access token (<code>cipi api token create --name=gui
+                    --full-access</code>). A server on an older API or core keeps every page it had: the Backups tab
+                    says what it needs, the Node tab lists and restarts as before, the Last deploy column is left
+                    out, and durations come from today's deploy log.</p>
+                <p>The GUI consumes the Cipi API through <strong>1.33</strong>. Panel <strong>3.1</strong> adds
+                    <strong>Server → Disk</strong>: the filesystem <code>/home</code> is on, every app largest first
+                    (files, database, total, share of the disk, soft limit — flagged once over the limit or past 90%
+                    of it) and every database per engine. It reads <code>GET /api/disk</code> and
+                    <code>GET /api/disk/dbs</code> (API <strong>1.33+</strong>, Cipi <strong>5.5.2+</strong>, ability
+                    <code>disk-view</code>). Sizes are measured when the tab opens, so those two requests use their own
+                    timeout (180 seconds, <code>CIPI_GUI_HTTP_DISK_TIMEOUT</code>). An older server shows “not
+                    available” for that tab. Soft disk limits and Cloudflare DNS accounts have been on the API since
+                    <strong>1.32</strong> (the <a href="/docs/php-sdk">PHP SDK</a> calls them); the panel shows the
+                    limit and points at <code>cipi app limits</code> and <code>cipi ssl dns</code> on the host to
+                    change them. <code>cipi ssh apps</code> and <code>cipi firewall attempts</code> stay on the host
+                    CLI. Keep the panel and each managed server's <code>cipi/api</code> package current
+                    (<code>cipi gui update</code> / <code>cipi api update</code>) so create forms and list fields match
+                    the server.</p>
+                                <div class="table-scroll">
+                    <table class="cmd-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Area</th>
+                                                <th>Coverage</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Server</td>
+                                                <td><code>GET /api/status</code>; Manage page: PHP, DB engines, Node
+                                                    runtimes (<code>GET /api/node</code>), SSH keys, services, SMTP,
+                                                    search (<code>GET /api/search</code>), packages
+                                                    (<code>GET /api/packages</code>), monitor
+                                                    (<code>GET /api/monitor</code>), Zero Trust
+                                                    (<code>GET /api/zt</code>), disk usage
+                                                    (<code>GET /api/disk</code>, <code>GET /api/disk/dbs</code>,
+                                                    Server → Disk, panel <strong>3.1</strong> / API
+                                                    <strong>1.33+</strong> / Cipi <strong>5.5.2+</strong>), IP whitelist
+                                                    (API <strong>1.15–1.33</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Apps</td>
+                                                <td>CRUD, suspend/unsuspend, fix-permissions
+                                                    (<code>POST /api/apps/{name}/fix-permissions</code>), basic auth,
+                                                    logs, <code>.env</code>, <code>auth.json</code>, Artisan, App
+                                                    commands (<code>app run</code>); create accepts
+                                                    <code>engine</code> (mariadb/pgsql), <code>octane</code>
+                                                    (FrankenPHP, API <strong>1.13+</strong>) and Node
+                                                    (<code>node</code>, <code>framework</code>,
+                                                    <code>node_version</code>, <code>build</code>,
+                                                    <code>start</code>, <code>output</code>,
+                                                    <code>health_path</code>, API <strong>1.31+</strong>);
+                                                    env/auth/run need API <strong>1.14+</strong>; list/show expose
+                                                    <code>octane</code> / <code>octane_port</code>,
+                                                    <code>node</code> / <code>node_mode</code> /
+                                                    <code>node_version</code> and <code>redirect</code> /
+                                                    <code>redirects</code> / <code>proxies</code>; wildcard primary
+                                                    domains; webhook recreate and secret rotation; per-app HTTP
+                                                    healthcheck</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Deploy config</td>
+                                                <td>Structured Deployer knobs via
+                                                    <code>/api/apps/{name}/deploy-config</code> (API
+                                                    <strong>1.14+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><code>cipi.yml</code></td>
+                                                <td>Status and plan (<code>GET /api/apps/{name}/yml</code>), apply
+                                                    (<code>POST …/yml/apply</code>, job <code>app-yml-apply</code>),
+                                                    auto-apply (<code>POST …/yml/auto/enable|disable</code>) — API
+                                                    <strong>1.35+</strong> / Cipi <strong>5.6.4+</strong>,
+                                                    <code>yml-view</code> / <code>yml-manage</code>; <code>env</code>
+                                                    and the per-environment file with API <strong>1.36+</strong> / Cipi
+                                                    <strong>5.8.0+</strong> (panel <strong>4.0</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Aliases</td>
+                                                <td>List, add, remove</td>
+                                            </tr>
+                                            <tr>
+                                                <td>WWW</td>
+                                                <td>Status, add counterpart, force-to-root / force-from-root, clear
+                                                    (<code>www-manage</code>; API <strong>1.12+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Routing</td>
+                                                <td>Whole-app and path redirects (<code>/api/apps/{name}/redirect*</code>),
+                                                    prefix reverse proxies (<code>/api/apps/{name}/proxies</code>) —
+                                                    API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Node</td>
+                                                <td><code>GET /api/node</code>, <code>GET /api/apps/{name}/node</code>,
+                                                    <code>POST /api/apps/{name}/node/restart</code> (SSR blue/green) —
+                                                    API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Search</td>
+                                                <td><code>GET /api/search</code>;
+                                                    <code>POST /api/apps/{name}/search/enable</code> and
+                                                    <code>…/disable</code> (API <strong>1.31+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Deploy</td>
+                                                <td>Deploy, rollback, unlock; deploy audit ledger
+                                                    (<code>GET /api/apps/{name}/deploy/audit</code>, API
+                                                    <strong>1.31+</strong> / Cipi <strong>5.4.0+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>SSL</td>
+                                                <td>Install Let's Encrypt, force HTTPS redirect</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Databases</td>
+                                                <td>Engines + list (sync); create, backup, restore and password with
+                                                    optional <code>engine</code> (async; API <strong>1.12+</strong>) —
+                                                    backup and restore have their own buttons since panel 3.0. Database
+                                                    deletion is host-CLI only since API <strong>1.19</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Health</td>
+                                                <td>Server-wide list (<code>GET /api/health</code>) on the Server page;
+                                                    per-app set, unset and check now (API <strong>1.16+</strong>)</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Jobs</td>
+                                                <td>Poll status, CLI output and the parsed <code>result</code> (credentials,
+                                                    backup file, webhook token)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span>Prefer the terminal? See the <a href="/docs/cli-client">CLI client</a> for the same API-driven
+                        management from your shell, or the <a href="/docs/api#cipi-api"><code>cipi api</code></a> and
+                        <a href="/docs/whmcs#whmcs">WHMCS module</a> for automation. Package source:
+                        <a href="https://github.com/cipi-sh/gui" target="_blank" rel="noopener">cipi-sh/gui</a>.</span>
+                </div>
+            
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/gui-maintenance" rel="prev"><small>Previous</small><b>Update &amp; remove</b></a><a class="next" href="/docs/api" rel="next"><small>Next</small><b>REST API</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#api-coverage">API coverage</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-architecture.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Quickstart</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/whats-new">What's new</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>© 2019–2026 Andrea Pollastri. Made in Italy.</span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/gui-architecture" width="1" height="1" alt=""></noscript>
+</body>
+</html>
