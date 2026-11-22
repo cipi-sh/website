@@ -185,112 +185,29 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/operations">Backups &amp; monitoring</a></li><li aria-current="page">Health checks</li></ol>
 <h1>Health checks</h1>
 <p class="docs-lead">HTTP checks per app, including after every deploy.</p>
-<div class="docs-meta"><span>Backups &amp; monitoring</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/health-checks.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Backups &amp; monitoring</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/health-checks.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-health">
-                <p>Since <strong>v5.0</strong>, configure HTTP healthchecks per app. Cipi then watches the app in two
-                    different ways, because “is the site up?” and “did the push I just made break production?” are not
-                    the same question.</p>
-
-                <div class="table-scroll">
-                    <table class="cmd-table">
-                        <thead>
-                            <tr>
-                                <th>Check</th>
-                                <th>When it runs</th>
-                                <th>When it alerts</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Periodic probe</td>
-                                <td>Every 5 minutes</td>
-                                <td>After <strong>3 consecutive</strong> failures → <code>health_fail</code></td>
-                            </tr>
-                            <tr>
-                                <td>Post-deploy check</td>
-                                <td>Right after every release goes live</td>
-                                <td><strong>Immediately</strong> on the first failure → <code>deploy_health_fail</code>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi health set myapp --url=https://myapp.com/up --expect=200
+<p>Two different questions, two checks: <em>is the site up?</em> and <em>did the release I just shipped break it?</em> Combined with automatic rollback, a bad deploy can undo itself within seconds.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Check</th><th>Runs</th><th>Alerts</th></tr></thead><tbody><tr><td>Periodic probe</td><td>Every 5 minutes</td><td>After 3 consecutive failures (<code>health_fail</code>)</td></tr><tr><td>Post-deploy check</td><td>Right after every release, CLI and webhook alike</td><td>Immediately (<code>deploy_health_fail</code>)</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi health set myapp --url=https://myapp.com/up --expect=200
 <span class="p"></span>cipi health check myapp
-<span class="p"></span>cipi health list
-<span class="p"></span>cipi health unset myapp
-
-<span class="c"># Structured output (v5.0.6+) — panel API / scripts</span>
-<span class="p"></span>cipi health list --json
-<span class="p"></span>cipi health check myapp --json</pre>
-                </div>
-
-                <h3 id="post-deploy-verification-v5-1-0">Post-deploy verification (v5.1.0+)<a class="anchor" href="#post-deploy-verification-v5-1-0" aria-label="Link to this section">#</a></h3>
-                <p>Once an app has a healthcheck URL, the release that just went live is verified right after every
-                    deploy — from <code>cipi deploy</code> and from the Git webhook alike. The probe waits a short grace
-                    period (8 seconds for Octane apps, 3 otherwise, or whatever <code>--grace=N</code> says) and retries five times, so an
-                    app that needs a moment to come up is not reported as broken.</p>
-                <p>The verdict never changes the deploy's exit code — the release is live either way — but the alert
-                    says so and hands you the rollback command. The success email is sent <em>after</em> verification,
-                    so it can never announce a successful deploy while the site is returning 500.</p>
-                <p>Since <strong>v5.8.4</strong> a failed verdict also says where the check comes from —
-                    <code>cipi health set</code>, the panel's "Enable healthcheck", or a <code>health:</code> block in
-                    cipi.yml — and how to change it: <code>--url=</code>, <code>--no-postdeploy</code> to keep the
-                    five-minute probe but skip the one after deploys, <code>cipi health unset</code> to remove it. A
-                    <strong>404</strong> adds the usual cause: Laravel serves <code>/up</code> only when the health
-                    route is on (<code>bootstrap/app.php</code>, <code>health: '/up'</code>). <code>cipi health set
-                    &lt;app&gt; --no-postdeploy</code> on its own keeps the URL and status already set (before 5.8.4 it
-                    reset them to <code>https://&lt;domain&gt;/up</code> and 200).</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi health postdeploy myapp             <span class="c"># run the post-deploy verification now</span>
-<span class="p"></span>cipi health set myapp --grace=15         <span class="c"># give the release longer to warm up (max 120)</span>
-<span class="p"></span>cipi health set myapp --no-postdeploy    <span class="c"># turn the post-deploy check off for this app</span></pre>
-                </div>
-
-                <h3 id="auto-rollback-of-an-unhealthy-release-opt-in">Auto-rollback of an unhealthy release (opt-in)<a class="anchor" href="#auto-rollback-of-an-unhealthy-release-opt-in" aria-label="Link to this section">#</a></h3>
-                <p>Cipi can undo a release that fails its post-deploy healthcheck: the <code>current</code> symlink
-                    moves back to the previous release, the app is probed again, and <strong>one</strong> email
-                    describes the whole sequence — what was published, what it answered, what it was rolled back to and
-                    whether that fixed it.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi health set myapp --rollback-on-unhealthy   <span class="c"># permanent, per app</span>
-<span class="p"></span>cipi deploy myapp --rollback-on-unhealthy       <span class="c"># just this deploy</span></pre>
-                </div>
-
-                <p>Four outcomes are reported distinctly: <strong>recovered</strong>; <strong>rolled back but still
-                        unhealthy</strong> (so the cause is probably not the code); <strong>the rollback itself
-                        failed</strong> (the bad release is still live); and <strong>there is no earlier release</strong>
-                    to return to.</p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>Auto-rollback is <strong>off by default and deliberately so: database migrations are not
-                            undone.</strong> A release that migrated the schema and then failed can be worse off after
-                        the code is rolled back. Enable it only for apps whose deploys do not migrate, or where you know
-                        the migrations are backwards-compatible.</div>
-                </div>
-
-                <p>REST: <code>GET /api/health</code>, <code>GET|PUT|DELETE /api/apps/{name}/health</code>,
-                    <code>POST /api/apps/{name}/health/check</code> (API <strong>1.15.0+</strong> / Cipi
-                    <strong>5.0.6+</strong>). An app can also declare its healthcheck in its repository — see
-                    <a href="/docs/yml#cli-yml"><code>cipi.yml</code></a>.
-                    To watch the server rather than the app — disk, services, workers, 5xx spikes, load — see
-                    <a href="/docs/monitor#cli-monitor"><code>cipi monitor</code></a> (v5.3.0+).</p>
-            
+<span class="p"></span>cipi health list [--json]
+<span class="p"></span>cipi health unset myapp</pre></div>
+<p>Laravel 11+ serves <code>/up</code> when <code>health: '/up'</code> is set in <code>bootstrap/app.php</code>. The URL must belong to the app's own domains.</p>
+<h2 id="postdeploy">After every deploy<a class="anchor" href="#postdeploy" aria-label="Link to this section">#</a></h2>
+<ol class="flow"><li><b>Release live</b><span>symlink swapped</span></li><li><b>Grace period</b><span>3 s, 8 s for Octane</span></li><li><b>Probe up to 5×</b><span>tolerant of warm-up</span></li><li><b>Verdict</b><span>in the deploy notice</span></li><li><b>Optional rollback</b><span>if unhealthy</span></li></ol>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi health set myapp --grace=15<span class="c">            # longer warm-up (max 120 s)</span>
+<span class="p"></span>cipi health set myapp --no-postdeploy<span class="c">       # keep the 5-minute probe only</span>
+<span class="p"></span>cipi health postdeploy myapp<span class="c">                # run the verification now</span></pre></div>
+<p>The success notification is sent <strong>after</strong> the verdict, so it never announces a release that returns errors. A failed verdict tells you where the check is configured and how to change it.</p>
+<h2 id="auto-rollback">Automatic rollback<a class="anchor" href="#auto-rollback" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi health set myapp --rollback-on-unhealthy<span class="c">   # always, for this app</span>
+<span class="p"></span>cipi deploy myapp --rollback-on-unhealthy<span class="c">       # this deploy only</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Outcome reported</th><th>Meaning</th></tr></thead><tbody><tr><td>Recovered</td><td>The previous release answers healthy again</td></tr><tr><td>Rolled back, still unhealthy</td><td>The cause probably isn't the code (database, external service)</td></tr><tr><td>Rollback failed</td><td>The bad release is still live: act now</td></tr><tr><td>Nothing to roll back to</td><td>First release</td></tr></tbody></table></div>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Off by default on purpose: <strong>migrations are not undone</strong>. Enable it for apps whose migrations are backwards-compatible, or pair it with <a href="/docs/safe-deploy">pre-deploy snapshots</a>.</p></div></div>
+<p>Also in <a href="/docs/yml">cipi.yml</a> (<code>health:</code>), the REST API and the panel. To watch the server rather than the app, see <a href="/docs/monitor">Server monitor</a>.</p>
 </section>
 
 </div>
@@ -298,11 +215,11 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#post-deploy-verification-v5-1-0">Post-deploy verification (v5.1.0+)</a></li>
-<li><a class="l2" href="#auto-rollback-of-an-unhealthy-release-opt-in">Auto-rollback of an unhealthy release (opt-in)</a></li>
+<li><a class="l2" href="#postdeploy">After every deploy</a></li>
+<li><a class="l2" href="#auto-rollback">Automatic rollback</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/health-checks.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/health-checks.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

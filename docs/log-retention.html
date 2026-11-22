@@ -185,81 +185,22 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/operations">Backups &amp; monitoring</a></li><li aria-current="page">Log retention</li></ol>
 <h1>Log retention</h1>
 <p class="docs-lead">GDPR-friendly rotation for app, security and HTTP logs.</p>
-<div class="docs-meta"><span>Backups &amp; monitoring</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/log-retention.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Backups &amp; monitoring</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/log-retention.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cipi-log-retention">
-                <p>Cipi enforces automatic log rotation policies designed to meet GDPR and general data protection
-                    requirements. Logs are rotated and deleted automatically — no manual cleanup needed.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Category</th>
-                                                <th>Logs</th>
-                                                <th>Retention</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Application</td>
-                                                <td>Laravel, PHP-FPM, workers, deploy, system</td>
-                                                <td>12 months</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Security</td>
-                                                <td>Fail2ban, UFW firewall, authentication, Cipi events (<code>events.log</code>)</td>
-                                                <td>12 months</td>
-                                            </tr>
-                                            <tr>
-                                                <td>HTTP / Navigation</td>
-                                                <td>Nginx access and error logs</td>
-                                                <td>90 days</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>HTTP/navigation logs (nginx access logs) contain IP addresses, which are personal data under
-                        GDPR. The 90-day retention ensures compliance with the data minimization principle while
-                        preserving enough history for debugging and security analysis. Application and security logs are
-                        retained for 12 months to support audit trails and incident investigation.</div>
-                </div>
-
-                <h3 id="laravel-logs-fixed-in-5-5-0">Laravel logs: fixed in 5.5.0<a class="anchor" href="#laravel-logs-fixed-in-5-5-0" aria-label="Link to this section">#</a></h3>
-                <p>Up to 5.4 the 12-month policy did not actually reach Laravel logs. Apps were created with
-                    <code>LOG_CHANNEL=daily</code>, so every day had its own file, and logrotate rotated each of those
-                    files exactly once: the content landed in <code>laravel-&lt;date&gt;.log.1</code>, which was never
-                    compressed (<code>delaycompress</code> waits for a second rotation that never came) and never
-                    deleted (<code>rotate 365</code> counts rotations per file, and every date is its own file).</p>
-                <p>Since <strong>v5.5.0</strong> Laravel apps write one <code>storage/logs/laravel.log</code>
-                    (<code>LOG_CHANNEL=single</code>), and the <code>cipi-app-logs</code> rule rotates it daily,
-                    compressed from the second day, for 365 rotations. The rule's Laravel pattern is now
-                    <code>storage/logs/*[!0-9].log</code>, so a log whose name ends in a date is left to Laravel: an app
-                    that sets <code>LOG_CHANNEL=daily</code> on purpose is pruned by Laravel itself after
-                    <code>LOG_DAILY_DAYS</code>. The <a href="/docs/server-commands#migration-5-5-0">5.5.0 migration</a> switches existing
-                    apps and folds their dated history into <code>laravel.log</code>, from where it leaves through the
-                    normal rotation.</p>
-            
+<p>Logs rotate and expire automatically, with retention periods chosen for GDPR's data-minimisation principle. No manual cleanup, no disk filling up with years of access logs.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Category</th><th>Logs</th><th>Kept</th></tr></thead><tbody><tr><td>Application</td><td>Laravel, PHP-FPM, workers, deploys, system</td><td>12 months</td></tr><tr><td>Security</td><td>Fail2ban, firewall, authentication, Cipi events</td><td>12 months</td></tr><tr><td>HTTP</td><td>Nginx access and error logs (contain IP addresses)</td><td>90 days</td></tr></tbody></table></div>
+<p>Logs are rotated daily and compressed from the second day. Laravel apps write a single <code>storage/logs/laravel.log</code> (<code>LOG_CHANNEL=single</code>) that follows the same policy. An app that sets <code>LOG_CHANNEL=daily</code> on purpose is pruned by Laravel itself (<code>LOG_DAILY_DAYS</code>).</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Access logs hold IP addresses, which are personal data. 90 days is enough for debugging and incident analysis while keeping exposure low; application and security logs stay a year for audit trails.</p></div></div>
 </section>
 
 </div>
 <nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/notifications" rel="prev"><small>Previous</small><b>Notifications</b></a><a class="next" href="/docs/security-model" rel="next"><small>Next</small><b>Security model</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
-<h2>On this page</h2><ol>
-<li><a class="l2" href="#laravel-logs-fixed-in-5-5-0">Laravel logs: fixed in 5.5.0</a></li>
-</ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/log-retention.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/log-retention.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
