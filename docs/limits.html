@@ -185,134 +185,30 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/apps">Apps</a></li><li aria-current="page">Limits &amp; suspension</li></ol>
 <h1>Limits &amp; suspension</h1>
 <p class="docs-lead">Cap CPU, memory and disk per app; suspend and resume apps.</p>
-<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/limits.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/limits.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-app-limits">
-                <h2 id="cipi-app-limits"><code>cipi app limits</code><a class="anchor" href="#cipi-app-limits" aria-label="Link to this section">#</a></h2>
-                <p>Since <strong>v5.0</strong>, set per-app resource limits with hard caps enforced by Cipi.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi app limits myapp --fpm-max-children=20 --memory-limit=256M
+<p>Cap what one app can use, so a busy or misbehaving app cannot starve the others.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app limits myapp<span class="c">                                   # show</span>
+<span class="p"></span>cipi app limits myapp --fpm-max-children=20 --memory-limit=256M
 <span class="p"></span>cipi app limits myapp --octane-workers=4 --worker-procs=3
-<span class="p"></span>cipi app limits myapp --disk=10     <span class="c"># soft disk limit in GB (v5.5.0+) — alerts, blocks nothing</span>
-<span class="p"></span>cipi app limits myapp --disk=none   <span class="c"># back to no limit (the default)</span>
-<span class="p"></span>cipi app limits myapp   <span class="c"># show current limits</span></pre>
-                </div>
-                <div class="options-list">
-                    <div class="option-item"><code>--fpm-max-children</code><span>PHP-FPM <code>pm.max_children</code>
-                            for FPM apps.</span></div>
-                    <div class="option-item"><code>--memory-limit</code><span>PHP <code>memory_limit</code>.</span>
-                    </div>
-                    <div class="option-item"><code>--octane-workers</code><span>Octane worker count for
-                            FrankenPHP apps. Since <strong>v5.10.0</strong>, rewriting the Octane Supervisor program
-                            also applies its new environment: the app's own ini directory on
-                            <code>PHP_INI_SCAN_DIR</code> (where <a href="/docs/php-jit#cli-app-jit">JIT</a> lives) and
-                            <code>/home/&lt;app&gt;/current</code> first on <code>PATH</code>, so Octane finds the
-                            pinned binary.</span></div>
-                    <div class="option-item"><code>--worker-procs</code><span>Supervisor queue worker process
-                            count.</span></div>
-                    <div class="option-item"><code>--disk</code><span>Soft disk limit in GB for files and database
-                            together (e.g. <code>10</code>, <code>2.5</code>), or <code>none</code>. Since
-                            <strong>v5.5.0</strong>.</span></div>
-                </div>
-
-                <h3 id="soft-disk-limit-v5-5-0">Soft disk limit (v5.5.0+)<a class="anchor" href="#soft-disk-limit-v5-5-0" aria-label="Link to this section">#</a></h3>
-                <p>No app has a disk limit unless one is set: the default is unlimited, on new and existing servers
-                    alike. <code>--disk</code> sets one for the app's files and database together — the TOTAL column of
-                    <a href="/docs/disk#cli-disk"><code>cipi disk</code></a> — and the command reports what the
-                    app uses now, warning if it is already over.</p>
-                <ul>
-                    <li><strong>It is soft.</strong> Nothing is blocked when the limit is passed and the app keeps
-                        working. The limit is a threshold for the
-                        <a href="/docs/monitor#cli-monitor"><code>app_disk</code></a> monitor check: a warning at
-                        90% of the limit, a critical alert once over it, a recovery when it is back under, with the
-                        usual reminder every 4 hours in between (trigger <code>monitor_app_disk</code>).</li>
-                    <li>Setting only <code>--disk</code> does not rebuild the FPM pool or restart workers.</li>
-                    <li><code>cipi disk</code> shows the limit next to the app (<code>10 GB (64%)</code>, and
-                        <code>over</code> once passed).</li>
-                    <li>The limit is stored next to the app as <code>disk_limit_gb</code>, <strong>not</strong> inside
-                        <code>limits</code>: that object is what <a href="/docs/yml#cli-yml-more"><code>cipi.yml</code></a>
-                        reconciles, and an app's repository must not be able to raise the space its server grants it.
-                        <a href="/docs/sync#cipi-sync"><code>cipi sync</code></a> carries it with the app.</li>
-                    <li>Since API <strong>1.32</strong> the same reading and the same write are
-                        <code>GET|PUT /api/apps/{name}/limits</code> (<code>disk_limit_gb</code>; abilities
-                        <code>apps-view</code> / <code>apps-edit</code>; <code>null</code> removes it). The
-                        <a href="/docs/php-sdk">PHP SDK</a> calls <code>limits()</code>. The
-                        <a href="/docs/gui">control panel</a> shows the limit on Server → Disk (panel 3.1 / API 1.33)
-                        and sets it on the host. <code>cipi-cli</code> reads usage with
-                        <a href="/docs/cli-client#cli-disk"><code>disk</code></a> and leaves the limit to this
-                        command.</li>
-                </ul>
-            
+<span class="p"></span>cipi app limits myapp --disk=10<span class="c">                          # soft limit, GB</span>
+<span class="p"></span>cipi app limits myapp --disk=none</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Controls</th></tr></thead><tbody><tr><td><code>--fpm-max-children</code></td><td>Maximum PHP-FPM processes (FPM apps)</td></tr><tr><td><code>--memory-limit</code></td><td>PHP <code>memory_limit</code></td></tr><tr><td><code>--octane-workers</code></td><td>Octane workers (Octane apps)</td></tr><tr><td><code>--worker-procs</code></td><td>Queue worker processes</td></tr><tr><td><code>--disk</code></td><td>Soft disk limit for files + database, in GB, or <code>none</code></td></tr></tbody></table></div>
+<h2 id="disk">Soft disk limit<a class="anchor" href="#disk" aria-label="Link to this section">#</a></h2>
+<p>No app has one unless you set it. It never blocks the app: it drives the <a href="/docs/monitor">monitor</a>.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Usage</th><th>Result</th></tr></thead><tbody><tr><td>Below 90%</td><td>Nothing</td></tr><tr><td>90% of the limit</td><td>Warning</td></tr><tr><td>Over the limit</td><td>Critical alert, repeated every 4 hours</td></tr><tr><td>Back under</td><td>Recovery notice</td></tr></tbody></table></div>
+<p><code>cipi disk</code> shows usage next to the limit. The limit is kept outside <code>cipi.yml</code> on purpose: <strong>a repository cannot raise the space its server grants it</strong>. Also via REST (<code>GET|PUT /api/apps/{name}/limits</code>) and the panel.</p>
 </section>
-
 <section class="doc-section" id="cli-app-suspend">
-                <h2 id="app-suspend-app-unsuspend"><code>app suspend</code> / <code>app unsuspend</code><a class="anchor" href="#app-suspend-app-unsuspend" aria-label="Link to this section">#</a></h2>
-                <p>Available since <strong>v4.5.8</strong>. Take an app offline without deleting it — useful for billing
-                    holds, maintenance windows, or staging sites you want fully dark. Suspending swaps the Nginx vhost for
-                    a static <strong>HTTP 503</strong> page served from <code>/var/www/cipi-suspended/</code>.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi app suspend myapp      <span class="c"># take offline (503 page)</span>
-<span class="p"></span>cipi app unsuspend myapp    <span class="c"># restore normal vhost</span></pre>
-                </div>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Command</th>
-                                                <th>Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>cipi app suspend &lt;app&gt;</td>
-                                                <td>Sets <code>suspended: true</code> in <code>apps.json</code>, rebuilds the vhost to
-                                                    return 503 for all requests. Idempotent if already suspended.</td>
-                                            </tr>
-                                            <tr>
-                                                <td>cipi app unsuspend &lt;app&gt;</td>
-                                                <td>Clears the flag, restores the normal Laravel/custom vhost, and reapplies SSL blocks.
-                                                    Idempotent if already online.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <h3 id="behaviour">Behaviour<a class="anchor" href="#behaviour" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>HTTPS included</strong> — certbot clones the suspension vhost into the
-                        <code>:443</code> block, so HTTPS also shows the offline page</li>
-                    <li><strong>Let's Encrypt still works</strong> — the <code>/.well-known/acme-challenge/</code> path
-                        stays public so certificates can be issued or renewed while suspended</li>
-                    <li><strong>Survives vhost regeneration</strong> — alias changes, PHP edits, and SSL installs
-                        respect the suspended flag</li>
-                    <li><strong>Visible in listings</strong> — <code>cipi app list</code> marks suspended apps;
-                        <code>cipi domains</code> appends <code>⏸ suspended</code> on each row
-                    </li>
-                </ul>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div><strong>Suspend vs basic auth:</strong> <a href="/docs/basic-auth#cli-basicauth"><code>cipi basicauth</code></a>
-                        shows a login prompt but still runs your app. <code>app suspend</code> stops PHP entirely and
-                        serves a static offline page — visitors never reach Laravel. Use suspend for “site closed”;
-                        basic auth for “invite-only preview”.</div>
-                </div>
-
-                <p>Also available via the <a href="/docs/api#cipi-api">REST API</a>
-                    (<code>POST /api/apps/{name}/suspend</code>), <a href="/docs/cli-client">cipi-cli</a>
-                    (<code>apps suspend</code>), and the <a href="/docs/whmcs#whmcs">WHMCS module</a> (Suspend /
-                    Unsuspend buttons). Requires token ability <code>apps-suspend</code> for API access.</p>
-            
+<h2 id="suspend">Suspend an app<a class="anchor" href="#suspend" aria-label="Link to this section">#</a></h2>
+<p>Take an app offline without deleting anything: for unpaid invoices, maintenance or a staging site you want dark.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app suspend myapp
+<span class="p"></span>cipi app unsuspend myapp</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>While suspended</th><th></th></tr></thead><tbody><tr><td>Every request</td><td>A static <strong>503</strong> page; PHP never runs</td></tr><tr><td>HTTPS</td><td>Covered too</td></tr><tr><td>Certificate renewals</td><td>Keep working</td></tr><tr><td>Vhost changes (aliases, PHP, SSL)</td><td>Respect the suspension</td></tr><tr><td><code>cipi app list</code>, <code>cipi domains</code></td><td>Mark the app as suspended</td></tr></tbody></table></div>
+<p>Also from the REST API (<code>POST /api/apps/{name}/suspend</code>), cipi-cli and the <a href="/docs/whmcs">WHMCS module</a>.</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Need a private preview instead of a closed site? Use <a href="/docs/basic-auth">basic auth</a>: the app runs, behind a password.</p></div></div>
 </section>
 
 </div>
@@ -320,13 +216,11 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#cipi-app-limits">cipi app limits</a></li>
-<li><a class="l3" href="#soft-disk-limit-v5-5-0">Soft disk limit (v5.5.0+)</a></li>
-<li><a class="l2" href="#app-suspend-app-unsuspend">app suspend / app unsuspend</a></li>
-<li><a class="l3" href="#behaviour">Behaviour</a></li>
+<li><a class="l2" href="#disk">Soft disk limit</a></li>
+<li><a class="l2" href="#suspend">Suspend an app</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/limits.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/limits.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

@@ -185,109 +185,28 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/apps">Apps</a></li><li aria-current="page">Scheduler &amp; cron</li></ol>
 <h1>Scheduler &amp; cron</h1>
 <p class="docs-lead">The Laravel scheduler and each app user&#x27;s crontab.</p>
-<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/scheduler.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/scheduler.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-schedule">
-                <h2 id="cipi-schedule"><code>cipi schedule</code><a class="anchor" href="#cipi-schedule" aria-label="Link to this section">#</a></h2>
-                <p>Since <strong>v5.0</strong>, manage the Laravel scheduler crontab entry that runs
-                    <code>schedule:run</code> (the crontab itself already existed; it is now toggleable and tracked in
-                    <code>apps.json</code>).
-                </p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi schedule on myapp
+<p>Every Laravel app runs <code>schedule:run</code> every minute, as its own user, with its own PHP version. You only turn it on or off.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi schedule status myapp
 <span class="p"></span>cipi schedule off myapp
-<span class="p"></span>cipi schedule status myapp</pre>
-                </div>
-            
+<span class="p"></span>cipi schedule on myapp</pre></div>
 </section>
-
 <section class="doc-section" id="cli-app-cron">
-                <h2 id="user-crontab">User crontab<a class="anchor" href="#user-crontab" aria-label="Link to this section">#</a></h2>
-                <p>Cipi automatically adds a crontab entry for the Laravel scheduler when an app is created:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># installed automatically by cipi app create</span>
-* * * * * /usr/bin/php8.5 /home/myapp/current/artisan schedule:run >> /dev/null 2>&1</pre>
-                </div>
-
-                <p>This entry runs as the <code>myapp</code> Linux user every minute, using the PHP version selected for
-                    the app. It is updated automatically when you change PHP version via
-                    <code>cipi app edit myapp --php=X</code>.
-                </p>
-
-                <h3 id="viewing-the-current-crontab">Viewing the current crontab<a class="anchor" href="#viewing-the-current-crontab" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># as root — view the app user's crontab</span>
-<span class="p"></span>crontab -u myapp -l
-
-<span class="c"># or after switching to the app user</span>
-<span class="p"></span>su - myapp
-myapp@server:~$ crontab -l</pre>
-                </div>
-
-                <h3 id="adding-custom-cron-jobs">Adding custom cron jobs<a class="anchor" href="#adding-custom-cron-jobs" aria-label="Link to this section">#</a></h3>
-                <p>You can add extra cron jobs to the app user's crontab. Switch to the app user first to ensure jobs
-                    run with the correct user context and file permissions:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>su - myapp
-myapp@server:~$ crontab -e</pre>
-                </div>
-
-                <p>Example entries you might add:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span></div>
-                    <pre><span class="c"># existing Laravel scheduler (do not remove)</span>
-* * * * * /usr/bin/php8.5 /home/myapp/current/artisan schedule:run >> /dev/null 2>&1
-
-<span class="c"># nightly database backup at 2 AM</span>
-0 2 * * * /usr/local/bin/cipi db backup myapp >> /home/myapp/logs/backup.log 2>&1
-
-<span class="c"># custom script every 15 minutes</span>
-*/15 * * * * /home/myapp/current/scripts/sync.sh >> /home/myapp/logs/sync.log 2>&1</pre>
-                </div>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div><strong>Do not remove the Laravel scheduler entry.</strong> Cipi does not re-add it
-                        automatically if deleted — you would need to run
-                        <code>cipi app edit myapp --php=&lt;current-version&gt;</code> to restore it. Always keep the
-                        <code>schedule:run</code> line as the first entry so it is easy to identify.
-                    </div>
-                </div>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div><strong>Cron jobs run as the app user.</strong> They respect the same filesystem restrictions
-                        as the app itself. If a cron job needs to write files, make sure the target path is inside
-                        <code>/home/myapp/</code>. Jobs that require root access should be added to the root crontab
-                        instead, with <code>crontab -e</code> as root.
-                    </div>
-                </div>
-
-                <h3 id="checking-if-cron-is-working">Checking if cron is working<a class="anchor" href="#checking-if-cron-is-working" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># check system cron log</span>
-<span class="p"></span>grep CRON /var/log/syslog | grep myapp | tail -20
-
-<span class="c"># check Laravel scheduler execution</span>
-<span class="p"></span>cipi app artisan myapp schedule:list</pre>
-                </div>
-            
+<h2 id="user-crontab">Your own cron jobs<a class="anchor" href="#user-crontab" aria-label="Link to this section">#</a></h2>
+<p>The scheduler lives in the app user's crontab, next to any job you add. Edit it as the app user, so jobs run with the app's permissions:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>su - myapp
+<span class="p"></span>crontab -e</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># Laravel scheduler (managed by Cipi, keep it)</span>
+* * * * * /usr/bin/php8.6 /home/myapp/current/artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1
+<span class="c"># your job, every 15 minutes</span>
+*/15 * * * * /home/myapp/current/scripts/sync.sh &gt;&gt; /home/myapp/logs/sync.log 2&gt;&amp;1</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why</th></tr></thead><tbody><tr><td>Keep the <code>schedule:run</code> line</td><td>If removed, <code>cipi schedule on myapp</code> puts it back</td></tr><tr><td>Write only inside <code>/home/myapp</code></td><td>Jobs have the app's permissions, nothing more</td></tr><tr><td>Prefer Laravel's scheduler</td><td>Jobs stay in code, deployed and versioned with the app</td></tr><tr><td>Root jobs go in root's crontab</td><td>Never give an app more rights than it needs</td></tr></tbody></table></div>
+<h2 id="check">Check it runs<a class="anchor" href="#check" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app artisan myapp schedule:list
+<span class="p"></span>grep CRON /var/log/syslog | grep myapp | tail -20</pre></div>
 </section>
 
 </div>
@@ -295,14 +214,11 @@ myapp@server:~$ crontab -e</pre>
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#cipi-schedule">cipi schedule</a></li>
-<li><a class="l2" href="#user-crontab">User crontab</a></li>
-<li><a class="l3" href="#viewing-the-current-crontab">Viewing the current crontab</a></li>
-<li><a class="l3" href="#adding-custom-cron-jobs">Adding custom cron jobs</a></li>
-<li><a class="l3" href="#checking-if-cron-is-working">Checking if cron is working</a></li>
+<li><a class="l2" href="#user-crontab">Your own cron jobs</a></li>
+<li><a class="l2" href="#check">Check it runs</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/scheduler.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/scheduler.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

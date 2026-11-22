@@ -185,128 +185,34 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/apps">Apps</a></li><li aria-current="page">Laravel Octane</li></ol>
 <h1>Laravel Octane</h1>
 <p class="docs-lead">Run apps on FrankenPHP, convert existing apps and pin builds.</p>
-<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/octane.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/octane.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-app-octane">
-                <p>Since <strong>v5.0</strong>, Laravel apps can serve HTTP via
-                    <strong>Laravel Octane</strong> with the <strong>FrankenPHP</strong> server instead of a per-app
-                    PHP-FPM pool. Octane and classic FPM apps run side by side on the same Cipi server.
-                </p>
-
-                <h3 id="what-cipi-configures">What Cipi configures<a class="anchor" href="#what-cipi-configures" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li>Allocates a localhost port in <code>8100–8999</code> and stores <code>octane</code> /
-                        <code>octane_port</code> in <code>apps.json</code></li>
-                    <li>Nginx vhost uses <code>proxy_pass</code> to Octane and serves static files from
-                        <code>current/public</code> — <strong>no per-app FPM pool</strong></li>
-                    <li>Supervisor program <code>${app}-octane</code> alongside queue workers</li>
-                    <li>Deployer template <code>laravel-octane.php</code> links the app's pinned FrankenPHP build into
-                        each release and restarts / reloads Octane on deploy (v5.10.0+, see below)</li>
-                    <li><code>.env</code>: <code>OCTANE_SERVER=frankenphp</code>, <code>OCTANE_HTTPS=true</code></li>
-                </ul>
-
-                <h3 id="app-requirements">App requirements<a class="anchor" href="#app-requirements" aria-label="Link to this section">#</a></h3>
-                <p>Your Laravel repository must include <code>laravel/octane</code> and run
-                    <code>php artisan octane:install --server=frankenphp</code>. Octane starts after the first
-                    successful deploy.
-                </p>
-                <p>Since <strong>v5.10.0</strong> <code>octane:install</code> is still needed for the worker file
-                    and the <code>.gitignore</code> entries, but the <code>frankenphp</code> binary itself no longer
-                    comes from the repository or from Octane's own download: right after Composer vendors, the
-                    deploy links the app's <a href="/docs/octane#cli-frankenphp">pinned build</a> into the release. If
-                    <code>laravel/octane</code> requires a newer FrankenPHP than the pin, the deploy stops before the
-                    release goes live and tells you to run <code>cipi frankenphp upgrade &lt;app&gt;</code>.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># create an Octane app</span>
-<span class="p"></span>cipi app create --user=myapp --domain=myapp.com \
+<p>Laravel Octane keeps your app booted in memory and serves requests with FrankenPHP. Typical result: much lower response times for the same hardware. Octane and PHP-FPM apps run side by side on one server.</p>
+<h2 id="octane-use">Create or convert<a class="anchor" href="#octane-use" aria-label="Link to this section">#</a></h2>
+<p>Your repository needs <code>laravel/octane</code>, installed with <code>php artisan octane:install --server=frankenphp</code>. Octane starts after the first deploy.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app create --user=myapp --domain=myapp.com \
     --repository=git@github.com:you/myapp.git --octane
-
-<span class="c"># convert an existing FPM app → Octane (or the reverse)</span>
-<span class="p"></span>cipi app convert myapp --to=octane
-<span class="p"></span>cipi app convert myapp --to=fpm
-
-<span class="c"># tune Octane workers (also see app limits)</span>
-<span class="p"></span>cipi app limits myapp --octane-workers=4</pre>
-                </div>
-
-                <p><code>cipi app convert --to=octane|fpm</code> rewrites the pool / vhost / Supervisor / Deployer
-                    template / <code>.env</code>, and re-applies SSL when a certificate is already present. Since
-                    <strong>v5.10.0</strong> convert also turns the app's <a href="/docs/php-jit#cli-app-jit">JIT</a> off (the
-                    setting lives in a different place for FPM and Octane, so it is not carried over: run
-                    <code>cipi app jit</code> again after converting) and pins the app to a FrankenPHP build when it
-                    becomes Octane, or drops the pin when it goes back to FPM.</p>
-
-                <h3 id="cli-frankenphp">FrankenPHP builds, pinned per app (v5.10.0+)<a class="anchor" href="#cli-frankenphp" aria-label="Link to this section">#</a></h3>
-                <p>An Octane app answers on the PHP built into its FrankenPHP binary, which apt never patches. Up to
-                    5.9.x that binary was nobody's: Laravel Octane downloads the <em>latest</em> FrankenPHP release
-                    into the project whenever it finds none there, <code>octane:install</code> puts
-                    <code>frankenphp</code> in <code>.gitignore</code>, and every release starts from a fresh checkout
-                    — so each deploy fetched whatever GitHub had that minute, a new PHP minor included.</p>
-                <p>Since <strong>v5.10.0</strong> the binary is Cipi's. Builds live in
-                    <code>/opt/cipi-frankenphp/builds/</code> (root's, read-only to the apps), each with the
-                    FrankenPHP and PHP versions inside it; one is pinned per app, and every deploy links it into the
-                    new release before it goes live. Octane downloads nothing, and the PHP an app answers on changes
-                    only when you say so.</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi frankenphp                       <span class="c"># each app's build, the PHP inside, patched or not</span>
-<span class="p"></span>cipi frankenphp upgrade myapp         <span class="c"># newest build on myapp's PHP minor</span>
+<span class="p"></span>cipi app convert myapp --to=octane<span class="c">     # an existing FPM app</span>
+<span class="p"></span>cipi app convert myapp --to=fpm<span class="c">        # and back</span>
+<span class="p"></span>cipi app limits myapp --octane-workers=4</pre></div>
+<h2 id="octane-setup">What Cipi sets up<a class="anchor" href="#octane-setup" aria-label="Link to this section">#</a></h2>
+<ol class="flow"><li><b>Nginx</b><span>static files, proxy to Octane</span></li><li><b>Octane on 127.0.0.1</b><span>port 8100–8999</span></li><li><b>FrankenPHP build</b><span>pinned per app</span></li><li><b>Supervisor</b><span>keeps it running, reloads on deploy</span></li></ol>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Piece</th><th>Setting</th></tr></thead><tbody><tr><td>Nginx</td><td><code>proxy_pass</code> to the app's local port; static files from <code>current/public</code>; no PHP-FPM pool</td></tr><tr><td>Process</td><td>Supervisor program <code>myapp-octane</code>, next to the queue workers</td></tr><tr><td>Deploys</td><td>The pinned FrankenPHP binary is linked into each release, then Octane reloads</td></tr><tr><td><code>.env</code></td><td><code>OCTANE_SERVER=frankenphp</code>, <code>OCTANE_HTTPS=true</code></td></tr></tbody></table></div>
+<p>Converting rewrites the vhost, process, deploy recipe and <code>.env</code>, and keeps the certificate. It turns <a href="/docs/php-jit">JIT</a> off; enable it again if you use it.</p>
+<h2 id="cli-frankenphp">FrankenPHP builds, pinned per app<a class="anchor" href="#cli-frankenphp" aria-label="Link to this section">#</a></h2>
+<p>The PHP an Octane app runs is the one compiled into its FrankenPHP binary. Cipi keeps those binaries in <code>/opt/cipi-frankenphp/builds/</code> (read-only to apps) and <strong>pins one per app</strong>. A deploy never downloads a new binary, so PHP changes only when you decide.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi frankenphp<span class="c">                      # each app's build and PHP, patched or not</span>
+<span class="p"></span>cipi frankenphp upgrade myapp<span class="c">        # newest build on the same PHP minor</span>
 <span class="p"></span>cipi frankenphp upgrade --all
-<span class="p"></span>cipi frankenphp use myapp &lt;build&gt;     <span class="c"># pin a given build</span>
-<span class="p"></span>cipi frankenphp import ./frankenphp   <span class="c"># a build made elsewhere — another PHP minor</span>
-<span class="p"></span>cipi frankenphp adopt myapp           <span class="c"># pin the binary Octane downloaded</span>
-<span class="p"></span>cipi frankenphp remove &lt;build&gt;        <span class="c"># or: prune</span></pre>
-                </div>
-                <ul>
-                    <li><strong>Upgrades stay on the app's PHP minor and FrankenPHP major.</strong> Octane restarts,
-                        has to answer on its port, and the previous build comes back when it does not. A release on
-                        another PHP minor (or a new FrankenPHP major) is announced once, never applied: move the app
-                        with <code>cipi app edit myapp --php=8.6</code>, then <code>cipi frankenphp upgrade
-                        myapp</code>.</li>
-                    <li><strong>Several PHP minors side by side.</strong> An app on 8.5 and one on 8.6 run different
-                        builds on the same server. GitHub publishes static binaries for one PHP minor at a time; to keep
-                        an app on an older one with its patches, build FrankenPHP on it with the
-                        <a href="https://frankenphp.dev/docs/static/" target="_blank" rel="noopener">static builder</a>
-                        and <code>cipi frankenphp import</code> it.</li>
-                    <li><strong>Nightly patches:</strong> <a href="/docs/stack-upgrades#cli-autoupdate"><code>cipi
-                        autoupdate</code></a> has a <code>frankenphp</code> component, with the same rules
-                        (<code>cipi autoupdate off frankenphp</code> to choose the moment).</li>
-                    <li>A deploy whose <code>laravel/octane</code> asks for a newer FrankenPHP than the pinned build
-                        stops before the migrations, with the live release untouched — instead of letting Octane
-                        replace the binary when it starts.</li>
-                    <li>A binary that came out of an app's own release (<code>adopt</code>) is that app's only: it is
-                        never offered to another app.</li>
-                    <li><code>cipi php upgrade</code> and <code>cipi pending</code> report the PHP inside each build;
-                        a restart pending (Octane still on the previous binary) is listed too.</li>
-                </ul>
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div><strong>Migration 5.10.0</strong> pins, for each Octane app, the binary in its live release — the
-                        one it runs now: same bytes, nothing restarts, no app changes PHP. It adds the
-                        <code>cipi:frankenphp</code> task to each Octane app's <code>deploy.php</code> in place.</div>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div><strong>Octane tip:</strong> keep long-running queue work on
-                        <a href="/docs/workers#cli-workers"><code>cipi worker</code></a> or
-                        <a href="/docs/workers#cli-workers">Horizon</a> — Octane handles HTTP only. Pair with
-                        <a href="/docs/reverb#cli-app-reverb">Reverb</a> for WebSockets.</div>
-                </div>
-            
+<span class="p"></span>cipi frankenphp use myapp<span class="c">            # pin a specific build</span>
+<span class="p"></span>cipi frankenphp import ./frankenphp<span class="c">  # a build you compiled (other PHP minor)</span>
+<span class="p"></span>cipi frankenphp adopt myapp<span class="c">          # pin the binary Octane downloaded</span>
+<span class="p"></span>cipi frankenphp prune<span class="c">                # remove unused builds</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why it keeps you stable</th></tr></thead><tbody><tr><td>Upgrades stay on the app's PHP minor and FrankenPHP major</td><td>No surprise PHP 8.5 → 8.6 jump</td></tr><tr><td>Octane must answer after an upgrade, or the previous build returns</td><td>A bad build never stays live</td></tr><tr><td>A deploy that needs a newer FrankenPHP stops before migrations</td><td>The live release is untouched; run <code>cipi frankenphp upgrade</code></td></tr><tr><td>Apps on different PHP minors use different builds</td><td>8.5 and 8.6 coexist</td></tr><tr><td>Nightly patches via <code>cipi autoupdate</code> (component <code>frankenphp</code>)</td><td>Security fixes without manual work</td></tr></tbody></table></div>
+<p>To move an app to a new PHP minor: <code>cipi app edit myapp --php=8.6</code>, then <code>cipi frankenphp upgrade myapp</code>.</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Octane serves HTTP only. Run long jobs on <a href="/docs/workers">queue workers or Horizon</a> and WebSockets on <a href="/docs/reverb">Reverb</a>.</p></div></div>
 </section>
 
 </div>
@@ -314,12 +220,12 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#what-cipi-configures">What Cipi configures</a></li>
-<li><a class="l2" href="#app-requirements">App requirements</a></li>
-<li><a class="l2" href="#cli-frankenphp">FrankenPHP builds, pinned per app (v5.10.0+)</a></li>
+<li><a class="l2" href="#octane-use">Create or convert</a></li>
+<li><a class="l2" href="#octane-setup">What Cipi sets up</a></li>
+<li><a class="l2" href="#cli-frankenphp">FrankenPHP builds, pinned per app</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/octane.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/octane.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

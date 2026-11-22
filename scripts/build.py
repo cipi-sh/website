@@ -23,11 +23,18 @@ import re
 import sys
 from datetime import date
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import docmd  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "_source")
 SITE = "https://cipi.sh"
 TODAY = date.today().isoformat()
 REPO_EDIT = "https://github.com/cipi-sh/website/edit/main/_source/docs/pages/"
+
+
+def src_ext(slug: str) -> str:
+    return ".md" if os.path.exists(os.path.join(SRC, "docs", "pages", f"{slug}.md")) else ".html"
 
 
 def read(*p: str) -> str:
@@ -170,7 +177,7 @@ def toc_html(toc: list[tuple[int, str, str]], edit_slug: str | None) -> str:
         out.append("</ol>")
     out.append('<div class="toc-tools">')
     if edit_slug:
-        out.append(f'<a href="{REPO_EDIT}{edit_slug}.html">Edit this page on GitHub</a>')
+        out.append(f'<a href="{REPO_EDIT}{edit_slug}{src_ext(edit_slug)}">Edit this page on GitHub</a>')
     out.append('<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>')
     out.append('<a href="#main">Back to top</a></div></nav>')
     return "\n".join(out)
@@ -277,7 +284,11 @@ def build_docs() -> list[dict]:
     legacy_only = {k: v for k, v in NAV.get("legacy", {}).items()}
 
     for p in PAGES:
-        raw = read(SRC, "docs", "pages", f"{p['slug']}.html")
+        md_path = os.path.join(SRC, "docs", "pages", f"{p['slug']}.md")
+        if os.path.exists(md_path):
+            raw = docmd.render(read(md_path))
+        else:
+            raw = read(SRC, "docs", "pages", f"{p['slug']}.html")
         body, uses = expand_components(raw)
         body, toc = process_headings(body)
         g = p["group"]
@@ -286,7 +297,7 @@ def build_docs() -> list[dict]:
         if p["slug"] in ANCHORS:  # cli-client / php-sdk keep their old URL
             attrs = f' data-legacy-page="{p["slug"]}"'
         meta = (f'<div class="docs-meta"><span>{esc(g["title"])}</span>'
-                f'<a href="{REPO_EDIT}{p["slug"]}.html">Edit on GitHub</a></div>')
+                f'<a href="{REPO_EDIT}{p["slug"]}{src_ext(p["slug"])}">Edit on GitHub</a></div>')
         out = page_shell(slug=p["slug"], title=p["title"], desc=p["desc"], body=body,
                          toc=toc_html(toc, p["slug"]), crumbs=crumbs, uses=uses,
                          extra_body_attrs=attrs, pager=pager_html(p["slug"]), meta=meta)
