@@ -185,203 +185,20 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/security">Security</a></li><li aria-current="page">Security model</li></ol>
 <h1>Security model</h1>
 <p class="docs-lead">What Cipi isolates, hardens and encrypts — and why.</p>
-<div class="docs-meta"><span>Security</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/security-model.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Security</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/security-model.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="security-model">
-                <h3 id="ssh-hardening">SSH hardening<a class="anchor" href="#ssh-hardening" aria-label="Link to this section">#</a></h3>
-                <p>During installation, Cipi creates groups <code>cipi-ssh</code> and <code>cipi-apps</code> and applies
-                    the following SSH architecture:</p>
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>User</th>
-                                                <th>Access</th>
-                                                <th>Method</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td><code>root</code></td>
-                                                <td>blocked</td>
-                                                <td><code>PermitRootLogin no</code></td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>cipi</code></td>
-                                                <td>key-only</td>
-                                                <td>group <code>cipi-ssh</code>, <code>PasswordAuthentication no</code> globally</td>
-                                            </tr>
-                                            <tr>
-                                                <td>app users</td>
-                                                <td>user + password</td>
-                                                <td>group <code>cipi-apps</code>, <code>Match Group cipi-apps</code> →
-                                                    <code>PasswordAuthentication yes</code>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-                <p><code>sshd_config</code> uses <code>AllowGroups cipi-ssh cipi-apps</code> instead of
-                    <code>AllowUsers</code>. App users can connect with <code>ssh myapp@server-ip</code> and the
-                    password generated at app creation. Admin access is via public-key as <code>cipi</code>. SSH keys
-                    are managed with <code>cipi ssh list / add / remove</code> — see <a
-                        href="/docs/ssh-keys#cli-ssh">SSH Key
-                        Management</a>. Since v5.5.0, <a href="/docs/ssh-keys#cli-ssh-apps"><code>cipi ssh apps
-                        disable</code></a> puts app users in the <code>cipi-nossh</code> group, which a
-                    <code>Match Group cipi-nossh Address *,!127.0.0.1,!::1</code> block denies from every non-local
-                    address — deploys over <code>ssh localhost</code> keep working.
-                </p>
-
-                <h3 id="ssh-key-management-notifications">SSH key management &amp; notifications<a class="anchor" href="#ssh-key-management-notifications" aria-label="Link to this section">#</a></h3>
-                <p>Authorized keys for the <code>cipi</code> user can be managed via the CLI with built-in safety:
-                    format validation, duplicate prevention, current-session protection, and last-key protection to
-                    avoid lockout. When SMTP is configured, every key addition, removal, or rename triggers an email
-                    alert with hostname, IP, fingerprint, timestamp, and remaining key count. Rename alerts also
-                    include the old and new key name.</p>
-
-                <h3 id="privilege-escalation-prevention">Privilege escalation prevention<a class="anchor" href="#privilege-escalation-prevention" aria-label="Link to this section">#</a></h3>
-                <p>Application users are restricted from using <code>su</code> to escalate privileges to
-                    <code>root</code> or the <code>cipi</code> account. This is enforced via
-                    <code>pam_wheel.so group=sudo</code>, ensuring that only members of the <code>sudo</code> group
-                    can switch users.
-                </p>
-
-                <h3 id="sudoers-hardening">Sudoers hardening<a class="anchor" href="#sudoers-hardening" aria-label="Link to this section">#</a></h3>
-                <p>The <code>www-data</code> user (used by Nginx and PHP-FPM) has its <code>sudoers</code> access
-                    restricted to an explicit command whitelist instead of a wildcard pattern. Only the specific
-                    <code>/usr/local/bin/cipi</code> subcommands required by the API are allowed. This prevents
-                    <code>www-data</code> from running arbitrary commands even if the web application is
-                    compromised.
-                </p>
-
-                <h3 id="api-command-whitelist">API command whitelist<a class="anchor" href="#api-command-whitelist" aria-label="Link to this section">#</a></h3>
-                <p>The Cipi API validates every CLI command against an internal whitelist before executing it via
-                    <code>sudo</code>. Commands not on the whitelist are rejected, preventing command injection
-                    through the API layer.
-                </p>
-
-                <h3 id="user-isolation">User isolation<a class="anchor" href="#user-isolation" aria-label="Link to this section">#</a></h3>
-                <p>Each app runs under its own Linux user with <code>chmod 750</code> on the home directory. No app can
-                    read another app's files. PHP-FPM runs each app's pool as the app user with its own Unix socket.
-                    <code>cipi app fix-permissions</code> (since <strong>v5.2.1</strong>) restores that layout after a
-                    zip unpacked as root or a too-open <code>.ssh</code>: nginx writes vhost logs as
-                    <code>www-data</code> into <code>logs/</code> (<code>2775</code> setgid), the home must stay
-                    <code>750</code> so <code>www-data</code> (in the app group) can read the docroot, and
-                    <code>.ssh</code> must be <code>700</code> or OpenSSH StrictModes refuses the deploy key.</p>
-
-                <h3 id="php-open-basedir">PHP open_basedir<a class="anchor" href="#php-open-basedir" aria-label="Link to this section">#</a></h3>
-                <p><code>open_basedir</code> is configured per FPM pool to restrict PHP to the app's home directory.
-                    Even if an app is compromised, PHP cannot access the filesystem outside its own home.</p>
-
-                <h3 id="database-isolation">Database isolation<a class="anchor" href="#database-isolation" aria-label="Link to this section">#</a></h3>
-                <p>Each app has its own database and user (MariaDB by default; optional PostgreSQL since v4.8.0)
-                    with privileges restricted to that database only. A compromised app cannot read or write to
-                    another app's database.</p>
-
-                <h3 id="per-app-ssh-deploy-keys">Per-app SSH deploy keys<a class="anchor" href="#per-app-ssh-deploy-keys" aria-label="Link to this section">#</a></h3>
-                <p>Each app gets its own ed25519 SSH key pair. A compromised deploy key only affects one repository —
-                    not all apps on the server.</p>
-
-                <h3 id="webhook-security">Webhook security<a class="anchor" href="#webhook-security" aria-label="Link to this section">#</a></h3>
-                <p>GitHub webhooks are verified using HMAC-SHA256 signatures. GitLab webhooks use token comparison. The
-                    webhook handler in cipi-agent returns 200 immediately and writes a flag file — Deployer runs
-                    separately as the app user with no elevated privileges.</p>
-
-                <h3 id="configuration-encryption-vault">Configuration encryption (Vault)<a class="anchor" href="#configuration-encryption-vault" aria-label="Link to this section">#</a></h3>
-                <p>All Cipi configuration files — <code>server.json</code>, <code>apps.json</code>,
-                    <code>databases.json</code>, <code>backup.json</code>, <code>smtp.json</code>,
-                    <code>api.json</code> — are <strong>encrypted at rest</strong> using AES-256-CBC via the built-in
-                    Vault system. A per-server master key (<code>/etc/cipi/.vault_key</code>, <code>chmod 400</code>)
-                    ensures that even if an attacker gains read access to the filesystem, configuration files containing
-                    database passwords, API tokens, and credentials are unreadable without root privileges. See
-                    <a href="/docs/vault#cipi-vault">Vault &amp; Encryption</a> for the full architecture.
-                </p>
-
-                <h3 id="encrypted-sync-archives">Encrypted sync archives<a class="anchor" href="#encrypted-sync-archives" aria-label="Link to this section">#</a></h3>
-                <p>When transferring applications between servers via <code>cipi sync</code>, the entire archive —
-                    including <code>.env</code> files, SSH keys, database dumps, and configuration — is encrypted with
-                    AES-256-CBC using a user-provided passphrase. Archives use the <code>.tar.gz.enc</code> extension
-                    and cannot be read without the passphrase. This protects sensitive data both at rest (on disk) and
-                    in transit (during rsync/scp transfer). See <a href="/docs/sync#cipi-sync">Sync</a> for details.</p>
-
-                <h3 id="gdpr-compliant-log-retention">GDPR-compliant log retention<a class="anchor" href="#gdpr-compliant-log-retention" aria-label="Link to this section">#</a></h3>
-                <p>Cipi enforces automatic log rotation: application and security logs are retained for 12 months,
-                    while HTTP/navigation logs (which contain IP addresses — personal data under GDPR) are retained for
-                    90 days. This satisfies the GDPR data minimization principle while preserving enough history for
-                    debugging and audit trails. See <a href="/docs/log-retention#cipi-log-retention">Log retention</a> for the full
-                    policy.</p>
-
-                <h3 id="auth-key-notifications">Auth &amp; key notifications<a class="anchor" href="#auth-key-notifications" aria-label="Link to this section">#</a></h3>
-                <p>Cipi monitors privileged authentication events via PAM (<code>pam_exec.so</code>) and sends
-                    real-time email alerts when a user elevates via <code>sudo</code> or <code>su</code>, or when
-                    <code>root</code>/sudoers log in via SSH. SSH login notifications include the key fingerprint and
-                    comment (resolved by matching the <code>/var/log/auth.log</code> fingerprint against
-                    <code>authorized_keys</code>), so you can immediately identify which key was used to access the
-                    server. Email alerts are also sent when SSH keys are added to, removed from, or renamed on the
-                    <code>cipi</code> user, and when apps are created, edited, or deleted. Notifications include
-                    contextual details (username, TTY, source IP, fingerprint, key comment, key count) and run
-                    asynchronously to avoid login delays. All events are also logged to
-                    <code>/var/log/cipi/events.log</code> regardless of SMTP. Email alerts require SMTP configured —
-                    fails silently otherwise. See <a href="/docs/notifications#cipi-smtp">Email Notifications</a> for setup.
-                </p>
-
-                <h3 id="no-web-panel-by-default">No web panel by default<a class="anchor" href="#no-web-panel-by-default" aria-label="Link to this section">#</a></h3>
-                <p>A default Cipi install has no web interface — no attack surface from an admin panel, and all
-                    management happens over SSH as the <code>cipi</code> user using the <code>cipi</code> CLI. The
-                    <a href="/docs/gui">web control panel</a> is strictly opt-in: install it only if you want a browser
-                    dashboard. When you do, it runs as an isolated, self-hosted Laravel app confined with
-                    <code>open_basedir</code>; leave it out and there is no web surface at all.</p>
-
-                <h3 id="nginx-default-virtual-host">Nginx default virtual host<a class="anchor" href="#nginx-default-virtual-host" aria-label="Link to this section">#</a></h3>
-                <p>The Nginx default virtual host uses a <code>rewrite</code> rule to serve a minimal "Server Up" page
-                    for all requests to unconfigured domains or direct IP access. This reliable catch-all prevents Nginx
-                    from exposing its version number in default error pages.</p>
-
-                <h3 id="network">Network<a class="anchor" href="#network" aria-label="Link to this section">#</a></h3>
-                <p>UFW blocks all ports by default except 22, 80, and 443. Fail2ban monitors SSH with
-                    <strong>progressive banning</strong>: a 24-hour base ban that doubles on each repeat offence (7-day
-                    cap), with only 3 retries allowed before a ban — since v5.5.0,
-                    <a href="/docs/firewall#cli-firewall"><code>cipi firewall attempts</code></a> changes that
-                    number in a drop-in that updates never reset. A dedicated <code>recidive</code> jail catches
-                    repeat offenders — 3 bans within 24 hours triggers a 7-day block. Use
-                    <code>cipi ban list</code> and <code>cipi ban unban</code> to inspect and manage bans from the CLI.
-                </p>
-
-                <h3 id="automatic-os-security-updates">Automatic OS security updates<a class="anchor" href="#automatic-os-security-updates" aria-label="Link to this section">#</a></h3>
-                <p>Cipi enables <strong>unattended-upgrades</strong> during installation, so the underlying Ubuntu
-                    system applies security patches automatically — without any manual intervention. Only
-                    security-classified updates are installed unattended; major version upgrades require explicit
-                    confirmation. <strong>PHP packages are excluded</strong> from unattended-upgrades and managed by
-                    Cipi instead: since <strong>v4.7.13</strong>, <code>cipi php upgrade</code> applies security patches
-                    to every installed PHP version on demand or every day at 03:30 (weekly on Sundays before
-                    <strong>v5.6.3</strong>). See
-                    <a href="/docs/php#cli-php">PHP management</a>.</p>
-                <p>You can verify and manage the configuration at any time:</p>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># check unattended-upgrades status</span>
-<span class="p"></span>systemctl status unattended-upgrades
-
-<span class="c"># view the upgrade log</span>
-<span class="p"></span>cat /var/log/unattended-upgrades/unattended-upgrades.log
-
-<span class="c"># force an immediate unattended upgrade run</span>
-<span class="p"></span>unattended-upgrade --debug --dry-run</pre>
-                </div>
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div>Automatic reboots after kernel updates are <strong>disabled by default</strong> to avoid
-                        unexpected downtime. If a kernel update requires a reboot, you will see a notice when you log in
-                        via SSH. Schedule the reboot at a convenient maintenance window with <code>sudo reboot</code>.
-                    </div>
-                </div>
-            
+<p>Security on Cipi is the default, not an add-on: apps are isolated from each other, the server is hardened at install, secrets are encrypted, and every privileged action leaves a trace. This page is the map; each layer links to its details.</p>
+<ul class="flow stack"><li><b>Network</b><span>UFW 22/80/443, Fail2ban, CrowdSec, Zero Trust</span></li><li><b>Access</b><span>key-only admin, no root login, alerts</span></li><li><b>Isolation</b><span>user, PHP pool, database, Valkey per app</span></li><li><b>Secrets</b><span>AES-256 Vault, encrypted backups &amp; sync</span></li><li><b>Patching</b><span>nightly PHP &amp; stack patches, CVE reports</span></li><li><b>Audit</b><span>deploy ledger, event log, compliance</span></li></ul>
+<h2 id="layers">Layers<a class="anchor" href="#layers" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Layer</th><th>What Cipi does</th><th>Details</th></tr></thead><tbody><tr><td><strong>Network</strong></td><td>UFW allows only 22, 80, 443. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply</td><td><a href="/docs/firewall">Firewall &amp; bans</a>, <a href="/docs/nginx#default-server">Nginx</a></td></tr><tr><td><strong>SSH</strong></td><td>Root login off; the <code>cipi</code> admin user is key-only; app users have their own password logins, which you can switch off</td><td><a href="/docs/ssh-keys">SSH keys</a></td></tr><tr><td><strong>Privilege</strong></td><td>App users can't <code>su</code>; the web user's sudo is limited to an explicit list of <code>cipi</code> sub-commands; the API checks every command against a whitelist</td><td><a href="/docs/gui-architecture">Panel architecture</a></td></tr><tr><td><strong>App isolation</strong></td><td>One Linux user per app (home <code>750</code>), its own PHP-FPM pool, <code>open_basedir</code> to its home, its own database user and Valkey instance</td><td><a href="/docs/how-cipi-works#what-every-app-gets">How Cipi works</a></td></tr><tr><td><strong>Git</strong></td><td>A separate read-only deploy key per app; signed webhooks; deploys run as the app user</td><td><a href="/docs/git">Git</a>, <a href="/docs/auto-deploy">Auto-deploy</a></td></tr><tr><td><strong>Secrets</strong></td><td>Configs, tokens and passwords encrypted at rest (AES-256); backups and sync archives encrypted before they leave</td><td><a href="/docs/vault">Vault</a>, <a href="/docs/backups#encryption">Backups</a></td></tr><tr><td><strong>Patching</strong></td><td>Ubuntu security updates daily; PHP nightly with a patch-level report; Nginx, databases, Valkey, Node and FrankenPHP nightly, one at a time</td><td><a href="/docs/stack-upgrades">Stack upgrades</a>, <a href="/docs/php#security">PHP</a></td></tr><tr><td><strong>Hardening</strong></td><td>PHP pools lock down settings used by recent CVEs; Nginx never enables HTTP/2; TLS 1.2/1.3 with modern ciphers</td><td><a href="/docs/php#hardening">PHP</a>, <a href="/docs/nginx">Nginx</a></td></tr><tr><td><strong>Detection</strong></td><td>Alerts on SSH logins, sudo/su, key changes; nightly malware scan; 5xx and service monitor</td><td><a href="/docs/notifications#security">Notifications</a>, <a href="/docs/malware-scan">Malware scan</a></td></tr><tr><td><strong>Audit</strong></td><td>Hash-chained deploy ledger, one-year event log, ISO 27001 / SOC 2 evidence report</td><td><a href="/docs/deploy-audit">Deploy audit</a>, <a href="/docs/compliance">Compliance</a></td></tr><tr><td><strong>Privacy</strong></td><td>No telemetry; logs with IP addresses kept 90 days</td><td><a href="/docs/log-retention">Log retention</a></td></tr></tbody></table></div>
+<h2 id="no-panel">No web surface by default<a class="anchor" href="#no-panel" aria-label="Link to this section">#</a></h2>
+<p>A fresh Cipi server has <strong>no admin panel</strong>: management happens over SSH. The <a href="/docs/gui-overview">web panel</a> is opt-in, runs as an isolated app on its own domain with two-factor login, and talks to servers only through the API's whitelisted commands.</p>
+<h2 id="isolation">What isolation protects<a class="anchor" href="#isolation" aria-label="Link to this section">#</a></h2>
+<p>If one app is compromised (a vulnerable plugin, a leaked <code>.env</code>), the attacker gets <strong>that app's</strong> user:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>They can't</th><th>Because</th></tr></thead><tbody><tr><td>Read other apps' files</td><td>Homes are <code>750</code>, <code>open_basedir</code> confines PHP</td></tr><tr><td>Read other apps' data</td><td>Each database and Valkey instance has its own credentials</td></tr><tr><td>Become root or <code>cipi</code></td><td><code>su</code> is restricted to the sudo group; no sudo for app users</td></tr><tr><td>Read Cipi's secrets</td><td>Encrypted, readable by root only</td></tr><tr><td>Change the web server</td><td>Vhosts and pools are root-owned</td></tr><tr><td>Reuse the deploy key elsewhere</td><td>One key per repository, read-only</td></tr></tbody></table></div>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Reboots after kernel updates are never automatic unless you enable <a href="/docs/stack-upgrades#reboot">cipi reboot auto</a>; <code>cipi pending</code> tells you when one is due.</p></div></div>
 </section>
 
 </div>
@@ -389,27 +206,12 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#ssh-hardening">SSH hardening</a></li>
-<li><a class="l2" href="#ssh-key-management-notifications">SSH key management &amp; notifications</a></li>
-<li><a class="l2" href="#privilege-escalation-prevention">Privilege escalation prevention</a></li>
-<li><a class="l2" href="#sudoers-hardening">Sudoers hardening</a></li>
-<li><a class="l2" href="#api-command-whitelist">API command whitelist</a></li>
-<li><a class="l2" href="#user-isolation">User isolation</a></li>
-<li><a class="l2" href="#php-open-basedir">PHP open_basedir</a></li>
-<li><a class="l2" href="#database-isolation">Database isolation</a></li>
-<li><a class="l2" href="#per-app-ssh-deploy-keys">Per-app SSH deploy keys</a></li>
-<li><a class="l2" href="#webhook-security">Webhook security</a></li>
-<li><a class="l2" href="#configuration-encryption-vault">Configuration encryption (Vault)</a></li>
-<li><a class="l2" href="#encrypted-sync-archives">Encrypted sync archives</a></li>
-<li><a class="l2" href="#gdpr-compliant-log-retention">GDPR-compliant log retention</a></li>
-<li><a class="l2" href="#auth-key-notifications">Auth &amp; key notifications</a></li>
-<li><a class="l2" href="#no-web-panel-by-default">No web panel by default</a></li>
-<li><a class="l2" href="#nginx-default-virtual-host">Nginx default virtual host</a></li>
-<li><a class="l2" href="#network">Network</a></li>
-<li><a class="l2" href="#automatic-os-security-updates">Automatic OS security updates</a></li>
+<li><a class="l2" href="#layers">Layers</a></li>
+<li><a class="l2" href="#no-panel">No web surface by default</a></li>
+<li><a class="l2" href="#isolation">What isolation protects</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/security-model.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/security-model.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

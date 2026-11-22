@@ -185,128 +185,23 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/security">Security</a></li><li aria-current="page">CrowdSec</li></ol>
 <h1>CrowdSec</h1>
 <p class="docs-lead">Opt-in IP reputation and community blocklists.</p>
-<div class="docs-meta"><span>Security</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/crowdsec.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Security</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/crowdsec.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-crowdsec">
-                <p>Available since <strong>v5.2.0</strong>, and <strong>off by default</strong>: neither
-                    <code>setup.sh</code> nor <code>cipi self-update</code> installs it. CrowdSec reads your Nginx
-                    logs, decides which IPs are attacking, and a firewall bouncer drops them. <strong>It is not a
-                        WAF</strong> — no request is inspected or rewritten in flight, and fail2ban stays exactly where
-                    it is.</p>
-
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi crowdsec enable                <span class="c"># engine + firewall bouncer</span>
-<span class="p"></span>cipi crowdsec status                <span class="c"># engine / bouncer / rescue / decisions</span>
-<span class="p"></span>cipi crowdsec allow 203.0.113.42     <span class="c"># never ban this address</span>
-<span class="p"></span>cipi crowdsec unallow 203.0.113.42   <span class="c"># drop an extra allow</span>
-<span class="p"></span>cipi crowdsec rescue token           <span class="c"># print the break-glass curl (on-box)</span>
-<span class="p"></span>cipi crowdsec rescue rotate          <span class="c"># new one-shot token, mailed to you</span>
-<span class="p"></span>cipi crowdsec disable                <span class="c"># flush the rules, then remove</span></pre>
-                </div>
-
-                <h3 id="what-enable-actually-installs">What <code>enable</code> actually installs<a class="anchor" href="#what-enable-actually-installs" aria-label="Link to this section">#</a></h3>
-                <p>The engine <em>and</em> <code>crowdsec-firewall-bouncer-nftables</code> (or the
-                    <code>-iptables</code> variant), registered with <code>cscli bouncers add</code>. That pairing is
-                    the whole point: decisions without a bouncer ban nothing at all. On Ubuntu 24.04 iptables is nft
-                    underneath, so the bouncer lands on the same plane as fail2ban's
-                    <code>iptables-multiport</code>.</p>
-                <p>Acquisition reads <code>/home/*/logs/nginx-{access,error}.log</code>, which is where every Cipi
-                    vhost actually writes. <code>/var/log/nginx</code> alone holds only the catch-all server block, so
-                    the nginx scenarios would never see a single line of application traffic.</p>
-
-                <h3 id="when-enable-refuses">When <code>enable</code> refuses<a class="anchor" href="#when-enable-refuses" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>Below 512MB free RAM.</strong> The engine plus the bouncer needs headroom you do not
-                        have.</li>
-                    <li><strong>Nginx looks like it sits behind a reverse proxy</strong> without
-                        <code>set_real_ip_from</code> and <code>real_ip_header</code>. Every log line would carry your
-                        CDN's address, so CrowdSec would ban Cloudflare and leave the attacker alone.
-                        <code>--force</code> overrides it if you know better. Since <strong>v5.3.0</strong> the error
-                        points at <a href="/docs/zero-trust#cli-zt"><code>cipi zt enable</code></a>, which writes exactly that
-                        Cloudflare <code>real_ip</code> config.</li>
-                </ul>
-                <p>Before anything can start banning, <code>enable</code> <strong>allowlists the SSH session you are
-                        typing from</strong>. And <code>cipi crowdsec disable</code> <strong>flushes the CrowdSec
-                        chains and tables first, then purges</strong>: removing the packages while DROP rules are still
-                    loaded would leave bans that outlive <code>cscli</code> — and nothing left to lift them with.</p>
-
-                <h3 id="rescue-tls-listener">Rescue TLS listener<a class="anchor" href="#rescue-tls-listener" aria-label="Link to this section">#</a></h3>
-                <p>Automatic banning and remote administration are one bad decision away from each other, so
-                    <code>enable</code> also starts a TLS server on a high port. One <code>GET</code> carrying a
-                    one-shot token allowlists the <strong>TCP peer</strong> — never <code>X-Forwarded-For</code> —
-                    unbans that address in CrowdSec <em>and</em> fail2ban, mails you a new token, and then the token
-                    dies. It is not a login and not an SSH key: it buys back the ability to connect, nothing more.</p>
-                <p>UFW opens the port, and an <code>ACCEPT</code> is punched at the head of the CrowdSec chain — and
-                    punched again on every bouncer restart — so a DROP-all ban cannot close the door behind you.</p>
-                <p>The TLS handshake runs in the connection's own thread with a deadline, never inside
-                    <code>accept()</code>: wrapping the listening socket would let a single peer that connects and then
-                    says nothing hold the break-glass path shut for as long as it likes. Concurrent connections are
-                    capped below the unit's <code>TasksMax</code>.</p>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div><code>cipi crowdsec status</code> shows the port and the certificate fingerprint — never the
-                        token. The throttle applies to <strong>wrong tokens only</strong>: a correct token is always
-                        honoured, whatever the peer typed before it.</div>
-                </div>
-
-                <h3 id="allowlists">Allowlists<a class="anchor" href="#allowlists" aria-label="Link to this section">#</a></h3>
-                <p>Shipped so that your own infrastructure never bans itself:</p>
-                <ul>
-                    <li>Localhost, RFC1918 ranges, and Let's Encrypt HTTP-01 validation.</li>
-                    <li><strong>GitHub webhook CIDRs</strong>, pulled from the <code>.hooks</code> key of
-                        <code>api.github.com/meta</code>. The fetch is fail-open: if it dies, the previous file stays
-                        in place.</li>
-                    <li><strong>GitLab.com egress CIDRs</strong>, hardcoded and dated <strong>2026-09-07</strong>.
-                        They are documented as rotting, because they will.</li>
-                    <li>Anything you add yourself with <code>cipi crowdsec allow &lt;ip|cidr&gt;</code>.</li>
-                </ul>
-                <p><code>cipi ban list</code> and <code>cipi ban unban</code> now include CrowdSec whenever the engine
-                    is up, so there is one place to look and one place to lift a ban.</p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>CrowdSec runs <strong>24/7</strong> once enabled — unlike <code>cipi scan</code>, which is
-                        the nightly job. <code>cipi status</code> lists the engine, its bouncer and the rescue listener
-                        only when those units exist: a rescue listener that has stopped is the one thing you want to
-                        notice <em>before</em> you need it.</div>
-                </div>
-
-                <h3 id="hardening-of-the-rescue-unit">Hardening of the rescue unit<a class="anchor" href="#hardening-of-the-rescue-unit" aria-label="Link to this section">#</a></h3>
-                <p>The listener runs as root — redeeming a token needs it — but with <code>NoNewPrivileges</code>,
-                    <code>ProtectHome=read-only</code>, <code>PrivateTmp</code> and a <code>MemoryHigh</code> cap.
-                    <code>ProtectSystem</code> and <code>SystemCallFilter</code> are deliberately left off: hardening
-                    that can break the break-glass path is worse than the surface it removes.</p>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    <div><strong>Migration 5.2.0</strong> installs <code>cipi-scan-manifest</code> and the two rescue
-                        helpers, creates the manifest store, grants every existing app its manifest sudo entry, and
-                        adds <code>SSH_CLIENT</code> / <code>SSH_CONNECTION</code> to <code>env_keep</code> in
-                        <code>/etc/sudoers.d/cipi-sudo</code>. That last one matters: <code>setup.sh</code> sets
-                        <code>PermitRootLogin no</code>, so the normal path is <code>sudo cipi</code>, and sudo's
-                        <code>env_reset</code> was dropping the only variables that carry the operator's IP. The
-                        candidate file is validated with <code>visudo -c</code> before it replaces the live one.
-                        Nothing else is migrated: CrowdSec and the scan stay off.</div>
-                </div>
-            
+<p>CrowdSec reads your Nginx logs, recognises attack patterns (scanners, credential stuffing, exploit probes), shares and receives a community blocklist, and a firewall bouncer drops the offending IPs. It complements Fail2ban; it is not a WAF. Off until you enable it.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi crowdsec enable<span class="c">                 # engine + firewall bouncer</span>
+<span class="p"></span>cipi crowdsec status<span class="c">                 # engine, bouncer, rescue listener, decisions</span>
+<span class="p"></span>cipi crowdsec allow 203.0.113.42<span class="c">     # never ban this address</span>
+<span class="p"></span>cipi crowdsec disable<span class="c">                # flush rules first, then remove</span></pre></div>
+<h2 id="safety">Safe by construction<a class="anchor" href="#safety" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Risk</th><th>Guard</th></tr></thead><tbody><tr><td>Banning yourself</td><td>Your current SSH session is allowlisted before banning starts</td></tr><tr><td>Banning your CDN</td><td>Refused behind a proxy without real-IP config (<a href="/docs/zero-trust">cipi zt enable</a> writes it)</td></tr><tr><td>Banning your Git provider</td><td>GitHub and Bitbucket webhook ranges allowlisted (refreshed, fail-open); GitLab ranges included</td></tr><tr><td>Breaking renewals</td><td>Let's Encrypt validation, localhost and private ranges allowlisted</td></tr><tr><td>Too little RAM</td><td>Refused below 512 MB available</td></tr><tr><td>Orphan DROP rules after removal</td><td><code>disable</code> flushes chains before purging packages</td></tr></tbody></table></div>
+<p>It reads <code>/home/*/logs/nginx-*.log</code>, where every app's traffic is actually logged.</p>
+<h2 id="rescue">Break-glass rescue<a class="anchor" href="#rescue" aria-label="Link to this section">#</a></h2>
+<p>Banned from your own server? <code>enable</code> starts a small TLS listener on a high port. One request with a one-shot token allowlists <strong>your connecting IP</strong> (never a header), lifts its bans in CrowdSec and Fail2ban, mails you a new token, and the old one dies.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi crowdsec rescue token<span class="c">     # print the curl command (keep it off the server)</span>
+<span class="p"></span>cipi crowdsec rescue rotate<span class="c">    # new token, mailed to you</span></pre></div>
+<p>It grants nothing but the ability to connect again. The port is kept open ahead of CrowdSec's own rules; wrong tokens are throttled. <code>cipi ban list</code> and <code>cipi ban unban</code> cover CrowdSec too.</p>
 </section>
 
 </div>
@@ -314,14 +209,11 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#what-enable-actually-installs">What enable actually installs</a></li>
-<li><a class="l2" href="#when-enable-refuses">When enable refuses</a></li>
-<li><a class="l2" href="#rescue-tls-listener">Rescue TLS listener</a></li>
-<li><a class="l2" href="#allowlists">Allowlists</a></li>
-<li><a class="l2" href="#hardening-of-the-rescue-unit">Hardening of the rescue unit</a></li>
+<li><a class="l2" href="#safety">Safe by construction</a></li>
+<li><a class="l2" href="#rescue">Break-glass rescue</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/crowdsec.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/crowdsec.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

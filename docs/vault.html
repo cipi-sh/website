@@ -185,90 +185,23 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/security">Security</a></li><li aria-current="page">Vault &amp; encryption</li></ol>
 <h1>Vault &amp; encryption</h1>
 <p class="docs-lead">AES-256 encryption at rest for configs, tokens and keys.</p>
-<div class="docs-meta"><span>Security</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/vault.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Security</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/vault.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cipi-vault">
-                <p>Cipi encrypts all configuration files at rest using <strong>AES-256-CBC</strong>. The Vault system
-                    provides transparent encryption and decryption so that sensitive data — database passwords, API
-                    tokens,
-                    SSH keys, <code>.env</code> contents — is never stored in plaintext on disk.</p>
-
-                <h3 id="architecture">Architecture<a class="anchor" href="#architecture" aria-label="Link to this section">#</a></h3>
-                <p>The system is built on two layers:</p>
-                <ul>
-                    <li><strong>Vault</strong> — transparent encryption of JSON configuration files on disk
-                        (<code>server.json</code>, <code>apps.json</code>, <code>databases.json</code>,
-                        <code>backup.json</code>, <code>smtp.json</code>, <code>api.json</code>)
-                    </li>
-                    <li><strong>Sync encryption</strong> — passphrase-based encryption of export archives for secure
-                        transfer between servers</li>
-                </ul>
-
-                <h3 id="how-vault-works">How Vault works<a class="anchor" href="#how-vault-works" aria-label="Link to this section">#</a></h3>
-                <p>A master key is generated during installation with <code>openssl rand -base64 32</code> and stored at
-                    <code>/etc/cipi/.vault_key</code> (<code>chmod 400</code>, root-only). Every JSON config file is
-                    encrypted on disk with <code>openssl enc -aes-256-cbc -salt -pbkdf2</code>. Files keep the
-                    <code>.json</code> extension — the content is simply an encrypted blob instead of readable JSON.
-                </p>
-                <p>The <code>vault_read</code> function auto-detects whether a file is plaintext or encrypted (backward
-                    compatibility), so existing servers migrate seamlessly during update.</p>
-
-                <h3 id="vault-functions">Vault functions<a class="anchor" href="#vault-functions" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="c"># Core functions in lib/vault.sh</span>
-vault_init          <span class="c"># Generate .vault_key if not present</span>
-vault_read &lt;file&gt;   <span class="c"># Decrypt and output JSON to stdout (auto-detect plain/encrypted)</span>
-vault_write &lt;file&gt;  <span class="c"># Read JSON from stdin, encrypt and write to disk</span>
-vault_seal &lt;file&gt;   <span class="c"># Encrypt an existing plaintext file in-place</span>
-vault_get &lt;file&gt; &lt;jq_query&gt;  <span class="c"># Shortcut: vault_read | jq</span></pre>
-                </div>
-
-                <h3 id="public-projection">Public projection<a class="anchor" href="#public-projection" aria-label="Link to this section">#</a></h3>
-                <p>Cipi generates an <code>apps-public.json</code> file containing only non-sensitive fields (domain,
-                    aliases, PHP version, branch, repository, user, creation timestamp, plus
-                    <code>suspended</code> and <code>basic_auth</code> flags). The <code>cipi-api</code> group reads
-                    this plaintext projection instead of the encrypted file, keeping the vault key restricted to root.
-                </p>
-
-                <h3 id="sync-archive-encryption">Sync archive encryption<a class="anchor" href="#sync-archive-encryption" aria-label="Link to this section">#</a></h3>
-                <p>When you run <code>cipi sync export</code>, configs are decrypted from the vault into a staging area,
-                    then the entire archive is encrypted with your passphrase. On import, the archive is decrypted with
-                    the passphrase, and configs are re-encrypted with the <strong>destination server's vault
-                        key</strong>.
-                </p>
-
-                <div class="callout warning">
-                    <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <div>If the vault key is lost, configuration files become irrecoverable. The key is protected by
-                        <code>chmod 400</code> and included in server backups. Consider exporting it manually for
-                        additional safety.
-                    </div>
-                </div>
-            
-
-            <!-- ── Email Notifications ── -->
+<p>Every configuration file holding a secret (database passwords, API tokens, Git tokens, SMTP credentials, backup settings) is <strong>encrypted at rest with AES-256</strong>. A copy of <code>/etc/cipi</code> alone is useless without the key.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Piece</th><th>Detail</th></tr></thead><tbody><tr><td>Master key</td><td>Generated at install, <code>/etc/cipi/.vault_key</code>, root-only (<code>400</code>)</td></tr><tr><td>Encrypted files</td><td><code>server.json</code>, <code>apps.json</code>, <code>databases.json</code>, <code>backup.json</code>, <code>smtp.json</code>, <code>api.json</code>, alert channels, Git tokens</td></tr><tr><td>Cipher</td><td><code>openssl enc -aes-256-cbc -salt -pbkdf2</code></td></tr><tr><td>Public projection</td><td><code>apps-public.json</code> holds only non-secret fields (domains, PHP, branch) for the panel API, so the key stays root-only</td></tr></tbody></table></div>
+<ol class="flow"><li><b>Export (sync)</b><span>decrypt with this server's key</span></li><li><b>Archive</b><span>encrypted with your passphrase</span></li><li><b>Import</b><span>decrypt with the passphrase</span></li><li><b>Store</b><span>re-encrypted with the new server's key</span></li></ol>
+<p>Backups use their own key (<code>cipi backup key show</code>); sync archives use your passphrase. Keys never travel inside the data they protect.</p>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Lose the vault key and the encrypted configs can't be read. Back it up with your server credentials (<code>cipi credentials export</code> lists the backup key; copy <code>.vault_key</code> to your password manager).</p></div></div>
 </section>
 
 </div>
 <nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/ssh-keys" rel="prev"><small>Previous</small><b>SSH keys</b></a><a class="next" href="/docs/crowdsec" rel="next"><small>Next</small><b>CrowdSec</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
-<h2>On this page</h2><ol>
-<li><a class="l2" href="#architecture">Architecture</a></li>
-<li><a class="l2" href="#how-vault-works">How Vault works</a></li>
-<li><a class="l2" href="#vault-functions">Vault functions</a></li>
-<li><a class="l2" href="#public-projection">Public projection</a></li>
-<li><a class="l2" href="#sync-archive-encryption">Sync archive encryption</a></li>
-</ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/vault.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/vault.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
