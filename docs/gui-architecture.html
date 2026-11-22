@@ -185,191 +185,17 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/gui">Web panel</a></li><li aria-current="page">Panel architecture</li></ol>
 <h1>Panel architecture</h1>
 <p class="docs-lead">How the panel talks to your servers.</p>
-<div class="docs-meta"><span>Web panel</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-architecture.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Web panel</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-architecture.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="gui-architecture">
-                <p>The panel is a standard <strong>Laravel</strong> application (12 or 13, Livewire 3.6+ or 4) distributed as the
-                    <code>cipi/gui</code> package from its own repository
-                    (<a href="https://github.com/cipi-sh/gui" target="_blank">cipi-sh/gui</a>) and installed via a
-                    Composer VCS entry tracking <code>dev-main</code>. It lives at <code>/opt/cipi/gui</code>, mirroring
-                    how the <code>cipi-api</code> package is bundled.</p>
-
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                            <thead>
-                                                <tr><th>Aspect</th><th>Detail</th></tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr><td>Framework</td><td>Laravel 12 or 13, Livewire 3.6+ or 4 — no asset build step</td></tr>
-                                                <tr><td>Package</td><td><code>cipi/gui</code> (GitHub <code>cipi-sh/gui</code>, Composer VCS <code>dev-main</code>)</td></tr>
-                                                <tr><td>Install path</td><td><code>/opt/cipi/gui</code></td></tr>
-                                                <tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr>
-                                                <tr><td>Isolation</td><td>PHP-FPM <code>open_basedir</code> restricted to <code>/opt/cipi/gui/</code> and <code>/opt/cipi/cipi-gui/</code> (since <strong>5.0.18</strong>)</td></tr>
-                                                <tr><td>Auth</td><td>Session login + optional TOTP 2FA; optional OpenID Connect SSO (<code>cipi gui sso</code>, 4.0.2+)</td></tr>
-                                                <tr><td>Jobs</td><td>No local queue worker — remote async jobs are polled through each managed server's <code>cipi api</code></td></tr>
-                                            </tbody>
-                                        </table>
-                </div>
-
-                <p>Because it holds no local queue worker and stores no server state of its own, the panel stays
-                    stateless with respect to your infrastructure: it authenticates to each server's API, submits jobs,
-                    and polls their status. Tear the panel down and rebuild it elsewhere without touching a single
-                    managed server.</p>
-
-                <h3 id="api-coverage">API coverage<a class="anchor" href="#api-coverage" aria-label="Link to this section">#</a></h3>
-                <p>Panel <strong>4.2.0</strong> uses the routes of API <strong>1.39</strong> on Cipi <strong>5.9.0</strong>:
-                    <code>GET /api/deploys/last</code> and <code>GET /api/apps/{name}/deploy/history</code>, the Node
-                    runtime routes (<code>node-runtimes-manage</code>), <code>/api/backups…</code>
-                    (<code>backups-view</code>, <code>backups-manage</code>), database links and the dump upload. A
-                    token created with a list of abilities needs the three new ones — the Connections page prints
-                    the command — or is a full-access token (<code>cipi api token create --name=gui
-                    --full-access</code>). A server on an older API or core keeps every page it had: the Backups tab
-                    says what it needs, the Node tab lists and restarts as before, the Last deploy column is left
-                    out, and durations come from today's deploy log.</p>
-                <p>The GUI consumes the Cipi API through <strong>1.33</strong>. Panel <strong>3.1</strong> adds
-                    <strong>Server → Disk</strong>: the filesystem <code>/home</code> is on, every app largest first
-                    (files, database, total, share of the disk, soft limit — flagged once over the limit or past 90%
-                    of it) and every database per engine. It reads <code>GET /api/disk</code> and
-                    <code>GET /api/disk/dbs</code> (API <strong>1.33+</strong>, Cipi <strong>5.5.2+</strong>, ability
-                    <code>disk-view</code>). Sizes are measured when the tab opens, so those two requests use their own
-                    timeout (180 seconds, <code>CIPI_GUI_HTTP_DISK_TIMEOUT</code>). An older server shows “not
-                    available” for that tab. Soft disk limits and Cloudflare DNS accounts have been on the API since
-                    <strong>1.32</strong> (the <a href="/docs/php-sdk">PHP SDK</a> calls them); the panel shows the
-                    limit and points at <code>cipi app limits</code> and <code>cipi ssl dns</code> on the host to
-                    change them. <code>cipi ssh apps</code> and <code>cipi firewall attempts</code> stay on the host
-                    CLI. Keep the panel and each managed server's <code>cipi/api</code> package current
-                    (<code>cipi gui update</code> / <code>cipi api update</code>) so create forms and list fields match
-                    the server.</p>
-                                <div class="table-scroll">
-                    <table class="cmd-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Area</th>
-                                                <th>Coverage</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Server</td>
-                                                <td><code>GET /api/status</code>; Manage page: PHP, DB engines, Node
-                                                    runtimes (<code>GET /api/node</code>), SSH keys, services, SMTP,
-                                                    search (<code>GET /api/search</code>), packages
-                                                    (<code>GET /api/packages</code>), monitor
-                                                    (<code>GET /api/monitor</code>), Zero Trust
-                                                    (<code>GET /api/zt</code>), disk usage
-                                                    (<code>GET /api/disk</code>, <code>GET /api/disk/dbs</code>,
-                                                    Server → Disk, panel <strong>3.1</strong> / API
-                                                    <strong>1.33+</strong> / Cipi <strong>5.5.2+</strong>), IP whitelist
-                                                    (API <strong>1.15–1.33</strong>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Apps</td>
-                                                <td>CRUD, suspend/unsuspend, fix-permissions
-                                                    (<code>POST /api/apps/{name}/fix-permissions</code>), basic auth,
-                                                    logs, <code>.env</code>, <code>auth.json</code>, Artisan, App
-                                                    commands (<code>app run</code>); create accepts
-                                                    <code>engine</code> (mariadb/pgsql), <code>octane</code>
-                                                    (FrankenPHP, API <strong>1.13+</strong>) and Node
-                                                    (<code>node</code>, <code>framework</code>,
-                                                    <code>node_version</code>, <code>build</code>,
-                                                    <code>start</code>, <code>output</code>,
-                                                    <code>health_path</code>, API <strong>1.31+</strong>);
-                                                    env/auth/run need API <strong>1.14+</strong>; list/show expose
-                                                    <code>octane</code> / <code>octane_port</code>,
-                                                    <code>node</code> / <code>node_mode</code> /
-                                                    <code>node_version</code> and <code>redirect</code> /
-                                                    <code>redirects</code> / <code>proxies</code>; wildcard primary
-                                                    domains; webhook recreate and secret rotation; per-app HTTP
-                                                    healthcheck</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Deploy config</td>
-                                                <td>Structured Deployer knobs via
-                                                    <code>/api/apps/{name}/deploy-config</code> (API
-                                                    <strong>1.14+</strong>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td><code>cipi.yml</code></td>
-                                                <td>Status and plan (<code>GET /api/apps/{name}/yml</code>), apply
-                                                    (<code>POST …/yml/apply</code>, job <code>app-yml-apply</code>),
-                                                    auto-apply (<code>POST …/yml/auto/enable|disable</code>) — API
-                                                    <strong>1.35+</strong> / Cipi <strong>5.6.4+</strong>,
-                                                    <code>yml-view</code> / <code>yml-manage</code>; <code>env</code>
-                                                    and the per-environment file with API <strong>1.36+</strong> / Cipi
-                                                    <strong>5.8.0+</strong> (panel <strong>4.0</strong>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Aliases</td>
-                                                <td>List, add, remove</td>
-                                            </tr>
-                                            <tr>
-                                                <td>WWW</td>
-                                                <td>Status, add counterpart, force-to-root / force-from-root, clear
-                                                    (<code>www-manage</code>; API <strong>1.12+</strong>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Routing</td>
-                                                <td>Whole-app and path redirects (<code>/api/apps/{name}/redirect*</code>),
-                                                    prefix reverse proxies (<code>/api/apps/{name}/proxies</code>) —
-                                                    API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Node</td>
-                                                <td><code>GET /api/node</code>, <code>GET /api/apps/{name}/node</code>,
-                                                    <code>POST /api/apps/{name}/node/restart</code> (SSR blue/green) —
-                                                    API <strong>1.31+</strong> / Cipi <strong>5.4.1+</strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Search</td>
-                                                <td><code>GET /api/search</code>;
-                                                    <code>POST /api/apps/{name}/search/enable</code> and
-                                                    <code>…/disable</code> (API <strong>1.31+</strong>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Deploy</td>
-                                                <td>Deploy, rollback, unlock; deploy audit ledger
-                                                    (<code>GET /api/apps/{name}/deploy/audit</code>, API
-                                                    <strong>1.31+</strong> / Cipi <strong>5.4.0+</strong>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>SSL</td>
-                                                <td>Install Let's Encrypt, force HTTPS redirect</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Databases</td>
-                                                <td>Engines + list (sync); create, backup, restore and password with
-                                                    optional <code>engine</code> (async; API <strong>1.12+</strong>) —
-                                                    backup and restore have their own buttons since panel 3.0. Database
-                                                    deletion is host-CLI only since API <strong>1.19</strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Health</td>
-                                                <td>Server-wide list (<code>GET /api/health</code>) on the Server page;
-                                                    per-app set, unset and check now (API <strong>1.16+</strong>)</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Jobs</td>
-                                                <td>Poll status, CLI output and the parsed <code>result</code> (credentials,
-                                                    backup file, webhook token)</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                </div>
-
-                <div class="callout info">
-                    <svg class="callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                    </svg>
-                    <span>Prefer the terminal? See the <a href="/docs/cli-client">CLI client</a> for the same API-driven
-                        management from your shell, or the <a href="/docs/api#cipi-api"><code>cipi api</code></a> and
-                        <a href="/docs/whmcs#whmcs">WHMCS module</a> for automation. Package source:
-                        <a href="https://github.com/cipi-sh/gui" target="_blank" rel="noopener">cipi-sh/gui</a>.</span>
-                </div>
-            
+<p>The panel is a standard <strong>Laravel</strong> application distributed as the <code>cipi/gui</code> package (<a href="https://github.com/cipi-sh/gui">cipi-sh/gui</a>). It holds <strong>no state about your infrastructure</strong>: it authenticates to each server's API, submits jobs and polls them. Tear it down and rebuild it elsewhere without touching a managed server.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Aspect</th><th>Detail</th></tr></thead><tbody><tr><td>Framework</td><td>Laravel 12 or 13, Livewire 3.6+ or 4, no asset build step</td></tr><tr><td>Package</td><td><code>cipi/gui</code> from GitHub, Composer VCS <code>dev-main</code></td></tr><tr><td>Install path</td><td><code>/opt/cipi/gui</code></td></tr><tr><td>Config</td><td><code>/etc/cipi/gui.json</code></td></tr><tr><td>Isolation</td><td>Own FPM pool, <code>open_basedir</code> limited to its own directories</td></tr><tr><td>Auth</td><td>Session login, optional TOTP, optional OpenID Connect SSO</td></tr><tr><td>Jobs</td><td>No local queue worker: remote jobs polled through each server's API</td></tr></tbody></table></div>
+<ul class="flow stack"><li><b>Panel (cipi/gui)</b><span>sessions, roles, server connections</span></li><li><b>HTTPS + Bearer token</b><span>one per server, IP allowlist</span></li><li><b>Cipi API (cipi/api)</b><span>queues async jobs</span></li><li><b>cipi CLI via sudoers</b><span>the same code path as SSH</span></li></ul>
+<h2 id="coverage">API coverage<a class="anchor" href="#coverage" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Area</th><th>Endpoints used</th></tr></thead><tbody><tr><td>Server</td><td><code>GET /api/status</code>; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages, monitor, Zero Trust, <code>GET /api/disk</code> and <code>/api/disk/dbs</code>, IP allowlist</td></tr><tr><td>Apps</td><td>CRUD, suspend, fix-permissions, basic auth, logs, <code>.env</code>, <code>auth.json</code>, Artisan, app commands; create with <code>engine</code>, <code>octane</code>, Node options; webhook rotation; per-app health check</td></tr><tr><td>Deploy</td><td>Deploy, rollback, unlock, <code>deploy/audit</code>, <code>deploy/history</code>, <code>GET /api/deploys/last</code>, <code>deploy-config</code></td></tr><tr><td><code>cipi.yml</code></td><td><code>GET /api/apps/{name}/yml</code>, <code>POST …/yml/apply</code>, `…/yml/auto/enable</td><td>disable`</td></tr><tr><td>Domains</td><td>Aliases, www ↔ apex, SSL install and force HTTPS</td></tr><tr><td>Routing</td><td><code>/api/apps/{name}/redirect*</code>, <code>/api/apps/{name}/proxies</code></td></tr><tr><td>Node</td><td><code>GET /api/node</code>, <code>/api/apps/{name}/node</code>, SSR restart</td></tr><tr><td>Search</td><td><code>GET /api/search</code>, per-app enable/disable</td></tr><tr><td>Databases</td><td>List, create, back up, restore (with chunked upload), rotate password, link to apps; deletion stays on the host CLI</td></tr><tr><td>Backups</td><td><code>/api/backups…</code> profiles, runs, destinations test</td></tr><tr><td>Jobs</td><td>Status, output and parsed <code>result</code> (credentials, backup file, webhook token)</td></tr></tbody></table></div>
+<p>A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (<code>CIPI_GUI_HTTP_DISK_TIMEOUT</code>, 180 s). <code>cipi ssh apps</code>, <code>cipi firewall attempts</code>, disk limits and DNS accounts are changed on the host.</p>
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>Prefer the terminal? The <a href="/docs/cli-client">CLI client</a> does the same over the API, and the <a href="/docs/whmcs">WHMCS module</a> automates it for hosting providers.</p></div></div>
 </section>
 
 </div>
@@ -377,10 +203,10 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#api-coverage">API coverage</a></li>
+<li><a class="l2" href="#coverage">API coverage</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-architecture.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-architecture.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>

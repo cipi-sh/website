@@ -185,120 +185,31 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/gui">Web panel</a></li><li aria-current="page">Single sign-on</li></ol>
 <h1>Single sign-on</h1>
 <p class="docs-lead">Sign in with Entra ID, Google or any OpenID Connect provider.</p>
-<div class="docs-meta"><span>Web panel</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-sso.html">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Web panel</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-sso.md">Edit on GitHub</a></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="gui-sso">
-                <p>Since Cipi <strong>5.8.2</strong> and cipi/gui <strong>4.0.2</strong> the panel can sign people in
-                    through your identity provider over <strong>OpenID Connect</strong>: Microsoft Entra ID, Google
-                    Workspace, Okta, Keycloak, Authentik — anything that publishes a discovery document
-                    (<code>/.well-known/openid-configuration</code>). SAML is not supported. SSO is opt-in and configured
-                    <strong>from the server</strong>, because the panel's <code>.env</code> is Cipi's file to write; the
-                    same place is the break-glass when a provider is misconfigured.</p>
-
-                <h3 id="1-register-the-panel-at-your-identity-provider">1. Register the panel at your identity provider<a class="anchor" href="#1-register-the-panel-at-your-identity-provider" aria-label="Link to this section">#</a></h3>
-                <p>Create an OIDC client (a &ldquo;web application&rdquo;) and give it the panel's callback as the redirect
-                    URI: <code>https://&lt;panel-domain&gt;/auth/sso/callback</code>. You will get back a client id and a
-                    client secret; note the issuer URL too.</p>
-                <ul>
-                    <li><strong>Microsoft Entra ID</strong> — Entra admin center → App registrations → New registration:
-                        single-tenant, platform <em>Web</em>, redirect URI as above. Then Certificates &amp; secrets → New
-                        client secret. The issuer is <strong>tenant-specific</strong>:
-                        <code>https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0</code> (the Directory (tenant) ID
-                        from the Overview page, never <code>common</code> or <code>organizations</code>: the panel compares
-                        the issuer of every token with the one you configured). Users need a mail address on their account;
-                        the <code>email</code> claim is read from the userinfo endpoint.</li>
-                    <li><strong>Google Workspace</strong> — Google Cloud console → APIs &amp; Services → Credentials →
-                        OAuth client ID, type <em>Web application</em>, authorised redirect URI as above. Issuer:
-                        <code>https://accounts.google.com</code>. Restrict who can sign in with <code>--domains</code>.</li>
-                    <li><strong>Okta, Keycloak, Authentik, Zitadel, Auth0</strong> — a standard OIDC web client with the
-                        authorization-code flow (PKCE is used, a client secret is still required). The issuer is the realm
-                        or application URL whose <code>/.well-known/openid-configuration</code> answers.</li>
-                </ul>
-
-                <h3 id="2-turn-it-on-from-the-server">2. Turn it on from the server<a class="anchor" href="#2-turn-it-on-from-the-server" aria-label="Link to this section">#</a></h3>
-                <div class="code-block">
-                    <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div>
-                    <pre><span class="p"></span>cipi gui sso set --issuer=https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0 \
-    --client-id=&lt;application-id&gt; --client-secret=&lt;secret&gt;      <span class="c"># Entra ID; the secret is asked when omitted</span>
-<span class="p"></span>cipi gui sso set --issuer=https://accounts.google.com --client-id=… --client-secret=… --domains=example.com
-<span class="p"></span>cipi gui sso status                 <span class="c"># issuer, label, Redirect URI, who can get in, SSO-only or not</span>
-<span class="p"></span>cipi gui sso only on                <span class="c"># password sign-in off for everyone — the SSO button only</span>
-<span class="p"></span>cipi gui sso only off               <span class="c"># break-glass: passwords accepted again</span>
-<span class="p"></span>cipi gui sso disable                <span class="c"># back to password sign-in; accounts and their links are kept</span></pre>
-                </div>
-                <p><code>set</code> writes the settings to the panel's <code>.env</code>, clears the config cache, runs the
-                    pending migration and prints the <strong>Redirect URI</strong> to check against the one registered at
-                    the provider. The login page gets a <em>Sign in with …</em> button, labelled after the issuer
-                    (&ldquo;Microsoft Entra ID&rdquo;, &ldquo;Google&rdquo;, &ldquo;Okta&rdquo;, else &ldquo;SSO&rdquo;;
-                    <code>--label=</code> to change it). Flags:</p>
-                <div class="table-scroll">
-                    <table class="cmd-table">
-                        <thead><tr><th>Flag</th><th>What it does</th></tr></thead>
-                        <tbody>
-                            <tr><td><code>--issuer=&lt;url&gt;</code></td><td>The OIDC issuer; its discovery document is fetched and cached for an hour. Required, <code>https://</code> only.</td></tr>
-                            <tr><td><code>--client-id=&lt;id&gt;</code></td><td>The client (application) id from the provider. Required.</td></tr>
-                            <tr><td><code>--client-secret=&lt;secret&gt;</code></td><td>The client secret. Asked on the terminal when omitted; kept when you re-run <code>set</code> to change another flag.</td></tr>
-                            <tr><td><code>--label=&lt;text&gt;</code></td><td>The button text instead of the one derived from the issuer.</td></tr>
-                            <tr><td><code>--domains=&lt;a.com,b.com&gt;</code></td><td>Email domains whose people get an account on their <strong>first sign-in</strong>: role <em>user</em>, no access until an admin grants servers or apps in Team. Without it only existing accounts can sign in.</td></tr>
-                            <tr><td><code>--only</code></td><td>Password sign-in off for everyone, the same as <code>cipi gui sso only on</code>.</td></tr>
-                            <tr><td><code>--scopes=&lt;list&gt;</code></td><td>Instead of <code>openid email profile</code>; <code>openid</code> is always sent.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 id="3-who-gets-in-and-how">3. Who gets in, and how<a class="anchor" href="#3-who-gets-in-and-how" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>Existing accounts</strong> — seeded by <code>cipi gui</code>, created from an invite link
-                        — are matched by their email (case-insensitive) and linked to the provider's identity
-                        (<code>users.sso_subject</code>) on the first sign-in; from then on the link wins, so a renamed
-                        mailbox still lands on the same account. An email already linked to a different identity is
-                        refused (&ldquo;linked to another identity&rdquo;).</li>
-                    <li><strong>New people</strong> get an account only when their email domain is in
-                        <code>--domains</code>; everyone else sees &ldquo;No panel account for … Ask an admin for an invite
-                        link.&rdquo; Nothing is created for a refused sign-in.</li>
-                    <li><strong>Roles and grants</strong> are the panel's, as before: an auto-created account is a
-                        <em>user</em> with nothing granted; admins hand out servers and apps in Team, where SSO-linked
-                        accounts carry an <em>SSO</em> badge.</li>
-                    <li><strong>MFA:</strong> the identity provider is the authority — the panel's own TOTP step is skipped
-                        after an SSO sign-in. Password sign-ins keep their TOTP as before.</li>
-                    <li><strong>Under the hood:</strong> authorization-code flow with PKCE (S256), <code>state</code> and
-                        <code>nonce</code>; the code is exchanged server-to-server with the client secret; the identity
-                        comes from the provider's <strong>userinfo endpoint</strong>, and the ID token's issuer, audience
-                        and nonce are checked against the handshake. An <code>email_verified: false</code> claim is
-                        refused; a provider that does not send the claim (Entra ID) is accepted.</li>
-                    <li><strong>Where it shows:</strong> Settings → Panel has a read-only <em>Single sign-on</em> card
-                        for admins (status, provider, SSO-only, auto-provisioned domains, the redirect URI to copy, and the
-                        CLI to change it); the panel's own <code>.env</code> keys are
-                        <code>CIPI_GUI_SSO_ISSUER</code>, <code>_CLIENT_ID</code>, <code>_CLIENT_SECRET</code>,
-                        <code>_LABEL</code>, <code>_DOMAINS</code>, <code>_ONLY</code>, <code>_SCOPES</code>.</li>
-                </ul>
-
-                <h3 id="4-changing-provider-locking-yourself-out-and-other-troubles">4. Changing provider, locking yourself out, and other troubles<a class="anchor" href="#4-changing-provider-locking-yourself-out-and-other-troubles" aria-label="Link to this section">#</a></h3>
-                <ul>
-                    <li><strong>A new issuer or client id</strong> (another tenant, a new app registration) makes
-                        <code>set</code> forget every link: an identity's <code>sub</code> is per provider, and Entra ID's
-                        is per app registration. Everyone links again at the next sign-in by email; nothing else changes.</li>
-                    <li><strong>SSO-only and a broken provider:</strong> from the server,
-                        <code>cipi gui sso only off</code> brings password sign-in back, <code>cipi gui sso disable</code>
-                        turns SSO off altogether, <a href="/docs/gui-maintenance#gui-operations"><code>cipi gui reset-user</code></a> resets the
-                        admin account. Nothing in the panel can bypass SSO-only, by design.</li>
-                    <li><strong>&ldquo;redirect_uri mismatch&rdquo;</strong> from the provider: the URI registered there
-                        differs from the one <code>cipi gui sso status</code> prints (scheme, host, trailing path). After
-                        <a href="/docs/gui-install#gui-move"><code>cipi gui move</code></a> register the new one.</li>
-                    <li><strong>&ldquo;issuer mismatch&rdquo;</strong>: Entra ID configured with <code>common</code> or
-                        <code>organizations</code> instead of the tenant id, or an issuer with a trailing path the provider
-                        does not put in its tokens — use the exact <code>issuer</code> value from the discovery document.</li>
-                    <li><strong>&ldquo;no email claim&rdquo;</strong>: the account has no mail address, or the client was
-                        not granted the <code>email</code> scope (Entra: API permissions → Microsoft Graph →
-                        <code>email</code>, <code>openid</code>, <code>profile</code>). <code>preferred_username</code> is
-                        not accepted as an email.</li>
-                    <li>Every <code>cipi gui sso</code> change is logged in <code>cipi.log</code> and raises the
-                        <code>gui_sso</code> notification trigger (Security).</li>
-                </ul>
-            
-
-            <!-- ── Move ── -->
+<p>The panel can sign people in through your identity provider over <strong>OpenID Connect</strong>: Microsoft Entra ID, Google Workspace, Okta, Keycloak, Authentik, Zitadel, Auth0, anything with a <code>/.well-known/openid-configuration</code>. SAML isn't supported. SSO is opt-in and configured <strong>from the server</strong>, which is also the break-glass if a provider breaks.</p>
+<ol class="flow"><li><b>Register</b><span>OIDC client at your IdP</span></li><li><b>cipi gui sso set</b><span>issuer, client id, secret</span></li><li><b>Sign in</b><span>button on the login page</span></li><li><b>Match</b><span>by e-mail, then by identity</span></li></ol>
+<h2 id="register">1. Register the panel at your provider<a class="anchor" href="#register" aria-label="Link to this section">#</a></h2>
+<p>Create an OIDC web client with redirect URI <code>https://&lt;panel-domain&gt;/auth/sso/callback</code>. Keep the client id, secret and issuer URL.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Provider</th><th>Where</th><th>Issuer</th></tr></thead><tbody><tr><td>Microsoft Entra ID</td><td>App registrations → New (single-tenant, Web) → Certificates &amp; secrets</td><td><code>https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0</code>, never <code>common</code> or <code>organizations</code></td></tr><tr><td>Google Workspace</td><td>Cloud console → Credentials → OAuth client ID (Web)</td><td><code>https://accounts.google.com</code>; restrict with <code>--domains</code></td></tr><tr><td>Okta, Keycloak, Authentik, Zitadel, Auth0</td><td>Standard OIDC web client, authorization-code flow</td><td>The realm or app URL whose discovery document answers</td></tr></tbody></table></div>
+<h2 id="enable">2. Turn it on<a class="anchor" href="#enable" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi gui sso set --issuer=https://login.microsoftonline.com/&lt;tenant&gt;/v2.0 \
+    --client-id=&lt;id&gt; --client-secret=&lt;secret&gt;     # secret is asked if omitted
+<span class="p"></span>cipi gui sso set --issuer=https://accounts.google.com --client-id=… --domains=example.com
+<span class="p"></span>cipi gui sso status<span class="c">          # issuer, label, redirect URI, who can get in</span>
+<span class="p"></span>cipi gui sso only on<span class="c">         # SSO button only, passwords off</span>
+<span class="p"></span>cipi gui sso only off<span class="c">        # break-glass: passwords back</span>
+<span class="p"></span>cipi gui sso disable<span class="c">         # back to passwords; links are kept</span></pre></div>
+<p><code>set</code> writes the panel's <code>.env</code>, clears the config cache, runs the migration and prints the <strong>redirect URI</strong> to check against the provider.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Effect</th></tr></thead><tbody><tr><td><code>--issuer=&lt;url&gt;</code></td><td>Required, <code>https://</code> only; discovery cached for an hour</td></tr><tr><td><code>--client-id=&lt;id&gt;</code></td><td>Required</td></tr><tr><td><code>--client-secret=&lt;secret&gt;</code></td><td>Asked when omitted; kept when you re-run <code>set</code></td></tr><tr><td><code>--label=&lt;text&gt;</code></td><td>Button text (default from the issuer: Microsoft Entra ID, Google, Okta, SSO)</td></tr><tr><td><code>--domains=a.com,b.com</code></td><td>People from these domains get an account on first sign-in (role user, no access until granted)</td></tr><tr><td><code>--only</code></td><td>Same as <code>sso only on</code></td></tr><tr><td><code>--scopes=&lt;list&gt;</code></td><td>Instead of <code>openid email profile</code></td></tr></tbody></table></div>
+<h2 id="who">3. Who gets in<a class="anchor" href="#who" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Case</th><th>Result</th></tr></thead><tbody><tr><td>Existing account</td><td>Matched by e-mail (case-insensitive) on first sign-in, then linked to the identity: a renamed mailbox still lands on the same account</td></tr><tr><td>E-mail linked to another identity</td><td>Refused</td></tr><tr><td>New person, domain in <code>--domains</code></td><td>Account created as a user with no grants</td></tr><tr><td>Anyone else</td><td>"No panel account… ask an admin for an invite link". Nothing is created</td></tr></tbody></table></div>
+<p>Roles and grants stay the panel's; SSO-linked accounts carry a badge in Team.</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Authorization-code flow with PKCE (S256), <code>state</code> and <code>nonce</code>; code exchanged server-to-server; identity read from the userinfo endpoint; issuer, audience and nonce checked. <code>email_verified: false</code> is refused. Every change is logged in <code>cipi.log</code> and raises the <code>gui_sso</code> notification.</p></div></div>
+<h2 id="troubleshooting">4. Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>Locked out with SSO-only</td><td><code>cipi gui sso only off</code>, or <code>cipi gui sso disable</code>, or <a href="/docs/gui-maintenance"><code>cipi gui reset-user</code></a>. Nothing in the panel can bypass SSO-only</td></tr><tr><td><code>redirect_uri mismatch</code></td><td>Register exactly what <code>sso status</code> prints; after <a href="/docs/gui-install"><code>cipi gui move</code></a> register the new one</td></tr><tr><td><code>issuer mismatch</code></td><td>Use the exact <code>issuer</code> from the discovery document (Entra: tenant id, not <code>common</code>)</td></tr><tr><td><code>no email claim</code></td><td>Give the account a mail address and grant <code>openid</code>, <code>email</code>, <code>profile</code> (<code>preferred_username</code> isn't accepted)</td></tr><tr><td>New issuer or client id</td><td>Links are forgotten (identities are per provider); everyone relinks by e-mail at next sign-in</td></tr></tbody></table></div>
 </section>
 
 </div>
@@ -306,13 +217,13 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#1-register-the-panel-at-your-identity-provider">1. Register the panel at your identity provider</a></li>
-<li><a class="l2" href="#2-turn-it-on-from-the-server">2. Turn it on from the server</a></li>
-<li><a class="l2" href="#3-who-gets-in-and-how">3. Who gets in, and how</a></li>
-<li><a class="l2" href="#4-changing-provider-locking-yourself-out-and-other-troubles">4. Changing provider, locking yourself out, and other troubles</a></li>
+<li><a class="l2" href="#register">1. Register the panel at your provider</a></li>
+<li><a class="l2" href="#enable">2. Turn it on</a></li>
+<li><a class="l2" href="#who">3. Who gets in</a></li>
+<li><a class="l2" href="#troubleshooting">4. Troubleshooting</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-sso.html">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/gui-sso.md">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
