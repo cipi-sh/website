@@ -4,7 +4,7 @@ Cipi is **CLI-first**, and always will be. The web panel is an **optional** laye
 
 <cipi-panel></cipi-panel>
 
-A working replica of the panel with demo data. Real screenshots follow.
+Real screens of the panel, in motion. Pick a clip, or let them play. Every screen is in the [tour below](#gui-tour).
 
 > [!tip] **Skip it and nothing changes.** Without the panel Cipi stays a lean CLI: no daemon, no web surface, nothing extra listening. Anything done in the browser can be done in the terminal, and the other way round.
 

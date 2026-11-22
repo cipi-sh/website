@@ -35,3 +35,9 @@ Tune any threshold: `--ssl --days=21`, `http_5xx --count=50 --ratio=10`, `load -
 | failing → ok | One recovery, with how long it lasted |
 
 The 5xx check reads only what was written since the last run and starts with a baseline, so it never alerts on old errors. A check that can't run reports critical instead of crashing. Each check has its own trigger and can be muted (`cipi notifications disable monitor_load`).
+
+## In the web panel {#in-the-panel}
+
+The fleet dashboard and each server's health. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
+
+<cipi-clips name="server"></cipi-clips>

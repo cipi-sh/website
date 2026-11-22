@@ -103,9 +103,16 @@ def expand_components(body: str) -> tuple[str, set[str]]:
         return term_html(m.group(1))
 
     body = re.sub(r'<cipi-term name="([^"]+)"></cipi-term>', t, body)
-    if "<cipi-panel></cipi-panel>" in body:
-        used.add("panel")
-        body = body.replace("<cipi-panel></cipi-panel>", '<div data-panel-demo data-domain="panel.example.com"></div>')
+    body = body.replace("<cipi-panel></cipi-panel>", "<cipi-clips></cipi-clips>")
+
+    def c(m: re.Match) -> str:
+        used.add("clips")
+        names = m.group(1) or ""
+        single = " data-single" if names and "," not in names else ""
+        return (f'<div data-clips="{names}"{single}></div>'
+                '<noscript><p>Animated clips of the web panel; see the <a href="/docs/gui-overview#gui-tour">screenshot tour</a>.</p></noscript>')
+
+    body = re.sub(r'<cipi-clips(?: name="([^"]+)")?></cipi-clips>', c, body)
     return body, used
 
 
@@ -204,9 +211,9 @@ def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs:
     css = ['<link rel="stylesheet" href="/assets/css/base.css">', '<link rel="stylesheet" href="/assets/css/docs.css">']
     js = ['<script src="/assets/js/site.js" defer></script>', '<script src="/assets/js/docs.js" defer></script>',
           '<script src="/assets/js/search.js" defer></script>']
-    if "panel" in uses:
-        css.append('<link rel="stylesheet" href="/assets/css/panel.css">')
-        js.append('<script src="/assets/js/panel.js" defer></script>')
+    if "clips" in uses:
+        css.append('<link rel="stylesheet" href="/assets/css/clips.css">')
+        js.append('<script src="/assets/js/clips.js" defer></script>')
     if "term" in uses:
         js.append('<script src="/assets/js/term.js" defer></script>')
     lead_html = f'<p class="docs-lead">{esc(lead if lead is not None else desc)}</p>' if (lead is not None or desc) else ""

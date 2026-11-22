@@ -57,3 +57,9 @@ The success notice is sent only **after** the post-deploy health check, so it ne
 | `idle` | Nothing running; shows how the last run ended |
 
 A failed deploy releases its own lock; only an interrupted one needs `--unlock`.
+
+## In the web panel {#in-the-panel}
+
+Deploy, follow the release and read the audit from the browser. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
+
+<cipi-clips name="deploy"></cipi-clips>

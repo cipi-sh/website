@@ -35,3 +35,9 @@ New requests read the change immediately (Octane apps: reload on next deploy or 
 > [!warning] Change database passwords with `cipi app reset-db-password myapp`, never by hand: it updates the database and `.env` together.
 
 Your own keys (Stripe, mail, APIs) go anywhere in the file and are never overwritten by a deploy.
+
+## In the web panel {#in-the-panel}
+
+Edit the `.env` with secrets masked and changes tracked. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
+
+<cipi-clips name="env"></cipi-clips>

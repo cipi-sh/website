@@ -66,3 +66,9 @@ cipi ssl install | HTTPS
 ```
 
 > [!tip] With a Git provider token configured, the deploy key and the push webhook are added to the repository automatically. See [Git providers & deploy keys](/docs/git).
+
+## In the web panel {#in-the-panel}
+
+Create an app from the browser: the same wizard, with a server picker. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
+
+<cipi-clips name="create"></cipi-clips>

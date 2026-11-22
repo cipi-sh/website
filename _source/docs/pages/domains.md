@@ -44,3 +44,9 @@ $ cipi www clear myapp
 ```
 
 The missing counterpart is added as an alias automatically. ACME challenges stay reachable, so renewals keep working. In [cipi.yml](/docs/yml#cli-yml-routes): `app.www: to-root`.
+
+## In the web panel {#in-the-panel}
+
+Aliases, certificates and www/apex redirects, from the browser. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
+
+<cipi-clips name="domains"></cipi-clips>

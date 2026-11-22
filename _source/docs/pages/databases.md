@@ -54,3 +54,9 @@ $ cipi db upgrade [mariadb|pgsql] [--yes]
 ```
 
 Or schedule it with [cipi autoupdate](/docs/stack-upgrades).
+
+## In the web panel {#in-the-panel}
+
+Every database on every server, with backup, restore and password rotation. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
+
+<cipi-clips name="databases"></cipi-clips>
