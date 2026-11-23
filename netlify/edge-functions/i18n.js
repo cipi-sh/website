@@ -180,6 +180,13 @@ const IT_ONLY_EXACT = new Set([
   '/docs/informazioni',
 ]);
 
+// Pages retired in the 2026 redesign: one 301 hop to the closest live page.
+export const RETIRED = {
+  '/whats-new': '/docs/history',
+  '/discovery': '/',
+  '/docs/advanced': '/docs/api',
+};
+
 export function normalizeBarePath(pathname) {
   let p = pathname || '/';
   if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
@@ -282,7 +289,8 @@ function decidePath(path) {
 
   if (LANG_PREFIX_RE.test(path)) {
     const rest = path.replace(/^\/(en|de|fr|it|es|pt)/, '') || '/';
-    const expected = langHref('en', toEnglishCanon(normalizeBarePath(rest)));
+    let expected = langHref('en', toEnglishCanon(normalizeBarePath(rest)));
+    if (RETIRED[expected]) expected = RETIRED[expected];
     if (path !== expected) {
       return { redirect: expected, status: 301 };
     }
@@ -294,6 +302,9 @@ function decidePath(path) {
   }
 
   const expected = langHref('en', toEnglishCanon(normalizeBarePath(path)));
+  if (RETIRED[expected]) {
+    return { redirect: RETIRED[expected], status: 301 };
+  }
   if (path !== expected && (isTranslatedSlug(path) || isUglyPath(path, expected))) {
     return { redirect: expected, status: 301 };
   }

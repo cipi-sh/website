@@ -105,8 +105,8 @@ def nice_date(iso: str) -> str:
 # --------------------------------------------------------------------------- pieces
 
 def og_image(key: str) -> str:
-    p = os.path.join(ROOT, "img", "og", f"{key}.png")
-    return f"{SITE}/img/og/{key}.png" if os.path.exists(p) else f"{SITE}/og.png"
+    p = os.path.join(ROOT, "img", "og", f"{key}.jpg")
+    return f"{SITE}/img/og/{key}.jpg" if os.path.exists(p) else f"{SITE}/og.png"
 
 
 def share_bar(url: str, title: str) -> str:
@@ -406,7 +406,7 @@ def load_compare() -> list[dict]:
     d = os.path.join(SRC, "compare")
     items = []
     for f in sorted(os.listdir(d)):
-        if not f.endswith(".md"):
+        if not f.endswith(".md") or f.startswith("_"):
             continue
         meta, md = parse(os.path.join(d, f))
         meta["slug"] = f[:-3]

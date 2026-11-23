@@ -15,13 +15,18 @@ the generated pages are committed.
 | `_source/partials/` | Shared head, header, footer, search dialog, analytics |
 | `assets/` | CSS and JS for the whole site |
 | `scripts/build.py` | Builds `index.html`, `docs/*.html`, the search index, and syncs header/footer on every other page |
-| `guides/`, `alternative-to-*.html`, `whats-new.html`, … | Hand-written pages; header and footer are synced by the build |
+| `scripts/content.py` | Builds guides (`_source/guides/*.md` → `guides/`, index, RSS), comparisons (`_source/compare/*.md` → `alternative-to-*.html`, `alternatives.html`) and `_source/pages/*.md` (e.g. `/cipi-yml`) |
+| `scripts/llms.py` | Writes `llms.txt` and `llms-full.txt` from the same Markdown sources |
+| `scripts/og.py` | Renders 1200×630 Open Graph images into `img/og/` (Playwright; run when titles change) |
+| `scripts/generate-sitemap.py` | Rewrites `sitemap.xml` |
 
 ## Editing
 
 ```bash
 # edit _source/… then
-python3 scripts/build.py          # home + docs + header/footer sync
+python3 scripts/build.py          # home + 404 + docs + header/footer sync
+python3 scripts/content.py        # guides, comparisons, cipi.yml page
+python3 scripts/llms.py && python3 scripts/generate-sitemap.py
 python3 scripts/generate-sitemap.py
 python3 -m http.server            # or any static server; docs URLs need .html fallback
 ```

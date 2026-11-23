@@ -217,6 +217,8 @@ def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs:
     if "term" in uses:
         js.append('<script src="/assets/js/term.js" defer></script>')
     lead_html = f'<p class="docs-lead">{esc(lead if lead is not None else desc)}</p>' if (lead is not None or desc) else ""
+    og_key = "docs" if slug == "index" else f"docs-{slug}"
+    og_img = f"{SITE}/img/og/{og_key}.jpg" if os.path.exists(os.path.join(ROOT, "img", "og", f"{og_key}.jpg")) else f"{SITE}/og.png"
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="light" data-follow-system>
 <head>
@@ -231,8 +233,11 @@ def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs:
     <meta property="og:url" content="{url}">
     <meta property="og:title" content="{esc(full_title)}">
     <meta property="og:description" content="{esc(desc)}">
-    <meta property="og:image" content="{SITE}/og.png">
+    <meta property="og:image" content="{og_img}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{og_img}">
 {PARTIALS["head"].rstrip()}
     {chr(10).join("    " + c if i else c for i, c in enumerate(css))}
 {ld_html}
@@ -399,6 +404,16 @@ def build_home() -> None:
     print("home: index.html")
 
 
+def build_404() -> None:
+    tpl = read(SRC, "pages", "404.html")
+    out = (tpl.replace("{{HEAD}}", PARTIALS["head"].rstrip())
+           .replace("{{NAV}}", "<!-- site:nav -->\n" + chrome("nav") + "<!-- /site:nav -->")
+           .replace("{{FOOTER}}", "<!-- site:footer -->\n" + chrome("footer") + "<!-- /site:footer -->")
+           .replace("{{SEARCH}}", PARTIALS["search"].rstrip()))
+    write(os.path.join(ROOT, "404.html"), out)
+    print("404: 404.html")
+
+
 def sync_chrome() -> None:
     """Keep nav/footer identical on hand-written pages (guides, comparisons, …)."""
     files = [f for f in glob.glob(os.path.join(ROOT, "*.html")) + glob.glob(os.path.join(ROOT, "guides", "*.html"))
@@ -420,6 +435,7 @@ if __name__ == "__main__":
     what = sys.argv[1:] or ["home", "docs", "chrome"]
     if "home" in what:
         build_home()
+        build_404()
     if "docs" in what:
         build_docs()
     if "chrome" in what:
