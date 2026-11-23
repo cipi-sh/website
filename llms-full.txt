@@ -4970,6 +4970,18 @@ Names carry their unit: `cipi_host_cpu_percent`, `cipi_app_requests_per_minute{a
 
 The **Metrics** tab of each server and of each app (panel 4.3.0+): charts over 1 hour to 30 days with every deploy and incident marked on them, a tooltip on hover, 30-day uptime bars per app, the events timeline, and — for server managers — retention, probe and heartbeat. While the tab is open it refreshes every 30 seconds.
 
+### Reading a chart 
+
+Each chart draws the average of every point and, shaded behind it, the peak. Hover a point for the exact time, value and peak; the dotted vertical lines are events, coloured like the timeline below the charts. A gap means the collector did not run in those minutes (server off, `cipi metrics disable`).
+
+### Uptime and events 
+
+One bar per day per app: green all checks passed, yellow a few failed, red an incident, grey no data yet. The percentage is the share of successful per-minute probes over 30 days. The timeline lists monitor state changes, healthcheck incidents, releases and heartbeat failures, newest first.
+
+### Collection and retention 
+
+Server managers see the settings card at the bottom of the server tab: how big the database is, the retention of minutes, rollups and events, the per-minute probe and the heartbeat. Saving calls the same `cipi metrics retention` as the CLI. OpenMetrics stays CLI-only, because it opens a port.
+
 | Server tab | App tab |
 | --- | --- |
 | CPU, memory, load, network; every app's health, CPU, memory, requests, 5xx and uptime | Requests and 5xx, response time, CPU, memory, PHP-FPM children against `max_children`, queue workers; uptime per day and incidents |
@@ -5000,6 +5012,7 @@ $ cipi metrics reset --yes    # delete the history
 | Is "memory of an app" exact? | It is the sum of the resident memory of its processes; pages PHP-FPM children share count once per child, so it is an upper bound. Watch the trend. |
 | Where do requests and 5xx come from? | The app's Nginx access log, read from where the previous minute stopped, so log rotation is followed. |
 | My app is behind basic auth and the health check fails | The healthcheck URL gets 401 like any visitor. The [cipi/agent routes](https://cipi.sh/docs/basic-auth#agent) stay public; for the health check use a URL outside the protected app or turn the per-minute probe off. |
+| The Metrics tab says *sudo: I'm sorry www-data. I'm afraid I can't do that* | The panel API runs `cipi` through a sudo whitelist (`/etc/sudoers.d/cipi-api`) that did not contain the metrics commands. On Ubuntu 26.04, whose `sudo` is sudo-rs, a single rule with more than about 127 commands is refused as a whole, so 5.11.0 and 5.11.1 could not write the new list there. Run `sudo cipi self-update` to 5.11.2 or later: the list is split into rules of 40 and checked with `visudo` before it replaces the old one. Check with `sudo -l -U www-data \| grep -c 'cipi metrics'` (more than 0). |
 | Does it need anything installed? | The `sqlite3` CLI, installed by the 5.11.0 update (`apt-get install -y sqlite3` if apt could not). |
 
 
@@ -6144,7 +6157,7 @@ cipi CLI | does the work, as on SSH
 | App tooling | `.env` editor with masked secrets, Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, last run; run now, verify, test destinations |
-| Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+) |
+| Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, SMTP, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
@@ -6174,6 +6187,10 @@ A header with status, type, runtime and actions, then one tab per area. Tabs liv
 Deploys, SSL and database operations run as async jobs. The overlay polls `GET /api/jobs/{id}`, shows elapsed time and colour-codes the output; closing it leaves the job running.
 
 ### Databases and server
+
+### Metrics
+
+The Metrics tab of a server and of each app: charts from 1 hour to 30 days with releases and incidents marked, uptime per day and the events timeline, refreshed every 30 seconds while open. See [metrics](https://cipi.sh/docs/metrics).
 
 ### Connections and security
 
@@ -6624,12 +6641,13 @@ A database backup through the API is a **real** backup. For a dump people can sh
 
 ## Host integration 
 
-The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, an explicit allowlist of subcommands with their exact argument shapes, checked with `visudo -cf` whenever a migration regenerates it. Vault and MariaDB credentials stay inside Cipi, never in PHP. Its FPM pool has its own `open_basedir`.
+The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, an explicit allowlist of subcommands with their exact argument shapes, checked with `visudo -cf` whenever a migration or `cipi self-update` regenerates it, and split into rules of at most 40 commands because sudo-rs (the `sudo` of Ubuntu 26.04) refuses longer lists. Vault and MariaDB credentials stay inside Cipi, never in PHP. Its FPM pool has its own `open_basedir`.
 
 | Symptom | Fix |
 | --- | --- |
 | HTTP 500 on `/docs` or `/mcp` after an update | `cipi api fix-permissions`, then `cipi api status` |
 | `sudo: a terminal is required` | `cipi self-update` regenerates the allowlist |
+| `sudo: I'm sorry www-data. I'm afraid I can't do that` on new endpoints (e.g. metrics) | The allowlist is older than the command. `sudo cipi self-update` (5.11.2+) rewrites it, split into rules of 40 commands for sudo-rs on Ubuntu 26.04 and validated with `visudo` first; check with `sudo -l -U www-data` |
 | Panel says backups aren't configured | Compare `ls -l /etc/cipi/backup.json` with `sudo -u www-data sudo -n /usr/local/bin/cipi backup status --json` |
 
 ## IP allowlist 

@@ -210,12 +210,13 @@ A database backup through the API is a **real** backup. For a dump people can sh
 
 ## Host integration {#cipi-api-host}
 
-The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, an explicit allowlist of subcommands with their exact argument shapes, checked with `visudo -cf` whenever a migration regenerates it. Vault and MariaDB credentials stay inside Cipi, never in PHP. Its FPM pool has its own `open_basedir`.
+The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, an explicit allowlist of subcommands with their exact argument shapes, checked with `visudo -cf` whenever a migration or `cipi self-update` regenerates it, and split into rules of at most 40 commands because sudo-rs (the `sudo` of Ubuntu 26.04) refuses longer lists. Vault and MariaDB credentials stay inside Cipi, never in PHP. Its FPM pool has its own `open_basedir`.
 
 | Symptom | Fix |
 | --- | --- |
 | HTTP 500 on `/docs` or `/mcp` after an update | `cipi api fix-permissions`, then `cipi api status` |
 | `sudo: a terminal is required` | `cipi self-update` regenerates the allowlist |
+| `sudo: I'm sorry www-data. I'm afraid I can't do that` on new endpoints (e.g. metrics) | The allowlist is older than the command. `sudo cipi self-update` (5.11.2+) rewrites it, split into rules of 40 commands for sudo-rs on Ubuntu 26.04 and validated with `visudo` first; check with `sudo -l -U www-data` |
 | Panel says backups aren't configured | Compare `ls -l /etc/cipi/backup.json` with `sudo -u www-data sudo -n /usr/local/bin/cipi backup status --json` |
 
 ## IP allowlist {#cipi-api-ip-whitelist}

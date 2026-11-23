@@ -96,6 +96,54 @@ The **Metrics** tab of each server and of each app (panel 4.3.0+): charts over 1
 <figcaption>An app's Metrics tab: PHP-FPM children against pm.max_children, and the minutes the pool hit it.</figcaption>
 </figure>
 
+### Reading a chart {#chart}
+
+Each chart draws the average of every point and, shaded behind it, the peak. Hover a point for the exact time, value and peak; the dotted vertical lines are events, coloured like the timeline below the charts. A gap means the collector did not run in those minutes (server off, `cipi metrics disable`).
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-hover-light.webp" width="1288" height="584" alt="CPU chart with the tooltip on 23 Nov 07:14: 47%, peak 59%, and event markers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-hover.webp" width="1288" height="584" alt="CPU chart with the tooltip on 23 Nov 07:14: 47%, peak 59%, and event markers" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Hover: time, average and peak of the point. A gap is time with no data.</figcaption>
+</figure>
+
+### Uptime and events {#uptime-events}
+
+One bar per day per app: green all checks passed, yellow a few failed, red an incident, grey no data yet. The percentage is the share of successful per-minute probes over 30 days. The timeline lists monitor state changes, healthcheck incidents, releases and heartbeat failures, newest first.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-uptime-light.webp" width="1256" height="586" alt="Uptime bars for 30 days for the apps shop, api and blog with 99.91%, 99.99% and 99.60%" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-uptime.webp" width="1256" height="586" alt="Uptime bars for 30 days for the apps shop, api and blog with 99.91%, 99.99% and 99.60%" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>30 days of uptime per app.</figcaption>
+</figure>
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-events-light.webp" width="1256" height="586" alt="Events timeline: deploy, monitor load alert, healthcheck down and back up" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-events.webp" width="1256" height="586" alt="Events timeline: deploy, monitor load alert, healthcheck down and back up" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Releases, monitor alerts and incidents in one timeline.</figcaption>
+</figure>
+
+### Collection and retention {#settings}
+
+Server managers see the settings card at the bottom of the server tab: how big the database is, the retention of minutes, rollups and events, the per-minute probe and the heartbeat. Saving calls the same `cipi metrics retention` as the CLI. OpenMetrics stays CLI-only, because it opens a port.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-settings-light.webp" width="1440" height="371" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat to hc-ping.com" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-settings.webp" width="1440" height="371" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat to hc-ping.com" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>The settings card, with the defaults.</figcaption>
+</figure>
+
 | Server tab | App tab |
 | --- | --- |
 | CPU, memory, load, network; every app's health, CPU, memory, requests, 5xx and uptime | Requests and 5xx, response time, CPU, memory, PHP-FPM children against `max_children`, queue workers; uptime per day and incidents |
@@ -126,4 +174,5 @@ $ cipi metrics reset --yes    # delete the history
 | Is "memory of an app" exact? | It is the sum of the resident memory of its processes; pages PHP-FPM children share count once per child, so it is an upper bound. Watch the trend. |
 | Where do requests and 5xx come from? | The app's Nginx access log, read from where the previous minute stopped, so log rotation is followed. |
 | My app is behind basic auth and the health check fails | The healthcheck URL gets 401 like any visitor. The [cipi/agent routes](/docs/basic-auth#agent) stay public; for the health check use a URL outside the protected app or turn the per-minute probe off. |
+| The Metrics tab says *sudo: I'm sorry www-data. I'm afraid I can't do that* | The panel API runs `cipi` through a sudo whitelist (`/etc/sudoers.d/cipi-api`) that did not contain the metrics commands. On Ubuntu 26.04, whose `sudo` is sudo-rs, a single rule with more than about 127 commands is refused as a whole, so 5.11.0 and 5.11.1 could not write the new list there. Run `sudo cipi self-update` to 5.11.2 or later: the list is split into rules of 40 and checked with `visudo` before it replaces the old one. Check with `sudo -l -U www-data \| grep -c 'cipi metrics'` (more than 0). |
 | Does it need anything installed? | The `sqlite3` CLI, installed by the 5.11.0 update (`apt-get install -y sqlite3` if apt could not). |
