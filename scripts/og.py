@@ -49,6 +49,9 @@ def jobs() -> list[tuple[str, str]]:
     out.append(("docs", tpl("Documentation", "Cipi documentation", "Install, deploy, domains, backups, security, the web panel, the API and MCP.", "cipi.sh/docs")))
     out.append(("guides", tpl("Guides", "Laravel and PHP on your own server", "Step-by-step guides: providers, Octane, Reverb, cipi.yml, MCP, security, WordPress and more.", "cipi.sh/guides")))
     out.append(("alternatives", tpl("Compare", "Cipi vs Forge, Ploi, Vito Deploy and more", "Honest comparisons: price, where it runs, and when the other tool wins.", "cipi.sh/alternatives")))
+    out.append(("web-panel", tpl("Web panel", "Your whole fleet, in the browser", "A free, self-hosted panel for every Cipi server: deploys, databases, backups, roles and SSO.", "cipi.sh/web-panel")))
+    out.append(("api", tpl("REST API", "Every server, scriptable", "Apps, deploys, SSL, databases and cipi.yml from CI, the SDK, cipi-cli or an AI assistant.", "cipi.sh/api")))
+    out.append(("mcp", tpl("MCP for AI", "Ask production. Get real answers.", "Claude, Cursor and VS Code on your live Laravel apps, with guardrails.", "cipi.sh/mcp")))
     out.append(("cipi-yml", tpl("Configuration as code", "cipi.yml: server settings in your repository", "Planned, reviewed in pull requests, applied all or nothing.", "cipi.sh/cipi-yml")))
     return out
 

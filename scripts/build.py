@@ -404,6 +404,99 @@ def build_home() -> None:
     print("home: index.html")
 
 
+SIBLINGS = [
+    ("/web-panel", "Web panel", "A browser view of your whole fleet, with roles and SSO."),
+    ("/api", "REST API", "Every server, scriptable: tokens, abilities, jobs."),
+    ("/mcp", "MCP for AI", "Claude, Cursor and VS Code on your apps, with guardrails."),
+]
+
+
+def build_landings() -> None:
+    d = os.path.join(SRC, "landings")
+    if not os.path.isdir(d):
+        return
+    for f in sorted(os.listdir(d)):
+        if not f.endswith(".html"):
+            continue
+        raw = read(d, f)
+        m = re.match(r"<!--META (\{.*?\})-->\n", raw, re.S)
+        meta = json.loads(m.group(1))
+        body = raw[m.end():]
+        path = meta["path"]
+        url = SITE + path
+        sib = '<div class="lp-siblings">' + "".join(
+            f'<a href="{h}"{" aria-current=\"page\"" if h == path else ""}><small>Cipi</small><b>{esc(t)}</b><span>{esc(x)}</span></a>'
+            for h, t, x in SIBLINGS) + "</div>"
+        body = body.replace("{{SIBLINGS}}", sib)
+        body, uses = expand_components(body)
+        key = path.strip("/")
+        og = f"{SITE}/img/og/{key}.jpg" if os.path.exists(os.path.join(ROOT, "img", "og", f"{key}.jpg")) else f"{SITE}/og.png"
+        ld = [
+            {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": meta["app_name"],
+             "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu 24.04, Ubuntu 26.04",
+             "description": meta["description"], "url": url, "isAccessibleForFree": True,
+             "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+             "license": "https://opensource.org/licenses/MIT", "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": SITE + "/"}},
+            {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": "Home", "item": SITE + "/"},
+                {"@type": "ListItem", "position": 2, "name": meta["crumb"], "item": url}]},
+        ]
+        if meta.get("faq"):
+            ld.append({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+                {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in meta["faq"]]})
+            body = body.replace("{{FAQ}}", '<div class="faq faq--wide">' + "".join(
+                f"<details><summary>{esc(q)}</summary><p>{esc(a)}</p></details>" for q, a in meta["faq"]) + "</div>")
+        ld_html = "\n".join(f'    <script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in ld)
+        css = ["/assets/css/base.css", "/assets/css/home.css", "/assets/css/landing.css"]
+        js = ["/assets/js/site.js", "/assets/js/search.js", "/assets/js/landing.js"]
+        if "clips" in uses:
+            css.append("/assets/css/clips.css"); js.append("/assets/js/clips.js")
+        if "term" in uses:
+            js.append("/assets/js/term.js")
+        page = f"""<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{esc(meta["seo_title"])}</title>
+    <meta name="description" content="{esc(meta["description"])}">
+    <meta name="keywords" content="{esc(meta.get("keywords", ""))}">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="{url}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="{url}">
+    <meta property="og:title" content="{esc(meta["og_title"])}">
+    <meta property="og:description" content="{esc(meta["description"])}">
+    <meta property="og:image" content="{og}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{esc(meta["og_title"])}">
+    <meta name="twitter:description" content="{esc(meta["description"])}">
+    <meta name="twitter:image" content="{og}">
+{PARTIALS["head"].rstrip()}
+{chr(10).join(f'    <link rel="stylesheet" href="{c}">' for c in css)}
+{ld_html}
+</head>
+<body class="home landing">
+<!-- site:nav -->
+{chrome("nav")}<!-- /site:nav -->
+<main id="main">
+{body}
+</main>
+<!-- site:footer -->
+{chrome("footer")}<!-- /site:footer -->
+{PARTIALS["search"].rstrip()}
+{chr(10).join(f'<script src="{j}" defer></script>' for j in js)}
+{PARTIALS["analytics"].replace("{{PATH}}", path).rstrip()}
+</body>
+</html>
+"""
+        write(os.path.join(ROOT, key + ".html"), page)
+        print(f"landing: {key}.html")
+
+
 def build_404() -> None:
     tpl = read(SRC, "pages", "404.html")
     out = (tpl.replace("{{HEAD}}", PARTIALS["head"].rstrip())
@@ -436,6 +529,7 @@ if __name__ == "__main__":
     if "home" in what:
         build_home()
         build_404()
+        build_landings()
     if "docs" in what:
         build_docs()
     if "chrome" in what:

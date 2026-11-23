@@ -1,0 +1,133 @@
+<!--META {"path": "/mcp", "crumb": "MCP for AI", "app_name": "Cipi MCP servers", "seo_title": "Cipi MCP — let Claude, Cursor and VS Code operate your Laravel apps safely", "og_title": "Cipi MCP: AI assistants on your real apps, with guardrails", "description": "Two self-hosted MCP servers for Laravel: one inside each app (health, logs, schema, queries, Artisan, deploy, cipi.yml) and one per server (apps, SSL, databases, backups). Tokens, SQL and Artisan guards, secret redaction and an audit trail.", "keywords": "laravel mcp server, mcp server deploy laravel, claude code laravel production, cursor mcp server, ai devops laravel", "faq": [["Which assistants work?", "Any MCP client: Claude Code, Claude Desktop, Cursor, VS Code with Copilot, and others that support Streamable HTTP or a stdio bridge."], ["Can the assistant break production?", "Destructive SQL (DROP, ALTER, TRUNCATE, GRANT), multi-statements and dangerous Artisan commands (migrate:fresh, db:wipe, tinker…) are blocked; database writes can be switched off; secrets are masked in every answer."], ["Does my data go to Cipi?", "No. Both MCP servers run on your own server. What your assistant's vendor sees is what you ask it and what the tools return, already redacted."], ["Do I need both servers?", "No. The agent's MCP is enough to debug and deploy an app. Add the server MCP when you want the assistant to create apps, issue certificates or manage databases."]]}-->
+<section class="lp-hero" aria-labelledby="lp-title">
+    <div class="page-w lp-hero-grid">
+        <div class="lp-copy">
+            <span class="lp-kicker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>MCP · AI on your real apps</span>
+            <h1 id="lp-title">Ask production. Get real answers.</h1>
+            <p class="lp-lead">Connect Claude, Cursor or VS Code to your live Laravel apps and servers. Your assistant reads the actual logs, schema and deploy state, runs safe commands and deploys, through two MCP servers that run on your own machines, behind tokens and guardrails.</p>
+            <div class="cmd"><code>composer require cipi/agent</code><button class="copy-btn" type="button" data-copy="composer require cipi/agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div>
+            <div class="lp-ctas"><a class="btn btn-primary" href="#connect">Connect your assistant</a><a class="btn btn-ghost" href="/guides/cipi-mcp-ai-agents">Read the guide</a></div>
+            <ul class="lp-facts">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Self-hosted, free</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Secrets redacted</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Every deploy audited</li>
+            </ul>
+        </div>
+        <div class="lp-visual">
+            <div class="lp-chat" data-chat aria-label="Example conversation">
+                <div class="lp-chat-h"><span class="dot"></span><span>Claude · cipi-shop</span></div>
+                <div class="lp-chat-body">
+                    <div class="lp-msg you">Is production healthy, and what's live?</div>
+                    <div class="lp-msg ai"><span class="lp-tool">health</span><span class="lp-tool">deploy_status</span><br>Healthy. Release 133, commit <code>9d1f3a5</code>, deployed by the webhook 3 hours ago in 1m43s.</div>
+                    <div class="lp-msg you">Checkout errors since lunch?</div>
+                    <div class="lp-msg ai"><span class="lp-tool">logs level=error</span><span class="lp-tool">artisan migrate:status</span><br><code>InvoiceJob</code> fails: column <code>invoices.paid_at</code> not found. Migration <code>2026_11_08_add_paid_at</code> is pending.</div>
+                    <div class="lp-msg you">Deploy main and note that Jane asked.</div>
+                    <div class="lp-msg ai"><span class="lp-tool">deploy actor=jane@acme.app</span><br>Queued, zero downtime. It's recorded in the audit trail with Jane as the requester.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="lp-band" aria-label="At a glance">
+    <div class="page-w"><ul>
+        <li><b>2</b><span>MCP servers: per app and per server</span></li>
+        <li><b>70+</b><span>Server tools, plus a dozen in each app</span></li>
+        <li><b>0</b><span>Secrets in answers: redacted before they leave</span></li>
+        <li><b>$0</b><span>Free, MIT, on your own servers</span></li>
+    </ul></div>
+</section>
+
+<section class="lp-sec" aria-labelledby="two-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="two-title">Two servers, two scopes</h2><p>Install one, or both. Each has its own endpoint, its own token and its own limits.</p></div>
+        <div class="lp-duo">
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>Agent MCP: inside one app</h3><p>For debugging and shipping an app. Installed with the Cipi Agent package.</p>
+                <dl><dt>Endpoint</dt><dd><code>https://shop.example.com/cipi/mcp</code></dd><dt>Install</dt><dd><code>composer require cipi/agent</code></dd><dt>Tools</dt><dd><code>health</code> <code>app_info</code> <code>deploy_status</code> <code>logs</code> <code>db_schema</code> <code>db_query</code> <code>artisan</code> <code>env_check</code> <code>cipi_yml</code> <code>deploy</code> <code>anonymizer</code></dd><dt>Plus</dt><dd><code>panel_*</code> tools with the PHP SDK: rollback, DB backup, audit</dd></dl>
+                <a class="more" href="/docs/mcp">Docs: agent MCP</a></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>Server MCP: the whole server</h3><p>For operating servers. Part of the Cipi API, on its own subdomain.</p>
+                <dl><dt>Endpoint</dt><dd><code>https://api.example.com/mcp</code></dd><dt>Install</dt><dd><code>cipi api api.example.com</code></dd><dt>Tools</dt><dd>Apps, deploys and audit, aliases, www, SSL, redirects, proxies, Node, databases, search, limits, disk, cipi.yml, PHP, services, logs, jobs</dd><dt>Token</dt><dd>One with <code>mcp-access</code></dd></dl>
+                <a class="more" href="/docs/api#mcp">Docs: server MCP</a></article>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="safe-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="safe-title">Guardrails before convenience</h2><p>An assistant with access to production needs limits it can't talk its way around. These are enforced in code, on the server.</p></div>
+        <div class="lp-grid">
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/></svg>SQL guard</h3><p>No <code>DROP</code>, <code>ALTER</code>, <code>TRUNCATE</code>, <code>CREATE</code>, <code>GRANT</code>, file I/O or multi-statements. Reads capped at 100 rows. Writes off with one variable.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17l6-6-6-6M12 19h8"/></svg>Artisan guard</h3><p><code>tinker</code>, <code>db:wipe</code>, <code>migrate:fresh</code>, <code>migrate:reset</code>, long-running servers and more are blocked, and the list is extendable.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>Redaction</h3><p>Env assignments, bearer tokens, DSNs, <code>APP_KEY</code> and provider keys are masked in every answer. <code>env_check</code> returns names, never values.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/></svg>Tokens and origins</h3><p>A token per feature, rotated in one command. Browser requests from other hosts are refused. Disabled features answer 404.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>Honest annotations</h3><p>Every tool declares whether it reads, changes or destroys, so your client can ask before acting.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Audit trail</h3><p>Deploys requested through MCP are recorded in the hash-chained ledger with who asked. The server MCP can't install software or drop data.</p></article>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" id="connect" aria-labelledby="connect-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="connect-title">Connect in two minutes</h2><p>Turn the agent's MCP on, create a token, paste one line into your client.</p></div>
+        <div class="lp-split">
+            <div class="lp-code"><div class="lp-code-h"><span class="term-dots"><i></i><i></i><i></i></span><span>on the server, as the app user</span></div>
+<pre><span class="p">$ </span>php artisan cipi:service mcp --enable
+<span class="p">$ </span>php artisan cipi:generate-token mcp
+<span class="p">$ </span>php artisan cipi:mcp
+<span class="c"># endpoint, tools, and ready-to-paste config</span>
+<span class="c"># for Cursor, VS Code, Claude Code and Claude Desktop</span></pre></div>
+            <div class="lp-code"><div class="lp-code-h"><span class="term-dots"><i></i><i></i><i></i></span><span>on your laptop</span></div>
+<pre><span class="c"># Claude Code</span>
+<span class="p">$ </span>claude mcp add --transport http cipi-shop \
+    https://shop.example.com/cipi/mcp \
+    --header "Authorization: Bearer $CIPI_MCP_TOKEN"
+
+<span class="c">// Cursor: ~/.cursor/mcp.json</span>
+{ <span class="s">"mcpServers"</span>: { <span class="s">"cipi-shop"</span>: { <span class="s">"type"</span>: <span class="s">"http"</span>,
+  <span class="s">"url"</span>: <span class="s">"https://shop.example.com/cipi/mcp"</span>,
+  <span class="s">"headers"</span>: { <span class="s">"Authorization"</span>: <span class="s">"Bearer …"</span> } } } }</pre></div>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="uses-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="uses-title">What teams use it for</h2></div>
+        <div class="lp-grid">
+            <article class="lp-card"><h3>Triage in one question</h3><p>"What broke after the last deploy?" The assistant reads the deploy, the logs and pending migrations together.</p><a class="more" href="/guides/cipi-mcp-ai-agents">Guide</a></article>
+            <article class="lp-card"><h3>Safe data to experiment on</h3><p>Ask for an anonymized dump: real structure and volume, fake people, delivered by an expiring link.</p><a class="more" href="/guides/anonymized-database-dumps">Guide</a></article>
+            <article class="lp-card"><h3>Config changes that pass review</h3><p>The assistant drafts a <code>cipi.yml</code> change and validates it with the server's own rules before you commit.</p><a class="more" href="/cipi-yml">cipi.yml</a></article>
+            <article class="lp-card"><h3>Spec to production</h3><p>Specs, tests, a preview URL, then a deploy the assistant can watch and verify.</p><a class="more" href="/guides/spec-driven-development-ai-laravel">Guide</a></article>
+            <article class="lp-card"><h3>Server chores by chat</h3><p>"Create a staging app from develop and issue the certificate." Through the server MCP, scoped by token.</p><a class="more" href="/docs/api#mcp">Docs</a></article>
+            <article class="lp-card"><h3>On-call with context</h3><p>Pair it with Telegram or Slack alerts: get the alert, ask the assistant what happened.</p><a class="more" href="/guides/server-monitoring-alerts">Guide</a></article>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="docs-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="docs-title">Go deeper in the docs</h2></div>
+        <div class="lp-docs">
+            <a href="/docs/mcp"><small>Reference</small><b>Agent MCP server</b><span>Tools, guardrails, every client config.</span></a>
+            <a href="/docs/api#mcp"><small>Reference</small><b>Server MCP</b><span>On the Cipi API, with an <code>mcp-access</code> token.</span></a>
+            <a href="/docs/agent-install"><small>Install</small><b>Cipi Agent</b><span>Requirements, features, Artisan commands.</span></a>
+            <a href="/docs/agent-config"><small>Security</small><b>Tokens and settings</b><span>One token per feature, every environment variable.</span></a>
+            <a href="/docs/anonymizer"><small>Data</small><b>Database anonymizer</b><span>Rules, transformations, delivery, checklist.</span></a>
+            <a href="/guides/cipi-mcp-ai-agents"><small>Guide</small><b>Claude, Cursor and the Cipi MCP</b><span>Step by step, with real prompts.</span></a>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="faq-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="faq-title">Questions</h2></div>
+        {{FAQ}}
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="more-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="more-title">Also part of Cipi</h2></div>
+        {{SIBLINGS}}
+    </div>
+</section>

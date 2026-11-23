@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipi MCP — let Claude, Cursor and VS Code operate your Laravel apps safely</title>
+    <meta name="description" content="Two self-hosted MCP servers for Laravel: one inside each app (health, logs, schema, queries, Artisan, deploy, cipi.yml) and one per server (apps, SSL, databases, backups). Tokens, SQL and Artisan guards, secret redaction and an audit trail.">
+    <meta name="keywords" content="laravel mcp server, mcp server deploy laravel, claude code laravel production, cursor mcp server, ai devops laravel">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://cipi.sh/mcp">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/mcp">
+    <meta property="og:title" content="Cipi MCP: AI assistants on your real apps, with guardrails">
+    <meta property="og:description" content="Two self-hosted MCP servers for Laravel: one inside each app (health, logs, schema, queries, Artisan, deploy, cipi.yml) and one per server (apps, SSL, databases, backups). Tokens, SQL and Artisan guards, secret redaction and an audit trail.">
+    <meta property="og:image" content="https://cipi.sh/img/og/mcp.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cipi MCP: AI assistants on your real apps, with guardrails">
+    <meta name="twitter:description" content="Two self-hosted MCP servers for Laravel: one inside each app (health, logs, schema, queries, Artisan, deploy, cipi.yml) and one per server (apps, SSL, databases, backups). Tokens, SQL and Artisan guards, secret redaction and an audit trail.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/mcp.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/home.css">
+    <link rel="stylesheet" href="/assets/css/landing.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Cipi MCP servers", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu 24.04, Ubuntu 26.04", "description": "Two self-hosted MCP servers for Laravel: one inside each app (health, logs, schema, queries, Artisan, deploy, cipi.yml) and one per server (apps, SSL, databases, backups). Tokens, SQL and Artisan guards, secret redaction and an audit trail.", "url": "https://cipi.sh/mcp", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "license": "https://opensource.org/licenses/MIT", "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "MCP for AI", "item": "https://cipi.sh/mcp"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Which assistants work?", "acceptedAnswer": {"@type": "Answer", "text": "Any MCP client: Claude Code, Claude Desktop, Cursor, VS Code with Copilot, and others that support Streamable HTTP or a stdio bridge."}}, {"@type": "Question", "name": "Can the assistant break production?", "acceptedAnswer": {"@type": "Answer", "text": "Destructive SQL (DROP, ALTER, TRUNCATE, GRANT), multi-statements and dangerous Artisan commands (migrate:fresh, db:wipe, tinker…) are blocked; database writes can be switched off; secrets are masked in every answer."}}, {"@type": "Question", "name": "Does my data go to Cipi?", "acceptedAnswer": {"@type": "Answer", "text": "No. Both MCP servers run on your own server. What your assistant's vendor sees is what you ask it and what the tools return, already redacted."}}, {"@type": "Question", "name": "Do I need both servers?", "acceptedAnswer": {"@type": "Answer", "text": "No. The agent's MCP is enough to debug and deploy an app. Add the server MCP when you want the assistant to create apps, issue certificates or manage databases."}}]}</script>
+</head>
+<body class="home landing">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<section class="lp-hero" aria-labelledby="lp-title">
+    <div class="page-w lp-hero-grid">
+        <div class="lp-copy">
+            <span class="lp-kicker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>MCP · AI on your real apps</span>
+            <h1 id="lp-title">Ask production. Get real answers.</h1>
+            <p class="lp-lead">Connect Claude, Cursor or VS Code to your live Laravel apps and servers. Your assistant reads the actual logs, schema and deploy state, runs safe commands and deploys, through two MCP servers that run on your own machines, behind tokens and guardrails.</p>
+            <div class="cmd"><code>composer require cipi/agent</code><button class="copy-btn" type="button" data-copy="composer require cipi/agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div>
+            <div class="lp-ctas"><a class="btn btn-primary" href="#connect">Connect your assistant</a><a class="btn btn-ghost" href="/guides/cipi-mcp-ai-agents">Read the guide</a></div>
+            <ul class="lp-facts">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Self-hosted, free</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Secrets redacted</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Every deploy audited</li>
+            </ul>
+        </div>
+        <div class="lp-visual">
+            <div class="lp-chat" data-chat aria-label="Example conversation">
+                <div class="lp-chat-h"><span class="dot"></span><span>Claude · cipi-shop</span></div>
+                <div class="lp-chat-body">
+                    <div class="lp-msg you">Is production healthy, and what's live?</div>
+                    <div class="lp-msg ai"><span class="lp-tool">health</span><span class="lp-tool">deploy_status</span><br>Healthy. Release 133, commit <code>9d1f3a5</code>, deployed by the webhook 3 hours ago in 1m43s.</div>
+                    <div class="lp-msg you">Checkout errors since lunch?</div>
+                    <div class="lp-msg ai"><span class="lp-tool">logs level=error</span><span class="lp-tool">artisan migrate:status</span><br><code>InvoiceJob</code> fails: column <code>invoices.paid_at</code> not found. Migration <code>2026_11_08_add_paid_at</code> is pending.</div>
+                    <div class="lp-msg you">Deploy main and note that Jane asked.</div>
+                    <div class="lp-msg ai"><span class="lp-tool">deploy actor=jane@acme.app</span><br>Queued, zero downtime. It's recorded in the audit trail with Jane as the requester.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="lp-band" aria-label="At a glance">
+    <div class="page-w"><ul>
+        <li><b>2</b><span>MCP servers: per app and per server</span></li>
+        <li><b>70+</b><span>Server tools, plus a dozen in each app</span></li>
+        <li><b>0</b><span>Secrets in answers: redacted before they leave</span></li>
+        <li><b>$0</b><span>Free, MIT, on your own servers</span></li>
+    </ul></div>
+</section>
+
+<section class="lp-sec" aria-labelledby="two-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="two-title">Two servers, two scopes</h2><p>Install one, or both. Each has its own endpoint, its own token and its own limits.</p></div>
+        <div class="lp-duo">
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>Agent MCP: inside one app</h3><p>For debugging and shipping an app. Installed with the Cipi Agent package.</p>
+                <dl><dt>Endpoint</dt><dd><code>https://shop.example.com/cipi/mcp</code></dd><dt>Install</dt><dd><code>composer require cipi/agent</code></dd><dt>Tools</dt><dd><code>health</code> <code>app_info</code> <code>deploy_status</code> <code>logs</code> <code>db_schema</code> <code>db_query</code> <code>artisan</code> <code>env_check</code> <code>cipi_yml</code> <code>deploy</code> <code>anonymizer</code></dd><dt>Plus</dt><dd><code>panel_*</code> tools with the PHP SDK: rollback, DB backup, audit</dd></dl>
+                <a class="more" href="/docs/mcp">Docs: agent MCP</a></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>Server MCP: the whole server</h3><p>For operating servers. Part of the Cipi API, on its own subdomain.</p>
+                <dl><dt>Endpoint</dt><dd><code>https://api.example.com/mcp</code></dd><dt>Install</dt><dd><code>cipi api api.example.com</code></dd><dt>Tools</dt><dd>Apps, deploys and audit, aliases, www, SSL, redirects, proxies, Node, databases, search, limits, disk, cipi.yml, PHP, services, logs, jobs</dd><dt>Token</dt><dd>One with <code>mcp-access</code></dd></dl>
+                <a class="more" href="/docs/api#mcp">Docs: server MCP</a></article>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="safe-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="safe-title">Guardrails before convenience</h2><p>An assistant with access to production needs limits it can't talk its way around. These are enforced in code, on the server.</p></div>
+        <div class="lp-grid">
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/></svg>SQL guard</h3><p>No <code>DROP</code>, <code>ALTER</code>, <code>TRUNCATE</code>, <code>CREATE</code>, <code>GRANT</code>, file I/O or multi-statements. Reads capped at 100 rows. Writes off with one variable.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17l6-6-6-6M12 19h8"/></svg>Artisan guard</h3><p><code>tinker</code>, <code>db:wipe</code>, <code>migrate:fresh</code>, <code>migrate:reset</code>, long-running servers and more are blocked, and the list is extendable.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>Redaction</h3><p>Env assignments, bearer tokens, DSNs, <code>APP_KEY</code> and provider keys are masked in every answer. <code>env_check</code> returns names, never values.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/></svg>Tokens and origins</h3><p>A token per feature, rotated in one command. Browser requests from other hosts are refused. Disabled features answer 404.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg>Honest annotations</h3><p>Every tool declares whether it reads, changes or destroys, so your client can ask before acting.</p></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Audit trail</h3><p>Deploys requested through MCP are recorded in the hash-chained ledger with who asked. The server MCP can't install software or drop data.</p></article>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" id="connect" aria-labelledby="connect-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="connect-title">Connect in two minutes</h2><p>Turn the agent's MCP on, create a token, paste one line into your client.</p></div>
+        <div class="lp-split">
+            <div class="lp-code"><div class="lp-code-h"><span class="term-dots"><i></i><i></i><i></i></span><span>on the server, as the app user</span></div>
+<pre><span class="p">$ </span>php artisan cipi:service mcp --enable
+<span class="p">$ </span>php artisan cipi:generate-token mcp
+<span class="p">$ </span>php artisan cipi:mcp
+<span class="c"># endpoint, tools, and ready-to-paste config</span>
+<span class="c"># for Cursor, VS Code, Claude Code and Claude Desktop</span></pre></div>
+            <div class="lp-code"><div class="lp-code-h"><span class="term-dots"><i></i><i></i><i></i></span><span>on your laptop</span></div>
+<pre><span class="c"># Claude Code</span>
+<span class="p">$ </span>claude mcp add --transport http cipi-shop \
+    https://shop.example.com/cipi/mcp \
+    --header "Authorization: Bearer $CIPI_MCP_TOKEN"
+
+<span class="c">// Cursor: ~/.cursor/mcp.json</span>
+{ <span class="s">"mcpServers"</span>: { <span class="s">"cipi-shop"</span>: { <span class="s">"type"</span>: <span class="s">"http"</span>,
+  <span class="s">"url"</span>: <span class="s">"https://shop.example.com/cipi/mcp"</span>,
+  <span class="s">"headers"</span>: { <span class="s">"Authorization"</span>: <span class="s">"Bearer …"</span> } } } }</pre></div>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="uses-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="uses-title">What teams use it for</h2></div>
+        <div class="lp-grid">
+            <article class="lp-card"><h3>Triage in one question</h3><p>"What broke after the last deploy?" The assistant reads the deploy, the logs and pending migrations together.</p><a class="more" href="/guides/cipi-mcp-ai-agents">Guide</a></article>
+            <article class="lp-card"><h3>Safe data to experiment on</h3><p>Ask for an anonymized dump: real structure and volume, fake people, delivered by an expiring link.</p><a class="more" href="/guides/anonymized-database-dumps">Guide</a></article>
+            <article class="lp-card"><h3>Config changes that pass review</h3><p>The assistant drafts a <code>cipi.yml</code> change and validates it with the server's own rules before you commit.</p><a class="more" href="/cipi-yml">cipi.yml</a></article>
+            <article class="lp-card"><h3>Spec to production</h3><p>Specs, tests, a preview URL, then a deploy the assistant can watch and verify.</p><a class="more" href="/guides/spec-driven-development-ai-laravel">Guide</a></article>
+            <article class="lp-card"><h3>Server chores by chat</h3><p>"Create a staging app from develop and issue the certificate." Through the server MCP, scoped by token.</p><a class="more" href="/docs/api#mcp">Docs</a></article>
+            <article class="lp-card"><h3>On-call with context</h3><p>Pair it with Telegram or Slack alerts: get the alert, ask the assistant what happened.</p><a class="more" href="/guides/server-monitoring-alerts">Guide</a></article>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="docs-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="docs-title">Go deeper in the docs</h2></div>
+        <div class="lp-docs">
+            <a href="/docs/mcp"><small>Reference</small><b>Agent MCP server</b><span>Tools, guardrails, every client config.</span></a>
+            <a href="/docs/api#mcp"><small>Reference</small><b>Server MCP</b><span>On the Cipi API, with an <code>mcp-access</code> token.</span></a>
+            <a href="/docs/agent-install"><small>Install</small><b>Cipi Agent</b><span>Requirements, features, Artisan commands.</span></a>
+            <a href="/docs/agent-config"><small>Security</small><b>Tokens and settings</b><span>One token per feature, every environment variable.</span></a>
+            <a href="/docs/anonymizer"><small>Data</small><b>Database anonymizer</b><span>Rules, transformations, delivery, checklist.</span></a>
+            <a href="/guides/cipi-mcp-ai-agents"><small>Guide</small><b>Claude, Cursor and the Cipi MCP</b><span>Step by step, with real prompts.</span></a>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="faq-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="faq-title">Questions</h2></div>
+        <div class="faq faq--wide"><details><summary>Which assistants work?</summary><p>Any MCP client: Claude Code, Claude Desktop, Cursor, VS Code with Copilot, and others that support Streamable HTTP or a stdio bridge.</p></details><details><summary>Can the assistant break production?</summary><p>Destructive SQL (DROP, ALTER, TRUNCATE, GRANT), multi-statements and dangerous Artisan commands (migrate:fresh, db:wipe, tinker…) are blocked; database writes can be switched off; secrets are masked in every answer.</p></details><details><summary>Does my data go to Cipi?</summary><p>No. Both MCP servers run on your own server. What your assistant&#x27;s vendor sees is what you ask it and what the tools return, already redacted.</p></details><details><summary>Do I need both servers?</summary><p>No. The agent&#x27;s MCP is enough to debug and deploy an app. Add the server MCP when you want the assistant to create apps, issue certificates or manage databases.</p></details></div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="more-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="more-title">Also part of Cipi</h2></div>
+        <div class="lp-siblings"><a href="/web-panel"><small>Cipi</small><b>Web panel</b><span>A browser view of your whole fleet, with roles and SSO.</span></a><a href="/api"><small>Cipi</small><b>REST API</b><span>Every server, scriptable: tokens, abilities, jobs.</span></a><a href="/mcp" aria-current="page"><small>Cipi</small><b>MCP for AI</b><span>Claude, Cursor and VS Code on your apps, with guardrails.</span></a></div>
+    </div>
+</section>
+
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-octane-frankenphp">Octane with FrankenPHP</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Claude, Cursor and MCP</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">PHP and nginx CVEs</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/landing.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/mcp" width="1" height="1" alt=""></noscript>
+</body>
+</html>
