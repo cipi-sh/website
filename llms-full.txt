@@ -8532,15 +8532,13 @@ Install Cipi on a fresh server, recreate each app with `cipi app create` (same r
 
 URL: https://cipi.sh/cipi-yml
 
-```flow
-Edit cipi.yml | in a branch
-Review | in the pull request
-Deploy | the file ships with the release
-Plan | every change listed
-Apply | all or nothing
-```
+Edit cipi.ymlin a branch
+Reviewin the pull request
+Deploythe file ships with the release
+Planevery change listed
+Applyall or nothing
 
-## The whole app, in one file 
+## 1. Edit: the whole app, in one file 
 
 ```yaml
 version: 1
@@ -8587,13 +8585,36 @@ backup:
 
 Full reference: [cipi.yml docs](https://cipi.sh/docs/yml). Ready-made files: [recipes](https://cipi.sh/guides/cipi-yml-recipes).
 
-## See the plan before anything changes 
+## 2. Review: validate before you push 
+
+```bash
+$ composer require cipi/agent
+$ php artisan cipi:yml validate          # same validator as the server
+$ php artisan cipi:yml generate --write  # a first file inferred from your code
+$ php artisan cipi:yml schema --write    # autocompletion in your editor
+```
+
+Add `php artisan cipi:yml validate --json` to CI and a broken file never reaches a server. AI assistants connected through the [agent's MCP](https://cipi.sh/guides/cipi-mcp-ai-agents) can validate drafts too.
+
+## 3. Deploy: one repository, every environment 
+
+The file ships inside each release: what you merged is what the server reads. Which file an app reads depends on its environment.
+
+| File | Read by |
+| --- | --- |
+| `cipi.yml` | Production apps |
+| `cipi-staging.yml` | Apps created with `--env=staging` |
+| `cipi-preview.yml` | Preview apps per branch |
+
+Walkthrough: [staging and production from one repository](https://cipi.sh/guides/cipi-yml-staging-production).
+
+## 4. Plan: see every change first 
 
 `plan` lists each change and each blocker. `apply` performs them in one transaction. `auto on` applies the file after every successful deploy, from the CLI, the webhook or the panel.
 
-## Safe to accept from Git 
+## 5. Apply: all or nothing, safe to accept from Git 
 
-Anyone who can push controls the file, so it's designed to fail closed.
+`cipi yml apply` performs the plan in one transaction: if any step fails, nothing is left half done. With `cipi yml auto  on` it runs after every deploy. Anyone who can push controls the file, so it's designed to fail closed.
 
 | Guard | Effect |
 | --- | --- |
@@ -8604,27 +8625,6 @@ Anyone who can push controls the file, so it's designed to fail closed.
 | Small YAML | Anchors, tags, merges and block scalars are refused |
 | Strict routes | Proxies can't target Cipi's own ports, link-local or cloud-metadata addresses |
 | Server picks the file | Staging reads `cipi-staging.yml` because the server says so, never because a commit asks |
-
-## One repository, every environment 
-
-| File | Read by |
-| --- | --- |
-| `cipi.yml` | Production apps |
-| `cipi-staging.yml` | Apps created with `--env=staging` |
-| `cipi-preview.yml` | Preview apps per branch |
-
-Walkthrough: [staging and production from one repository](https://cipi.sh/guides/cipi-yml-staging-production).
-
-## Validate before you push 
-
-```bash
-$ composer require cipi/agent
-$ php artisan cipi:yml validate          # same validator as the server
-$ php artisan cipi:yml generate --write  # a first file inferred from your code
-$ php artisan cipi:yml schema --write    # autocompletion in your editor
-```
-
-Add `php artisan cipi:yml validate --json` to CI and a broken file never reaches a server. AI assistants connected through the [agent's MCP](https://cipi.sh/guides/cipi-mcp-ai-agents) can validate drafts too.
 
 ## Start in two minutes 
 

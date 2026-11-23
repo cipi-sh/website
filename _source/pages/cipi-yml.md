@@ -15,15 +15,15 @@ faq:
   - Can I start using it on an existing app? | Yes. `cipi yml generate <app> --save` writes the current setup as a file; commit it and the next plan shows nothing to change.
   - Do secrets end up in Git? | No. `env.required` lists names only; credentials Cipi creates go to `shared/`, and basic-auth users are names or hashes.
 ---
-```flow
-Edit cipi.yml | in a branch
-Review | in the pull request
-Deploy | the file ships with the release
-Plan | every change listed
-Apply | all or nothing
-```
+<nav class="flow-nav" aria-label="How cipi.yml works"><ol>
+<li><a href="#file"><b>Edit cipi.yml</b><span>in a branch</span></a></li>
+<li><a href="#validate"><b>Review</b><span>in the pull request</span></a></li>
+<li><a href="#environments"><b>Deploy</b><span>the file ships with the release</span></a></li>
+<li><a href="#plan"><b>Plan</b><span>every change listed</span></a></li>
+<li><a href="#safe"><b>Apply</b><span>all or nothing</span></a></li>
+</ol></nav>
 
-## The whole app, in one file {#file}
+## 1. Edit: the whole app, in one file {#file}
 
 ```yaml
 version: 1
@@ -70,15 +70,38 @@ backup:
 
 Full reference: [cipi.yml docs](/docs/yml). Ready-made files: [recipes](/guides/cipi-yml-recipes).
 
-## See the plan before anything changes {#plan}
+## 2. Review: validate before you push {#validate}
+
+```bash
+$ composer require cipi/agent
+$ php artisan cipi:yml validate          # same validator as the server
+$ php artisan cipi:yml generate --write  # a first file inferred from your code
+$ php artisan cipi:yml schema --write    # autocompletion in your editor
+```
+
+Add `php artisan cipi:yml validate --json` to CI and a broken file never reaches a server. AI assistants connected through the [agent's MCP](/guides/cipi-mcp-ai-agents) can validate drafts too.
+
+## 3. Deploy: one repository, every environment {#environments}
+
+The file ships inside each release: what you merged is what the server reads. Which file an app reads depends on its environment.
+
+| File | Read by |
+| --- | --- |
+| `cipi.yml` | Production apps |
+| `cipi-staging.yml` | Apps created with `--env=staging` |
+| `cipi-preview.yml` | Preview apps per branch |
+
+Walkthrough: [staging and production from one repository](/guides/cipi-yml-staging-production).
+
+## 4. Plan: see every change first {#plan}
 
 <cipi-term name="yml"></cipi-term>
 
 `plan` lists each change and each blocker. `apply` performs them in one transaction. `auto on` applies the file after every successful deploy, from the CLI, the webhook or the panel.
 
-## Safe to accept from Git {#safe}
+## 5. Apply: all or nothing, safe to accept from Git {#safe}
 
-Anyone who can push controls the file, so it's designed to fail closed.
+`cipi yml apply` performs the plan in one transaction: if any step fails, nothing is left half done. With `cipi yml auto <app> on` it runs after every deploy. Anyone who can push controls the file, so it's designed to fail closed.
 
 | Guard | Effect |
 | --- | --- |
@@ -90,27 +113,6 @@ Anyone who can push controls the file, so it's designed to fail closed.
 | Strict routes | Proxies can't target Cipi's own ports, link-local or cloud-metadata addresses |
 | Server picks the file | Staging reads `cipi-staging.yml` because the server says so, never because a commit asks |
 
-## One repository, every environment {#environments}
-
-| File | Read by |
-| --- | --- |
-| `cipi.yml` | Production apps |
-| `cipi-staging.yml` | Apps created with `--env=staging` |
-| `cipi-preview.yml` | Preview apps per branch |
-
-Walkthrough: [staging and production from one repository](/guides/cipi-yml-staging-production).
-
-## Validate before you push {#validate}
-
-```bash
-$ composer require cipi/agent
-$ php artisan cipi:yml validate          # same validator as the server
-$ php artisan cipi:yml generate --write  # a first file inferred from your code
-$ php artisan cipi:yml schema --write    # autocompletion in your editor
-```
-
-Add `php artisan cipi:yml validate --json` to CI and a broken file never reaches a server. AI assistants connected through the [agent's MCP](/guides/cipi-mcp-ai-agents) can validate drafts too.
-
 ## Start in two minutes {#start}
 
 ```bash
@@ -120,3 +122,4 @@ $ sudo cipi deploy shop && sudo cipi yml plan shop
 ```
 
 Step by step: [keep your server settings in the repository](/guides/manage-apps-with-cipi-yml).
+
