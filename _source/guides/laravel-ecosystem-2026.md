@@ -16,6 +16,11 @@ docs:
 faq:
   - Do I need all of these? | No. Most apps run fine with PHP-FPM, MariaDB, the database queue and the scheduler. Add pieces when a real need shows up.
   - Which of these does Cipi set up? | Octane, Horizon, Reverb, Meilisearch, Valkey, PostgreSQL, the scheduler and workers are one command each. UI and testing tools live in your code.
+  - What if a step fails? | Check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
+  - Why do commands start with `sudo cipi`? | You log in as the `cipi` admin user, which may run `cipi` with `sudo` without a password. Root login is disabled for safety.
 ---
 Laravel is a framework plus a family of first-party and community tools. Choosing them is easy; running them in production is where projects stall. This map groups them by job and says what each needs from the server.
 

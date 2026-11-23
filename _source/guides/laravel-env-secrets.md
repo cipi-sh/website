@@ -22,6 +22,7 @@ faq:
   - Can I rotate `APP_KEY`? | Yes, but it logs everyone out and makes data encrypted with `Crypt` unreadable unless you keep the old key in `APP_PREVIOUS_KEYS`. Do it on purpose, not by accident.
   - Who can read the `.env`? | The app user and root. Other apps can't. Through the API, only tokens with the `apps-env` ability.
   - How do I give my CI a secret? | Store it in your CI's secret store for the build, and set runtime values on the server with `cipi app env --set` (or the API) once. The server doesn't need your CI's secrets.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 ---
 Every Laravel app reads its settings and secrets (database password, Stripe key, mail credentials) from a file called `.env`. Getting it right is mostly about **where it lives, who can read it and how you change it** without breaking a running app.
 

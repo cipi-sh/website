@@ -18,6 +18,7 @@ faq:
   - Does each app get its own Meilisearch? | Apps share one Meilisearch service, but each gets its own key restricted to its own index prefix, so one app can't read another's indexes.
   - How much RAM does Meilisearch need? | It memory-maps the index: plan roughly the size of your indexed data plus headroom. Small catalogues fit in a few hundred MB.
   - Do I re-import after every deploy? | No. Scout keeps indexes in sync on save. Re-import only after changing `toSearchableArray()` or index settings.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 docs:
   - search
   - environment

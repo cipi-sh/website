@@ -21,6 +21,10 @@ faq:
   - What about `.htaccess`? | Cipi uses Nginx only. WordPress works as is; custom rewrite rules must be translated to Nginx or [redirects](/docs/redirects-proxies).
   - Where are my files on RunCloud? | Under `/home/<system-user>/webapps/<app-name>`, shown in the web app's settings.
   - Do I need to change my Laravel code? | No. Only paths and server-side settings change.
+  - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
+  - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
+  - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
+  - Is there a web dashboard? | Optional and self-hosted: the [Cipi web panel](/web-panel) manages several servers, with roles and SSO. Everything also works from the CLI and the [API](/api).
 ---
 ## In 30 seconds {#summary}
 

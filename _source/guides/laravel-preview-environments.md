@@ -21,6 +21,9 @@ faq:
   - What data do previews start with? | Empty, migrated and seeded by your seeders. For realistic data, restore an [anonymized dump](/guides/anonymized-database-dumps), never production.
   - How many previews fit on a server? | Each idle app is light (a PHP pool, a worker, a small database). A 4 GB server comfortably runs a dozen small previews.
   - How do I keep previews private? | Turn on basic auth for them (`cipi basicauth enable`) or put them behind Cloudflare Zero Trust.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
 ---
 Reviewers click a link instead of pulling a branch. Each preview is a complete, isolated Cipi app at `feature-x-shop-3a1f9c2e.preview.example.com`, removed when the branch is deleted.
 

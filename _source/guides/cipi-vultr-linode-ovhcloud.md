@@ -20,6 +20,9 @@ faq:
   - Dedicated servers? | Yes, with Ubuntu 24.04 or 26.04 installed. Cipi doesn't need virtualization, just a full kernel of its own.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
   - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
 ---
 Any provider works as long as you get a **full virtual machine** (KVM or similar) with **Ubuntu 24.04 or 26.04**, a **public IPv4** and ports **22, 80 and 443** reachable. The installer checks the environment and stops with an explanation inside containers (LXC, OpenVZ).
 

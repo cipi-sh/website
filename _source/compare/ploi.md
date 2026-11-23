@@ -22,6 +22,9 @@ faq:
   - Does Cipi have a dashboard? | Yes, optional and self-hosted: [Web panel](/web-panel).
   - What if I used Ploi's backups? | Download the last backup or dump the database directly (step 5), then set up [Cipi backups](/guides/backup-vps-s3).
   - Will queues and cron jobs move automatically? | No: add them once with `cipi worker add` or [cipi.yml](/cipi-yml). The Laravel scheduler is already on.
+  - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
+  - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
+  - Where do I get help? | The [docs](/docs/), the [guides](/guides/), GitHub issues, and the [Telegram channel](https://t.me/cipicloud) for releases and security notes. There's no paid support desk.
 ---
 ## In 30 seconds {#summary}
 

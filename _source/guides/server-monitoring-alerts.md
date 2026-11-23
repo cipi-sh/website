@@ -18,6 +18,11 @@ docs:
 faq:
   - What does Cipi watch? | Load, memory, disk, services (Nginx, PHP-FPM, databases, Valkey, Supervisor), failed deploys, backups, certificates, security updates and health checks.
   - Will I get spammed? | Alerts fire on state changes (problem, then recovery), not every five minutes. Disable triggers you don't want.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
+  - Why do commands start with `sudo cipi`? | You log in as the `cipi` admin user, which may run `cipi` with `sudo` without a password. Root login is disabled for safety.
 ---
 Cipi checks the server every five minutes with a cron job and a few state files: no agent, no metrics database, no external service. You choose where the alerts go.
 

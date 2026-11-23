@@ -17,6 +17,10 @@ faq:
   - Can I mix recipes? | Yes. Sections are independent: take `workers` from one and `backup` from another.
   - Will a recipe overwrite settings I made by hand? | Only for the sections it contains. Run `cipi yml plan` first: it lists every change.
   - Where do I put the passwords these setups need? | In the server's `.env` (`cipi app env --set`). `env.required` only lists the names so a missing one blocks the plan.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
 ---
 Start from the recipe closest to your app, run `php artisan cipi:yml validate`, commit, then `sudo cipi yml plan <app>` after the deploy. Every key is documented in the [reference](/docs/yml).
 

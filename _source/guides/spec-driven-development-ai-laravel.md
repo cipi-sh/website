@@ -18,6 +18,10 @@ faq:
   - Do I need a special tool? | No. A spec is a Markdown file in the repository. Tools such as Larapilot help structure it, but the method works with any agent.
   - How detailed should a spec be? | Enough that a reviewer can say yes or no to the result: the problem, acceptance criteria, constraints and what's out of scope.
   - What data should the agent use? | Seeders or an anonymized dump. Never give an agent production credentials.
+  - What if a step fails? | Check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
 ---
 AI coding agents are good at implementing a clear, testable specification and bad at guessing what you meant. The teams getting value write the spec first, keep the agent inside guardrails, and give it eyes on production through MCP.
 

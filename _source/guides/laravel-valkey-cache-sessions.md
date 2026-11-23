@@ -22,6 +22,7 @@ faq:
   - Will I lose sessions if Valkey restarts? | Each instance keeps data on disk in `/var/lib/cipi-valkey/<app>`, so a normal restart keeps it. Treat cache as disposable and don't store anything in it you can't rebuild.
   - How much memory does it use? | About 10 MB per idle instance, growing with your data. Set a cap and an eviction policy (step 3).
   - What does `cache:clear` clear? | Only the app's own instance (or prefix). With isolated instances it can't touch another app.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 ---
 Laravel can keep **cache**, **sessions** and **queues** in several places. New apps on Cipi keep them in the database, which works fine at the start. As traffic grows, moving them to **Valkey**, an in-memory store, makes them much faster and lighter on the database.
 

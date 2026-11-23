@@ -480,9 +480,9 @@ def build_landings() -> None:
         ]
         if meta.get("faq"):
             ld.append({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
-                {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in meta["faq"]]})
+                {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", a).replace("`", "")}} for q, a in meta["faq"]]})
             body = body.replace("{{FAQ}}", '<div class="faq faq--wide">' + "".join(
-                f"<details><summary>{esc(q)}</summary><p>{esc(a)}</p></details>" for q, a in meta["faq"]) + "</div>")
+                f"<details><summary>{esc(q)}</summary><p>{docmd.inline(a)}</p></details>" for q, a in meta["faq"]) + "</div>")
         ld_html = "\n".join(f'    <script type="application/ld+json">{json.dumps(x, ensure_ascii=False)}</script>' for x in ld)
         css = ["/assets/css/base.css", "/assets/css/home.css", "/assets/css/landing.css"]
         js = ["/assets/js/site.js", "/assets/js/search.js", "/assets/js/landing.js"]

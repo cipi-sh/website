@@ -19,6 +19,11 @@ faq:
   - Does Cipi do zero-downtime deploys like Cleavr? | Yes: each deploy builds a new release and switches atomically, with instant rollback.
   - Can Cipi build in GitHub Actions? | Builds run on the server by default; you can [deploy from CI](/guides/laravel-ci-cd-git-workflow) after your tests pass.
   - Can I run Node apps? | Yes: SPA, static or SSR [Node apps](/docs/node-apps).
+  - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
+  - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
+  - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
+  - Is there a web dashboard? | Optional and self-hosted: the [Cipi web panel](/web-panel) manages several servers, with roles and SSO. Everything also works from the CLI and the [API](/api).
+  - Where do I get help? | The [docs](/docs/), the [guides](/guides/), GitHub issues, and the [Telegram channel](https://t.me/cipicloud) for releases and security notes. There's no paid support desk.
 ---
 ## In 30 seconds {#summary}
 

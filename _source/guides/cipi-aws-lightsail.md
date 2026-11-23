@@ -22,6 +22,8 @@ faq:
   - Lightsail or EC2? | Lightsail for a fixed monthly price and simple needs. EC2 when you need VPCs, private RDS, autoscaling or specific instance types.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
   - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 ---
 Lightsail is AWS with a fixed monthly price: a good fit for one to a handful of apps. Use the **OS-only** Ubuntu blueprint so Cipi can own the stack.
 

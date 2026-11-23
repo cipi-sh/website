@@ -23,6 +23,7 @@ faq:
   - Does `a.b.example.com` work? | Not with a single wildcard: `*.example.com` covers one level only. Keep tenants one label deep.
   - One database or one per tenant? | Start with one database and a `tenant_id` column (simplest, cheapest). Use a database per tenant, or a whole Cipi app per tenant, when customers need strict isolation, their own backups or their own server.
   - Will `api.example.com` be caught by the wildcard? | Not if `api.example.com` belongs to another app: exact names always win over the wildcard.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 ---
 A multi-tenant app serves many customers from one codebase. A common shape gives each customer an address like `acme.yourapp.com`. Three things have to line up: **DNS** sends every subdomain to your server, **Nginx** sends them to your app, and a **certificate** covers all of them.
 

@@ -20,6 +20,10 @@ faq:
   - Does a push to another branch deploy? | No. Only pushes to the app's deploy branch (`CIPI_DEPLOY_BRANCH`) trigger a deploy; others are acknowledged and ignored.
   - What if two pushes arrive at once? | Deploys are serialized per app: the second waits, then deploys the newest commit.
   - Is the webhook safe on a public URL? | Yes. Every request must carry a valid signature or token; anything else is refused before any work starts.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
 ---
 With a token, Cipi sets up the webhook on GitHub, GitLab, Bitbucket and Azure DevOps by itself. This guide shows what happens behind it, and how to wire Gitea or Forgejo by hand.
 

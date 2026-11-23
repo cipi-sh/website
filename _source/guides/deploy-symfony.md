@@ -20,6 +20,10 @@ faq:
   - Are Symfony deploys zero-downtime? | Custom apps deploy from Git into `~/htdocs`. For atomic releases like Laravel's, use a deploy script that builds in a new folder and switches a symlink.
   - Messenger workers? | Run `messenger:consume` from the app user's crontab with a time limit, or as a Supervisor program you add as root.
   - Doctrine migrations? | Add `bin/console doctrine:migrations:migrate --no-interaction` to your deploy steps.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
 ---
 Cipi is Laravel-first, but any PHP framework runs as a **custom app**: Nginx serves the document root you pick, PHP-FPM runs in the app's own pool, and Git deploys pull into `~/htdocs`. Here's a Symfony app end to end.
 

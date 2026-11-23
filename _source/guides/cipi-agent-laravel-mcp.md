@@ -22,6 +22,9 @@ faq:
   - Can I change the `/cipi` prefix? | Yes, with `CIPI_ROUTE_PREFIX` in `.env`. Update webhooks and monitors that use the old path.
   - Does it work outside Cipi servers? | The `cipi.yml` validator and the anonymizer work anywhere; deploy, health and MCP features expect a Cipi server.
   - How do I remove it? | `composer remove cipi/agent`, deploy. Routes and tokens go with it.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
 ---
 `cipi/agent` is a Laravel package that lets your app talk to the server it runs on. One `composer require` and the app gains five features, each behind its own token and each off until you want it.
 

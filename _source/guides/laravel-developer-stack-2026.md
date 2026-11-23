@@ -16,6 +16,11 @@ docs:
 faq:
   - Isn't self-hosting more work? | The work is mostly automated: installs, patches, certificates, backups and alerts run on their own. What's left is choosing a server and reading alerts.
   - What if the server dies? | Encrypted off-site backups restore on any new server, and `cipi sync` moves whole apps. Keep a written restore checklist and test it.
+  - What if a step fails? | Check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
+  - Why do commands start with `sudo cipi`? | You log in as the `cipi` admin user, which may run `cipi` with `sudo` without a password. Root login is disabled for safety.
 ---
 Every SaaS in a Laravel team's toolchain is reasonable on its own. Together they add up to a bill per developer, per server and per project, plus a pile of places where your data lives. Here's what's worth owning.
 

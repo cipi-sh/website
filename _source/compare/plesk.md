@@ -19,6 +19,11 @@ faq:
   - Does Plesk's Laravel Toolkit do the same? | It helps manage Laravel apps, but deploys aren't release-based with instant rollback, and Plesk keeps the hosting features you may not need.
   - Where are site files on Plesk? | On Linux, usually `/var/www/vhosts/<domain>/httpdocs`.
   - Can I export databases from Plesk? | Yes: Databases → Export Dump, then `cipi db restore` on Cipi.
+  - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
+  - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
+  - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
+  - Is there a web dashboard? | Optional and self-hosted: the [Cipi web panel](/web-panel) manages several servers, with roles and SSO. Everything also works from the CLI and the [API](/api).
+  - Can Cipi host WordPress or non-Laravel PHP? | Yes, as [custom apps](/docs/custom-apps), each isolated with its own user, PHP pool and database. [WordPress guide](/guides/deploy-wordpress-custom-app).
 ---
 ## In 30 seconds {#summary}
 

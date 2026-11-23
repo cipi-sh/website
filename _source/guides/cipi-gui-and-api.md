@@ -21,6 +21,10 @@ faq:
   - Do I need the panel? | No. Everything works from the CLI. The panel helps teams and people who prefer a browser.
   - Is the panel safe to expose? | It's on its own subdomain with HTTPS, users with roles and optional SSO. Put it behind Zero Trust for an extra layer.
   - Can the API delete servers or drop databases? | Destructive host operations stay CLI-only by design.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
+  - Why do commands start with `sudo cipi`? | You log in as the `cipi` admin user, which may run `cipi` with `sudo` without a password. Root login is disabled for safety.
 ---
 Cipi is CLI-first, but not CLI-only. Two optional pieces, each on its own subdomain, open it up: the **API** (for automation, the panel, the CLI client and AI assistants) and the **web panel** (for people).
 

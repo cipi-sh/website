@@ -20,6 +20,10 @@ faq:
   - `/up` or `/cipi/health`? | `/up` is public and only says Laravel boots. `/cipi/health` needs a token and checks database, cache, queue, storage and the live release. Use `/up` for public status pages and `/cipi/health` for alerting.
   - Which uptime services work? | Any that can send a custom header and check the status code or a keyword: UptimeRobot, Better Stack, Pingdom, Uptime Kuma, Boogle.
   - Will a failing check roll back a deploy? | With a Cipi health check set and `--rollback-on-unhealthy` (or `rollback_on_unhealthy: true` in `cipi.yml`), yes.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
 ---
 Laravel's `/up` route says the app boots. The agent's `/cipi/health` says whether the app actually works: database, cache, queue, storage and the deploy.
 

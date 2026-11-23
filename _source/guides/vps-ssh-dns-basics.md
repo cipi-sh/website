@@ -23,6 +23,7 @@ faq:
   - What if I lose my SSH key? | Keep a second key (another laptop) or use the provider's web console to add a new one. That's why Cipi refuses to remove your last key.
   - How long does DNS take? | Usually minutes. Some networks cache old answers for up to the record's TTL (often an hour). Use `dig` to check what the world sees.
   - Is a VPS cheaper than a PaaS? | Usually much cheaper for the same resources, with no per-seat or per-app fees. You pay the provider; Cipi is free.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 ---
 Deploying to your own server sounds harder than it is. You need three skills: **get a server**, **log in with SSH**, and **point a domain at it**. This guide explains each from zero, then hands over to the [first deploy guide](/guides/deploy-laravel-ubuntu-vps).
 

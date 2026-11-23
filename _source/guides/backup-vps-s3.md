@@ -18,6 +18,7 @@ faq:
   - Which bucket provider? | Any S3-compatible one: AWS S3, Hetzner, Backblaze B2, Wasabi, Cloudflare R2, Scaleway, DigitalOcean Spaces. Pick one in another region or provider than the server.
   - Where is the encryption key? | `cipi backup key show` prints it. Store it in your password manager: without it, encrypted archives can't be opened.
   - How long does a restore take? | Minutes for a typical app. Test it now so you know: `cipi backup fetch` into a scratch folder, then restore a database.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 docs:
   - backups
   - databases

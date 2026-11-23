@@ -18,6 +18,11 @@ faq:
   - Is native faster than Docker? | For PHP, usually leaner: no container overhead, OPcache and FPM tuned per app, and simpler debugging. The bigger win is Laravel-specific automation.
   - How do I get my database out of Coolify? | `docker exec` into the database container and run `pg_dump` or `mariadb-dump`, or download the latest scheduled backup from your S3 bucket.
   - Can I keep some apps on Coolify? | Yes, on another server. Each domain points to the server that hosts it.
+  - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
+  - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
+  - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
+  - Is there a web dashboard? | Optional and self-hosted: the [Cipi web panel](/web-panel) manages several servers, with roles and SSO. Everything also works from the CLI and the [API](/api).
+  - Where do I get help? | The [docs](/docs/), the [guides](/guides/), GitHub issues, and the [Telegram channel](https://t.me/cipicloud) for releases and security notes. There's no paid support desk.
 ---
 ## In 30 seconds {#summary}
 

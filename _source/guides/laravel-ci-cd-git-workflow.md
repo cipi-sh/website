@@ -17,6 +17,8 @@ faq:
   - Webhook or CI? | The webhook deploys every push, fast and simple. CI deploys only when tests pass. You can also keep the webhook on staging and use CI for production.
   - Can I deploy without giving CI SSH access? | Yes: use `cipi-cli` with a scoped API token (`deploy` ability only), as shown in "Without SSH".
   - How do I run migrations in CI? | You don't: the deploy runs them on the server, inside the new release, before it goes live.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 docs:
   - ci-pipelines
   - auto-deploy

@@ -20,6 +20,10 @@ faq:
   - Same domain or subdomains? | Subdomains (`api.acme.app` and `acme.app`) are simplest. Sanctum's cookie auth needs both on the same parent domain.
   - Can the front end be static instead? | Yes: `--node=static --output=dist` serves a built SPA from Nginx with no Node process.
   - Does the Node app get zero-downtime deploys too? | Yes. A new release is built and started, checked, then traffic switches.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
 ---
 Two apps, one server: `api.acme.app` (Laravel) and `acme.app` (Next.js or Nuxt in SSR mode). Both deploy from Git with zero downtime; the Node app restarts blue/green.
 

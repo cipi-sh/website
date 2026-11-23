@@ -20,6 +20,10 @@ faq:
   - Is this list enough for a security audit? | It covers the common ground. For ISO 27001 or SOC 2 evidence, `cipi compliance` collects the server side; your app's controls stay yours.
   - How often should I review it? | At every major release and after adding a feature that handles money, uploads or personal data.
   - What's the single most common mistake? | `APP_DEBUG=true` in production, which shows secrets in error pages.
+  - What if a step fails? | Check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
+  - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
+  - Will this affect other apps on the server? | No, unless the step says it's server-wide (installing a PHP version, firewall, Cloudflare tunnel). Each app has its own user, PHP pool, database and Valkey.
 ---
 Security on your own server is a list of boring things done every time. Here's the list, split between what's yours (the app) and what the server should do for you.
 

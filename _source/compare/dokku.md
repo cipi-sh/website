@@ -18,6 +18,11 @@ faq:
   - How do I export my Dokku database? | `dokku postgres:export <service> > dump.sql` (or `mysql:export`), then `cipi db restore`.
   - How do I get my environment variables? | `dokku config:export <app>` prints them.
   - Can I still deploy with git push? | Yes: pushing to GitHub/GitLab triggers Cipi's webhook and a zero-downtime deploy.
+  - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
+  - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
+  - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
+  - Is there a web dashboard? | Optional and self-hosted: the [Cipi web panel](/web-panel) manages several servers, with roles and SSO. Everything also works from the CLI and the [API](/api).
+  - Where do I get help? | The [docs](/docs/), the [guides](/guides/), GitHub issues, and the [Telegram channel](https://t.me/cipicloud) for releases and security notes. There's no paid support desk.
 ---
 ## In 30 seconds {#summary}
 

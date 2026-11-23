@@ -17,6 +17,8 @@ faq:
   - Can I rename a column safely? | In two deploys: add the new column and write to both, backfill, switch reads, then drop the old one in a later deploy.
   - What about long migrations on big tables? | Adding an index or a column with a default can lock a big table. On MariaDB use `ALGORITHM=INSTANT`/`INPLACE` where possible; on PostgreSQL create indexes `CONCURRENTLY` (outside a transaction).
   - Should I use maintenance mode? | Rarely. With expand-then-contract migrations the old release keeps working during the deploy, so there's nothing to hide.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 docs:
   - how-deploys-work
   - safe-deploy

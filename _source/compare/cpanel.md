@@ -22,6 +22,9 @@ faq:
   - Where are my databases in the backup? | In the `mysql/` folder of the full backup, one `.sql` file per database.
   - Can I move WordPress sites? | Yes, as custom apps. [WordPress guide](/guides/deploy-wordpress-custom-app).
   - Do I need a different server? | Yes, a fresh Ubuntu 24.04 or 26.04 VPS. cPanel servers usually run AlmaLinux or CloudLinux, and Cipi needs a clean Ubuntu.
+  - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
+  - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
+  - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
 ---
 ## In 30 seconds {#summary}
 

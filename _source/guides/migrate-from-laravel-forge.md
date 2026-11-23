@@ -24,6 +24,7 @@ faq:
   - What happens to my Forge deploy script? | Cipi's deploys already run `composer install`, migrations, `optimize`, `storage:link` and worker restarts. Extra steps go in `--extra-artisan`, `deploy.post` in `cipi.yml`, or a Deployer task.
   - Can I keep using Envoyer or GitHub Actions? | Cipi deploys with zero downtime on its own, triggered by push, CLI, API or CI. Your CI can call `cipi-cli deploy` or the webhook.
   - What do I lose? | Forge's hosted dashboard. Cipi gives you a CLI, an optional self-hosted web panel, a REST API and an MCP server, without a monthly plan.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 ---
 This guide moves one Laravel app from a Forge (or Ploi) server to a new server running Cipi. The old server keeps running until the very last step, so you can stop at any point and nothing breaks.
 

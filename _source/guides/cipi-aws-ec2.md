@@ -18,6 +18,7 @@ faq:
   - Can I use Graviton (ARM) instances? | Choose x86 to be safe: parts of the stack, such as the AWS CLI used for S3 backups, are installed as x86_64 builds.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
   - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 docs:
   - installation
   - firewall

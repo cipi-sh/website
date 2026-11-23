@@ -17,6 +17,8 @@ faq:
   - Can WordPress update itself? | Yes, files in `~/htdocs` belong to the app user, so core, plugin and theme updates work from the dashboard.
   - Does WordPress get isolation like Laravel apps? | Yes: own Linux user, PHP pool and database. A compromised plugin can't read other apps.
   - Which caching? | A page cache plugin plus OPcache (on by default) is enough for most sites. Valkey object cache helps busy WooCommerce shops.
+  - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
+  - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 docs:
   - custom-apps
   - databases
