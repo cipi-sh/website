@@ -203,7 +203,7 @@
 <p><code>cipi-cli</code> manages your Cipi servers <strong>from your laptop, without SSH</strong>. It's a single Go binary (Linux and macOS, amd64 and arm64, MIT) that talks to each server's <a href="/docs/api">Cipi API</a>: apps, deploys, <code>cipi.yml</code>, SSL, databases and anonymized dumps, PHP, services, keys, SMTP, health checks and disk usage. One profile per server, so a fleet is one command away.</p>
 <div class="term" data-term data-autoplay="view" style="--term-min:calc(11 * 1.65em + 36px)" data-prompt="you@laptop:~$"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">cipi-cli on your laptop</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: cipi-cli on your laptop">$ cipi-cli api token add prod
 $ cipi-cli status
-$ cipi-cli staging deploy myapp</pre><script type="application/json" class="term-script">[{"c": "cipi-cli api token add prod"}, {"o": "Cipi API endpoint: https://api.example.com", "d": 400}, {"o": "API token: 1|yourtoken...", "d": 400}, {"o": [["Server profile \"prod\" saved → ~/.cipi/config.json", ""]], "d": 300}, {"c": "cipi-cli status", "wait": 300}, {"o": [["NAME      IP              CPU   RAM   APPS  CIPI", "dim"]], "d": 400}, {"o": "prod*     203.0.113.10    12%   48%   6     5.11.2"}, {"o": "staging   203.0.113.20     4%   31%   2     5.11.2"}, {"c": "cipi-cli staging deploy myapp", "wait": 300}, {"o": [["✓ ", "ok"], ["Deployed to release #14. Zero downtime.", ""]], "d": 1400}]</script></div>
+$ cipi-cli staging deploy myapp</pre><script type="application/json" class="term-script">[{"c": "cipi-cli api token add prod"}, {"o": "Cipi API endpoint: https://api.example.com", "d": 400}, {"o": "API token: 1|yourtoken...", "d": 400}, {"o": [["Server profile \"prod\" saved → ~/.cipi/config.json", ""]], "d": 300}, {"c": "cipi-cli status", "wait": 300}, {"o": [["NAME      IP              CPU   RAM   APPS  CIPI", "dim"]], "d": 400}, {"o": "prod*     203.0.113.10    12%   48%   6     5.12.0"}, {"o": "staging   203.0.113.20     4%   31%   2     5.12.0"}, {"c": "cipi-cli staging deploy myapp", "wait": 300}, {"o": [["✓ ", "ok"], ["Deployed to release #14. Zero downtime.", ""]], "d": 1400}]</script></div>
 <div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>Each server needs <a href="/docs/api"><code>cipi api</code></a> installed, and a token from <code>cipi api token create</code>.</p></div></div>
 <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>chmod +x cipi-cli-* &amp;&amp; sudo mv cipi-cli-* /usr/local/bin/cipi-cli<span class="c">   # from GitHub Releases</span>
@@ -333,6 +333,14 @@ Deployed to release #14. Zero downtime.</pre></div>
 <span class="p"></span>cipi-cli metrics events --source deploy
 <span class="p"></span>cipi-cli metrics retention --raw 14 --rollup 90
 <span class="p"></span>cipi-cli metrics heartbeat set https://hc-ping.com/&lt;uuid&gt;</pre></div>
+<h2 id="notifications">Notifications<a class="anchor" href="#notifications" aria-label="Link to this section">#</a></h2>
+<p>Every channel and trigger (<a href="/docs/notifications">notifications</a>, API 1.42+):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli notifications<span class="c">                         # channels and how many triggers are on</span>
+<span class="p"></span>cipi-cli notifications add slack ops --url https://hooks.slack.com/services/… --test
+<span class="p"></span>cipi-cli notifications update oncall --chat-id -1009999<span class="c">    # secrets left out are kept</span>
+<span class="p"></span>cipi-cli notifications test all<span class="c">                # exits 1 when a channel refuses it</span>
+<span class="p"></span>cipi-cli notifications triggers off deploy_success ssh_login
+<span class="p"></span>cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,health_fail</pre></div>
 </section>
 <section class="doc-section" id="cli-status">
 <h2 id="status"><code>status</code><a class="anchor" href="#status" aria-label="Link to this section">#</a></h2>
@@ -400,6 +408,7 @@ Deployed to release #14. Zero downtime.</pre></div>
 <li><a class="l2" href="#health">health</a></li>
 <li><a class="l2" href="#ip-whitelist">ip-whitelist</a></li>
 <li><a class="l2" href="#insights">Server insights</a></li>
+<li><a class="l2" href="#notifications">Notifications</a></li>
 <li><a class="l2" href="#status">status</a></li>
 <li><a class="l2" href="#disk">disk</a></li>
 <li><a class="l2" href="#jobs">jobs</a></li>

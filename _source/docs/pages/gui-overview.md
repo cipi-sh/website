@@ -36,7 +36,8 @@ cipi CLI | does the work, as on SSH
 | Databases | MariaDB or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
-| Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, SMTP, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
+| Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+) |
+| Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed) |
@@ -203,6 +204,28 @@ The Metrics tab of a server and of each app: charts from 1 hour to 30 days with 
 <img src="/img/gui/metrics-hover.webp" width="1288" height="584" alt="CPU chart with the tooltip on a point and event markers" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Hover any point for its time, average and peak.</figcaption>
+</figure>
+
+### Notifications
+
+Every channel of the server and which events reach it. Secrets never come back to the panel; an empty secret field keeps the stored one. See [notifications](/docs/notifications#panel).
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/notifications-light.webp" width="1360" height="1257" alt="Notifications tab with five channels and the triggers by category" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications.webp" width="1360" height="1257" alt="Notifications tab with five channels and the triggers by category" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Channels with the last test result; triggers switched by category and saved together.</figcaption>
+</figure>
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/notifications-add-light.webp" width="1360" height="900" alt="Add channel dialog with the type picker" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-add.webp" width="1360" height="900" alt="Add channel dialog with the type picker" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Adding a channel shows only the fields of its type.</figcaption>
 </figure>
 
 ### Connections and security

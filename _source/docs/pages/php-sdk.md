@@ -190,6 +190,9 @@ $cipi->disk()->usage();
 $cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d');   // ~240 points of [ts, avg, max]
 $cipi->metrics()->uptime('shop', '30d');
 $cipi->metrics()->setHeartbeat('https://hc-ping.com/<uuid>', every: 1);
+$cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' => '-1001234', 'test' => true]);   // 1.9+
+$cipi->notifications()->update('oncall', ['chat_id' => '-1009999']);   // the token is kept
+$cipi->notifications()->setTriggers(['deploy_success' => false]);
 $cipi->wait($cipi->node()->upgrade(24, restart: true));
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet

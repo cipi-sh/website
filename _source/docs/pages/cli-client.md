@@ -292,6 +292,19 @@ $ cipi-cli metrics retention --raw 14 --rollup 90
 $ cipi-cli metrics heartbeat set https://hc-ping.com/<uuid>
 ```
 
+## Notifications {#notifications}
+
+Every channel and trigger ([notifications](/docs/notifications), API 1.42+):
+
+```bash
+$ cipi-cli notifications                         # channels and how many triggers are on
+$ cipi-cli notifications add slack ops --url https://hooks.slack.com/services/… --test
+$ cipi-cli notifications update oncall --chat-id -1009999    # secrets left out are kept
+$ cipi-cli notifications test all                # exits 1 when a channel refuses it
+$ cipi-cli notifications triggers off deploy_success ssh_login
+$ cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,health_fail
+```
+
 @section cli-status
 
 ## `status` {#status}

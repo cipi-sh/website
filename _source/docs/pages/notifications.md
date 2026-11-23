@@ -10,6 +10,7 @@ $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
 $ cipi notification test all
 $ cipi notification triggers            # which events notify
 $ cipi notification triggers disable monitor_load
+$ cipi notification update ops --url=https://hooks.slack.com/services/…   # 5.12.0
 ```
 
 @section cipi-alert-channels
@@ -34,6 +35,8 @@ $ cipi notification add smtp --host=smtp.example.com --port=587 --user=… --pas
 $ cipi notification add telegram oncall --token=<bot> --chat-id=<id>
 $ cipi notification add webhook pager --url=https://example.com/hooks/cipi --secret=…
 $ cipi notification disable ops | enable ops | remove ops
+$ cipi notification update oncall --chat-id=-1009999     # what is left out, secrets too, is kept
+$ cipi notification update siem --clear-secret           # stop signing a webhook
 ```
 
 Secrets omitted from the command line are asked for without echo, stored encrypted, and never printed back. Delivery is **best-effort with a 5-second timeout**: a dead webhook can never stall a deploy or a cron job.
@@ -59,7 +62,33 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Config | `ini_set`, `app_jit`, `yml_apply`, `yml_fail`, `yml_post_fail`, `node_default` |
 | Other | SSL, PHP, database, workers, services, search, packages, sync, API and password-reset events |
 
-`cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected.
+`cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. Since 5.12.0, `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
+
+`cipi notification test <id>` exits 1, with the reason, when the channel refuses the request (5.12.0); a disabled channel can be tested before it is turned on.
+
+## In the web panel {#panel}
+
+The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.42+) manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/notifications-light.webp" width="1360" height="1257" alt="Notifications tab: channels SMTP, Slack, Telegram, ntfy and webhook with a test result each, and the triggers by category with switches" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications.webp" width="1360" height="1257" alt="Notifications tab: channels SMTP, Slack, Telegram, ntfy and webhook with a test result each, and the triggers by category with switches" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Channels with where they send and the last test; triggers by category, saved together.</figcaption>
+</figure>
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/notifications-add-light.webp" width="1360" height="900" alt="Add a notification channel: type picker with eleven channel types and the Telegram fields" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-add.webp" width="1360" height="900" alt="Add a notification channel: type picker with eleven channel types and the Telegram fields" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Adding a channel: the fields of the type, a suggested id, a test after saving.</figcaption>
+</figure>
+
+Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/channels[/{id}]`, `POST …/{id}/enable|disable|test`, `GET|PUT /api/notifications/triggers` ([REST API](/docs/api#endpoints-server)); from code, `$cipi->notifications()` ([PHP SDK](/docs/php-sdk)) and `cipi-cli notifications` ([cipi-cli](/docs/cli-client#notifications)); for an assistant, the MCP tools `NotificationsShow`, `NotificationChannelSave`, `NotificationChannelTest`, `NotificationChannelRemove`, `NotificationTriggersUpdate`. Servers older than 5.12.0 keep the SMTP form in the panel.
 
 ## Security alerts {#security}
 
@@ -83,4 +112,6 @@ They run in the background through PAM, so they never slow a login. Wrap your ow
 | Question | Answer |
 | --- | --- |
 | Which channels? | E-mail, Slack, Mattermost, Google Chat, Discord, Telegram, ntfy, Pushover, signed webhooks. |
+| Can I manage them from the panel? | Yes, every channel and trigger, with Cipi 5.12.0+ and cipi/api 1.42+ ([In the web panel](#panel)). |
+| The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist predates 5.12.0: `sudo cipi self-update` rewrites it. |
 | Step by step? | [Notifications and alerts guide](/guides/notifications-alerts). |
