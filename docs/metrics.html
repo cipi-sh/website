@@ -253,6 +253,44 @@ $ cipi metrics uptime shop --range=30d</pre><script type="application/json" clas
 </div>
 <figcaption>An app's Metrics tab: PHP-FPM children against pm.max_children, and the minutes the pool hit it.</figcaption>
 </figure>
+<h3 id="chart">Reading a chart<a class="anchor" href="#chart" aria-label="Link to this section">#</a></h3>
+<p>Each chart draws the average of every point and, shaded behind it, the peak. Hover a point for the exact time, value and peak; the dotted vertical lines are events, coloured like the timeline below the charts. A gap means the collector did not run in those minutes (server off, <code>cipi metrics disable</code>).</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-hover-light.webp" width="1288" height="584" alt="CPU chart with the tooltip on 23 Nov 07:14: 47%, peak 59%, and event markers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-hover.webp" width="1288" height="584" alt="CPU chart with the tooltip on 23 Nov 07:14: 47%, peak 59%, and event markers" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Hover: time, average and peak of the point. A gap is time with no data.</figcaption>
+</figure>
+<h3 id="uptime-events">Uptime and events<a class="anchor" href="#uptime-events" aria-label="Link to this section">#</a></h3>
+<p>One bar per day per app: green all checks passed, yellow a few failed, red an incident, grey no data yet. The percentage is the share of successful per-minute probes over 30 days. The timeline lists monitor state changes, healthcheck incidents, releases and heartbeat failures, newest first.</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-uptime-light.webp" width="1256" height="586" alt="Uptime bars for 30 days for the apps shop, api and blog with 99.91%, 99.99% and 99.60%" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-uptime.webp" width="1256" height="586" alt="Uptime bars for 30 days for the apps shop, api and blog with 99.91%, 99.99% and 99.60%" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>30 days of uptime per app.</figcaption>
+</figure>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-events-light.webp" width="1256" height="586" alt="Events timeline: deploy, monitor load alert, healthcheck down and back up" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-events.webp" width="1256" height="586" alt="Events timeline: deploy, monitor load alert, healthcheck down and back up" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Releases, monitor alerts and incidents in one timeline.</figcaption>
+</figure>
+<h3 id="settings">Collection and retention<a class="anchor" href="#settings" aria-label="Link to this section">#</a></h3>
+<p>Server managers see the settings card at the bottom of the server tab: how big the database is, the retention of minutes, rollups and events, the per-minute probe and the heartbeat. Saving calls the same <code>cipi metrics retention</code> as the CLI. OpenMetrics stays CLI-only, because it opens a port.</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-settings-light.webp" width="1440" height="371" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat to hc-ping.com" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-settings.webp" width="1440" height="371" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat to hc-ping.com" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>The settings card, with the defaults.</figcaption>
+</figure>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Server tab</th><th>App tab</th></tr></thead><tbody><tr><td>CPU, memory, load, network; every app's health, CPU, memory, requests, 5xx and uptime</td><td>Requests and 5xx, response time, CPU, memory, PHP-FPM children against <code>max_children</code>, queue workers; uptime per day and incidents</td></tr></tbody></table></div>
 <h2 id="api">API, MCP, SDK, cipi-cli<a class="anchor" href="#api" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Interface</th><th>What</th></tr></thead><tbody><tr><td><a href="/docs/api">REST API</a> 1.41</td><td><code>GET /api/metrics</code>, <code>/api/metrics/series</code>, <code>/api/apps/{name}/metrics</code>, <code>/api/metrics/uptime</code>, <code>/api/metrics/events</code>, <code>GET|PUT /api/metrics/settings</code>, <code>PUT|DELETE /api/metrics/heartbeat</code> — abilities <code>metrics-view</code>, <code>metrics-manage</code></td></tr><tr><td><a href="/docs/mcp">MCP</a></td><td><code>MetricsOverview</code>, <code>MetricsSeries</code>, <code>MetricsUptime</code>, <code>MetricsEvents</code>, <code>MetricsSettingsShow</code>, <code>MetricsSettingsUpdate</code> — ask an assistant "when did the 5xx on shop start?"</td></tr><tr><td><a href="/docs/php-sdk">PHP SDK</a> 1.7</td><td><code>$cipi-&gt;metrics()-&gt;series('shop', ['req', 'http_5xx'], '7d')</code></td></tr><tr><td><a href="/docs/cli-client">cipi-cli</a></td><td><code>cipi-cli metrics</code>, <code>metrics show --app shop</code>, <code>metrics uptime</code>, <code>metrics heartbeat set …</code></td></tr></tbody></table></div>
@@ -261,7 +299,7 @@ $ cipi metrics uptime shop --range=30d</pre><script type="application/json" clas
 <span class="p"></span>cipi metrics disable<span class="c">        # stop collecting, keep the history</span>
 <span class="p"></span>cipi metrics reset --yes<span class="c">    # delete the history</span></pre></div>
 <h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Why not Prometheus on every server?</td><td>A Prometheus with exporters takes hundreds of MB of RAM and opens ports; most Cipi servers are small VPSs. This is one cron job and one SQLite file. If you have Prometheus, <a href="#openmetrics">scrape it</a>.</td></tr><tr><td>Is "CPU of an app" exact?</td><td>It is the CPU time of the app user's processes between two minutes, tracked per process. PHP-FPM masters run as root and are not counted; Octane and Node processes are.</td></tr><tr><td>Is "memory of an app" exact?</td><td>It is the sum of the resident memory of its processes; pages PHP-FPM children share count once per child, so it is an upper bound. Watch the trend.</td></tr><tr><td>Where do requests and 5xx come from?</td><td>The app's Nginx access log, read from where the previous minute stopped, so log rotation is followed.</td></tr><tr><td>My app is behind basic auth and the health check fails</td><td>The healthcheck URL gets 401 like any visitor. The <a href="/docs/basic-auth#agent">cipi/agent routes</a> stay public; for the health check use a URL outside the protected app or turn the per-minute probe off.</td></tr><tr><td>Does it need anything installed?</td><td>The <code>sqlite3</code> CLI, installed by the 5.11.0 update (<code>apt-get install -y sqlite3</code> if apt could not).</td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Why not Prometheus on every server?</td><td>A Prometheus with exporters takes hundreds of MB of RAM and opens ports; most Cipi servers are small VPSs. This is one cron job and one SQLite file. If you have Prometheus, <a href="#openmetrics">scrape it</a>.</td></tr><tr><td>Is "CPU of an app" exact?</td><td>It is the CPU time of the app user's processes between two minutes, tracked per process. PHP-FPM masters run as root and are not counted; Octane and Node processes are.</td></tr><tr><td>Is "memory of an app" exact?</td><td>It is the sum of the resident memory of its processes; pages PHP-FPM children share count once per child, so it is an upper bound. Watch the trend.</td></tr><tr><td>Where do requests and 5xx come from?</td><td>The app's Nginx access log, read from where the previous minute stopped, so log rotation is followed.</td></tr><tr><td>My app is behind basic auth and the health check fails</td><td>The healthcheck URL gets 401 like any visitor. The <a href="/docs/basic-auth#agent">cipi/agent routes</a> stay public; for the health check use a URL outside the protected app or turn the per-minute probe off.</td></tr><tr><td>The Metrics tab says <em>sudo: I'm sorry www-data. I'm afraid I can't do that</em></td><td>The panel API runs <code>cipi</code> through a sudo whitelist (<code>/etc/sudoers.d/cipi-api</code>) that did not contain the metrics commands. On Ubuntu 26.04, whose <code>sudo</code> is sudo-rs, a single rule with more than about 127 commands is refused as a whole, so 5.11.0 and 5.11.1 could not write the new list there. Run <code>sudo cipi self-update</code> to 5.11.2 or later: the list is split into rules of 40 and checked with <code>visudo</code> before it replaces the old one. Check with <code>sudo -l -U www-data | grep -c 'cipi metrics'</code> (more than 0).</td></tr><tr><td>Does it need anything installed?</td><td>The <code>sqlite3</code> CLI, installed by the 5.11.0 update (<code>apt-get install -y sqlite3</code> if apt could not).</td></tr></tbody></table></div>
 </section>
 
 </div>
@@ -274,6 +312,9 @@ $ cipi metrics uptime shop --range=30d</pre><script type="application/json" clas
 <li><a class="l2" href="#heartbeat">Heartbeat</a></li>
 <li><a class="l2" href="#openmetrics">OpenMetrics for Prometheus</a></li>
 <li><a class="l2" href="#in-the-panel">In the web panel</a></li>
+<li><a class="l3" href="#chart">Reading a chart</a></li>
+<li><a class="l3" href="#uptime-events">Uptime and events</a></li>
+<li><a class="l3" href="#settings">Collection and retention</a></li>
 <li><a class="l2" href="#api">API, MCP, SDK, cipi-cli</a></li>
 <li><a class="l2" href="#off">Turning it off</a></li>
 <li><a class="l2" href="#questions">Questions</a></li>

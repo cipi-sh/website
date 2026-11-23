@@ -35,7 +35,7 @@ cipi CLI | does the work, as on SSH
 | App tooling | `.env` editor with masked secrets, Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, last run; run now, verify, test destinations |
-| Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+) |
+| Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, SMTP, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
@@ -172,6 +172,37 @@ Deploys, SSL and database operations run as async jobs. The overlay polls `GET /
 <img src="/img/gui/server-overview.webp" width="1440" height="1000" alt="Server overview with system, resources, attention list, services and PHP-FPM pools" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Server overview: system, resources, monitor and healthcheck alerts, services with restart, PHP-FPM pools.</figcaption>
+</figure>
+
+### Metrics
+
+The Metrics tab of a server and of each app: charts from 1 hour to 30 days with releases and incidents marked, uptime per day and the events timeline, refreshed every 30 seconds while open. See [metrics](/docs/metrics).
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-metrics-light.webp" width="1360" height="1200" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-metrics.webp" width="1360" height="1200" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Server metrics, with every app's health, requests and uptime below the charts.</figcaption>
+</figure>
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/app-metrics-light.webp" width="1360" height="1180" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/app-metrics.webp" width="1360" height="1180" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>App metrics: requests and 5xx, response time, PHP-FPM against max_children, queue workers.</figcaption>
+</figure>
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/metrics-hover-light.webp" width="1288" height="584" alt="CPU chart with the tooltip on a point and event markers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-hover.webp" width="1288" height="584" alt="CPU chart with the tooltip on a point and event markers" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Hover any point for its time, average and peak.</figcaption>
 </figure>
 
 ### Connections and security
