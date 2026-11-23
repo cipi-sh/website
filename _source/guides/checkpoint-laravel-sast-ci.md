@@ -154,7 +154,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: cipi
           key: ${{ secrets.CI_SSH_KEY }}
-          script: sudo cipi deploy shop || (sudo cipi deploy shop --rollback && exit 1)
+          script: "sudo cipi deploy shop && { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up >/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"
 ```
 
 Turn off the app's push webhook so only the pipeline deploys ([CI/CD guide](/guides/laravel-ci-cd-git-workflow)).

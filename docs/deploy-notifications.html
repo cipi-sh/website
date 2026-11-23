@@ -112,6 +112,8 @@
 <li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
 <li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
 <li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/jenkins">Jenkins</a></li>
+<li><a href="/docs/aws-codedeploy">AWS CodeDeploy</a></li>
 <li><a href="/docs/yml">cipi.yml</a></li>
 <li><a href="/docs/deploy-script">Customize the pipeline</a></li>
 <li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
@@ -208,7 +210,7 @@
       - name: Notify Slack
         if: always()
         run: |
-          STATUS=${{ job.status == 'success' &amp;&amp; '✅ deployed' || '❌ FAILED, rolled back' }}
+          STATUS=${{ job.status == 'success' &amp;&amp; '✅ deployed' || '❌ FAILED' }}
           curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" -H 'Content-Type: application/json' \
             -d "{\"text\":\"*myapp* $STATUS · ${{ github.ref_name }} by ${{ github.actor }}\"}"</pre></div>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># GitLab CI</span>
@@ -216,7 +218,7 @@ deploy:
   script:
     - ssh cipi@$SERVER_HOST "sudo cipi deploy myapp" &amp;&amp; R="✅ deployed" || R="❌ FAILED"
     - curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" -d chat_id="$TELEGRAM_CHAT_ID" -d text="myapp $R on $CI_COMMIT_REF_NAME"
-    - '[ "$R" = "✅ deployed" ] || (ssh cipi@$SERVER_HOST "sudo cipi deploy myapp --rollback"; exit 1)'</pre></div>
+    - '[ "$R" = "✅ deployed" ] || exit 1'   # a failed deploy published nothing: no rollback needed</pre></div>
 <div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Telegram chat ID: add the bot to the group, open <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> and read <code>chat.id</code>.</p></div></div>
 </section>
 

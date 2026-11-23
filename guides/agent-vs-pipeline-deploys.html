@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel — Cipi guides</title>
+    <meta name="description" content="How Cipi&#x27;s two deploy modes work, side by side, with an honest verdict on when to use the agent&#x27;s push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.">
+    <meta name="keywords" content="laravel push to deploy vs ci, laravel deploy webhook or github actions, laravel auto deploy vs pipeline, cipi agent webhook, laravel continuous deployment self-hosted">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/agent-vs-pipeline-deploys">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/agent-vs-pipeline-deploys">
+    <meta property="og:title" content="Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel">
+    <meta property="og:description" content="How Cipi&#x27;s two deploy modes work, side by side, with an honest verdict on when to use the agent&#x27;s push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.">
+    <meta property="og:image" content="https://cipi.sh/img/og/guide-agent-vs-pipeline-deploys.jpg?v=f8d29eb9">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel">
+    <meta name="twitter:description" content="How Cipi&#x27;s two deploy modes work, side by side, with an honest verdict on when to use the agent&#x27;s push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/guide-agent-vs-pipeline-deploys.jpg?v=f8d29eb9">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel", "description": "How Cipi's two deploy modes work, side by side, with an honest verdict on when to use the agent's push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.", "url": "https://cipi.sh/guides/agent-vs-pipeline-deploys", "mainEntityOfPage": "https://cipi.sh/guides/agent-vs-pipeline-deploys", "datePublished": "2026-11-23", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/guide-agent-vs-pipeline-deploys.jpg?v=f8d29eb9", "articleSection": "Laravel", "timeRequired": "PT5M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "laravel push to deploy vs ci, laravel deploy webhook or github actions, laravel auto deploy vs pipeline, cipi agent webhook, laravel continuous deployment self-hosted"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is one mode faster?", "acceptedAnswer": {"@type": "Answer", "text": "Push to deploy starts within a minute of the push. A pipeline starts the deploy after your tests, so it takes as long as the tests plus the deploy. The deploy itself is the same in both."}}, {"@type": "Question", "name": "Is one mode more secure?", "acceptedAnswer": {"@type": "Answer", "text": "Push to deploy gives nobody access to the server: the Git provider only calls a signed URL on your app. A pipeline needs a secret on the CI side; with an API token limited to deploy-manage , the exposure is small."}}, {"@type": "Question", "name": "Can I use both on the same app?", "acceptedAnswer": {"@type": "Answer", "text": "Not on the same branch: both would deploy every push, and the second one hits the deploy lock. Use one mode per app, or the webhook on staging and a pipeline on production."}}, {"@type": "Question", "name": "Do I need the agent for pipelines?", "acceptedAnswer": {"@type": "Answer", "text": "No. Pipelines work over SSH or the API for every app. The agent is needed for push to deploy in Laravel apps."}}, {"@type": "Question", "name": "What does the agent install in my app?", "acceptedAnswer": {"@type": "Answer", "text": "A Composer package with a few routes under /cipi : the deploy webhook, a health endpoint and, if you turn them on, an MCP server and a database anonymizer. See Install the agent ."}}, {"@type": "Question", "name": "Which mode do most people use?", "acceptedAnswer": {"@type": "Answer", "text": "Start with push to deploy: it takes two minutes and covers most apps. Move to a pipeline when a broken test has reached production once, or when the team grows."}}, {"@type": "Question", "name": "Does the mode change how migrations run?", "acceptedAnswer": {"@type": "Answer", "text": "No. In both modes the server runs migrations inside the new release, before it goes live."}}, {"@type": "Question", "name": "Can I deploy a specific commit?", "acceptedAnswer": {"@type": "Answer", "text": "Neither mode pins a commit: the server deploys the latest commit of the app's branch. Keep one deploy per branch at a time and it's the commit you just pushed or tested."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel", "item": "https://cipi.sh/guides/agent-vs-pipeline-deploys"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel</li></ol>
+<a class="art-eyebrow" href="/guides/#laravel">Laravel</a>
+<h1>Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel</h1>
+<p class="art-lead">How Cipi&#x27;s two deploy modes work, side by side, with an honest verdict on when to use the agent&#x27;s push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>5 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=Push%20to%20deploy%20or%20CI%20pipeline%3F%20Agent%20vs%20pipeline%20deploys%20for%20Laravel&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fagent-vs-pipeline-deploys" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fagent-vs-pipeline-deploys" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fagent-vs-pipeline-deploys&title=Push%20to%20deploy%20or%20CI%20pipeline%3F%20Agent%20vs%20pipeline%20deploys%20for%20Laravel" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fagent-vs-pipeline-deploys&t=Push%20to%20deploy%20or%20CI%20pipeline%3F%20Agent%20vs%20pipeline%20deploys%20for%20Laravel" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fagent-vs-pipeline-deploys&text=Push%20to%20deploy%20or%20CI%20pipeline%3F%20Agent%20vs%20pipeline%20deploys%20for%20Laravel" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=Push%20to%20deploy%20or%20CI%20pipeline%3F%20Agent%20vs%20pipeline%20deploys%20for%20Laravel%20https%3A%2F%2Fcipi.sh%2Fguides%2Fagent-vs-pipeline-deploys" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/agent-vs-pipeline-deploys" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Every Cipi deploy runs on your server and does the same thing: pull the branch from Git, build a new release, migrate, switch to it with zero downtime, check it. The only question is <strong>who presses the button</strong>: your Git provider, every time you push (agent mode), or your CI, when the tests pass (pipeline mode).</p>
+<h2 id="tldr">In 30 seconds<a class="anchor" href="#tldr" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>Push to deploy (agent)</th><th>CI pipeline</th></tr></thead><tbody><tr><td>Starts</td><td>On every push to the branch</td><td>When the pipeline's deploy job runs</td></tr><tr><td>Tests before going live</td><td>No</td><td>Yes</td></tr><tr><td>Setup</td><td>2 minutes, mostly automatic</td><td>10 to 30 minutes, once</td></tr><tr><td>Secret outside the server</td><td>None</td><td>An API token or an SSH key in CI</td></tr><tr><td>Best for</td><td>Side projects, staging, small teams, fast iteration</td><td>Production with real users, teams, regulated apps</td></tr></tbody></table></div>
+<p><strong>Our verdict:</strong> push to deploy for staging and personal projects; a pipeline for production once other people depend on the app. Many teams run both: webhook on staging, pipeline on production.</p>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Deploy branch</strong></td><td>The Git branch an app follows, <code>main</code> by default. Only pushes to it deploy</td></tr><tr><td><strong>Webhook</strong></td><td>A URL your Git provider calls after every push. Cipi's is <code>https://your-app/cipi/webhook</code></td></tr><tr><td><strong>Agent</strong></td><td><a href="/docs/agent-install"><code>cipi/agent</code></a>, a Composer package that receives the webhook in a Laravel app</td></tr><tr><td><strong>Pipeline</strong></td><td>The steps your CI runs on each push: install, test, then deploy</td></tr><tr><td><strong>Deploy lock</strong></td><td>Cipi lets only one deploy per app run at a time</td></tr></tbody></table></div>
+<h2 id="agent">How push to deploy works<a class="anchor" href="#agent" aria-label="Link to this section">#</a></h2>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>git push</b><span>to main</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Signed webhook</b><span>provider → your app</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Agent queues</b><span>answers in milliseconds</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Server deploys</b><span>within a minute</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>git push</b></div><p>You push to the deploy branch.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Signed webhook</b></div><p>GitHub, GitLab, Bitbucket, Gitea, Forgejo or Azure DevOps call <code>/cipi/webhook</code> on your app, signed with a secret only they and your server know.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Agent queues</b></div><p>The agent checks the signature and the branch, leaves a small trigger file for the server and answers immediately.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Server deploys</b></div><p>A cron job on the server picks up the trigger and runs the normal deploy as the app user.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<p>What makes it good:</p>
+<ul><li><strong>Nothing to configure.</strong> With a Git provider token saved on the server, Cipi creates the webhook and its secret when it creates the app. You add <code>composer require cipi/agent</code> once.</li><li><strong>No access for anyone.</strong> No SSH key, no API token leaves the server. The provider only calls your app over HTTPS.</li><li><strong>Fast feedback.</strong> Push, and about a minute later it's live.</li></ul>
+<p>What it doesn't do: it deploys every push to the branch, <strong>including a push with a failing test</strong>. Cipi's <a href="/docs/health-checks">health check</a> can roll back a release that doesn't answer, but it can't know your tests failed.</p>
+<h2 id="pipeline">How a pipeline works<a class="anchor" href="#pipeline" aria-label="Link to this section">#</a></h2>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>git push</b><span>to main</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Tests</b><span>on CI machines</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Deploy</b><span>SSH or API</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Check</b><span>health URL</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>git push</b></div><p>You push. The webhook is off for this app, so nothing deploys yet.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Tests</b></div><p>Your CI installs the app and runs <code>php artisan test</code>. Red tests stop everything here.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Deploy</b></div><p>The deploy job asks the server to deploy, over SSH or through the Cipi API, and waits for the result.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Check</b></div><p>The job calls the app's health URL. If the new release doesn't answer, the job rolls back and turns red.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<p>What makes it good:</p>
+<ul><li><strong>A gate.</strong> Only code that passes the tests reaches production.</li><li><strong>More steps.</strong> A backup before the release, an approval, a message to the team, a deploy to several servers in order.</li><li><strong>Visible.</strong> Every deploy is a green or red job in the tool your team already watches.</li></ul>
+<p>What it costs: a secret in CI, a workflow file to maintain, and slower releases (your tests run first).</p>
+<h2 id="compare">Side by side<a class="anchor" href="#compare" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>Push to deploy (agent)</th><th>CI pipeline</th></tr></thead><tbody><tr><td>Who starts the deploy</td><td>The Git provider</td><td>Your CI job</td></tr><tr><td>Time from push to live</td><td>About a minute</td><td>Test time + about a minute</td></tr><tr><td>Failing tests</td><td>Still deployed</td><td>Never deployed</td></tr><tr><td>Bad release that crashes</td><td>Rolled back by Cipi if <a href="/docs/health-checks#auto-rollback">automatic rollback</a> is on</td><td>Rolled back by the pipeline's health check, or by Cipi</td></tr><tr><td>Secret outside the server</td><td>None</td><td>API token (<code>deploy-manage</code> only) or SSH key</td></tr><tr><td>Network</td><td>Provider → your app over HTTPS</td><td>CI → server over SSH (port 22) or the API</td></tr><tr><td>Works with</td><td>GitHub, GitLab, Bitbucket, Gitea, Forgejo, Azure DevOps</td><td>Any CI: GitHub Actions, GitLab, Bitbucket, Azure, Jenkins, CircleCI, AWS CodeDeploy…</td></tr><tr><td>App requirement</td><td><code>cipi/agent</code> (Laravel); built in for Node apps</td><td>None</td></tr><tr><td>Approvals before production</td><td>No</td><td>Yes, with your CI's environments</td></tr><tr><td>Several servers</td><td>One webhook per app on each server</td><td>One pipeline deploys them in order</td></tr><tr><td>Where you see the result</td><td><a href="/docs/deploy-notifications">Deploy notifications</a>, panel, <code>cipi deploy --status</code></td><td>The CI job, plus the same notifications</td></tr><tr><td>Audit ledger origin</td><td><code>webhook</code>, with pusher and commit</td><td><code>cipi-cli</code> (SSH) or <code>panel</code> (API), with the operator</td></tr></tbody></table></div>
+<h2 id="choose-agent">When to choose push to deploy<a class="anchor" href="#choose-agent" aria-label="Link to this section">#</a></h2>
+<ul><li>A personal project, a prototype, an internal tool.</li><li>A <strong>staging</strong> app where fast feedback matters more than a gate.</li><li>A team that deploys many times a day and has good tests running elsewhere (pull request checks), so <code>main</code> is always green.</li><li>You don't want any server secret stored in a third-party CI.</li></ul>
+<p>Set it up: <a href="/docs/auto-deploy">Auto-deploy on push</a>.</p>
+<h2 id="choose-pipeline">When to choose a pipeline<a class="anchor" href="#choose-pipeline" aria-label="Link to this section">#</a></h2>
+<ul><li>Production with paying users.</li><li>More than one person pushes to the deploy branch.</li><li>You need a backup, an approval or a compliance trail before every release.</li><li>Your company already standardised on a CI: <a href="/docs/ci-pipelines">GitHub Actions, GitLab, Bitbucket, Azure, Forgejo, CircleCI</a>, <a href="/docs/jenkins">Jenkins</a> or <a href="/docs/aws-codedeploy">AWS CodeDeploy</a>.</li></ul>
+<p>Set it up: <a href="/guides/laravel-ci-cd-git-workflow">CI/CD for Laravel</a>.</p>
+<h2 id="hybrid">The hybrid most teams end up with<a class="anchor" href="#hybrid" aria-label="Link to this section">#</a></h2>
+<p>Two Cipi apps from the same repository, one per environment, each with its own branch and its own mode.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>App</th><th>Branch</th><th>Mode</th></tr></thead><tbody><tr><td><code>shop-staging</code></td><td><code>develop</code></td><td>Push to deploy: every push is live on staging a minute later</td></tr><tr><td><code>shop</code></td><td><code>main</code></td><td>Pipeline: merge <code>develop</code> into <code>main</code>, tests run, then deploy</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># staging follows develop and keeps its webhook</span>
+<span class="p"></span>cipi app create --user=shop-staging --domain=staging.shop.example.com \
+    --repository=git@github.com:you/shop.git --branch=develop --env=staging
+<span class="c"># production follows main; turn its webhook off and deploy from CI</span>
+<span class="p"></span>cipi app edit shop --branch=main</pre></div>
+<p>Each app can read its own <a href="/docs/yml"><code>cipi-staging.yml</code></a> or <code>cipi.yml</code>, so workers, crons and limits can differ.</p>
+<h2 id="switch">Switching from one mode to the other<a class="anchor" href="#switch" aria-label="Link to this section">#</a></h2>
+<h3 id="to-pipeline">From push to deploy to a pipeline<a class="anchor" href="#to-pipeline" aria-label="Link to this section">#</a></h3>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Add the pipeline</b><span>workflow file + secrets</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Turn the webhook off</b><span>in the Git provider</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Push</b><span>first pipeline deploy</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Verify</b><span>audit origin</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Add the pipeline</b></div><p>Add the workflow for your CI and its secrets. Don't push yet.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Turn the webhook off</b></div><p>GitHub: Settings → Webhooks → the <code>/cipi/webhook</code> hook → untick Active. Other providers: see the docs.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Push</b></div><p>Push a small change. Only the pipeline deploys now.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Verify</b></div><p><code>cipi deploy shop --audit</code>: the newest entry should not say <code>webhook</code>.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<p>Keep the agent installed: its health endpoint and MCP server are still useful.</p>
+<h3 id="to-agent">From a pipeline back to push to deploy<a class="anchor" href="#to-agent" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>composer require cipi/agent<span class="c">          # if the app doesn't have it yet; commit and push</span>
+<span class="p"></span>sudo cipi deploy shop<span class="c">                # once, so the /cipi/webhook route exists</span>
+<span class="p"></span>sudo cipi app webhook recreate shop<span class="c">  # re-create the webhook in the Git provider</span></pre></div>
+<p>Then remove the deploy job from your pipeline (keep the tests: they still protect pull requests).</p>
+<h2 id="mistakes">Mistakes to avoid<a class="anchor" href="#mistakes" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Mistake</th><th>What happens</th><th>Instead</th></tr></thead><tbody><tr><td>Webhook and pipeline both on</td><td>Two deploys per push; the second hits the lock and fails</td><td>One mode per app</td></tr><tr><td>Rolling back whenever the deploy command fails</td><td>A failed build publishes nothing; the rollback takes you to older code</td><td>Roll back only when the new release is live and unhealthy (<a href="/docs/ci-pipelines#deploy-step">why</a>)</td></tr><tr><td>Giving CI a personal SSH key</td><td>Leaks your access with the CI</td><td>A dedicated key, or an API token with <code>deploy-manage</code></td></tr><tr><td>Calling the agent webhook from CI and expecting a result</td><td>CI turns green before the deploy even starts</td><td>Use SSH or the API when CI must wait</td></tr><tr><td>No health URL</td><td>A release that returns 500 counts as deployed</td><td>Set <code>cipi health set shop --url=https://shop.example.com/up</code></td></tr></tbody></table></div>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>Push doesn't deploy (agent mode)</td><td>Wrong branch, or no webhook: <code>cipi git status</code>, then <code>cipi app webhook recreate shop</code></td></tr><tr><td>404 on <code>/cipi/webhook</code></td><td>The agent isn't deployed yet: <code>sudo cipi deploy shop</code> once after adding it</td></tr><tr><td>Two deploys per push</td><td>Turn the webhook off for the app that uses a pipeline</td></tr><tr><td>"Deploy locked" in CI</td><td>Limit your CI to one deploy at a time; if nothing runs, <code>sudo cipi deploy shop --unlock</code></td></tr><tr><td>Pipeline green, site broken</td><td>Add the health check step from the <a href="/docs/ci-pipelines#recipes">recipes</a></td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/how-deploys-work">How deploys work</a></li><li><a href="/docs/auto-deploy">Auto-deploy on push</a></li><li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li><li><a href="/docs/agent-install">Install the agent</a></li><li><a href="/docs/jenkins">Jenkins</a></li><li><a href="/docs/aws-codedeploy">AWS CodeDeploy</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>Is one mode faster?</summary><p>Push to deploy starts within a minute of the push. A pipeline starts the deploy after your tests, so it takes as long as the tests plus the deploy. The deploy itself is the same in both.</p></details><details><summary>Is one mode more secure?</summary><p>Push to deploy gives nobody access to the server: the Git provider only calls a signed URL on your app. A pipeline needs a secret on the CI side; with an API token limited to <code>deploy-manage</code>, the exposure is small.</p></details><details><summary>Can I use both on the same app?</summary><p>Not on the same branch: both would deploy every push, and the second one hits the deploy lock. Use one mode per app, or the webhook on staging and a pipeline on production.</p></details><details><summary>Do I need the agent for pipelines?</summary><p>No. Pipelines work over SSH or the API for every app. The agent is needed for push to deploy in Laravel apps.</p></details><details><summary>What does the agent install in my app?</summary><p>A Composer package with a few routes under <code>/cipi</code>: the deploy webhook, a health endpoint and, if you turn them on, an MCP server and a database anonymizer. See <a href="/docs/agent-install">Install the agent</a>.</p></details><details><summary>Which mode do most people use?</summary><p>Start with push to deploy: it takes two minutes and covers most apps. Move to a pipeline when a broken test has reached production once, or when the team grows.</p></details><details><summary>Does the mode change how migrations run?</summary><p>No. In both modes the server runs migrations inside the new release, before it goes live.</p></details><details><summary>Can I deploy a specific commit?</summary><p>Neither mode pins a commit: the server deploys the latest commit of the app's branch. Keep one deploy per branch at a time and it's the commit you just pushed or tested.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#tldr">In 30 seconds</a></li><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#agent">How push to deploy works</a></li><li><a class="l2" href="#pipeline">How a pipeline works</a></li><li><a class="l2" href="#compare">Side by side</a></li><li><a class="l2" href="#choose-agent">When to choose push to deploy</a></li><li><a class="l2" href="#choose-pipeline">When to choose a pipeline</a></li><li><a class="l2" href="#hybrid">The hybrid most teams end up with</a></li><li><a class="l2" href="#switch">Switching from one mode to the other</a></li><li><a class="l3" href="#to-pipeline">From push to deploy to a pipeline</a></li><li><a class="l3" href="#to-agent">From a pipeline back to push to deploy</a></li><li><a class="l2" href="#mistakes">Mistakes to avoid</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/laravel-ci-cd-git-workflow"><span class="g-cat">Laravel</span><b>CI/CD for Laravel with GitHub Actions or GitLab CI</b><span class="g-desc">Test on every push and deploy only when tests pass, with a health check that rolls back a broken release, a dedicated CI key, an optional backup step and zero-downtime releases.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/laravel-jenkins-deploy"><span class="g-cat">Laravel</span><b>Deploy Laravel from Jenkins to your own server</b><span class="g-desc">A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.</span><span class="g-meta">4 min read</span></a></li><li><a class="g-card" href="/guides/laravel-aws-codedeploy"><span class="g-cat">Laravel</span><b>Deploy Laravel with AWS CodeDeploy and Cipi</b><span class="g-desc">Let AWS CodeDeploy orchestrate releases while Cipi does the zero-downtime deploy on each server, on EC2 or outside AWS, with a health check, a correct rollback and GitHub Actions on top.</span><span class="g-meta">4 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> in Italy by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+
+</body>
+</html>

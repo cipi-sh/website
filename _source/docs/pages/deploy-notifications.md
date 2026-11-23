@@ -27,7 +27,7 @@ When the message should come from the pipeline (with the CI run link), add a ste
       - name: Notify Slack
         if: always()
         run: |
-          STATUS=${{ job.status == 'success' && '✅ deployed' || '❌ FAILED, rolled back' }}
+          STATUS=${{ job.status == 'success' && '✅ deployed' || '❌ FAILED' }}
           curl -s -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" -H 'Content-Type: application/json' \
             -d "{\"text\":\"*myapp* $STATUS · ${{ github.ref_name }} by ${{ github.actor }}\"}"
 ```
@@ -38,7 +38,7 @@ deploy:
   script:
     - ssh cipi@$SERVER_HOST "sudo cipi deploy myapp" && R="✅ deployed" || R="❌ FAILED"
     - curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" -d chat_id="$TELEGRAM_CHAT_ID" -d text="myapp $R on $CI_COMMIT_REF_NAME"
-    - '[ "$R" = "✅ deployed" ] || (ssh cipi@$SERVER_HOST "sudo cipi deploy myapp --rollback"; exit 1)'
+    - '[ "$R" = "✅ deployed" ] || exit 1'   # a failed deploy published nothing: no rollback needed
 ```
 
 > [!tip] Telegram chat ID: add the bot to the group, open `https://api.telegram.org/bot<TOKEN>/getUpdates` and read `chat.id`.

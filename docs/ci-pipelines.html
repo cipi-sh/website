@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CI/CD pipelines — Cipi docs</title>
-    <meta name="description" content="Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.">
+    <meta name="description" content="GitHub Actions, GitLab, Bitbucket, Azure, Forgejo, CircleCI and Envoy recipes, over SSH or the API.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://cipi.sh/docs/ci-pipelines">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/docs/ci-pipelines">
     <meta property="og:title" content="CI/CD pipelines — Cipi docs">
-    <meta property="og:description" content="Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.">
+    <meta property="og:description" content="GitHub Actions, GitLab, Bitbucket, Azure, Forgejo, CircleCI and Envoy recipes, over SSH or the API.">
     <meta property="og:image" content="https://cipi.sh/img/og/docs-ci-pipelines.jpg?v=7f43560e">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -27,7 +27,7 @@
     <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/docs.css">
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "CI/CD pipelines", "description": "Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.", "url": "https://cipi.sh/docs/ci-pipelines", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "CI/CD pipelines", "description": "GitHub Actions, GitLab, Bitbucket, Azure, Forgejo, CircleCI and Envoy recipes, over SSH or the API.", "url": "https://cipi.sh/docs/ci-pipelines", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Deploy", "item": "https://cipi.sh/docs/deploy"}, {"@type": "ListItem", "position": 3, "name": "CI/CD pipelines", "item": "https://cipi.sh/docs/ci-pipelines"}]}</script>
 </head>
 <body class="docs">
@@ -112,6 +112,8 @@
 <li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
 <li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
 <li><a href="/docs/ci-pipelines" aria-current="page">CI/CD pipelines</a></li>
+<li><a href="/docs/jenkins">Jenkins</a></li>
+<li><a href="/docs/aws-codedeploy">AWS CodeDeploy</a></li>
 <li><a href="/docs/yml">cipi.yml</a></li>
 <li><a href="/docs/deploy-script">Customize the pipeline</a></li>
 <li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
@@ -190,72 +192,341 @@
 <header>
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">CI/CD pipelines</li></ol>
 <h1>CI/CD pipelines</h1>
-<p class="docs-lead">Deploy from GitHub Actions, GitLab CI or any pipeline over SSH.</p>
+<p class="docs-lead">GitHub Actions, GitLab, Bitbucket, Azure, Forgejo, CircleCI and Envoy recipes, over SSH or the API.</p>
 <div class="docs-meta"><span>Deploy</span></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="ci-pipeline-ssh">
-<p>Use a pipeline when a deploy must be <strong>conditional</strong>: only after tests pass, after a backup, with a notification, or to create a review app per branch. The pipeline SSHs into the server and runs <code>cipi deploy</code>. Turn the app's webhook off so only the pipeline deploys.</p>
-<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Push</b><span>to main</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Test</b><span>php artisan test</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Backup</b><span>optional</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Deploy</b><span>ssh → cipi deploy</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="4"><b>Notify / roll back</b><span>on failure</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 5</span><b>Push</b></div><p>You push to <code>main</code> (or open a merge). The webhook is off for this app, so only the pipeline deploys.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 5</span><b>Test</b></div><p>The pipeline installs dependencies and runs <code>php artisan test</code>. A failing test stops everything here: nothing reaches the server.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 5</span><b>Backup</b></div><p>Optional: run a backup profile on the server first (<code>cipi backup run --profile=…</code>) so you have a restore point.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 5</span><b>Deploy</b></div><p>The pipeline connects over SSH with a dedicated CI key and runs <code>sudo cipi deploy shop</code> (or uses <code>cipi-cli</code> with an API token).</p></div><div class="fx-pane" role="tabpanel" data-i="4" hidden><div class="fx-head"><span class="fx-n">Step 5 of 5</span><b>Notify / roll back</b></div><p>If the deploy fails, the pipeline runs <code>cipi deploy shop --rollback</code> and fails, so you see it in red.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
-<h2 id="ssh-key">A key for CI<a class="anchor" href="#ssh-key" aria-label="Link to this section">#</a></h2>
-<p>Create a dedicated key; never reuse a personal key or a deploy key.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh-keygen -t ed25519 -C "ci-deploy" -f ~/.ssh/ci_deploy -N ""
-<span class="p"></span>cat ~/.ssh/ci_deploy.pub<span class="c">   # on the server: sudo cipi ssh add "&lt;this line&gt;"</span>
-<span class="p"></span>cat ~/.ssh/ci_deploy<span class="c">       # → CI secret SERVER_SSH_KEY</span></pre></div>
-<p>Store <code>SERVER_SSH_KEY</code> and <code>SERVER_HOST</code> as secrets. The <code>cipi</code> user runs only <code>sudo cipi …</code> without a password, so the CI key cannot do anything else as root. See <a href="/docs/ssh-keys">SSH keys</a>.</p>
-<h2 id="github">GitHub Actions<a class="anchor" href="#github" aria-label="Link to this section">#</a></h2>
+<p>Pipeline mode lets your CI decide <strong>when</strong> an app goes live: usually right after the tests pass, sometimes after a backup or a manual approval. The server still does the deploy itself, exactly as with <code>cipi deploy</code>. Your pipeline only gives the order and reads the result.</p>
+<p>This page has everything you need: how to connect CI to the server safely, a deploy command that never makes things worse, and ready-to-copy recipes for every popular CI.</p>
+<nav class="flow-nav" aria-label="Steps on this page"><ol><li><a href="#connect"><b>Choose how CI calls</b><span>SSH, API or webhook</span></a></li><li><a href="#secrets"><b>Store the secrets</b><span>key or token in CI</span></a></li><li><a href="#webhook-off"><b>Turn the webhook off</b><span>one trigger per app</span></a></li><li><a href="#recipes"><b>Copy a recipe</b><span>GitHub, GitLab, Jenkins…</span></a></li><li><a href="#verify"><b>Check it</b><span>one test push</span></a></li></ol></nav>
+<h2 id="how">How a pipeline deploy works<a class="anchor" href="#how" aria-label="Link to this section">#</a></h2>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Push</b><span>to the branch</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Test</b><span>php artisan test</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Deploy</b><span>SSH or API → cipi deploy</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Check</b><span>health URL answers 200</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="4"><b>Roll back</b><span>only if the check fails</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 5</span><b>Push</b></div><p>You push to <code>main</code> (or merge a pull request). The pipeline starts.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 5</span><b>Test</b></div><p>The pipeline installs the dependencies and runs your tests on its own machines. If a test fails, it stops here and nothing reaches the server.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 5</span><b>Deploy</b></div><p>The pipeline asks the server to deploy. The server pulls the latest commit of the branch from Git, builds the release and switches to it. The pipeline waits for the answer.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 5</span><b>Check</b></div><p>The pipeline calls a health URL of the app (for example Laravel's <code>/up</code>). If it answers, the job is green.</p></div><div class="fx-pane" role="tabpanel" data-i="4" hidden><div class="fx-head"><span class="fx-n">Step 5 of 5</span><b>Roll back</b></div><p>If the new release is live but the app doesn't answer, the pipeline rolls back to the previous release and turns red, so you notice.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p><strong>Don't roll back when the deploy command fails.</strong> When <code>cipi deploy</code> fails while building the release (Composer, assets, migrations), nothing is published and the previous release is still serving. Rolling back at that point would go one release further back, to older code. Roll back only when the deploy succeeded and the health check then fails, as every recipe on this page does.</p></div></div>
+<h2 id="connect">1. Choose how CI calls the server<a class="anchor" href="#connect" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>SSH</th><th>API (<a href="/docs/cli-client">cipi-cli</a> or <code>curl</code>)</th><th>Agent webhook</th></tr></thead><tbody><tr><td>What CI runs</td><td><code>ssh cipi@server "sudo cipi deploy shop"</code></td><td><code>cipi-cli prod deploy shop</code></td><td><code>curl -X POST https://shop.example.com/cipi/webhook …</code></td></tr><tr><td>What the secret can do</td><td>Run <strong>any</strong> <code>cipi</code> command as root (including deleting apps)</td><td>Only what the token allows: with <code>deploy-manage</code>, deploy, roll back, unlock and read status</td><td>Only queue a deploy of that one app</td></tr><tr><td>Waits for the result</td><td>Yes</td><td>Yes</td><td>No: it answers "queued" and the deploy starts within a minute</td></tr><tr><td>Server needs</td><td>Port 22 open to CI</td><td><a href="/docs/api"><code>cipi api</code></a> installed</td><td><a href="/docs/agent-install"><code>cipi/agent</code></a> in the app (Laravel)</td></tr><tr><td>Choose it when</td><td>You want the quickest setup on one server</td><td>You want the least privilege, or several servers</td><td>Your tool can only send an HTTP request</td></tr></tbody></table></div>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Our recommendation: the <strong>API</strong> for production. A leaked API token with only <code>deploy-manage</code> can redeploy your app; a leaked SSH key for the <code>cipi</code> user can do anything Cipi can do.</p></div></div>
+<h2 id="secrets">2. Store the secrets<a class="anchor" href="#secrets" aria-label="Link to this section">#</a></h2>
+<p>Every recipe uses the same names, so you can copy them as they are.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Secret</th><th>What it is</th><th>How to get it</th></tr></thead><tbody><tr><td><code>SERVER_HOST</code></td><td>The server's IP or hostname</td><td>Your provider's dashboard</td></tr><tr><td><code>SERVER_SSH_KEY</code></td><td>A private key used only by CI</td><td><code>ssh-keygen</code> below</td></tr><tr><td><code>SERVER_KNOWN_HOSTS</code></td><td>The server's public host key, so CI knows it's talking to your server</td><td><code>ssh-keyscan</code> below</td></tr><tr><td><code>CIPI_API_URL</code></td><td>Your API address, e.g. <code>https://api.example.com</code></td><td><code>cipi api status</code></td></tr><tr><td><code>CIPI_API_TOKEN</code></td><td>A token with only <code>deploy-manage</code></td><td><code>cipi api token create</code> below</td></tr><tr><td><code>CIPI_WEBHOOK_TOKEN</code></td><td>The app's webhook secret</td><td><code>cipi deploy shop --webhook</code></td></tr><tr><td><code>HEALTH_URL</code></td><td>A URL that answers 200 when the app works, e.g. <code>https://shop.example.com/up</code></td><td>Your app (<a href="/docs/health-checks">health checks</a>)</td></tr></tbody></table></div>
+<h3 id="ssh-key">An SSH key for CI<a class="anchor" href="#ssh-key" aria-label="Link to this section">#</a></h3>
+<p>Create a new key on your laptop. Never reuse your personal key or the app's deploy key.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh-keygen -t ed25519 -C "ci-deploy" -f ./ci_deploy -N ""
+<span class="p"></span>cat ./ci_deploy.pub<span class="c">        # 1. copy this line</span>
+<span class="p"></span>ssh cipi@your-server "sudo cipi ssh add '&lt;paste the line&gt;'"<span class="c">   # 2. authorize it on the server</span>
+<span class="p"></span>cat ./ci_deploy<span class="c">            # 3. paste the whole file into the CI secret SERVER_SSH_KEY</span>
+<span class="p"></span>rm ./ci_deploy ./ci_deploy.pub<span class="c">   # 4. delete the local copies</span></pre></div>
+<p>Then save the server's host key. Run this from a machine that has already connected to the server, and check that the fingerprint matches the one the server shows:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh-keyscan -t ed25519 your-server<span class="c">             # → the CI secret SERVER_KNOWN_HOSTS</span>
+<span class="p"></span>ssh-keyscan -t ed25519 your-server | ssh-keygen -lf -
+<span class="c"># on the server, the same fingerprint must appear:</span>
+<span class="p"></span>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</pre></div>
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>Running <code>ssh-keyscan</code> inside the pipeline on every build works, but it trusts whatever answers on that address. A saved <code>SERVER_KNOWN_HOSTS</code> is what stops a pipeline from sending your deploy to an impostor.</p></div></div>
+<h3 id="api-token">An API token for CI<a class="anchor" href="#api-token" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># on the server, once</span>
+<span class="p"></span>cipi api token create --name=ci-shop --abilities=deploy-manage --expires=2027-12-31</pre></div>
+<p>The token is shown once: save it as <code>CIPI_API_TOKEN</code>. If you restrict the API by IP (<code>cipi api ip-whitelist</code>), remember that hosted runners (GitHub, GitLab.com, Bitbucket) change IP on every build: allow their published ranges or use a self-hosted runner with a fixed IP.</p>
+<h2 id="webhook-off">3. Turn the webhook off<a class="anchor" href="#webhook-off" aria-label="Link to this section">#</a></h2>
+<p>If the app also deploys on push, every push would deploy twice: once from the webhook, once from the pipeline, and the second one hits the deploy lock and fails.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Provider</th><th>Where</th></tr></thead><tbody><tr><td>GitHub</td><td>Repository → <strong>Settings → Webhooks</strong> → the <code>/cipi/webhook</code> hook → untick <strong>Active</strong></td></tr><tr><td>GitLab</td><td>Project → <strong>Settings → Webhooks</strong> → delete the <code>/cipi/webhook</code> hook</td></tr><tr><td>Bitbucket</td><td>Repository → <strong>Repository settings → Webhooks</strong> → delete or disable it</td></tr><tr><td>Gitea / Forgejo</td><td>Repository → <strong>Settings → Webhooks</strong> → untick <strong>Active</strong></td></tr><tr><td>Azure DevOps</td><td>Project settings → <strong>Service hooks</strong> → disable the Cipi hook</td></tr></tbody></table></div>
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p><code>cipi git refresh</code> and <code>cipi app webhook recreate</code> create the webhook again. If you run them later, turn it off again.</p></div></div>
+<h2 id="deploy-step">4. The deploy step, explained once<a class="anchor" href="#deploy-step" aria-label="Link to this section">#</a></h2>
+<p>Every recipe below runs one of these, depending on how CI calls the server.</p>
+<p><strong>Over SSH</strong>, everything runs on the server in one command:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre>ssh cipi@$SERVER_HOST "sudo cipi deploy shop &amp;&amp; \
+  { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up &gt;/dev/null \
+    || { sudo cipi deploy shop --rollback; exit 1; }; }"</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Part</th><th>What it does</th></tr></thead><tbody><tr><td><code>sudo cipi deploy shop</code></td><td>Builds and publishes the new release. If it fails, the command stops here: nothing was published, and the job fails</td></tr><tr><td><code>&amp;&amp; { curl … /up</code></td><td>Only if the deploy succeeded: calls the app up to 6 times, 5 seconds apart</td></tr><tr><td><code>|| { sudo cipi deploy shop --rollback; exit 1; }</code></td><td>Only if the app doesn't answer: goes back to the previous release and fails the job</td></tr></tbody></table></div>
+<p><strong>Over the API</strong>, with cipi-cli:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre>cipi-cli profiles add prod --endpoint "$CIPI_API_URL" --token "$CIPI_API_TOKEN"
+cipi-cli prod deploy shop
+curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$HEALTH_URL" &gt;/dev/null \
+  || { cipi-cli prod deploy rollback shop -y; exit 1; }</pre></div>
+<p><code>cipi-cli deploy</code> waits for the deploy and exits with an error if it fails. It waits about nine minutes at most: for longer builds, follow the deploy with <code>cipi-cli prod deploy status shop</code>.</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Already using Cipi's own <a href="/docs/health-checks#auto-rollback">automatic rollback</a> (<code>rollback_on_unhealthy: true</code>)? Then keep the <code>curl</code> check, so the job turns red, but drop the CI rollback: Cipi has already rolled back, and a second rollback would go one release too far.</p></div></div>
+<h2 id="recipes">5. Recipes<a class="anchor" href="#recipes" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>CI</th><th>Jump to</th></tr></thead><tbody><tr><td>GitHub Actions</td><td><a href="#github">SSH</a> · <a href="#github-api">API</a></td></tr><tr><td>GitLab CI/CD (cloud or self-hosted)</td><td><a href="#gitlab">Recipe</a></td></tr><tr><td>Bitbucket Pipelines</td><td><a href="#bitbucket">Recipe</a></td></tr><tr><td>Azure Pipelines</td><td><a href="#azure">Recipe</a></td></tr><tr><td>Gitea Actions, Forgejo Actions</td><td><a href="#gitea">Recipe</a></td></tr><tr><td>CircleCI</td><td><a href="#circleci">Recipe</a></td></tr><tr><td>Laravel Envoy</td><td><a href="#envoy">Recipe</a></td></tr><tr><td>Any CI with <code>curl</code></td><td><a href="#curl">API with curl</a> · <a href="#webhook-ci">Agent webhook</a></td></tr><tr><td>Jenkins</td><td><a href="/docs/jenkins">Jenkins page</a></td></tr><tr><td>AWS CodeDeploy</td><td><a href="/docs/aws-codedeploy">AWS CodeDeploy page</a></td></tr></tbody></table></div>
+<p>Replace <code>shop</code> with your app name and <code>https://shop.example.com/up</code> with your health URL. The test job is an example: keep the one you already have.</p>
+<h3 id="github">GitHub Actions<a class="anchor" href="#github" aria-label="Link to this section">#</a></h3>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># .github/workflows/deploy.yml</span>
-name: Deploy
+name: Test and deploy
 on:
   push:
     branches: [main]
+
+concurrency:
+  group: deploy-production      # one deploy at a time, queued in order
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: composer install &amp;&amp; php artisan test
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"     # the version your app uses
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env &amp;&amp; php artisan key:generate
+      - run: php artisan test
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    environment: production      # optional: required reviewers, protected secrets
     steps:
-      - uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: cipi
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: sudo cipi deploy myapp || (sudo cipi deploy myapp --rollback &amp;&amp; exit 1)</pre></div>
-<h2 id="gitlab">GitLab CI<a class="anchor" href="#gitlab" aria-label="Link to this section">#</a></h2>
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh &amp;&amp; chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.SERVER_SSH_KEY }}" &gt; ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.SERVER_KNOWN_HOSTS }}" &gt; ~/.ssh/known_hosts
+      - name: Deploy, check, roll back if unhealthy
+        run: |
+          ssh cipi@${{ secrets.SERVER_HOST }} "sudo cipi deploy shop &amp;&amp; { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up &gt;/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"</pre></div>
+<h3 id="github-api">GitHub Actions with the API<a class="anchor" href="#github-api" aria-label="Link to this section">#</a></h3>
+<p>No SSH at all, and a token that can only deploy.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre>  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CIPI_API_URL: ${{ secrets.CIPI_API_URL }}
+      CIPI_API_TOKEN: ${{ secrets.CIPI_API_TOKEN }}
+      HEALTH_URL: https://shop.example.com/up
+    steps:
+      - name: Install cipi-cli
+        run: |
+          base=https://github.com/cipi-sh/cli/releases/latest/download
+          curl -fsSLO "$base/cipi-cli-linux-amd64" &amp;&amp; curl -fsSLO "$base/checksums.txt"
+          sha256sum --check --ignore-missing checksums.txt
+          sudo install -m 0755 cipi-cli-linux-amd64 /usr/local/bin/cipi-cli
+      - name: Deploy, check, roll back if unhealthy
+        run: |
+          cipi-cli profiles add prod --endpoint "$CIPI_API_URL" --token "$CIPI_API_TOKEN"
+          cipi-cli prod deploy shop
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$HEALTH_URL" &gt;/dev/null \
+            || { cipi-cli prod deploy rollback shop -y; exit 1; }</pre></div>
+<h3 id="gitlab">GitLab CI/CD<a class="anchor" href="#gitlab" aria-label="Link to this section">#</a></h3>
+<p>Works the same on GitLab.com and self-hosted GitLab. Add the secrets under <strong>Settings → CI/CD → Variables</strong>, marked <em>Masked</em> and <em>Protected</em>.</p>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># .gitlab-ci.yml</span>
 stages: [test, deploy]
+
 test:
   stage: test
-  script: [composer install, php artisan test]
+  image: composer:2
+  script:
+    - composer install --no-interaction --prefer-dist
+    - cp .env.example .env &amp;&amp; php artisan key:generate
+    - php artisan test
+
 deploy:
   stage: deploy
-  only: [main]
+  image: alpine:latest
+  resource_group: production         # one deploy at a time
+  environment: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
   before_script:
-    - eval $(ssh-agent -s) &amp;&amp; echo "$SERVER_SSH_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh &amp;&amp; ssh-keyscan -H $SERVER_HOST &gt;&gt; ~/.ssh/known_hosts
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SERVER_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh &amp;&amp; chmod 700 ~/.ssh
+    - echo "$SERVER_KNOWN_HOSTS" &gt; ~/.ssh/known_hosts
   script:
-    - ssh cipi@$SERVER_HOST "sudo cipi deploy myapp || (sudo cipi deploy myapp --rollback &amp;&amp; exit 1)"</pre></div>
-<h2 id="multi-app">Several apps from one pipeline<a class="anchor" href="#multi-app" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi deploy frontend &amp; sudo cipi deploy api &amp; wait</pre></div>
-<h2 id="patterns">Build on it<a class="anchor" href="#patterns" aria-label="Link to this section">#</a></h2>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Add</th><th>Read</th></tr></thead><tbody><tr><td>Backup before release</td><td><a href="/docs/safe-deploy">Safe deploy</a></td></tr><tr><td>Slack/Telegram on success or failure</td><td><a href="/docs/deploy-notifications">Deploy notifications</a></td></tr><tr><td>A live app per branch</td><td><a href="/docs/preview-environments">Preview environments</a></td></tr></tbody></table></div>
-<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>A common setup: webhook for staging (instant feedback), pipeline for production (tests → backup → deploy → notify).</p></div></div>
+    - ssh cipi@$SERVER_HOST "sudo cipi deploy shop &amp;&amp; { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up &gt;/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"</pre></div>
+<h3 id="bitbucket">Bitbucket Pipelines<a class="anchor" href="#bitbucket" aria-label="Link to this section">#</a></h3>
+<p>Bitbucket can hold the SSH key for you: <strong>Repository settings → Pipelines → SSH keys</strong>. Generate or paste the CI key there, copy its public key to the server with <code>sudo cipi ssh add</code>, and add your server under <strong>Known hosts</strong> (Bitbucket fetches its fingerprint; compare it with the server's). The key is then available to every step without any secret in the file.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># bitbucket-pipelines.yml</span>
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Test
+          image: composer:2
+          script:
+            - composer install --no-interaction --prefer-dist
+            - cp .env.example .env &amp;&amp; php artisan key:generate
+            - php artisan test
+      - step:
+          name: Deploy
+          deployment: production
+          script:
+            - ssh cipi@$SERVER_HOST "sudo cipi deploy shop &amp;&amp; { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up &gt;/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"</pre></div>
+<h3 id="azure">Azure Pipelines<a class="anchor" href="#azure" aria-label="Link to this section">#</a></h3>
+<p>Create an SSH service connection first: <strong>Project settings → Service connections → New → SSH</strong>, host = your server, user = <code>cipi</code>, private key = the CI key. Call it <code>cipi-production</code>.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># azure-pipelines.yml</span>
+trigger:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Test
+    jobs:
+      - job: test
+        steps:
+          - script: |
+              composer install --no-interaction --prefer-dist
+              cp .env.example .env &amp;&amp; php artisan key:generate
+              php artisan test
+            displayName: Run tests
+
+  - stage: Deploy
+    dependsOn: Test
+    jobs:
+      - deployment: deploy
+        environment: production        # add an "Exclusive lock" check for one deploy at a time
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: SSH@0
+                  displayName: Deploy, check, roll back if unhealthy
+                  inputs:
+                    sshEndpoint: cipi-production
+                    runOptions: commands
+                    commands: sudo cipi deploy shop &amp;&amp; { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up &gt;/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }
+                    failOnStdErr: false   # Cipi prints progress on stderr; the exit code decides</pre></div>
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>Keep <code>failOnStdErr: false</code>. Cipi writes progress messages to stderr, and with the default the task would fail even on a perfect deploy.</p></div></div>
+<h3 id="gitea">Gitea Actions and Forgejo Actions<a class="anchor" href="#gitea" aria-label="Link to this section">#</a></h3>
+<p>Both run GitHub Actions syntax. Copy the <a href="#github">GitHub Actions recipe</a> into:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Forge</th><th>File</th></tr></thead><tbody><tr><td>Gitea</td><td><code>.gitea/workflows/deploy.yml</code> (Gitea also reads <code>.github/workflows/</code>)</td></tr><tr><td>Forgejo</td><td><code>.forgejo/workflows/deploy.yml</code></td></tr></tbody></table></div>
+<p>Two changes: set <code>runs-on:</code> to a label your runner offers (the label you gave it when you registered it), and add the secrets under <strong>Settings → Actions → Secrets</strong> of the repository. For push to deploy without CI, Gitea and Forgejo also work with the agent webhook (<a href="/docs/auto-deploy">Auto-deploy on push</a>).</p>
+<h3 id="circleci">CircleCI<a class="anchor" href="#circleci" aria-label="Link to this section">#</a></h3>
+<p>Add the CI private key under <strong>Project settings → SSH keys → Additional SSH keys</strong> (hostname = your server) and copy the fingerprint CircleCI shows. Put <code>SERVER_HOST</code> and <code>SERVER_KNOWN_HOSTS</code> in <strong>Project settings → Environment variables</strong>.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># .circleci/config.yml</span>
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/php:8.4
+    steps:
+      - checkout
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env &amp;&amp; php artisan key:generate
+      - run: php artisan test
+
+  deploy:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:paste-the-fingerprint-here"
+      - run: mkdir -p ~/.ssh &amp;&amp; echo "$SERVER_KNOWN_HOSTS" &gt;&gt; ~/.ssh/known_hosts
+      - run: ssh cipi@$SERVER_HOST "sudo cipi deploy shop &amp;&amp; { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up &gt;/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"
+
+workflows:
+  test-and-deploy:
+    jobs:
+      - test
+      - deploy:
+          requires: [test]
+          filters:
+            branches:
+              only: main</pre></div>
+<h3 id="envoy">Laravel Envoy<a class="anchor" href="#envoy" aria-label="Link to this section">#</a></h3>
+<p><a href="https://laravel.com/docs/envoy">Envoy</a> runs SSH tasks from your laptop or from CI. With Cipi, one task is enough: the server does the rest.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">blade</span><button class="code-copy-btn" type="button">Copy</button></div><pre>{{-- Envoy.blade.php --}}
+@servers(['production' =&gt; 'cipi@203.0.113.10'])
+
+@task('deploy', ['on' =&gt; 'production'])
+    sudo cipi deploy shop &amp;&amp; { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up &gt;/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }
+@endtask</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>composer require laravel/envoy --dev
+<span class="p"></span>php vendor/bin/envoy run deploy</pre></div>
+<h3 id="curl">Any CI: the API with curl<a class="anchor" href="#curl" aria-label="Link to this section">#</a></h3>
+<p>For CIs without a ready recipe, or when you'd rather not install cipi-cli. Needs <code>curl</code> and <code>jq</code>.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c">#!/usr/bin/env bash</span>
+set -euo pipefail
+H="Authorization: Bearer $CIPI_API_TOKEN"
+
+job=$(curl -fsS -X POST "$CIPI_API_URL/api/apps/shop/deploy" -H "$H" -H "Accept: application/json" | jq -r .job_id)
+echo "Deploy job $job"
+
+status=pending
+for i in $(seq 1 180); do                       # up to 15 minutes
+  status=$(curl -fsS "$CIPI_API_URL/api/jobs/$job" -H "$H" -H "Accept: application/json" | jq -r .data.status) || status=unknown
+  case "$status" in completed|failed) break ;; esac
+  sleep 5
+done
+
+if [ "$status" != completed ]; then
+  echo "Deploy $status"; exit 1                 # failed or still running: nothing to roll back
+fi
+
+curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$HEALTH_URL" &gt;/dev/null || {
+  curl -fsS -X POST "$CIPI_API_URL/api/apps/shop/deploy/rollback" -H "$H" -H "Accept: application/json"
+  echo "Unhealthy: rollback requested"; exit 1
+}
+echo "Deployed and healthy"</pre></div>
+<p>The deploy answers <code>202</code> with a <code>job_id</code>; <code>GET /api/jobs/{id}</code> returns <code>pending</code>, <code>running</code>, <code>completed</code> or <code>failed</code> (with the output once finished). See the <a href="/docs/api">REST API</a>.</p>
+<h3 id="webhook-ci">Any CI: the agent webhook<a class="anchor" href="#webhook-ci" aria-label="Link to this section">#</a></h3>
+<p>When a tool can only send an HTTP request (a chat bot, a scheduler, a low-code platform), call the app's own webhook. It accepts the webhook secret as a Bearer token, queues the deploy and answers immediately.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre>curl -fsS -X POST "https://shop.example.com/cipi/webhook" \
+  -H "Authorization: Bearer $CIPI_WEBHOOK_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"ref":"refs/heads/main","after":"'"$COMMIT_SHA"'","pusher":{"name":"ci"}}'
+<span class="c"># {"status":"queued","app":"shop","provider":"webhook","branch":"main",...}</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Field</th><th>Optional?</th><th>Use</th></tr></thead><tbody><tr><td><code>ref</code></td><td>Yes</td><td>If set, it must be the app's deploy branch, otherwise the answer is <code>skipped</code></td></tr><tr><td><code>after</code></td><td>Yes</td><td>The commit (7 to 40 hex characters), recorded in the <a href="/docs/deploy-audit">deploy audit</a></td></tr><tr><td><code>pusher.name</code></td><td>Yes</td><td>Who asked, recorded in the audit</td></tr></tbody></table></div>
+<p>This path needs the <a href="/docs/agent-install"><code>cipi/agent</code></a> package in a Laravel app. It does <strong>not</strong> wait for the deploy: the server starts it within a minute, and the result arrives through <a href="/docs/deploy-notifications">deploy notifications</a>. Don't put the token in the URL (<code>?token=</code>): URLs end up in logs.</p>
+<h2 id="verify">6. Check it works<a class="anchor" href="#verify" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># push a small change, then on the server:</span>
+<span class="p"></span>cipi deploy shop --status<span class="c">        # running, queued or idle</span>
+<span class="p"></span>cipi deploy shop --audit<span class="c">         # the last entry says origin "cipi-cli" (SSH) or "panel" (API)</span>
+<span class="p"></span>cipi app logs shop --type=deploy</pre></div>
+<h2 id="patterns">Patterns<a class="anchor" href="#patterns" aria-label="Link to this section">#</a></h2>
+<h3 id="multi-app">Several apps from one pipeline<a class="anchor" href="#multi-app" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre>ssh cipi@$SERVER_HOST "sudo cipi deploy api &amp;&amp; sudo cipi deploy frontend"</pre></div>
+<p>Deploy them one after the other, in the order they depend on each other. Each app has its own lock, so they could also run in parallel, but a failure is easier to read in sequence.</p>
+<h3 id="multi-server">Several servers<a class="anchor" href="#multi-server" aria-label="Link to this section">#</a></h3>
+<p>With cipi-cli, add one profile per server and deploy each:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre>cipi-cli profiles add eu --endpoint "$CIPI_API_URL_EU" --token "$CIPI_API_TOKEN_EU"
+cipi-cli profiles add us --endpoint "$CIPI_API_URL_US" --token "$CIPI_API_TOKEN_US"
+cipi-cli eu deploy shop &amp;&amp; cipi-cli us deploy shop</pre></div>
+<h3 id="more">Add more steps<a class="anchor" href="#more" aria-label="Link to this section">#</a></h3>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Add</th><th>How</th><th>Read</th></tr></thead><tbody><tr><td>A backup before the release</td><td><code>sudo cipi backup run shop</code> in a step before the deploy</td><td><a href="/docs/backups">Backups</a></td></tr><tr><td>A database snapshot before migrations</td><td><code>sudo cipi app edit shop --predeploy-snapshot</code> (once; then every deploy)</td><td><a href="/docs/safe-deploy">Safe deploy</a></td></tr><tr><td>Check <code>cipi.yml</code> in the test job</td><td><code>php artisan cipi:yml validate --json</code></td><td><a href="/docs/agent-yml">cipi.yml tooling</a></td></tr><tr><td>Slack or Telegram on every deploy</td><td>Server-side notifications, no CI code</td><td><a href="/docs/deploy-notifications">Deploy notifications</a></td></tr><tr><td>A live URL for every branch</td><td>Create and remove apps from CI</td><td><a href="/docs/preview-environments">Preview environments</a></td></tr></tbody></table></div>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>A setup many teams use: push to deploy on <strong>staging</strong> (instant feedback), pipeline on <strong>production</strong> (tests, backup, deploy, check). Compare the two in <a href="/guides/agent-vs-pipeline-deploys">Agent vs pipeline</a>.</p></div></div>
+<h2 id="problems">Common problems<a class="anchor" href="#problems" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td><code>Permission denied (publickey)</code></td><td>The CI public key isn't on the server</td><td><code>sudo cipi ssh add "&lt;public key&gt;"</code></td></tr><tr><td><code>Host key verification failed</code></td><td><code>SERVER_KNOWN_HOSTS</code> is empty or from another server</td><td>Save it again with <code>ssh-keyscan</code> and compare the fingerprint</td></tr><tr><td><code>sudo: a terminal is required</code></td><td>The SSH user isn't <code>cipi</code></td><td>Connect as <code>cipi@…</code>, the user allowed to run <code>sudo cipi</code> without a password</td></tr><tr><td>Every push deploys twice</td><td>The webhook is still active</td><td><a href="#webhook-off">Turn it off</a></td></tr><tr><td>"Deploy locked"</td><td>Two pipelines at once, or an interrupted deploy</td><td>Add a concurrency limit; if nothing is running, <code>sudo cipi deploy shop --unlock</code></td></tr><tr><td><code>401</code> or <code>403</code> from the API</td><td>Token expired, wrong ability, or IP not allowed</td><td><code>cipi api token list</code>; ability <code>deploy-manage</code>; <code>cipi api ip-whitelist show</code></td></tr><tr><td>cipi-cli "timed out after polling"</td><td>The build takes more than about nine minutes</td><td>The deploy continues on the server: <code>cipi-cli prod deploy status shop</code></td></tr><tr><td>Azure task fails on a good deploy</td><td><code>failOnStdErr</code> is on</td><td>Set <code>failOnStdErr: false</code></td></tr><tr><td>CI green, old code live</td><td>The pipeline used the agent webhook, which only queues</td><td>Use SSH or the API when CI must wait for the result</td></tr></tbody></table></div>
+<h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Does CI build the app and upload it?</td><td>No. CI runs the tests; the server pulls the code from Git and builds the release itself. Nothing is uploaded.</td></tr><tr><td>Which commit goes live?</td><td>The latest commit of the app's branch when the server builds the release. With one deploy at a time per branch (the <code>concurrency</code>, <code>resource_group</code> and lock settings above), that's the commit your tests checked.</td></tr><tr><td>Can the CI key do anything else?</td><td>Over SSH, the <code>cipi</code> user can run any <code>cipi</code> command as root, which includes deleting apps. That's why the API with a <code>deploy-manage</code> token is the safer choice for production.</td></tr><tr><td>Do I need the agent for pipelines?</td><td>No. SSH and the API work for every app. The agent is only needed for the webhook path.</td></tr><tr><td>How are migrations run?</td><td>By the deploy, on the server, inside the new release and before it goes live. CI doesn't run them.</td></tr><tr><td>Can I require an approval before production?</td><td>Yes, with your CI's environments: GitHub <em>required reviewers</em>, GitLab <em>protected environments</em>, Azure <em>approvals</em>, Jenkins <code>input</code>.</td></tr></tbody></table></div>
 </section>
 
 </div>
-<aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul><li><a href="/guides/checkpoint-laravel-sast-ci"><b>Add Laravel security checks (SAST) to CI with Checkpoint</b><span>Install Checkpoint, a free Laravel security scanner, run its 33 checks locally, read PASS, WARN and FAIL results, accept known findings, and block risky code in GitHub Actions or GitLab CI before Cipi deploys it, step by step.</span></a></li><li><a href="/guides/laravel-ci-cd-git-workflow"><b>CI/CD for Laravel with GitHub Actions or GitLab CI</b><span>Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.</span></a></li></ul></aside><nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/auto-deploy" rel="prev"><small>Previous</small><b>Auto-deploy on push</b></a><a class="next" href="/docs/yml" rel="next"><small>Next</small><b>cipi.yml</b></a></nav>
+<aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul><li><a href="/guides/agent-vs-pipeline-deploys"><b>Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel</b><span>How Cipi&#x27;s two deploy modes work, side by side, with an honest verdict on when to use the agent&#x27;s push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.</span></a></li><li><a href="/guides/checkpoint-laravel-sast-ci"><b>Add Laravel security checks (SAST) to CI with Checkpoint</b><span>Install Checkpoint, a free Laravel security scanner, run its 33 checks locally, read PASS, WARN and FAIL results, accept known findings, and block risky code in GitHub Actions or GitLab CI before Cipi deploys it, step by step.</span></a></li><li><a href="/guides/laravel-aws-codedeploy"><b>Deploy Laravel with AWS CodeDeploy and Cipi</b><span>Let AWS CodeDeploy orchestrate releases while Cipi does the zero-downtime deploy on each server, on EC2 or outside AWS, with a health check, a correct rollback and GitHub Actions on top.</span></a></li><li><a href="/guides/laravel-ci-cd-git-workflow"><b>CI/CD for Laravel with GitHub Actions or GitLab CI</b><span>Test on every push and deploy only when tests pass, with a health check that rolls back a broken release, a dedicated CI key, an optional backup step and zero-downtime releases.</span></a></li><li><a href="/guides/laravel-jenkins-deploy"><b>Deploy Laravel from Jenkins to your own server</b><span>A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.</span></a></li></ul></aside><nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/auto-deploy" rel="prev"><small>Previous</small><b>Auto-deploy on push</b></a><a class="next" href="/docs/jenkins" rel="next"><small>Next</small><b>Jenkins</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#ssh-key">A key for CI</a></li>
-<li><a class="l2" href="#github">GitHub Actions</a></li>
-<li><a class="l2" href="#gitlab">GitLab CI</a></li>
-<li><a class="l2" href="#multi-app">Several apps from one pipeline</a></li>
-<li><a class="l2" href="#patterns">Build on it</a></li>
+<li><a class="l2" href="#how">How a pipeline deploy works</a></li>
+<li><a class="l2" href="#connect">1. Choose how CI calls the server</a></li>
+<li><a class="l2" href="#secrets">2. Store the secrets</a></li>
+<li><a class="l3" href="#ssh-key">An SSH key for CI</a></li>
+<li><a class="l3" href="#api-token">An API token for CI</a></li>
+<li><a class="l2" href="#webhook-off">3. Turn the webhook off</a></li>
+<li><a class="l2" href="#deploy-step">4. The deploy step, explained once</a></li>
+<li><a class="l2" href="#recipes">5. Recipes</a></li>
+<li><a class="l3" href="#github">GitHub Actions</a></li>
+<li><a class="l3" href="#github-api">GitHub Actions with the API</a></li>
+<li><a class="l3" href="#gitlab">GitLab CI/CD</a></li>
+<li><a class="l3" href="#bitbucket">Bitbucket Pipelines</a></li>
+<li><a class="l3" href="#azure">Azure Pipelines</a></li>
+<li><a class="l3" href="#gitea">Gitea Actions and Forgejo Actions</a></li>
+<li><a class="l3" href="#circleci">CircleCI</a></li>
+<li><a class="l3" href="#envoy">Laravel Envoy</a></li>
+<li><a class="l3" href="#curl">Any CI: the API with curl</a></li>
+<li><a class="l3" href="#webhook-ci">Any CI: the agent webhook</a></li>
+<li><a class="l2" href="#verify">6. Check it works</a></li>
+<li><a class="l2" href="#patterns">Patterns</a></li>
+<li><a class="l3" href="#multi-app">Several apps from one pipeline</a></li>
+<li><a class="l3" href="#multi-server">Several servers</a></li>
+<li><a class="l3" href="#more">Add more steps</a></li>
+<li><a class="l2" href="#problems">Common problems</a></li>
+<li><a class="l2" href="#questions">Questions</a></li>
 </ol>
 <div class="toc-tools">
 <a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/ci-pipelines.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>

@@ -1,6 +1,6 @@
 ---
 title: CI/CD for Laravel with GitHub Actions or GitLab CI
-description: Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.
+description: Test on every push and deploy only when tests pass, with a health check that rolls back a broken release, a dedicated CI key, an optional backup step and zero-downtime releases.
 category: laravel
 order: 6
 published: 2026-03-24
@@ -13,9 +13,10 @@ related:
   - deploy-laravel-ubuntu-vps
 faq:
   - Webhook or pipeline? | Use the webhook when every push to a branch should deploy. Use a pipeline when deploys depend on tests, a backup or an approval; then turn the webhook off.
-  - Can the CI key do anything else on the server? | The `cipi` user runs only `sudo cipi …` without a password. The CI key can deploy, not install software or read other users' files.
+  - Can the CI key do anything else on the server? | The `cipi` user can run `sudo cipi …` without a password, which covers every Cipi command, deleting apps included, but not other programs as root. For the least privilege, use an API token with only `deploy-manage`.
   - Webhook or CI? | The webhook deploys every push, fast and simple. CI deploys only when tests pass. You can also keep the webhook on staging and use CI for production.
-  - Can I deploy without giving CI SSH access? | Yes: use `cipi-cli` with a scoped API token (`deploy` ability only), as shown in "Without SSH".
+  - Can I deploy without giving CI SSH access? | Yes: use `cipi-cli` with an API token that has only the `deploy-manage` ability, as shown in "Without SSH". It's also the safer choice for production.
+  - Why not roll back whenever the deploy command fails? | Because a deploy that fails while building publishes nothing: the previous release is still serving. Rolling back then would go one release further back. Roll back only when the new release is live and the health check fails.
   - How do I run migrations in CI? | You don't: the deploy runs them on the server, inside the new release, before it goes live.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
@@ -26,7 +27,7 @@ docs:
   - health-checks
   - cli-client
 ---
-Push-to-deploy is great until a broken test reaches production. A pipeline adds the gate: test, optionally back up, deploy, and roll back if the deploy fails.
+Push-to-deploy is great until a broken test reaches production. A pipeline adds the gate: test, optionally back up, deploy, check that the app answers, and roll back only if it doesn't. For every other CI (Bitbucket, Azure, Forgejo, CircleCI, Jenkins, AWS CodeDeploy) see [CI/CD pipelines](/docs/ci-pipelines).
 
 ## Key ideas, in plain words {#ideas}
 
@@ -51,8 +52,10 @@ Backup | optional
 > Optional: take a backup on the server first.
 Deploy | ssh → cipi deploy
 > The pipeline connects with the CI key and runs `sudo cipi deploy shop`.
-Roll back | on failure
-> If the deploy fails, the pipeline rolls back with `--rollback` and fails visibly.
+Check | health URL
+> If the deploy succeeded, the pipeline calls `/up`. A deploy that failed while building published nothing, so there is nothing to undo: the job just turns red.
+Roll back | only if unhealthy
+> If the new release is live but doesn't answer, the pipeline runs `--rollback` and fails visibly.
 ```
 
 ## 1. A dedicated key for CI
@@ -95,7 +98,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: cipi
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: sudo cipi deploy shop || (sudo cipi deploy shop --rollback && exit 1)
+          script: "sudo cipi deploy shop && { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up >/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"
 ```
 
 ## 4. GitLab CI
@@ -114,7 +117,7 @@ deploy:
     - eval $(ssh-agent -s) && echo "$SERVER_SSH_KEY" | tr -d '\r' | ssh-add -
     - mkdir -p ~/.ssh && ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts
   script:
-    - ssh cipi@$SERVER_HOST "sudo cipi deploy shop || (sudo cipi deploy shop --rollback && exit 1)"
+    - ssh cipi@$SERVER_HOST "sudo cipi deploy shop && { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up >/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"
 ```
 
 ## 5. Add a safety net

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploy Laravel from Jenkins to your own server — Cipi guides</title>
+    <meta name="description" content="A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.">
+    <meta name="keywords" content="laravel jenkins deploy, jenkinsfile laravel, jenkins deploy php vps, jenkins zero downtime laravel, jenkins pipeline laravel ssh">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/laravel-jenkins-deploy">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/laravel-jenkins-deploy">
+    <meta property="og:title" content="Deploy Laravel from Jenkins to your own server">
+    <meta property="og:description" content="A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.">
+    <meta property="og:image" content="https://cipi.sh/img/og/guide-laravel-jenkins-deploy.jpg?v=b11f95b6">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Deploy Laravel from Jenkins to your own server">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Deploy Laravel from Jenkins to your own server">
+    <meta name="twitter:description" content="A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/guide-laravel-jenkins-deploy.jpg?v=b11f95b6">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Deploy Laravel from Jenkins to your own server", "description": "A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.", "url": "https://cipi.sh/guides/laravel-jenkins-deploy", "mainEntityOfPage": "https://cipi.sh/guides/laravel-jenkins-deploy", "datePublished": "2026-11-23", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/guide-laravel-jenkins-deploy.jpg?v=b11f95b6", "articleSection": "Laravel", "timeRequired": "PT4M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "laravel jenkins deploy, jenkinsfile laravel, jenkins deploy php vps, jenkins zero downtime laravel, jenkins pipeline laravel ssh"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "Deploy Laravel from Jenkins to your own server", "description": "A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.", "totalTime": "PT14M", "step": [{"@type": "HowToStep", "position": 1, "name": "Key ideas, in plain words", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#ideas"}, {"@type": "HowToStep", "position": 2, "name": "Before you start", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#before"}, {"@type": "HowToStep", "position": 3, "name": "1. Choose SSH or the API", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#1-choose-ssh-or-the-api"}, {"@type": "HowToStep", "position": 4, "name": "2. Create the secret", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#2-create-the-secret"}, {"@type": "HowToStep", "position": 5, "name": "3. Store it in Jenkins", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#3-store-it-in-jenkins"}, {"@type": "HowToStep", "position": 6, "name": "4. Create the job", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#4-create-the-job"}, {"@type": "HowToStep", "position": 7, "name": "5. Add the Jenkinsfile", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#5-add-the-jenkinsfile"}, {"@type": "HowToStep", "position": 8, "name": "6. Start it on every push and turn Cipi's webhook off", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#6-start-it-on-every-push-and-turn-cipi-s-webhook-off"}, {"@type": "HowToStep", "position": 9, "name": "7. Run the first deploy", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#7-run-the-first-deploy"}, {"@type": "HowToStep", "position": 10, "name": "8. Add approvals and a rollback button", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#8-add-approvals-and-a-rollback-button"}, {"@type": "HowToStep", "position": 11, "name": "Troubleshooting", "url": "https://cipi.sh/guides/laravel-jenkins-deploy#troubleshooting"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does Jenkins copy the code to the server?", "acceptedAnswer": {"@type": "Answer", "text": "No. Jenkins runs the tests and then asks the server to deploy. The server pulls the code from Git with its own read-only deploy key and builds the release itself."}}, {"@type": "Question", "name": "SSH or API from Jenkins?", "acceptedAnswer": {"@type": "Answer", "text": "The API with a token limited to deploy-manage is the safer choice: the token can only deploy, roll back, unlock and read the status. Over SSH, the cipi user can run any Cipi command."}}, {"@type": "Question", "name": "Can I keep my existing Jenkins stages?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Keep your test, lint and build stages and add the Deploy stage at the end, guarded by when { branch 'main' } ."}}, {"@type": "Question", "name": "Why does the deploy line look so long?", "acceptedAnswer": {"@type": "Answer", "text": "It does three things in order: deploy; if the deploy worked, check the app answers; only if it doesn't, roll back. A deploy that fails while building publishes nothing, so it must not be rolled back."}}, {"@type": "Question", "name": "Can Jenkins deploy to several Cipi servers?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Add one credential (or one cipi-cli profile) per server and deploy them one after the other in the same stage."}}, {"@type": "Question", "name": "Do I need the Cipi agent package?", "acceptedAnswer": {"@type": "Answer", "text": "No. The agent is only needed for push-to-deploy webhooks. Jenkins works over SSH or the API."}}, {"@type": "Question", "name": "What if a step fails?", "acceptedAnswer": {"@type": "Answer", "text": "Read the troubleshooting table above first. Then check the Jenkins docs page , open a GitHub issue, or ask in the community."}}, {"@type": "Question", "name": "Can my team roll back without SSH access?", "acceptedAnswer": {"@type": "Answer", "text": "Yes: the rollback job in step 8 gives them a button in Jenkins that asks for confirmation."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "Deploy Laravel from Jenkins to your own server", "item": "https://cipi.sh/guides/laravel-jenkins-deploy"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">Deploy Laravel from Jenkins to your own server</li></ol>
+<a class="art-eyebrow" href="/guides/#laravel">Laravel</a>
+<h1>Deploy Laravel from Jenkins to your own server</h1>
+<p class="art-lead">A Jenkinsfile that runs your Laravel tests, deploys with Cipi over SSH or the API, checks the release and rolls back only when it should, plus approvals and a one-click rollback job.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>4 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=Deploy%20Laravel%20from%20Jenkins%20to%20your%20own%20server&url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-jenkins-deploy" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-jenkins-deploy" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-jenkins-deploy&title=Deploy%20Laravel%20from%20Jenkins%20to%20your%20own%20server" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-jenkins-deploy&t=Deploy%20Laravel%20from%20Jenkins%20to%20your%20own%20server" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-jenkins-deploy&text=Deploy%20Laravel%20from%20Jenkins%20to%20your%20own%20server" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=Deploy%20Laravel%20from%20Jenkins%20to%20your%20own%20server%20https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-jenkins-deploy" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/laravel-jenkins-deploy" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Your company already runs Jenkins, and you want Laravel releases to follow the same path as everything else: tests in Jenkins, then a zero-downtime deploy on your own server. With Cipi on the server, the Jenkins side is one short stage: Cipi does the deploy, Jenkins gives the order and reads the result.</p>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Jenkinsfile</strong></td><td>A file in your repository that describes the pipeline: stages, steps, conditions</td></tr><tr><td><strong>Multibranch Pipeline</strong></td><td>A Jenkins job that finds every branch with a Jenkinsfile and builds it</td></tr><tr><td><strong>Credential</strong></td><td>A secret stored in Jenkins (a key, a token, a file), used by ID in the Jenkinsfile</td></tr><tr><td><strong>Health URL</strong></td><td>A page that answers 200 when the app works, like Laravel's <code>/up</code></td></tr></tbody></table></div>
+<h2 id="before">Before you start<a class="anchor" href="#before" aria-label="Link to this section">#</a></h2>
+<ul><li>A Laravel app already deployed with Cipi (follow the <a href="/guides/deploy-laravel-ubuntu-vps">15-minute guide</a> first).</li><li>Jenkins 2.x with the suggested plugins, plus <strong>SSH Agent</strong> (for the SSH way).</li><li>A Jenkins agent with <code>ssh</code> and <code>curl</code>, and Docker or PHP + Composer for the tests.</li><li>A health URL: Laravel 11+ serves <code>/up</code> when <code>health: '/up'</code> is set in <code>bootstrap/app.php</code>.</li></ul>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Choose</b><span>SSH or API</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Secrets</b><span>on the server and in Jenkins</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Job</b><span>Multibranch Pipeline</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Jenkinsfile</b><span>test → deploy → check</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="4"><b>Triggers</b><span>Git → Jenkins</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="5"><b>First deploy</b><span>push and verify</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 6</span><b>Choose</b></div><p>Decide how Jenkins reaches the server. SSH is quicker to set up; the API gives Jenkins less power.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 6</span><b>Secrets</b></div><p>Create a key or a token on the server side and store it as a Jenkins credential.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 6</span><b>Job</b></div><p>Create the job that finds your Jenkinsfile.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 6</span><b>Jenkinsfile</b></div><p>Add the file to the repository.</p></div><div class="fx-pane" role="tabpanel" data-i="4" hidden><div class="fx-head"><span class="fx-n">Step 5 of 6</span><b>Triggers</b></div><p>Make every push start the job; turn Cipi's own webhook off.</p></div><div class="fx-pane" role="tabpanel" data-i="5" hidden><div class="fx-head"><span class="fx-n">Step 6 of 6</span><b>First deploy</b></div><p>Push a small change and check the result on both sides.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<h2 id="1-choose-ssh-or-the-api">1. Choose SSH or the API<a class="anchor" href="#1-choose-ssh-or-the-api" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>SSH</th><th>API</th></tr></thead><tbody><tr><td>Jenkins runs</td><td><code>ssh cipi@server "sudo cipi deploy shop"</code></td><td><code>cipi-cli prod deploy shop</code></td></tr><tr><td>The secret can</td><td>Run any <code>cipi</code> command as root</td><td>Only deploy, roll back, unlock, read status</td></tr><tr><td>Server needs</td><td>Port 22 reachable from Jenkins</td><td><a href="/docs/api"><code>cipi api</code></a> installed on a hostname</td></tr><tr><td>Jenkins agent needs</td><td><code>ssh</code></td><td><a href="/docs/cli-client"><code>cipi-cli</code></a></td></tr></tbody></table></div>
+<p>For production, prefer the API. For a first try, SSH works in five minutes. Both are shown below.</p>
+<h2 id="2-create-the-secret">2. Create the secret<a class="anchor" href="#2-create-the-secret" aria-label="Link to this section">#</a></h2>
+<p><strong>SSH way.</strong> On your laptop, make a key used only by Jenkins and authorize it on the server:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh-keygen -t ed25519 -C "jenkins-deploy" -f ./jenkins_deploy -N ""
+<span class="p"></span>ssh cipi@your-server "sudo cipi ssh add '$(cat ./jenkins_deploy.pub)'"
+<span class="p"></span>ssh-keyscan -t ed25519 your-server &gt; ./known_hosts<span class="c">     # the server's host key</span></pre></div>
+<p>Compare the fingerprint with the server's before trusting it: <code>ssh-keygen -lf ./known_hosts</code> on your laptop, <code>ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</code> on the server. They must match.</p>
+<p><strong>API way.</strong> On the server:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi api token create --name=jenkins-shop --abilities=deploy-manage --expires=2027-12-31</pre></div>
+<p>Copy the token now: it's shown only once.</p>
+<h2 id="3-store-it-in-jenkins">3. Store it in Jenkins<a class="anchor" href="#3-store-it-in-jenkins" aria-label="Link to this section">#</a></h2>
+<p><strong>Manage Jenkins → Credentials → System → Global credentials → Add credentials</strong>:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>ID</th><th>Kind</th><th>What to paste</th></tr></thead><tbody><tr><td><code>cipi-ci-key</code></td><td>SSH Username with private key</td><td>Username <code>cipi</code>; private key: the content of <code>./jenkins_deploy</code></td></tr><tr><td><code>cipi-known-hosts</code></td><td>Secret file</td><td>Upload <code>./known_hosts</code></td></tr><tr><td><code>cipi-api-token</code></td><td>Secret text</td><td>The API token (API way)</td></tr></tbody></table></div>
+<p>Then delete the local copies: <code>rm ./jenkins_deploy ./jenkins_deploy.pub ./known_hosts</code>.</p>
+<p>For the API way, install <code>cipi-cli</code> on the Jenkins agent once:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>base=https://github.com/cipi-sh/cli/releases/latest/download
+<span class="p"></span>curl -fsSLO "$base/cipi-cli-linux-amd64" &amp;&amp; curl -fsSLO "$base/checksums.txt"
+<span class="p"></span>sha256sum --check --ignore-missing checksums.txt
+<span class="p"></span>sudo install -m 0755 cipi-cli-linux-amd64 /usr/local/bin/cipi-cli</pre></div>
+<h2 id="4-create-the-job">4. Create the job<a class="anchor" href="#4-create-the-job" aria-label="Link to this section">#</a></h2>
+<p><strong>New Item → Multibranch Pipeline</strong>, name it <code>shop</code>. Under <strong>Branch Sources</strong>, add your Git server and the repository (with a read credential if it's private). <strong>Build Configuration</strong>: by Jenkinsfile. Save.</p>
+<p>A Multibranch job builds every branch and pull request, so tests run everywhere, while the deploy stage below runs only on <code>main</code>.</p>
+<h2 id="5-add-the-jenkinsfile">5. Add the Jenkinsfile<a class="anchor" href="#5-add-the-jenkinsfile" aria-label="Link to this section">#</a></h2>
+<p>At the root of the repository:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">groovy</span><button class="code-copy-btn" type="button">Copy</button></div><pre>pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()            // never two builds of the same branch at once
+        timeout(time: 30, unit: 'MINUTES')
+    }
+
+    environment {
+        APP        = 'shop'
+        SERVER     = 'cipi@203.0.113.10'
+        HEALTH_URL = 'https://shop.example.com/up'
+    }
+
+    stages {
+        stage('Test') {
+            agent {
+                docker {
+                    image 'composer:2'      // or any image with PHP and Composer
+                    reuseNode true
+                }
+            }
+            steps {
+                sh 'composer install --no-interaction --prefer-dist'
+                sh 'cp .env.example .env &amp;&amp; php artisan key:generate'
+                sh 'php artisan test'
+            }
+        }
+
+        stage('Deploy') {
+            when { branch 'main' }
+            steps {
+                withCredentials([file(credentialsId: 'cipi-known-hosts', variable: 'KNOWN_HOSTS')]) {
+                    sshagent(credentials: ['cipi-ci-key']) {
+                        sh '''
+                          ssh -o UserKnownHostsFile="$KNOWN_HOSTS" "$SERVER" \
+                            "sudo cipi deploy $APP &amp;&amp; { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors $HEALTH_URL &gt;/dev/null || { sudo cipi deploy $APP --rollback; exit 1; }; }"
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}</pre></div>
+<p>The deploy line, piece by piece:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Piece</th><th>Runs when</th><th>Does</th></tr></thead><tbody><tr><td><code>sudo cipi deploy $APP</code></td><td>Always</td><td>Builds and publishes the new release. If it fails, nothing was published: the build turns red here</td></tr><tr><td><code>curl … $HEALTH_URL</code></td><td>The deploy succeeded</td><td>Calls the app up to six times, five seconds apart</td></tr><tr><td><code>sudo cipi deploy $APP --rollback; exit 1</code></td><td>The app doesn't answer</td><td>Goes back to the previous release and turns the build red</td></tr></tbody></table></div>
+<p><strong>API way:</strong> replace the Deploy stage with this one.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">groovy</span><button class="code-copy-btn" type="button">Copy</button></div><pre>        stage('Deploy') {
+            when { branch 'main' }
+            environment {
+                CIPI_API_URL   = 'https://api.example.com'
+                CIPI_API_TOKEN = credentials('cipi-api-token')
+            }
+            steps {
+                sh '''
+                  export HOME="$(mktemp -d)"      # the cipi-cli profile lives only for this build
+                  cipi-cli profiles add prod --endpoint "$CIPI_API_URL" --token "$CIPI_API_TOKEN"
+                  cipi-cli prod deploy "$APP"
+                  curl -fsS --retry 5 --retry-delay 5 --retry-all-errors "$HEALTH_URL" &gt;/dev/null \
+                    || { cipi-cli prod deploy rollback "$APP" -y; exit 1; }
+                '''
+            }
+        }</pre></div>
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>Keep the <code>'''</code> single quotes. The shell reads <code>$APP</code> and the secrets, not Groovy, so credentials never pass through Groovy string interpolation and Jenkins can mask them in the log.</p></div></div>
+<h2 id="6-start-it-on-every-push-and-turn-cipi-s-webhook-off">6. Start it on every push and turn Cipi's webhook off<a class="anchor" href="#6-start-it-on-every-push-and-turn-cipi-s-webhook-off" aria-label="Link to this section">#</a></h2>
+<p>Make your Git server notify <strong>Jenkins</strong>:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Git server</th><th>What to do</th></tr></thead><tbody><tr><td>GitHub</td><td>GitHub plugin in Jenkins; repository webhook to <code>https://jenkins.example.com/github-webhook/</code>, event <em>push</em></td></tr><tr><td>GitLab</td><td>GitLab plugin; project webhook to the URL shown in the job's triggers</td></tr><tr><td>Others</td><td>Their Jenkins plugin, or <strong>Scan Multibranch Pipeline Triggers → Periodically</strong> every 1–2 minutes</td></tr></tbody></table></div>
+<p>Then turn <strong>Cipi's</strong> webhook off for this app, otherwise each push would also deploy directly. In GitHub: <strong>Settings → Webhooks</strong> → the hook ending in <code>/cipi/webhook</code> → untick <strong>Active</strong>. The Jenkins hook and the Cipi hook are two different entries: keep the first, turn off the second.</p>
+<h2 id="7-run-the-first-deploy">7. Run the first deploy<a class="anchor" href="#7-run-the-first-deploy" aria-label="Link to this section">#</a></h2>
+<p>Push a small change to <code>main</code> and watch the build. On the server:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi deploy shop --status<span class="c">      # what's running now</span>
+<span class="p"></span>sudo cipi deploy shop --audit<span class="c">       # the newest entry: origin cipi-cli (SSH) or panel (API)</span>
+<span class="p"></span>sudo cipi app logs shop --type=deploy</pre></div>
+<p>To test the safety net, deploy a commit where <code>/up</code> returns 500 on purpose (on staging): the build should turn red and <code>--audit</code> should show the rollback.</p>
+<h2 id="8-add-approvals-and-a-rollback-button">8. Add approvals and a rollback button<a class="anchor" href="#8-add-approvals-and-a-rollback-button" aria-label="Link to this section">#</a></h2>
+<p><strong>An approval before production.</strong> Add this stage before Deploy:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">groovy</span><button class="code-copy-btn" type="button">Copy</button></div><pre>        stage('Approve') {
+            when { branch 'main' }
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    input message: 'Deploy shop to production?', ok: 'Deploy'
+                }
+            }
+        }</pre></div>
+<p><strong>A rollback button.</strong> Create a separate Pipeline job, "shop – rollback", with this script:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">groovy</span><button class="code-copy-btn" type="button">Copy</button></div><pre>pipeline {
+    agent any
+    stages {
+        stage('Rollback') {
+            steps {
+                input message: 'Roll shop back to the previous release?', ok: 'Roll back'
+                withCredentials([file(credentialsId: 'cipi-known-hosts', variable: 'KNOWN_HOSTS')]) {
+                    sshagent(credentials: ['cipi-ci-key']) {
+                        sh 'ssh -o UserKnownHostsFile="$KNOWN_HOSTS" cipi@203.0.113.10 "sudo cipi deploy shop --rollback"'
+                    }
+                }
+            }
+        }
+    }
+}</pre></div>
+<p>A rollback switches the code back in a second. Database migrations stay as they are, so write migrations that the previous release can live with, or turn on <a href="/docs/safe-deploy">pre-deploy snapshots</a>.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td><code>No such DSL method 'sshagent'</code></td><td>SSH Agent plugin missing</td><td><strong>Manage Jenkins → Plugins</strong> → install SSH Agent</td></tr><tr><td><code>Host key verification failed</code></td><td>Known-hosts credential empty or from another server</td><td>Recreate it with <code>ssh-keyscan</code> and compare the fingerprint</td></tr><tr><td><code>Permission denied (publickey)</code></td><td>Key not authorized</td><td><code>sudo cipi ssh add "&lt;public key&gt;"</code> on the server</td></tr><tr><td><code>sudo: a terminal is required</code></td><td>Connected as a user other than <code>cipi</code></td><td>Use <code>cipi@server</code></td></tr><tr><td>Deploy stage always skipped</td><td>Classic Pipeline job, not Multibranch</td><td>Use a Multibranch Pipeline, or remove <code>when { branch 'main' }</code></td></tr><tr><td>Two deploys per push</td><td>Cipi's webhook still active</td><td>Untick <strong>Active</strong> on the <code>/cipi/webhook</code> hook</td></tr><tr><td>"Deploy locked"</td><td>Two builds at once or an interrupted deploy</td><td>Keep <code>disableConcurrentBuilds()</code>; <code>sudo cipi deploy shop --unlock</code> if nothing runs</td></tr><tr><td><code>cipi-cli: command not found</code></td><td>Not installed on that Jenkins agent</td><td>Install it (step 3) or pin the stage to an agent label that has it</td></tr><tr><td>401 or 403 from the API</td><td>Token wrong, expired, or IP not allowed</td><td><code>sudo cipi api token list</code>; <code>sudo cipi api ip-whitelist show</code></td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/jenkins">Jenkins</a></li><li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li><li><a href="/docs/how-deploys-work">How deploys work</a></li><li><a href="/docs/api">REST API</a></li><li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li><li><a href="/docs/health-checks">Health checks</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>Does Jenkins copy the code to the server?</summary><p>No. Jenkins runs the tests and then asks the server to deploy. The server pulls the code from Git with its own read-only deploy key and builds the release itself.</p></details><details><summary>SSH or API from Jenkins?</summary><p>The API with a token limited to <code>deploy-manage</code> is the safer choice: the token can only deploy, roll back, unlock and read the status. Over SSH, the <code>cipi</code> user can run any Cipi command.</p></details><details><summary>Can I keep my existing Jenkins stages?</summary><p>Yes. Keep your test, lint and build stages and add the Deploy stage at the end, guarded by <code>when { branch 'main' }</code>.</p></details><details><summary>Why does the deploy line look so long?</summary><p>It does three things in order: deploy; if the deploy worked, check the app answers; only if it doesn't, roll back. A deploy that fails while building publishes nothing, so it must not be rolled back.</p></details><details><summary>Can Jenkins deploy to several Cipi servers?</summary><p>Yes. Add one credential (or one cipi-cli profile) per server and deploy them one after the other in the same stage.</p></details><details><summary>Do I need the Cipi agent package?</summary><p>No. The agent is only needed for push-to-deploy webhooks. Jenkins works over SSH or the API.</p></details><details><summary>What if a step fails?</summary><p>Read the troubleshooting table above first. Then check the <a href="/docs/jenkins">Jenkins docs page</a>, open a GitHub issue, or ask in the community.</p></details><details><summary>Can my team roll back without SSH access?</summary><p>Yes: the rollback job in step 8 gives them a button in Jenkins that asks for confirmation.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#before">Before you start</a></li><li><a class="l2" href="#1-choose-ssh-or-the-api">1. Choose SSH or the API</a></li><li><a class="l2" href="#2-create-the-secret">2. Create the secret</a></li><li><a class="l2" href="#3-store-it-in-jenkins">3. Store it in Jenkins</a></li><li><a class="l2" href="#4-create-the-job">4. Create the job</a></li><li><a class="l2" href="#5-add-the-jenkinsfile">5. Add the Jenkinsfile</a></li><li><a class="l2" href="#6-start-it-on-every-push-and-turn-cipi-s-webhook-off">6. Start it on every push and turn Cipi&#x27;s webhook off</a></li><li><a class="l2" href="#7-run-the-first-deploy">7. Run the first deploy</a></li><li><a class="l2" href="#8-add-approvals-and-a-rollback-button">8. Add approvals and a rollback button</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/agent-vs-pipeline-deploys"><span class="g-cat">Laravel</span><b>Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel</b><span class="g-desc">How Cipi&#x27;s two deploy modes work, side by side, with an honest verdict on when to use the agent&#x27;s push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.</span><span class="g-meta">5 min read</span></a></li><li><a class="g-card" href="/guides/laravel-ci-cd-git-workflow"><span class="g-cat">Laravel</span><b>CI/CD for Laravel with GitHub Actions or GitLab CI</b><span class="g-desc">Test on every push and deploy only when tests pass, with a health check that rolls back a broken release, a dedicated CI key, an optional backup step and zero-downtime releases.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/laravel-aws-codedeploy"><span class="g-cat">Laravel</span><b>Deploy Laravel with AWS CodeDeploy and Cipi</b><span class="g-desc">Let AWS CodeDeploy orchestrate releases while Cipi does the zero-downtime deploy on each server, on EC2 or outside AWS, with a health check, a correct rollback and GitHub Actions on top.</span><span class="g-meta">4 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> in Italy by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+
+</body>
+</html>

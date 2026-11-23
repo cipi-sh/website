@@ -57,10 +57,10 @@ A webhook deploys as soon as you push, so an off-site backup step belongs in a [
           host: ${{ secrets.SERVER_HOST }}
           username: cipi
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: sudo cipi deploy shop || (sudo cipi deploy shop --rollback && exit 1)
+          script: "sudo cipi deploy shop && { curl -fsS --retry 5 --retry-delay 5 --retry-all-errors https://shop.example.com/up >/dev/null || { sudo cipi deploy shop --rollback; exit 1; }; }"
 ```
 
-`test` → `backup` → `deploy`: if one fails, the next never runs; if the deploy fails, the previous release is restored.
+`test` → `backup` → `deploy`: if one fails, the next never runs. If the deploy fails while building, nothing is published and the previous release keeps serving; if the new release is live but doesn't answer, the step rolls it back. [Why it's written this way](/docs/ci-pipelines#deploy-step).
 
 ## Restore {#restore}
 

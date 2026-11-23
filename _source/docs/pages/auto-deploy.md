@@ -53,6 +53,19 @@ $ cipi app logs myapp --type=deploy
 
 Every webhook deploy lands in the [audit ledger](/docs/deploy-audit) with pusher, commit, delivery ID and source IP.
 
+## From any tool, not only Git {#generic}
+
+The agent's webhook also accepts the secret as a Bearer token, so anything that can send an HTTP request can queue a deploy: a CI job, a scheduler, a chat bot.
+
+```bash
+$ curl -fsS -X POST https://myapp.com/cipi/webhook \
+    -H "Authorization: Bearer $CIPI_WEBHOOK_TOKEN" -H "Content-Type: application/json" \
+    -d '{"ref":"refs/heads/main","pusher":{"name":"release-bot"}}'
+{"status":"queued","app":"myapp","provider":"webhook","branch":"main", …}
+```
+
+It queues the deploy and answers at once; it doesn't wait for the result. When a pipeline must know whether the deploy worked, use SSH or the API instead: [CI/CD pipelines](/docs/ci-pipelines#connect).
+
 ## Troubleshooting {#troubleshooting}
 
 | Symptom | Cause | Fix |
