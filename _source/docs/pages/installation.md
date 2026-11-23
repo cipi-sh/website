@@ -89,3 +89,20 @@ $ su root                   # full root shell when you need one
 ```
 
 > [!tip] Lost the credentials? `sudo cipi credentials` prints them again; `sudo cipi credentials export` writes a CSV your password manager can import.
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Installer refuses the OS | Reinstall the VPS with plain Ubuntu 24.04 or 26.04 LTS |
+| Pasted key refused | Paste the **public** key (`.pub`), one line starting with `ssh-ed25519` or `ssh-rsa` |
+| Can't log in after the install | Root login is disabled: `ssh cipi@IP`. Lost the key? Use the provider's web console |
+| Install interrupted | Run the same command again; steps already done are skipped |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Can I install on a server with other software? | No. Cipi needs a fresh server: it configures Nginx, PHP, users and the firewall its own way. |
+| Which size? | 1 GB RAM works for a small app; 2–4 GB is comfortable for several. |
+| Where are the credentials? | Printed at the end of the install, once. Save them in a password manager. |

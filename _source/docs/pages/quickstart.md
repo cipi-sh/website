@@ -95,3 +95,21 @@ Prefer a browser, or need one for clients? Install the API and the panel, each o
 | Back up to S3 every night | [Backups to S3](/docs/backups) |
 | Keep server settings in the repo | [cipi.yml](/docs/yml) |
 | Get alerts on Slack or Telegram | [Notifications](/docs/notifications) |
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| `Permission denied (publickey)` when logging in | Log in as `cipi` (not root) with the key you pasted in the installer: `ssh cipi@IP` |
+| The installer stops: container detected | Choose a full virtual machine (KVM), not an LXC/OpenVZ container |
+| Deploy fails reading the repository | Add the deploy key to the repository, then `sudo cipi git check myapp` |
+| Certificate fails | DNS must point at the server first: `dig +short myapp.com` |
+| 500 error after the first deploy | `sudo cipi app logs myapp --type=laravel` shows the reason; often a missing `.env` key |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| How long does it take? | About 10 minutes for the install, a few minutes per app. |
+| Never used a server? | Read [VPS, SSH and DNS basics](/guides/vps-ssh-dns-basics) first, then [the full first-deploy guide](/guides/deploy-laravel-ubuntu-vps). |
+| Can I use a server I already have? | Only a fresh Ubuntu 24.04 or 26.04 install. Moving from another tool? See the [migration guides](/alternatives). |

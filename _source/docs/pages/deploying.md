@@ -70,3 +70,20 @@ A failed deploy releases its own lock; only an interrupted one needs `--unlock`.
 Deploy, follow the release and read the audit from the browser. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
 
 <cipi-clips name="deploy"></cipi-clips>
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| `Permission denied (publickey)` | Deploy key missing on the repository: `cipi deploy myapp --key` |
+| Deploy locked | A previous deploy was interrupted: `cipi deploy myapp --status`, then `--unlock` |
+| Composer fails on PHP version | Align `--php` with what `composer.lock` needs |
+| Migration fails | The old release keeps serving; fix the migration and deploy again |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Does a failed deploy take the site down? | No. The new release goes live only after every step succeeded. |
+| How do I go back? | `cipi deploy myapp --rollback`, instant. |
+| Are migrations rolled back too? | No: rollback restores code. Use a [pre-deploy snapshot](/docs/safe-deploy) for data. |

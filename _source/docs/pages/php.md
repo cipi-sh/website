@@ -87,3 +87,18 @@ $ cipi ini keys                               # what can and can't be set
 | Every change fires the `ini_set` notification | Nothing changes on a shared server without a trace |
 
 Per-app settings can also live in [cipi.yml](/docs/yml) as `app.ini`.
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Assigning a version is refused | An extension isn't published yet for it: the message lists which; `--force` if unused |
+| `VULNERABLE` in `cipi php list` | Run `cipi php upgrade` now |
+| Wrong `php -v` in the shell | That's the server default; apps use their own |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Can apps use different versions? | Yes, each app has its own. |
+| How do I upgrade an app? | [Upgrade PHP without downtime](/guides/php-version-upgrade). |

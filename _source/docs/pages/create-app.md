@@ -77,3 +77,20 @@ cipi ssl install | HTTPS
 Create an app from the browser: the same wizard, with a server picker. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
 
 <cipi-clips name="create"></cipi-clips>
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| `--repository` refused | Use the SSH form: `git@github.com:you/app.git`, not `https://` |
+| Name refused | Lowercase letters and numbers only, unique on the server |
+| `--engine=pgsql` refused | Install PostgreSQL first: `cipi db install pgsql` |
+| Domain already used | Each hostname belongs to one app; remove it from the other app first |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| I lost the creation summary. | `cipi app show myapp` shows domain, deploy key and webhook; `cipi db password myapp` makes a new database password. |
+| Laravel, custom or Node? | Laravel for Laravel apps, Node for front ends (Next, Nuxt, Vite…), custom for WordPress, plain PHP and static sites. |
+| Can I change the PHP version later? | Yes: `cipi app edit myapp --php=8.6`, with zero downtime. |

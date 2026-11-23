@@ -62,3 +62,15 @@ Every webhook deploy lands in the [audit ledger](/docs/deploy-audit) with pusher
 | 200 but no deploy | Another branch was pushed | Check `CIPI_DEPLOY_BRANCH` |
 | Lock error | An interrupted deploy | `cipi deploy myapp --unlock` |
 | Two deploys per push | Webhook and pipeline both active | Keep [one trigger](/docs/how-deploys-work) |
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Push doesn't deploy | Pushed to another branch, or the webhook was removed: `cipi deploy myapp --webhook` |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Webhook or CI? | Webhook for most apps; CI when tests must pass first. [Guide](/guides/laravel-ci-cd-git-workflow). |

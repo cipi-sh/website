@@ -63,3 +63,17 @@ $ cipi frankenphp prune                # remove unused builds
 To move an app to a new PHP minor: `cipi app edit myapp --php=8.6`, then `cipi frankenphp upgrade myapp`.
 
 > [!tip] Octane serves HTTP only. Run long jobs on [queue workers or Horizon](/docs/workers) and WebSockets on [Reverb](/docs/reverb).
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| 502 after converting | Octane not running: `cipi worker list myapp`, logs with `--type=worker` |
+| Users see others' data | A state leak in long-lived objects: see the [Octane guide](/guides/laravel-octane-frankenphp#state) |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Can I go back to PHP-FPM? | Yes: `cipi app convert myapp --to=fpm`. |
+| How many workers? | Start with one per CPU core: `cipi app limits myapp --octane-workers=4`. |

@@ -45,3 +45,19 @@ $ cipi ssl dns remove client-a
 Tokens are root-only files in `/etc/cipi/cloudflare/`. Removing an account is refused while a certificate still renews with it, so nothing expires silently.
 
 > [!warning] Behind the Cloudflare proxy set SSL/TLS to **Full (strict)**. *Flexible* creates a redirect loop with Cipi's HTTPS redirect. With [Zero Trust](/docs/zero-trust) tunnels, Cloudflare terminates HTTPS and Cipi adapts automatically.
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Certificate fails over HTTP | DNS not pointing at the server, or port 80 closed: check `dig` and the provider firewall |
+| `ERR_TOO_MANY_REDIRECTS` behind Cloudflare | SSL/TLS mode is Flexible: set Full (strict) |
+| Renewal failed alert | `cipi ssl status`; a domain that moved away blocks renewal of the whole certificate: remove its alias |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Do certificates renew by themselves? | Yes, twice daily checks, the same way they were issued. |
+| Wildcards? | Yes, through Cloudflare DNS: `cipi ssl install myapp --dns=cloudflare`. |
+| Is it free? | Yes, Let's Encrypt. |

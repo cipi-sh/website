@@ -41,3 +41,19 @@ Your own keys (Stripe, mail, APIs) go anywhere in the file and are never overwri
 Edit the `.env` with secrets masked and changes tracked. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
 
 <cipi-clips name="env"></cipi-clips>
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Change ignored | Config is cached by deploys: `cipi app artisan myapp config:cache`, then `cipi worker restart myapp` |
+| Value with spaces breaks | Quote it: `--set='MAIL_FROM_NAME="Acme Shop"'` |
+| `The MAC is invalid` | `APP_KEY` changed: restore the old one or set `APP_PREVIOUS_KEYS` |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Is `.env` in my repository? | Never. It lives in `/home/myapp/shared/.env` on the server. |
+| Who can read it? | The app user and root; API tokens with `apps-env`. |
+| More on secrets? | [.env and secrets guide](/guides/laravel-env-secrets). |

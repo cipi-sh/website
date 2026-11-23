@@ -67,3 +67,17 @@ $ cipi app edit web --node=static --output=dist
 The same settings can live in your repository in the [`node:` section of cipi.yml](/docs/yml). Push-to-deploy works without a Laravel agent: Cipi ships a hardened webhook receiver that verifies GitHub/Bitbucket signatures and GitLab/Azure tokens.
 
 > [!note] Node apps get no database by default; add one with [cipi db](/docs/databases). `cipi sync` and `cipi app clone` do not handle Node apps yet.
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Deploy fails: no index.html | `--output` points at the wrong build folder |
+| SSR release never goes live | It must answer the health path within 60 s; check `--start` and the logs |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Which frameworks? | Vite SPAs, static builds, Next, Nuxt, SvelteKit, Astro, Remix. |
+| With a Laravel API? | [API + Next.js/Nuxt guide](/guides/laravel-api-nextjs-nuxt). |

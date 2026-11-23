@@ -80,3 +80,15 @@ $ cipi app reverb status myapp
 workers:
   reverb: true
 ```
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Events never arrive | Broadcasts are queued: make sure a worker runs |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Full example? | [Real-time with Reverb](/guides/laravel-reverb-websockets). |

@@ -50,3 +50,19 @@ The missing counterpart is added as an alias automatically. ACME challenges stay
 Aliases, certificates and www/apex redirects, from the browser. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
 
 <cipi-clips name="domains"></cipi-clips>
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Alias added but the site shows another app | DNS points elsewhere, or the browser cached a redirect: check `dig`, try a private window |
+| HTTPS warning on the new alias | Re-run `cipi ssl install myapp` so the certificate covers it |
+| Wildcard alias doesn't get a certificate | Wildcards need DNS validation: [wildcard domains](/docs/wildcard-domains) |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| How many domains per app? | As many aliases as you like; one certificate covers up to 100 names. |
+| www or not? | Pick one with `cipi www`; the other redirects to it. |
+| Behind Cloudflare? | Read [Cloudflare in front of Laravel](/guides/cloudflare-proxy-ssl-wildcard). |

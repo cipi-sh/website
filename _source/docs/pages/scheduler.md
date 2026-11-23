@@ -39,3 +39,18 @@ $ crontab -e
 $ cipi app artisan myapp schedule:list
 $ grep CRON /var/log/syslog | grep myapp | tail -20
 ```
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Task never runs | `cipi schedule status myapp`; then `schedule:list` |
+| Runs at the wrong time | Server time is UTC: set `->timezone()` |
+| Stuck after a crash | Clear the overlap lock: `cipi app artisan myapp schedule:clear-cache` |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Do I add the cron line? | No, Cipi adds it for every Laravel app. |
+| Full guide? | [Scheduler and cron jobs](/guides/laravel-scheduler-cron). |

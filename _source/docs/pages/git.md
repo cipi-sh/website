@@ -87,3 +87,18 @@ $ cipi auth delete myapp
 ```
 
 Non-interactive flags (`--file=`, `--json`, `--force`) serve scripts and the panel; REST `GET|POST|PUT|DELETE /api/apps/{name}/auth`.
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| `git check` fails | Deploy key not added, or added to the wrong repository |
+| Self-hosted Git on another port | `cipi deploy myapp --trust-host=git.example.com:2222` |
+| Private Composer packages | Add credentials with `cipi auth` (`auth.json`) |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Do I need a provider token? | No, but with one Cipi adds and rotates deploy keys and webhooks for you. |
+| Can I use HTTPS URLs? | Use SSH URLs (`git@…`): deploy keys are read-only and per app. |

@@ -60,3 +60,19 @@ Or schedule it with [cipi autoupdate](/docs/stack-upgrades).
 Every database on every server, with backup, restore and password rotation. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
 
 <cipi-clips name="databases"></cipi-clips>
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| `Access denied for user` | Password changed by hand: `cipi db password myapp` updates database and `.env` together |
+| Restore stops with an error | Cipi stops at the first failing statement: read it, fix the dump or the target |
+| Can't connect from TablePlus | Use the SSH tunnel settings (`mariadb+ssh://` URL from creation); no database port is open |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| MariaDB or PostgreSQL? | Both supported; see [Laravel on PostgreSQL](/guides/laravel-postgresql). |
+| Can I open the database port? | Avoid it; use SSH tunnels. If you must, allow one IP with `cipi firewall allow 3306 --from=…`. |
+| Need a copy without personal data? | [Anonymized dumps](/guides/anonymized-database-dumps). |

@@ -63,3 +63,19 @@ App users manage their own workers without root, through a narrow helper:
 $ sudo cipi-worker status myapp
 $ sudo cipi-worker restart myapp
 ```
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Jobs never run | No worker on that queue, or `QUEUE_CONNECTION=redis` without Horizon |
+| Job killed after 60 s | Set `public $timeout` on the job and raise `retry_after` |
+| Workers run old code | `cipi worker restart myapp` (deploys do it automatically) |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Workers or Horizon? | Workers for a few queues on the database; Horizon for Redis queues with a dashboard. [Guide](/guides/laravel-horizon-queues). |
+| How many processes? | Start with 1–2 per queue and watch wait times. |
+| Do workers survive a reboot? | Yes, Supervisor starts them at boot. |

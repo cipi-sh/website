@@ -43,3 +43,17 @@ The 5xx check reads only what was written since the last run and starts with a b
 The fleet dashboard and each server's health. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
 
 <cipi-clips name="server"></cipi-clips>
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| No alerts | Configure a channel: [notifications](/docs/notifications) |
+| Too many disk alerts | Free space: `cipi disk` shows who uses it |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| What is checked? | Load, memory, disk, services, backups, certificates, security updates, health checks, every 5 minutes. |
+| Errors inside my code? | Use an exception tracker such as [Boogle](/guides/boogle-laravel-monitoring). |

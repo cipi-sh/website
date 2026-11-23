@@ -109,3 +109,19 @@ $ tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files
 ```
 
 Files and databases are stored separately, so a database restores without unpacking an app. Staging uses `/var/tmp` (disk), not a small RAM-backed `/tmp`. Meilisearch indexes are not backed up: `scout:import` rebuilds them from the database.
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| `destination test` fails | Wrong endpoint, region or key permissions on the bucket |
+| Profile overdue | `cipi backup status` names it; check disk space and the run log |
+| Can't open an encrypted archive | You need the backup key from `cipi backup key show` (store it off-server) |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Where should backups go? | Off-site: another provider or region, S3-compatible. Your own: [Johnny](/guides/johnny-s3-storage). |
+| How often? | Databases every 30–60 minutes for busy apps, everything nightly. [Backup guide](/guides/backup-vps-s3). |
+| Have I tested a restore? | Do it now with `cipi backup fetch` into a scratch folder: a backup you haven't restored is a hope. |

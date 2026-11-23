@@ -70,3 +70,17 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | SSH key added, removed, renamed | Fingerprint, comment, remaining keys |
 
 They run in the background through PAM, so they never slow a login. Wrap your own cron jobs with `cipi-cron-notify` to be alerted when they exit non-zero.
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| Telegram silent | Send `/start` to the bot first; group ids are negative |
+| E-mail never arrives | Use an SMTP service on port 587; port 25 is blocked by most providers |
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Which channels? | E-mail, Slack, Mattermost, Google Chat, Discord, Telegram, ntfy, Pushover, signed webhooks. |
+| Step by step? | [Notifications and alerts guide](/guides/notifications-alerts). |
