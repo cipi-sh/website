@@ -11,10 +11,10 @@ $ php artisan cipi:yml schema --write                  # JSON Schema for your ed
 ```
 
 ```flow
-Generate | from your code
-Edit | with schema autocompletion
-Validate | locally and in CI
-Commit & deploy | server plans and applies
+Generate | from your code | #generate
+Validate | locally and in CI | #validate
+Edit | with schema autocompletion | #editor
+Ask your assistant | validate drafts over MCP | #assistant
 ```
 
 ## Generate from your app {#generate}

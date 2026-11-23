@@ -18,15 +18,14 @@ faq:
 EC2 gives you a full virtual machine, which is exactly what Cipi needs. This walkthrough uses the AWS console; the same settings work from Terraform or the CLI.
 
 ```flow
-Launch | Ubuntu 24.04 LTS
-Security group | 22, 80, 443
-Elastic IP | stable public address
-Install | wget … | bash
-DNS | A record → Elastic IP
+Launch | Ubuntu 24.04 LTS | #launch
+Security group | 22, 80, 443 | #ports
+Elastic IP | stable public address | #elastic-ip
+Install | one command | #install
+DNS | A record → Elastic IP | #dns
 ```
 
-## 1. Launch the instance
-
+## 1. Launch the instance {#launch}
 In **EC2 → Launch instance**:
 
 | Setting | Choose |
@@ -37,8 +36,7 @@ In **EC2 → Launch instance**:
 | Storage | 30 GB gp3 or more (releases, logs and local backups live here) |
 | Network | A public subnet, **Auto-assign public IP** on |
 
-## 2. Open the ports
-
+## 2. Open the ports {#ports}
 Create a security group with inbound rules:
 
 | Port | Source | For |
@@ -49,12 +47,10 @@ Create a security group with inbound rules:
 
 Cipi also runs its own firewall (UFW) on the instance; the two layers don't conflict.
 
-## 3. Attach an Elastic IP
-
+## 3. Attach an Elastic IP {#elastic-ip}
 **EC2 → Elastic IPs → Allocate**, then **Associate** it with the instance. The public IP of an instance changes on stop/start; your DNS shouldn't.
 
-## 4. Install Cipi
-
+## 4. Install Cipi {#install}
 EC2 logs you in as `ubuntu` (a sudo user), not root:
 
 ```bash
@@ -70,8 +66,7 @@ $ ssh cipi@203.0.113.10
 $ sudo cipi status
 ```
 
-## 5. Point DNS and create the first app
-
+## 5. Point DNS and create the first app {#dns}
 Create an `A` record (Route 53 or your DNS provider) for your domain to the Elastic IP, then follow [Deploy Laravel on an Ubuntu VPS](/guides/deploy-laravel-ubuntu-vps) from step 4.
 
 ## AWS services that fit well

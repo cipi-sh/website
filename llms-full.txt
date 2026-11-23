@@ -37,11 +37,11 @@ URL: https://cipi.sh/docs/quickstart
 From a fresh Ubuntu server to a Laravel app on HTTPS, in about fifteen minutes. Every step shows the real command and what it prints; click a terminal to jump to the end.
 
 ```flow
-Install | one command on the server
-Log in | as cipi, with your SSH key
-Create an app | isolated user, DB, PHP
-Deploy | zero downtime from Git
-HTTPS | Let's Encrypt, auto-renewed
+Install | one command on the server | #qs-install
+Log in | as cipi, with your SSH key | #qs-login
+Create an app | isolated user, DB, PHP | #qs-create
+Deploy | zero downtime from Git | #qs-deploy
+HTTPS | Let's Encrypt, auto-renewed | #qs-ssl
 ```
 
 **You need:** an Ubuntu 24.04 or 26.04 VPS with a public IP, a domain whose DNS you control, and a Git repository. Cipi is free; the only cost is the server.
@@ -139,11 +139,11 @@ Works on DigitalOcean, Hetzner, AWS EC2, Vultr, Linode, Google Cloud, OVH, Scale
 ## Install
 
 ```flow
-SSH key | on your laptop
-Installer | on the server
-Plan & confirm | nothing changes until you say yes
-Stack + hardening | ~10 minutes
-Credentials | shown once, stored encrypted
+SSH key | on your laptop | #ssh-key
+Installer | on the server | #run-installer
+Unattended | for scripts and images | #unattended
+Hardening | what gets secured | #hardening
+Log in | as cipi, credentials saved | #post-install
 ```
 
 ### 1. Get your SSH public key 
@@ -2616,11 +2616,11 @@ Cipi changes a server deeply (users, SSH, firewall, packages, repositories), so 
 > [!warning] This deletes every app, database, certificate and configuration Cipi manages. Back up first ([Backups](https://cipi.sh/docs/backups)). It cannot be undone.
 
 ```flow
-Back up | backups, credentials export
-Remove apps | users, vhosts, pools, databases
-Remove Cipi | users, binaries, config, cron
-Purge packages | optional
-Restore SSH & firewall | last
+Back up | before anything
+Remove apps | one by one | #apps
+Remove Cipi | CLI and services | #cipi
+Purge packages | stack and repositories | #packages
+SSH & firewall | last | #ssh
 ```
 
 ## 1. Apps 
@@ -3654,10 +3654,10 @@ $ php artisan cipi:yml schema --write                  # JSON Schema for your ed
 ```
 
 ```flow
-Generate | from your code
-Edit | with schema autocompletion
-Validate | locally and in CI
-Commit & deploy | server plans and applies
+Generate | from your code | #generate
+Validate | locally and in CI | #validate
+Edit | with schema autocompletion | #editor
+Ask your assistant | validate drafts over MCP | #assistant
 ```
 
 ## Generate from your app 
@@ -4111,10 +4111,10 @@ URL: https://cipi.sh/docs/gui-sso
 The panel can sign people in through your identity provider over **OpenID Connect**: Microsoft Entra ID, Google Workspace, Okta, Keycloak, Authentik, Zitadel, Auth0, anything with a `/.well-known/openid-configuration`. SAML isn't supported. SSO is opt-in and configured **from the server**, which is also the break-glass if a provider breaks.
 
 ```flow
-Register | OIDC client at your IdP
-cipi gui sso set | issuer, client id, secret
-Sign in | button on the login page
-Match | by e-mail, then by identity
+Register | OIDC client at your provider | #register
+Turn it on | cipi gui sso set | #enable
+Who gets in | matched by e-mail | #who
+Troubleshooting | and the break-glass | #troubleshooting
 ```
 
 ## 1. Register the panel at your provider 
@@ -5409,23 +5409,21 @@ URL: https://cipi.sh/guides/deploy-laravel-ubuntu-vps
 This guide takes a fresh VPS to a live Laravel app with HTTPS, a queue worker, the scheduler and deploys on every `git push`. It uses [Cipi](https://cipi.sh/), a free, open-source tool that installs and runs the whole stack on your own server.
 
 ```flow
-Server | Ubuntu 24.04 or 26.04
-Install | one command, ~10 min
-App | isolated user, DB, PHP
-Deploy | atomic release from Git
-HTTPS | Let's Encrypt
+Server | Ubuntu 24.04 or 26.04 | #server
+Install | one command, ~10 min | #install
+App | isolated user, DB, PHP | #app
+Deploy | atomic release from Git | #deploy
+HTTPS | Let's Encrypt | #https
 ```
 
 **You need:** a VPS with a public IPv4 (1 GB RAM is enough to start, 2 GB is comfortable), a domain whose DNS you control, and your Laravel project in a Git repository (GitHub, GitLab, Bitbucket, Azure DevOps or any server that accepts SSH deploy keys).
 
-## 1. Create the server
-
+## 1. Create the server 
 Pick any provider that gives you a full virtual machine with Ubuntu 24.04 or 26.04 LTS: Hetzner, DigitalOcean, AWS, Vultr, Linode, OVHcloud, Scaleway. Provider-specific walkthroughs: [AWS EC2](https://cipi.sh/guides/cipi-aws-ec2), [Lightsail](https://cipi.sh/guides/cipi-aws-lightsail), [DigitalOcean](https://cipi.sh/guides/cipi-digitalocean), [Hetzner](https://cipi.sh/guides/cipi-hetzner).
 
 Open ports **22, 80 and 443** in the provider's firewall if it has one. Then point your domain's `A` record at the server's IP; DNS can propagate while you install.
 
-## 2. Install Cipi
-
+## 2. Install Cipi 
 SSH in as root (or a sudo user) and run the installer:
 
 ```bash
@@ -5444,8 +5442,7 @@ $ ssh cipi@203.0.113.10
 $ sudo cipi status
 ```
 
-## 4. Create the app
-
+## 4. Create the app 
 ```bash
 $ sudo cipi app create --user=shop --domain=shop.example.com \
     --repository=git@github.com:acme/shop.git --branch=main --php=8.6
@@ -5468,16 +5465,14 @@ Add the deploy key from the summary as a **read-only deploy key** (GitHub: Setti
 $ sudo cipi git check shop
 ```
 
-## 6. Deploy
-
+## 6. Deploy 
 ```bash
 $ sudo cipi deploy shop
 ```
 
 Each deploy clones into a new release folder, runs `composer install`, links `.env` and `storage`, runs migrations, builds assets if you set a build command, then switches `current` with one atomic symlink and restarts workers. Visitors never see a half-deployed app.
 
-## 7. Turn on HTTPS
-
+## 7. Turn on HTTPS 
 ```bash
 $ sudo cipi ssl install shop
 ```
@@ -5507,15 +5502,14 @@ URL: https://cipi.sh/guides/cipi-aws-ec2
 EC2 gives you a full virtual machine, which is exactly what Cipi needs. This walkthrough uses the AWS console; the same settings work from Terraform or the CLI.
 
 ```flow
-Launch | Ubuntu 24.04 LTS
-Security group | 22, 80, 443
-Elastic IP | stable public address
-Install | wget … | bash
-DNS | A record → Elastic IP
+Launch | Ubuntu 24.04 LTS | #launch
+Security group | 22, 80, 443 | #ports
+Elastic IP | stable public address | #elastic-ip
+Install | wget … | bash | #install
+DNS | A record → Elastic IP | #dns
 ```
 
-## 1. Launch the instance
-
+## 1. Launch the instance 
 In **EC2 → Launch instance**:
 
 | Setting | Choose |
@@ -5526,8 +5520,7 @@ In **EC2 → Launch instance**:
 | Storage | 30 GB gp3 or more (releases, logs and local backups live here) |
 | Network | A public subnet, **Auto-assign public IP** on |
 
-## 2. Open the ports
-
+## 2. Open the ports 
 Create a security group with inbound rules:
 
 | Port | Source | For |
@@ -5538,12 +5531,10 @@ Create a security group with inbound rules:
 
 Cipi also runs its own firewall (UFW) on the instance; the two layers don't conflict.
 
-## 3. Attach an Elastic IP
-
+## 3. Attach an Elastic IP 
 **EC2 → Elastic IPs → Allocate**, then **Associate** it with the instance. The public IP of an instance changes on stop/start; your DNS shouldn't.
 
-## 4. Install Cipi
-
+## 4. Install Cipi 
 EC2 logs you in as `ubuntu` (a sudo user), not root:
 
 ```bash
@@ -5559,8 +5550,7 @@ $ ssh cipi@203.0.113.10
 $ sudo cipi status
 ```
 
-## 5. Point DNS and create the first app
-
+## 5. Point DNS and create the first app 
 Create an `A` record (Route 53 or your DNS provider) for your domain to the Elastic IP, then follow [Deploy Laravel on an Ubuntu VPS](https://cipi.sh/guides/deploy-laravel-ubuntu-vps) from step 4.
 
 ## AWS services that fit well
@@ -6586,14 +6576,14 @@ URL: https://cipi.sh/guides/manage-apps-with-cipi-yml
 Most panels keep an app's server settings in a database you can't review. Cipi lets you put them in **`cipi.yml`**, a file at the root of your repository. It travels with each release: you review it in a pull request, see exactly what it would change, and apply it in one step.
 
 ```flow
-Commit cipi.yml | reviewed like code
-Deploy | the file ships with the release
-Plan | every change listed first
-Apply | all or nothing
+Generate | from what the app has | #generate
+Describe | PHP, workers, backups… | #describe
+Validate | before you push | #validate
+Plan & apply | all or nothing | #plan
+Automatic | after every deploy | #auto
 ```
 
-## 1. Start from what the app already has
-
+## 1. Start from what the app already has 
 ```bash
 $ sudo cipi yml generate shop --save
 $ cat /home/shop/cipi.yml
@@ -6601,8 +6591,7 @@ $ cat /home/shop/cipi.yml
 
 Commit that file at the root of the repository. After the next deploy, `cipi yml plan shop` should say there's nothing to do: the file describes the server as it is.
 
-## 2. Describe the app
-
+## 2. Describe the app 
 A typical Laravel app:
 
 ```yaml
@@ -6650,8 +6639,7 @@ backup:
 
 The full list, with routes, proxies, crons and Node apps, is in the [cipi.yml reference](https://cipi.sh/docs/yml).
 
-## 3. Validate before you push
-
+## 3. Validate before you push 
 Install the [Cipi Agent](https://cipi.sh/docs/agent) in the app and validate with the same rules as the server, locally or in CI:
 
 ```bash
@@ -6661,14 +6649,12 @@ $ php artisan cipi:yml validate
 
 Add `# yaml-language-server: $schema=./cipi.schema.json` at the top of the file (after `php artisan cipi:yml schema --write`) for autocompletion in VS Code or PhpStorm.
 
-## 4. Plan and apply
-
+## 4. Plan and apply 
 After deploying the release that contains the file:
 
 `plan` lists every change and every blocker. `apply` performs them as one transaction: if anything fails, nothing is left half done.
 
-## 5. Apply on every deploy
-
+## 5. Apply on every deploy 
 ```bash
 $ sudo cipi yml auto shop on
 ```
@@ -6695,14 +6681,13 @@ URL: https://cipi.sh/guides/anonymized-database-dumps
 Debugging with fake seed data misses the bugs that real data causes. Copying production to laptops is a GDPR problem. The anonymizer in [Cipi Agent](https://cipi.sh/guides/cipi-agent-laravel-mcp) gives you the middle ground: production's structure and volume, with every personal field replaced.
 
 ```flow
-Request | cipi-cli or POST /cipi/db
-Dump | mysqldump / pg_dump
-Rewrite | only the listed columns
-E-mail | signed link, 15 minutes
+Enable | in the app | #enable
+Rules | what gets replaced | #rules
+Request | from your laptop | #request
+Check | no real data left | #check
 ```
 
-## 1. Enable it in the app
-
+## 1. Enable it in the app 
 ```bash
 $ composer require cipi/agent                    # commit, deploy
 $ php artisan cipi:service anonymize --enable    # as the app user
@@ -6712,8 +6697,7 @@ $ php artisan cipi:init-anonymize --scan
 
 `--scan` reads your schema and proposes a transformation for every column that looks personal (e-mails, names, phones, addresses, IPs, tokens, passwords, tax ids, card data, free text) and empties tables like `sessions`, `jobs` and `password_reset_tokens`. The file goes to `~/.db/anonymization.json`, **outside the repository**.
 
-## 2. Review the rules
-
+## 2. Review the rules 
 ```json
 {
   "transformations": {
@@ -6741,8 +6725,7 @@ $ php artisan cipi:anonymize-audit
 
 It fails on unknown tables or columns and lists personal-looking columns you didn't cover. **Run it after every migration.**
 
-## 3. Get a dump from your laptop
-
+## 3. Get a dump from your laptop 
 ```bash
 $ cipi-cli prod db anonymize shop --email dev@example.com
 ✓ Anonymization job queued for 'shop'
@@ -6751,8 +6734,7 @@ $ cipi-cli db anonymize download "" -o - | mysql -u root shop_local
 
 No SSH, no token in your shell history: [cipi-cli](https://cipi.sh/docs/cli-client) reads it through the API. The link expires after 15 minutes.
 
-## 4. Check it
-
+## 4. Check it 
 ```bash
 $ grep -c "real.customer@gmail.com" shop.sql     # must be 0
 ```
@@ -7023,15 +7005,14 @@ URL: https://cipi.sh/guides/spec-driven-development-ai-laravel
 AI coding agents are good at implementing a clear, testable specification and bad at guessing what you meant. The teams getting value write the spec first, keep the agent inside guardrails, and give it eyes on production through MCP.
 
 ```flow
-Spec | what and why, acceptance criteria
-Tests | written from the spec
+Spec | what and why, acceptance criteria | #spec
+Tests | written from the spec | #tests
 Agent | implements until tests pass
-Review | a human, on a preview URL
-Production | deploy, then observe through MCP
+Review | a human, on a preview URL | #review
+Production | deploy, then observe through MCP | #production
 ```
 
-## 1. Write the spec, not the prompt
-
+## 1. Write the spec, not the prompt 
 | A good spec has | Example |
 | --- | --- |
 | The user and the problem | "Accountants can't find unpaid invoices quickly" |
@@ -7041,16 +7022,13 @@ Production | deploy, then observe through MCP
 
 Tools like [Larapilot](https://larapilot.web.ap.it/) structure this with personas and review steps on top of Laravel Boost.
 
-## 2. Tests before code
-
+## 2. Tests before code 
 Ask the agent to write Pest tests from the acceptance criteria first, review them, then let it implement until they pass. The tests are the contract.
 
-## 3. Review on a real URL
-
+## 3. Review on a real URL 
 Push the branch and get a [preview environment](https://cipi.sh/guides/laravel-preview-environments). Reviewers click instead of pulling code; seed it with an [anonymized dump](https://cipi.sh/guides/anonymized-database-dumps) so edge cases from real data show up.
 
-## 4. Close the loop on production
-
+## 4. Close the loop on production 
 After the deploy, the same assistant can check the result through the [Cipi MCP](https://cipi.sh/guides/cipi-mcp-ai-agents):
 
 ```text
@@ -7076,15 +7054,14 @@ URL: https://cipi.sh/guides/cloudflare-zero-trust-laravel
 With a Cloudflare Tunnel the server dials out to Cloudflare, and visitors reach it through Cloudflare's network. Once every app goes through the tunnel, you can close ports 80, 443 and even 22. Cipi does it in reversible steps; nothing closes until you ask.
 
 ```flow
-Token | Tunnel, Access, DNS
-Enable | tunnel; ports still open
-Route | apps, panel, SSH
-Test | from your laptop
-Lock | close the ports
+Token & enable | tunnel; ports still open | #token
+Route | apps, staging, panel | #route
+SSH | through Access | #ssh
+Certificates | DNS-01 or Origin CA | #certificates
+Lock | close the ports | #lock
 ```
 
-## 1. Create an API token
-
+## 1. Create an API token 
 In Cloudflare: **My Profile → API Tokens → Create**, with Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (and Zone · SSL and Certificates for Origin CA certificates).
 
 ```bash
@@ -7094,8 +7071,7 @@ $ sudo cipi zt enable
 
 `enable` installs `cloudflared`, creates the tunnel and teaches Nginx, fail2ban and CrowdSec Cloudflare's IP ranges (refreshed daily). **No port is closed yet.**
 
-## 2. Route the apps
-
+## 2. Route the apps 
 ```bash
 $ sudo cipi zt hostname add shop          # public, through CDN and WAF
 $ sudo cipi zt hostname add shop-stg
@@ -7105,8 +7081,7 @@ $ sudo cipi zt access enable --gui        # the web panel too
 
 Access protects staging and the panel with your identity provider. `/cipi/webhook` stays reachable so pushes still deploy.
 
-## 3. SSH through the tunnel
-
+## 3. SSH through the tunnel 
 ```bash
 $ sudo cipi zt ssh enable --hostname=ssh.example.com
 ```
@@ -7123,16 +7098,14 @@ Host ssh.example.com
 
 Test `ssh ssh.example.com` **before** the next step.
 
-## 4. Certificates
-
+## 4. Certificates 
 A closed origin can't renew over HTTP. Move each app to DNS validation, or use a long-lived Cloudflare Origin CA certificate:
 
 ```bash
 $ sudo cipi ssl install shop --dns=cloudflare
 ```
 
-## 5. Close the ports
-
+## 5. Close the ports 
 ```bash
 $ sudo cipi zt lock http --yes     # 80/443 closed, or Cloudflare-only
 $ sudo cipi zt lock ssh --yes      # 22 closed; SSH only through Access
@@ -7290,15 +7263,14 @@ URL: https://cipi.sh/guides/backup-vps-s3
 A backup you haven't restored is a hope. This guide sets up encrypted backups to S3-compatible storage, checks them automatically and walks through a restore.
 
 ```flow
-Destination | S3-compatible bucket
-Profiles | what, how often, how long
-Run | scheduled, encrypted
-Verify | archives readable
-Restore | one app or everything
+Destination | S3-compatible bucket | #destination
+Profiles | what, how often, how long | #profiles
+In cipi.yml | the app declares its own | #in-cipi-yml
+Verify | archives readable | #verify
+Restore | one app or everything | #restore
 ```
 
-## 1. Add a destination
-
+## 1. Add a destination 
 Create a bucket and an access key limited to it, at any S3-compatible provider. Then:
 
 ```bash
@@ -7308,8 +7280,7 @@ $ sudo cipi backup destination test
 
 Secret keys are entered on the server and never travel through the panel or the API.
 
-## 2. Create profiles
-
+## 2. Create profiles 
 ```bash
 $ sudo cipi backup profile add nightly --scope=all --cron='0 2 * * *' --keep-days=14 \
     --dest=s3 --encrypt
@@ -7326,8 +7297,7 @@ $ sudo cipi backup status
 
 `cipi backup status` flags apps and databases that **no enabled profile covers**, so a new app can't silently go unprotected.
 
-## 3. Let the app declare its own backups
-
+## 3. Let the app declare its own backups 
 ```yaml
 # cipi.yml
 backup:
@@ -7338,8 +7308,7 @@ backup:
 
 Profile names must start with the app's name, so a repository can't touch another app's backups.
 
-## 4. Verify
-
+## 4. Verify 
 ```bash
 $ sudo cipi backup verify           # archives present and readable
 $ sudo cipi backup verify --deep    # also decrypts and checks contents
@@ -7347,8 +7316,7 @@ $ sudo cipi backup verify --deep    # also decrypts and checks contents
 
 Failures go to your [notification channels](https://cipi.sh/guides/server-monitoring-alerts).
 
-## 5. Restore
-
+## 5. Restore 
 ```bash
 $ sudo cipi backup list --profile=nightly
 $ sudo cipi backup fetch nightly 2026-11-22_020000 --dest=/root/restore
@@ -8532,11 +8500,13 @@ Install Cipi on a fresh server, recreate each app with `cipi app create` (same r
 
 URL: https://cipi.sh/cipi-yml
 
-Edit cipi.ymlin a branch
-Reviewin the pull request
-Deploythe file ships with the release
-Planevery change listed
-Applyall or nothing
+```flow
+Edit cipi.yml | in a branch | #file
+Review | in the pull request | #validate
+Deploy | the file ships with the release | #environments
+Plan | every change listed | #plan
+Apply | all or nothing | #safe
+```
 
 ## 1. Edit: the whole app, in one file 
 

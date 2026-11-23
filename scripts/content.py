@@ -181,7 +181,7 @@ def shell(*, path: str, title: str, full_title: str, desc: str, eyebrow: tuple[s
     css = ['<link rel="stylesheet" href="/assets/css/base.css">', '<link rel="stylesheet" href="/assets/css/docs.css">',
            '<link rel="stylesheet" href="/assets/css/article.css">']
     js = ['<script src="/assets/js/site.js" defer></script>', '<script src="/assets/js/docs.js" defer></script>',
-          '<script src="/assets/js/search.js" defer></script>', '<script src="/assets/js/share.js" defer></script>']
+          '<script src="/assets/js/search.js" defer></script>', '<script src="/assets/js/share.js" defer></script>', '<script src="/assets/js/stepper.js" defer></script>']
     if "clips" in uses:
         css.append('<link rel="stylesheet" href="/assets/css/clips.css">')
         js.append('<script src="/assets/js/clips.js" defer></script>')

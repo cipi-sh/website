@@ -210,7 +210,7 @@ def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs:
     ) + f'<li aria-current="page">{esc(crumbs[-1][0])}</li>'
     css = ['<link rel="stylesheet" href="/assets/css/base.css">', '<link rel="stylesheet" href="/assets/css/docs.css">']
     js = ['<script src="/assets/js/site.js" defer></script>', '<script src="/assets/js/docs.js" defer></script>',
-          '<script src="/assets/js/search.js" defer></script>']
+          '<script src="/assets/js/search.js" defer></script>', '<script src="/assets/js/stepper.js" defer></script>']
     if "clips" in uses:
         css.append('<link rel="stylesheet" href="/assets/css/clips.css">')
         js.append('<script src="/assets/js/clips.js" defer></script>')

@@ -19,14 +19,13 @@ faq:
 Debugging with fake seed data misses the bugs that real data causes. Copying production to laptops is a GDPR problem. The anonymizer in [Cipi Agent](/guides/cipi-agent-laravel-mcp) gives you the middle ground: production's structure and volume, with every personal field replaced.
 
 ```flow
-Request | cipi-cli or POST /cipi/db
-Dump | mysqldump / pg_dump
-Rewrite | only the listed columns
-E-mail | signed link, 15 minutes
+Enable | in the app | #enable
+Rules | what gets replaced | #rules
+Request | from your laptop | #request
+Check | no real data left | #check
 ```
 
-## 1. Enable it in the app
-
+## 1. Enable it in the app {#enable}
 ```bash
 $ composer require cipi/agent                    # commit, deploy
 $ php artisan cipi:service anonymize --enable    # as the app user
@@ -36,8 +35,7 @@ $ php artisan cipi:init-anonymize --scan
 
 `--scan` reads your schema and proposes a transformation for every column that looks personal (e-mails, names, phones, addresses, IPs, tokens, passwords, tax ids, card data, free text) and empties tables like `sessions`, `jobs` and `password_reset_tokens`. The file goes to `~/.db/anonymization.json`, **outside the repository**.
 
-## 2. Review the rules
-
+## 2. Review the rules {#rules}
 ```json
 {
   "transformations": {
@@ -65,8 +63,7 @@ $ php artisan cipi:anonymize-audit
 
 It fails on unknown tables or columns and lists personal-looking columns you didn't cover. **Run it after every migration.**
 
-## 3. Get a dump from your laptop
-
+## 3. Get a dump from your laptop {#request}
 ```bash
 $ cipi-cli prod db anonymize shop --email dev@example.com
 ✓ Anonymization job queued for 'shop'
@@ -75,8 +72,7 @@ $ cipi-cli db anonymize download "<signed url from the e-mail>" -o - | mysql -u 
 
 No SSH, no token in your shell history: [cipi-cli](/docs/cli-client) reads it through the API. The link expires after 15 minutes.
 
-## 4. Check it
-
+## 4. Check it {#check}
 ```bash
 $ grep -c "real.customer@gmail.com" shop.sql     # must be 0
 ```

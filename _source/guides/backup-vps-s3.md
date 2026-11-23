@@ -19,15 +19,14 @@ faq:
 A backup you haven't restored is a hope. This guide sets up encrypted backups to S3-compatible storage, checks them automatically and walks through a restore.
 
 ```flow
-Destination | S3-compatible bucket
-Profiles | what, how often, how long
-Run | scheduled, encrypted
-Verify | archives readable
-Restore | one app or everything
+Destination | S3-compatible bucket | #destination
+Profiles | what, how often, how long | #profiles
+In cipi.yml | the app declares its own | #in-cipi-yml
+Verify | archives readable | #verify
+Restore | one app or everything | #restore
 ```
 
-## 1. Add a destination
-
+## 1. Add a destination {#destination}
 Create a bucket and an access key limited to it, at any S3-compatible provider. Then:
 
 ```bash
@@ -37,8 +36,7 @@ $ sudo cipi backup destination test
 
 Secret keys are entered on the server and never travel through the panel or the API.
 
-## 2. Create profiles
-
+## 2. Create profiles {#profiles}
 ```bash
 $ sudo cipi backup profile add nightly --scope=all --cron='0 2 * * *' --keep-days=14 \
     --dest=s3 --encrypt
@@ -55,8 +53,7 @@ $ sudo cipi backup status
 
 `cipi backup status` flags apps and databases that **no enabled profile covers**, so a new app can't silently go unprotected.
 
-## 3. Let the app declare its own backups
-
+## 3. Let the app declare its own backups {#in-cipi-yml}
 ```yaml
 # cipi.yml
 backup:
@@ -67,8 +64,7 @@ backup:
 
 Profile names must start with the app's name, so a repository can't touch another app's backups.
 
-## 4. Verify
-
+## 4. Verify {#verify}
 ```bash
 $ sudo cipi backup verify           # archives present and readable
 $ sudo cipi backup verify --deep    # also decrypts and checks contents
@@ -76,8 +72,7 @@ $ sudo cipi backup verify --deep    # also decrypts and checks contents
 
 Failures go to your [notification channels](/guides/server-monitoring-alerts).
 
-## 5. Restore
-
+## 5. Restore {#restore}
 ```bash
 $ sudo cipi backup list --profile=nightly
 $ sudo cipi backup fetch nightly 2026-11-22_020000 --dest=/root/restore

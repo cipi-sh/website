@@ -20,11 +20,11 @@ Works on DigitalOcean, Hetzner, AWS EC2, Vultr, Linode, Google Cloud, OVH, Scale
 ## Install
 
 ```flow
-SSH key | on your laptop
-Installer | on the server
-Plan & confirm | nothing changes until you say yes
-Stack + hardening | ~10 minutes
-Credentials | shown once, stored encrypted
+SSH key | on your laptop | #ssh-key
+Installer | on the server | #run-installer
+Unattended | for scripts and images | #unattended
+Hardening | what gets secured | #hardening
+Log in | as cipi, credentials saved | #post-install
 ```
 
 <cipi-term name="install"></cipi-term>

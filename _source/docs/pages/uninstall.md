@@ -5,11 +5,11 @@ Cipi changes a server deeply (users, SSH, firewall, packages, repositories), so 
 > [!warning] This deletes every app, database, certificate and configuration Cipi manages. Back up first ([Backups](/docs/backups)). It cannot be undone.
 
 ```flow
-Back up | backups, credentials export
-Remove apps | users, vhosts, pools, databases
-Remove Cipi | users, binaries, config, cron
-Purge packages | optional
-Restore SSH & firewall | last
+Back up | before anything
+Remove apps | one by one | #apps
+Remove Cipi | CLI and services | #cipi
+Purge packages | stack and repositories | #packages
+SSH & firewall | last | #ssh
 ```
 
 ## 1. Apps {#apps}

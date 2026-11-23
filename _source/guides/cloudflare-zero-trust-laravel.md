@@ -15,15 +15,14 @@ related:
 With a Cloudflare Tunnel the server dials out to Cloudflare, and visitors reach it through Cloudflare's network. Once every app goes through the tunnel, you can close ports 80, 443 and even 22. Cipi does it in reversible steps; nothing closes until you ask.
 
 ```flow
-Token | Tunnel, Access, DNS
-Enable | tunnel; ports still open
-Route | apps, panel, SSH
-Test | from your laptop
-Lock | close the ports
+Token & enable | tunnel; ports still open | #token
+Route | apps, staging, panel | #route
+SSH | through Access | #ssh
+Certificates | DNS-01 or Origin CA | #certificates
+Lock | close the ports | #lock
 ```
 
-## 1. Create an API token
-
+## 1. Create an API token {#token}
 In Cloudflare: **My Profile → API Tokens → Create**, with Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (and Zone · SSL and Certificates for Origin CA certificates).
 
 ```bash
@@ -33,8 +32,7 @@ $ sudo cipi zt enable
 
 `enable` installs `cloudflared`, creates the tunnel and teaches Nginx, fail2ban and CrowdSec Cloudflare's IP ranges (refreshed daily). **No port is closed yet.**
 
-## 2. Route the apps
-
+## 2. Route the apps {#route}
 ```bash
 $ sudo cipi zt hostname add shop          # public, through CDN and WAF
 $ sudo cipi zt hostname add shop-stg
@@ -44,8 +42,7 @@ $ sudo cipi zt access enable --gui        # the web panel too
 
 Access protects staging and the panel with your identity provider. `/cipi/webhook` stays reachable so pushes still deploy.
 
-## 3. SSH through the tunnel
-
+## 3. SSH through the tunnel {#ssh}
 ```bash
 $ sudo cipi zt ssh enable --hostname=ssh.example.com
 ```
@@ -62,16 +59,14 @@ Host ssh.example.com
 
 Test `ssh ssh.example.com` **before** the next step.
 
-## 4. Certificates
-
+## 4. Certificates {#certificates}
 A closed origin can't renew over HTTP. Move each app to DNS validation, or use a long-lived Cloudflare Origin CA certificate:
 
 ```bash
 $ sudo cipi ssl install shop --dns=cloudflare
 ```
 
-## 5. Close the ports
-
+## 5. Close the ports {#lock}
 ```bash
 $ sudo cipi zt lock http --yes     # 80/443 closed, or Cloudflare-only
 $ sudo cipi zt lock ssh --yes      # 22 closed; SSH only through Access

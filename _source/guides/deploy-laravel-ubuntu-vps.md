@@ -19,23 +19,21 @@ faq:
 This guide takes a fresh VPS to a live Laravel app with HTTPS, a queue worker, the scheduler and deploys on every `git push`. It uses [Cipi](/), a free, open-source tool that installs and runs the whole stack on your own server.
 
 ```flow
-Server | Ubuntu 24.04 or 26.04
-Install | one command, ~10 min
-App | isolated user, DB, PHP
-Deploy | atomic release from Git
-HTTPS | Let's Encrypt
+Server | Ubuntu 24.04 or 26.04 | #server
+Install | one command, ~10 min | #install
+App | isolated user, DB, PHP | #app
+Deploy | atomic release from Git | #deploy
+HTTPS | Let's Encrypt | #https
 ```
 
 **You need:** a VPS with a public IPv4 (1 GB RAM is enough to start, 2 GB is comfortable), a domain whose DNS you control, and your Laravel project in a Git repository (GitHub, GitLab, Bitbucket, Azure DevOps or any server that accepts SSH deploy keys).
 
-## 1. Create the server
-
+## 1. Create the server {#server}
 Pick any provider that gives you a full virtual machine with Ubuntu 24.04 or 26.04 LTS: Hetzner, DigitalOcean, AWS, Vultr, Linode, OVHcloud, Scaleway. Provider-specific walkthroughs: [AWS EC2](/guides/cipi-aws-ec2), [Lightsail](/guides/cipi-aws-lightsail), [DigitalOcean](/guides/cipi-digitalocean), [Hetzner](/guides/cipi-hetzner).
 
 Open ports **22, 80 and 443** in the provider's firewall if it has one. Then point your domain's `A` record at the server's IP; DNS can propagate while you install.
 
-## 2. Install Cipi
-
+## 2. Install Cipi {#install}
 SSH in as root (or a sudo user) and run the installer:
 
 ```bash
@@ -56,8 +54,7 @@ $ ssh cipi@203.0.113.10
 $ sudo cipi status
 ```
 
-## 4. Create the app
-
+## 4. Create the app {#app}
 ```bash
 $ sudo cipi app create --user=shop --domain=shop.example.com \
     --repository=git@github.com:acme/shop.git --branch=main --php=8.6
@@ -80,8 +77,7 @@ Add the deploy key from the summary as a **read-only deploy key** (GitHub: Setti
 $ sudo cipi git check shop
 ```
 
-## 6. Deploy
-
+## 6. Deploy {#deploy}
 ```bash
 $ sudo cipi deploy shop
 ```
@@ -90,8 +86,7 @@ $ sudo cipi deploy shop
 
 Each deploy clones into a new release folder, runs `composer install`, links `.env` and `storage`, runs migrations, builds assets if you set a build command, then switches `current` with one atomic symlink and restarts workers. Visitors never see a half-deployed app.
 
-## 7. Turn on HTTPS
-
+## 7. Turn on HTTPS {#https}
 ```bash
 $ sudo cipi ssl install shop
 ```

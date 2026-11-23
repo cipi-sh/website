@@ -14,15 +14,14 @@ related:
 AI coding agents are good at implementing a clear, testable specification and bad at guessing what you meant. The teams getting value write the spec first, keep the agent inside guardrails, and give it eyes on production through MCP.
 
 ```flow
-Spec | what and why, acceptance criteria
-Tests | written from the spec
+Spec | what and why, acceptance criteria | #spec
+Tests | written from the spec | #tests
 Agent | implements until tests pass
-Review | a human, on a preview URL
-Production | deploy, then observe through MCP
+Review | a human, on a preview URL | #review
+Production | deploy, then observe through MCP | #production
 ```
 
-## 1. Write the spec, not the prompt
-
+## 1. Write the spec, not the prompt {#spec}
 | A good spec has | Example |
 | --- | --- |
 | The user and the problem | "Accountants can't find unpaid invoices quickly" |
@@ -32,16 +31,13 @@ Production | deploy, then observe through MCP
 
 Tools like [Larapilot](https://larapilot.web.ap.it/) structure this with personas and review steps on top of Laravel Boost.
 
-## 2. Tests before code
-
+## 2. Tests before code {#tests}
 Ask the agent to write Pest tests from the acceptance criteria first, review them, then let it implement until they pass. The tests are the contract.
 
-## 3. Review on a real URL
-
+## 3. Review on a real URL {#review}
 Push the branch and get a [preview environment](/guides/laravel-preview-environments). Reviewers click instead of pulling code; seed it with an [anonymized dump](/guides/anonymized-database-dumps) so edge cases from real data show up.
 
-## 4. Close the loop on production
-
+## 4. Close the loop on production {#production}
 After the deploy, the same assistant can check the result through the [Cipi MCP](/guides/cipi-mcp-ai-agents):
 
 ```text

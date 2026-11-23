@@ -15,13 +15,13 @@ faq:
   - Can I start using it on an existing app? | Yes. `cipi yml generate <app> --save` writes the current setup as a file; commit it and the next plan shows nothing to change.
   - Do secrets end up in Git? | No. `env.required` lists names only; credentials Cipi creates go to `shared/`, and basic-auth users are names or hashes.
 ---
-<nav class="flow-nav" aria-label="How cipi.yml works"><ol>
-<li><a href="#file"><b>Edit cipi.yml</b><span>in a branch</span></a></li>
-<li><a href="#validate"><b>Review</b><span>in the pull request</span></a></li>
-<li><a href="#environments"><b>Deploy</b><span>the file ships with the release</span></a></li>
-<li><a href="#plan"><b>Plan</b><span>every change listed</span></a></li>
-<li><a href="#safe"><b>Apply</b><span>all or nothing</span></a></li>
-</ol></nav>
+```flow
+Edit cipi.yml | in a branch | #file
+Review | in the pull request | #validate
+Deploy | the file ships with the release | #environments
+Plan | every change listed | #plan
+Apply | all or nothing | #safe
+```
 
 ## 1. Edit: the whole app, in one file {#file}
 

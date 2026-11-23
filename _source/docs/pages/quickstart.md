@@ -3,11 +3,11 @@
 From a fresh Ubuntu server to a Laravel app on HTTPS, in about fifteen minutes. Every step shows the real command and what it prints; click a terminal to jump to the end.
 
 ```flow
-Install | one command on the server
-Log in | as cipi, with your SSH key
-Create an app | isolated user, DB, PHP
-Deploy | zero downtime from Git
-HTTPS | Let's Encrypt, auto-renewed
+Install | one command on the server | #qs-install
+Log in | as cipi, with your SSH key | #qs-login
+Create an app | isolated user, DB, PHP | #qs-create
+Deploy | zero downtime from Git | #qs-deploy
+HTTPS | Let's Encrypt, auto-renewed | #qs-ssl
 ```
 
 **You need:** an Ubuntu 24.04 or 26.04 VPS with a public IP, a domain whose DNS you control, and a Git repository. Cipi is free; the only cost is the server.

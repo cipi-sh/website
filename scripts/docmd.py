@@ -60,10 +60,24 @@ def code_block(lang: str, lines: list[str]) -> str:
 
 def flow(lines: list[str], kind: str = "flow") -> str:
     items = []
+    parsed = []
+    for ln in lines:
+        if not ln.strip():
+            continue
+        parts = [x.strip() for x in ln.split("|")]
+        anchor = parts[2] if len(parts) > 2 and parts[2].startswith("#") else ""
+        parsed.append((parts[0], parts[1] if len(parts) > 1 else "", anchor))
+    if kind == "flow" and any(a for _, _, a in parsed):
+        lis = []
+        for title, sub, anchor in parsed:
+            inner = f'<b>{inline(title)}</b>' + (f'<span>{inline(sub)}</span>' if sub else "")
+            lis.append(f'<li><a href="{anchor}">{inner}</a></li>' if anchor else f'<li><div>{inner}</div></li>')
+        return '<nav class="flow-nav" aria-label="Steps on this page"><ol>' + "".join(lis) + "</ol></nav>"
     for ln in lines:
         if not ln.strip():
             continue
         title, _, sub = ln.partition("|")
+        sub = sub.split("|")[0]
         items.append(f'<li><b>{inline(title.strip())}</b>' + (f'<span>{inline(sub.strip())}</span>' if sub.strip() else "") + "</li>")
     cls = "flow" if kind == "flow" else "flow stack"
     tag = "ol" if kind == "flow" else "ul"

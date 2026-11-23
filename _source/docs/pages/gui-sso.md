@@ -3,10 +3,10 @@
 The panel can sign people in through your identity provider over **OpenID Connect**: Microsoft Entra ID, Google Workspace, Okta, Keycloak, Authentik, Zitadel, Auth0, anything with a `/.well-known/openid-configuration`. SAML isn't supported. SSO is opt-in and configured **from the server**, which is also the break-glass if a provider breaks.
 
 ```flow
-Register | OIDC client at your IdP
-cipi gui sso set | issuer, client id, secret
-Sign in | button on the login page
-Match | by e-mail, then by identity
+Register | OIDC client at your provider | #register
+Turn it on | cipi gui sso set | #enable
+Who gets in | matched by e-mail | #who
+Troubleshooting | and the break-glass | #troubleshooting
 ```
 
 ## 1. Register the panel at your provider {#register}

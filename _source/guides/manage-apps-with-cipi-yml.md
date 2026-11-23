@@ -19,14 +19,14 @@ faq:
 Most panels keep an app's server settings in a database you can't review. Cipi lets you put them in **`cipi.yml`**, a file at the root of your repository. It travels with each release: you review it in a pull request, see exactly what it would change, and apply it in one step.
 
 ```flow
-Commit cipi.yml | reviewed like code
-Deploy | the file ships with the release
-Plan | every change listed first
-Apply | all or nothing
+Generate | from what the app has | #generate
+Describe | PHP, workers, backups… | #describe
+Validate | before you push | #validate
+Plan & apply | all or nothing | #plan
+Automatic | after every deploy | #auto
 ```
 
-## 1. Start from what the app already has
-
+## 1. Start from what the app already has {#generate}
 ```bash
 $ sudo cipi yml generate shop --save
 $ cat /home/shop/cipi.yml
@@ -34,8 +34,7 @@ $ cat /home/shop/cipi.yml
 
 Commit that file at the root of the repository. After the next deploy, `cipi yml plan shop` should say there's nothing to do: the file describes the server as it is.
 
-## 2. Describe the app
-
+## 2. Describe the app {#describe}
 A typical Laravel app:
 
 ```yaml
@@ -83,8 +82,7 @@ backup:
 
 The full list, with routes, proxies, crons and Node apps, is in the [cipi.yml reference](/docs/yml).
 
-## 3. Validate before you push
-
+## 3. Validate before you push {#validate}
 Install the [Cipi Agent](/docs/agent) in the app and validate with the same rules as the server, locally or in CI:
 
 ```bash
@@ -94,16 +92,14 @@ $ php artisan cipi:yml validate
 
 Add `# yaml-language-server: $schema=./cipi.schema.json` at the top of the file (after `php artisan cipi:yml schema --write`) for autocompletion in VS Code or PhpStorm.
 
-## 4. Plan and apply
-
+## 4. Plan and apply {#plan}
 After deploying the release that contains the file:
 
 <cipi-term name="yml"></cipi-term>
 
 `plan` lists every change and every blocker. `apply` performs them as one transaction: if anything fails, nothing is left half done.
 
-## 5. Apply on every deploy
-
+## 5. Apply on every deploy {#auto}
 ```bash
 $ sudo cipi yml auto shop on
 ```
