@@ -9,6 +9,7 @@ $ cipi basicauth enable myapp                          # generates credentials, 
 $ cipi basicauth enable myapp --user=client --password='…'
 $ cipi basicauth status myapp
 $ cipi basicauth disable myapp
+$ cipi basicauth agent myapp protected     # keep cipi/agent behind it too (default: public)
 ```
 
 ## How it works {#how}
@@ -20,6 +21,19 @@ $ cipi basicauth disable myapp
 | Certificates | ACME challenges stay public, so renewals never break |
 | Durability | Survives alias, PHP and SSL changes; removed with the app |
 
+## cipi/agent stays reachable {#agent}
+
+The [Cipi Agent](/docs/agent-install) routes — `/cipi/webhook`, `/cipi/health`, `/cipi/mcp`, the anonymizer — check their own tokens, and the services that call them (a Git provider's push webhook, an MCP client, the panel) can't send your site's password. So since Cipi 5.11.0, while basic auth is on and **the live release has `cipi/agent`**, its prefix is left out of basic auth:
+
+| | |
+| --- | --- |
+| Prefix | `/cipi/`, or `CIPI_ROUTE_PREFIX` from the app's `.env` — exactly that prefix (`/cipi-admin` stays protected) |
+| When | Checked again after every deploy: a release that adds or removes the agent, or changes the prefix, updates the vhost |
+| Not for | Custom and Node apps, or a prefix a [proxy](/docs/redirects-proxies) already uses |
+| Opt out | `cipi basicauth agent myapp protected` (and `public` to undo) — also in the panel's Access tab |
+
+`cipi basicauth status myapp` says what is left out.
+
 Not to be confused with `cipi auth`, which manages Composer credentials for private packages ([Git providers](/docs/git#cli-auth)).
 
 ## Questions {#questions}
@@ -27,6 +41,7 @@ Not to be confused with `cipi auth`, which manages Composer credentials for priv
 | Question | Answer |
 | --- | --- |
 | Will Let's Encrypt renewals break? | No. ACME challenge paths stay public. |
-| Do webhooks still reach the app? | Basic auth covers every path, including `/cipi/webhook`. Deploy staging from CI or the CLI, or use [Zero Trust](/docs/zero-trust) with a bypass rule if you need webhooks. |
+| Do webhooks still reach the app? | Yes, when the app uses [cipi/agent](#agent): its routes are left out of basic auth and check their own token. Without the agent every path is protected; deploy from CI or the CLI. |
+| Does the health check pass behind basic auth? | No: the healthcheck URL gets 401 like any visitor. Point it at a public URL, or remove it while the site is protected. |
 | Can I keep it in the repository? | Yes, in [cipi.yml](/docs/yml) under `app.basic_auth`, with names or bcrypt hashes, never plain passwords. |
 | Where do I see the generated password? | It's shown once by `enable`. Run `enable` again with `--user` and `--password` to set new ones. |

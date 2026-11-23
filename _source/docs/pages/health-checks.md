@@ -58,3 +58,13 @@ $ cipi deploy myapp --rollback-on-unhealthy       # this deploy only
 > [!warning] Off by default on purpose: **migrations are not undone**. Enable it for apps whose migrations are backwards-compatible, or pair it with [pre-deploy snapshots](/docs/safe-deploy).
 
 Also in [cipi.yml](/docs/yml) (`health:`), the REST API and the panel. To watch the server rather than the app, see [Server monitor](/docs/monitor).
+
+## Uptime history {#history}
+
+Since Cipi 5.11.0 the URL is also probed **every minute** by the [metrics](/docs/metrics) collector, which keeps the status and response time: uptime over 24 hours, 7 and 30 days, minutes down, incidents and uptime per day.
+
+```bash
+$ cipi metrics uptime myapp --range=30d
+```
+
+The alerts above don't change: the history only records. `cipi metrics probe off` stops the per-minute probe.

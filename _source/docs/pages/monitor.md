@@ -1,6 +1,6 @@
 @section cli-monitor
 
-The server watches itself every 5 minutes and tells you when something actually breaks. No agent, no metrics database, no third-party service: a cron job, a few state files and your [notification channels](/docs/notifications).
+The server watches itself every 5 minutes and tells you when something actually breaks. No agent, no third-party service: a cron job, a few state files and your [notification channels](/docs/notifications). For the history behind the alerts — CPU, memory, requests, 5xx and uptime over days — see [Metrics](/docs/metrics): every change of state of a check below is recorded there as an event.
 
 <cipi-term name="monitor"></cipi-term>
 
@@ -56,4 +56,5 @@ The fleet dashboard and each server's health. The [web panel](/docs/gui) is opti
 | Question | Answer |
 | --- | --- |
 | What is checked? | Load, memory, disk, services, backups, certificates, security updates, health checks, every 5 minutes. |
+| Can I see how it went over time? | Yes: [Metrics](/docs/metrics) keeps every minute for 7 days and 15-minute summaries for 30, with charts in the panel. |
 | Errors inside my code? | Use an exception tracker such as [Boogle](/guides/boogle-laravel-monitoring). |
