@@ -172,6 +172,18 @@ def sidebar(current: str) -> str:
     return "\n".join(out)
 
 
+
+def og_url(key: str) -> str:
+    """Absolute URL of an Open Graph image, with a content hash so share caches refresh."""
+    import hashlib
+    f = os.path.join(ROOT, "img", "og", f"{key}.jpg")
+    if not os.path.exists(f):
+        key, f = "home", os.path.join(ROOT, "img", "og", "home.jpg")
+        if not os.path.exists(f):
+            return f"{SITE}/og.png"
+    h = hashlib.sha1(open(f, "rb").read()).hexdigest()[:8]
+    return f"{SITE}/img/og/{key}.jpg?v={h}"
+
 def toc_html(toc: list[tuple[int, str, str]], edit_slug: str | None) -> str:
     items = [t for t in toc if t[0] == 2] if len(toc) > 28 else toc
     if items and not any(t[0] == 2 for t in items):
@@ -218,7 +230,7 @@ def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs:
         js.append('<script src="/assets/js/term.js" defer></script>')
     lead_html = f'<p class="docs-lead">{esc(lead if lead is not None else desc)}</p>' if (lead is not None or desc) else ""
     og_key = "docs" if slug == "index" else f"docs-{slug}"
-    og_img = f"{SITE}/img/og/{og_key}.jpg" if os.path.exists(os.path.join(ROOT, "img", "og", f"{og_key}.jpg")) else f"{SITE}/og.png"
+    og_img = og_url(og_key)
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="light" data-follow-system>
 <head>
@@ -437,6 +449,7 @@ def build_home() -> None:
            .replace("{{FOOTER}}", "<!-- site:footer -->\n" + chrome("footer") + "<!-- /site:footer -->")
            .replace("{{SEARCH}}", PARTIALS["search"].rstrip())
            .replace("</body>", PARTIALS["analytics"].replace("{{PATH}}", "/") + "</body>"))
+    out = out.replace("https://cipi.sh/og.png", og_url("home"))
     write(os.path.join(ROOT, "index.html"), out)
     print("home: index.html")
 
@@ -467,7 +480,7 @@ def build_landings() -> None:
         body = body.replace("{{SIBLINGS}}", sib)
         body, uses = expand_components(body)
         key = path.strip("/")
-        og = f"{SITE}/img/og/{key}.jpg" if os.path.exists(os.path.join(ROOT, "img", "og", f"{key}.jpg")) else f"{SITE}/og.png"
+        og = og_url(key)
         ld = [
             {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": meta["app_name"],
              "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu 24.04, Ubuntu 26.04",
