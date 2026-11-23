@@ -52,3 +52,22 @@
         });
     });
 })();
+
+/* Ecosystem: light up the pieces each way of working needs */
+(function () {
+    'use strict';
+    document.querySelectorAll('[data-eco-picker]').forEach(function (root) {
+        var btns = root.querySelectorAll('[data-eco-pick]'), pills = root.querySelectorAll('[data-p]');
+        function pick(set) {
+            var on = set.split(' ');
+            pills.forEach(function (p) { p.classList.toggle('on', on.indexOf(p.getAttribute('data-p')) !== -1); });
+        }
+        btns.forEach(function (b) {
+            b.addEventListener('click', function () {
+                btns.forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+                pick(b.getAttribute('data-set'));
+            });
+        });
+        pick(root.getAttribute('data-pick'));
+    });
+})();

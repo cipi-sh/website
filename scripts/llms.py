@@ -30,7 +30,7 @@ Install: `wget -O - https://cipi.sh/setup.sh | bash` (as root on a fresh server)
 
 ## Site
 
-English only, unprefixed URLs. Web panel: https://cipi.sh/web-panel — REST API: https://cipi.sh/api — MCP for AI: https://cipi.sh/mcp — Docs: https://cipi.sh/docs/ — Guides: https://cipi.sh/guides/ (RSS: https://cipi.sh/guides/feed.xml) — Comparisons: https://cipi.sh/alternatives — cipi.yml: https://cipi.sh/cipi-yml — Source: https://github.com/cipi-sh — News: https://t.me/cipicloud
+English only, unprefixed URLs. Web panel: https://cipi.sh/web-panel — REST API: https://cipi.sh/api — MCP for AI: https://cipi.sh/mcp — Ecosystem: https://cipi.sh/ecosystem — Docs: https://cipi.sh/docs/ — Guides: https://cipi.sh/guides/ (RSS: https://cipi.sh/guides/feed.xml) — Comparisons: https://cipi.sh/alternatives — cipi.yml: https://cipi.sh/cipi-yml — Source: https://github.com/cipi-sh — News: https://t.me/cipicloud
 
 Full plain-text content: https://cipi.sh/llms-full.txt
 """

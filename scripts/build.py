@@ -458,6 +458,7 @@ SIBLINGS = [
     ("/web-panel", "Web panel", "A browser view of your whole fleet, with roles and SSO."),
     ("/api", "REST API", "Every server, scriptable: tokens, abilities, jobs."),
     ("/mcp", "MCP for AI", "Claude, Cursor and VS Code on your apps, with guardrails."),
+    ("/ecosystem", "Ecosystem", "Every piece of Cipi, from the core to WHMCS, and how they fit."),
 ]
 
 

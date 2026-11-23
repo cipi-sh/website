@@ -53,6 +53,7 @@ def jobs() -> list[tuple[str, str]]:
     out.append(("web-panel", tpl("Web panel", "Your whole fleet, in the browser", "A free, self-hosted panel for every Cipi server: deploys, databases, backups, roles and SSO.", "cipi.sh/web-panel")))
     out.append(("api", tpl("REST API", "Every server, scriptable", "Apps, deploys, SSL, databases and cipi.yml from CI, the SDK, cipi-cli or an AI assistant.", "cipi.sh/api")))
     out.append(("mcp", tpl("MCP for AI", "Ask production. Get real answers.", "Claude, Cursor and VS Code on your live Laravel apps, with guardrails.", "cipi.sh/mcp")))
+    out.append(("ecosystem", tpl("Ecosystem", "One core. Every way in.", "Core, cipi.yml, Agent, MCP, REST API, web panel, cipi-cli, PHP SDK and WHMCS.", "cipi.sh/ecosystem")))
     out.append(("cipi-yml", tpl("Configuration as code", "cipi.yml: server settings in your repository", "Planned, reviewed in pull requests, applied all or nothing.", "cipi.sh/cipi-yml")))
     return out
 
