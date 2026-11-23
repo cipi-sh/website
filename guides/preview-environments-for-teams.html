@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What preview environments can do for your team — Cipi guides</title>
+    <meta name="description" content="Why a live URL for every pull request changes how Laravel teams review, test, demo and ship, with ten concrete uses, an end-to-end testing recipe and the rules that keep previews cheap and safe on your own servers.">
+    <meta name="keywords" content="preview environments benefits, review apps workflow, pull request previews laravel, ephemeral environments self-hosted, staging bottleneck, laravel e2e tests preview url">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/preview-environments-for-teams">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/preview-environments-for-teams">
+    <meta property="og:title" content="What preview environments can do for your team">
+    <meta property="og:description" content="Why a live URL for every pull request changes how Laravel teams review, test, demo and ship, with ten concrete uses, an end-to-end testing recipe and the rules that keep previews cheap and safe on your own servers.">
+    <meta property="og:image" content="https://cipi.sh/img/og/guide-preview-environments-for-teams.jpg?v=1352d86b">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="What preview environments can do for your team">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="What preview environments can do for your team">
+    <meta name="twitter:description" content="Why a live URL for every pull request changes how Laravel teams review, test, demo and ship, with ten concrete uses, an end-to-end testing recipe and the rules that keep previews cheap and safe on your own servers.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/guide-preview-environments-for-teams.jpg?v=1352d86b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "What preview environments can do for your team", "description": "Why a live URL for every pull request changes how Laravel teams review, test, demo and ship, with ten concrete uses, an end-to-end testing recipe and the rules that keep previews cheap and safe on your own servers.", "url": "https://cipi.sh/guides/preview-environments-for-teams", "mainEntityOfPage": "https://cipi.sh/guides/preview-environments-for-teams", "datePublished": "2026-11-23", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/guide-preview-environments-for-teams.jpg?v=1352d86b", "articleSection": "Laravel", "timeRequired": "PT6M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "preview environments benefits, review apps workflow, pull request previews laravel, ephemeral environments self-hosted, staging bottleneck, laravel e2e tests preview url"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Do previews replace staging?", "acceptedAnswer": {"@type": "Answer", "text": "For reviewing single changes, yes. Many teams keep one staging app too, for testing several merged changes together before a release."}}, {"@type": "Question", "name": "How much do previews cost?", "acceptedAnswer": {"@type": "Answer", "text": "They run on a server you already pay for. Each idle preview is a PHP pool, a worker and a small database; a 4 GB server holds about a dozen. There is no charge per environment."}}, {"@type": "Question", "name": "Can non-developers use them?", "acceptedAnswer": {"@type": "Answer", "text": "That's the point: product managers, designers, clients and support open a link. They never need Git, Docker or a local setup."}}, {"@type": "Question", "name": "Are previews safe to share with clients?", "acceptedAnswer": {"@type": "Answer", "text": "Put them behind Cloudflare Zero Trust or basic auth, use seeded or anonymized data, and sandbox keys for anything with side effects. Never copy production data into a preview."}}, {"@type": "Question", "name": "Can a preview use a different PHP version?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. PREVIEW_PHP=8.5 .cipi/preview.sh up creates that branch's preview on PHP 8.5, as long as the preview server has it installed."}}, {"@type": "Question", "name": "What happens to previews nobody closes?", "acceptedAnswer": {"@type": "Answer", "text": "The nightly cleanup script deletes previews whose branch no longer exists. Open pull requests keep theirs."}}, {"@type": "Question", "name": "Can I run end-to-end tests against previews?", "acceptedAnswer": {"@type": "Answer", "text": "Yes: the recipe in this guide waits for the preview to finish deploying, then runs Playwright or Cypress against its URL."}}, {"@type": "Question", "name": "Where do I start?", "acceptedAnswer": {"@type": "Answer", "text": "Follow Preview environments for every Laravel pull request : one script, one CI file, about 30 minutes."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "What preview environments can do for your team", "item": "https://cipi.sh/guides/preview-environments-for-teams"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">What preview environments can do for your team</li></ol>
+<a class="art-eyebrow" href="/guides/#laravel">Laravel</a>
+<h1>What preview environments can do for your team</h1>
+<p class="art-lead">Why a live URL for every pull request changes how Laravel teams review, test, demo and ship, with ten concrete uses, an end-to-end testing recipe and the rules that keep previews cheap and safe on your own servers.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>6 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=What%20preview%20environments%20can%20do%20for%20your%20team&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fpreview-environments-for-teams" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fpreview-environments-for-teams" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fpreview-environments-for-teams&title=What%20preview%20environments%20can%20do%20for%20your%20team" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fpreview-environments-for-teams&t=What%20preview%20environments%20can%20do%20for%20your%20team" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fpreview-environments-for-teams&text=What%20preview%20environments%20can%20do%20for%20your%20team" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=What%20preview%20environments%20can%20do%20for%20your%20team%20https%3A%2F%2Fcipi.sh%2Fguides%2Fpreview-environments-for-teams" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/preview-environments-for-teams" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Without previews, a change lives on one developer's laptop until it's merged. Everyone else reviews a diff, imagines the result, and finds out what it really does on staging, where three other changes are already waiting. A preview environment fixes that: <strong>every pull request gets a real, running copy of the app at its own address</strong>, created when the pull request opens and gone when it closes.</p>
+<p>With Cipi a preview is just another isolated app on a server you own, so you get the idea without a platform bill per environment. Setup is in the <a href="/guides/laravel-preview-environments">how-to guide</a>; this one is about what to do with them.</p>
+<h2 id="tldr">In 30 seconds<a class="anchor" href="#tldr" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Before</th><th>With previews</th></tr></thead><tbody><tr><td>Review the diff, imagine the result</td><td>Click the link, use the feature</td></tr><tr><td>One shared staging, changes queue up and overwrite each other</td><td>One environment per pull request, nobody waits</td></tr><tr><td>"Works on my machine"</td><td>Works on a server built exactly like production</td></tr><tr><td>Client feedback after release</td><td>Client approval before merge</td></tr><tr><td>Migrations tried for the first time in production</td><td>Migrations run on every push, on their own database</td></tr></tbody></table></div>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Preview</strong></td><td>A temporary, complete copy of the app for one branch</td></tr><tr><td><strong>Ephemeral</strong></td><td>It lives as long as the pull request, then it's deleted with its data</td></tr><tr><td><strong>Staging</strong></td><td>One shared, long-lived environment where merged changes meet</td></tr><tr><td><strong>E2E test</strong></td><td>A test that drives a real browser against a real URL</td></tr></tbody></table></div>
+<h2 id="who">Who gains what<a class="anchor" href="#who" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Person</th><th>What changes for them</th></tr></thead><tbody><tr><td>Developer</td><td>Shares a link instead of screenshots; sees the branch on production-like PHP, Nginx and database</td></tr><tr><td>Reviewer</td><td>Tests the behaviour, not only the code</td></tr><tr><td>Product manager, designer</td><td>Approves the real thing before it's merged</td></tr><tr><td>QA</td><td>Tests each change alone, with its own data, without stepping on others</td></tr><tr><td>Client (agencies)</td><td>Signs off on a URL, not on a call</td></tr><tr><td>Support, sales</td><td>Gets a working demo of an upcoming feature</td></tr><tr><td>Ops</td><td>Sees every branch deploy with the same pipeline as production, long before release day</td></tr></tbody></table></div>
+<h2 id="uses">Ten things teams do with previews<a class="anchor" href="#uses" aria-label="Link to this section">#</a></h2>
+<h3 id="review">1. Review the change, not the diff<a class="anchor" href="#review" aria-label="Link to this section">#</a></h3>
+<p>The pull request shows a <strong>View deployment</strong> button (GitHub) or a review app link (GitLab). The reviewer clicks it, tries the new checkout flow, and comments on what it does. Bugs that are invisible in a diff (a broken redirect, a slow page, a missing translation) show up in seconds.</p>
+<h3 id="signoff">2. Sign-off from product and design<a class="anchor" href="#signoff" aria-label="Link to this section">#</a></h3>
+<p>Paste the preview link in the ticket. The product manager checks the flow, the designer checks spacing and states, both approve in the pull request. Nothing reaches <code>main</code> that the owner of the feature hasn't seen.</p>
+<h3 id="clients">3. Client approval, for agencies<a class="anchor" href="#clients" aria-label="Link to this section">#</a></h3>
+<p>Send the client a link that's protected with a login (<a href="/docs/zero-trust">Cloudflare Zero Trust</a>, or basic auth). They see their feature on a real server, with their content seeded, and approve before you merge. No more "it's on staging, but ignore the other things you see".</p>
+<h3 id="qa">4. QA without collisions<a class="anchor" href="#qa" aria-label="Link to this section">#</a></h3>
+<p>On a shared staging, one tester's data resets another's test. Each preview has <strong>its own database</strong>, seeded the same way every time, so a tester can break things freely. When the pull request closes, the data goes with it.</p>
+<h3 id="migrations">5. Try migrations before production does<a class="anchor" href="#migrations" aria-label="Link to this section">#</a></h3>
+<p>Every push runs the branch's migrations on the preview's database. A migration that fails, locks a table or loses a column fails there first. With an <a href="/guides/anonymized-database-dumps">anonymized dump</a> restored into the preview, you test against data shaped like production's, without anyone's personal data.</p>
+<h3 id="e2e">6. End-to-end tests against a real URL<a class="anchor" href="#e2e" aria-label="Link to this section">#</a></h3>
+<p>Run Playwright or Cypress against the preview instead of a test server you maintain. The preview deploys through its own webhook, so the job first waits for the deploy of the latest push to finish:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c">#!/usr/bin/env bash</span>
+<span class="c"># .cipi/preview-wait.sh &lt;app&gt;: wait until the latest push is deployed on the preview</span>
+set -euo pipefail
+APP=${1:?app name, from .cipi/preview.sh name}
+H="Authorization: Bearer ${CIPI_PREVIEW_API_TOKEN:?}"
+sleep 75                                    # the webhook queues the deploy; it starts within a minute
+for i in $(seq 1 60); do
+  s=$(curl -fsS "${CIPI_PREVIEW_API_URL:?}/api/apps/$APP/deploy/status" -H "$H" -H "Accept: application/json")
+  if [ "$(jq -r .data.state &lt;&lt;&lt;"$s")" = idle ] &amp;&amp; [ "$(jq -r .data.queued &lt;&lt;&lt;"$s")" = false ]; then
+    result=$(jq -r '.data.last.result // "" | ascii_downcase' &lt;&lt;&lt;"$s")
+    [ "$result" = ok ] &amp;&amp; exit 0
+    echo "Last deploy: ${result:-none}"; exit 1
+  fi
+  sleep 10
+done
+echo "Timed out waiting for the preview deploy"; exit 1</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># in .github/workflows/preview.yml, after the "up" job</span>
+  e2e:
+    needs: up
+    runs-on: ubuntu-latest
+    env:
+      PREVIEW_DOMAIN: preview.example.com
+      PREVIEW_REPOSITORY: git@github.com:${{ github.repository }}.git
+      CIPI_PREVIEW_API_URL: ${{ secrets.CIPI_PREVIEW_API_URL }}
+      CIPI_PREVIEW_API_TOKEN: ${{ secrets.CIPI_PREVIEW_API_TOKEN }}
+      BRANCH: ${{ github.head_ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: .cipi/preview-wait.sh "$(.cipi/preview.sh name "$BRANCH")"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci &amp;&amp; npx playwright install --with-deps
+      - run: BASE_URL="$(.cipi/preview.sh url "$BRANCH")" npx playwright test</pre></div>
+<p>Your Playwright config reads <code>process.env.BASE_URL</code> as <code>use.baseURL</code>. The tests hit the same Nginx, PHP and database setup as production, which catches what unit tests can't: assets, caching headers, queues, redirects.</p>
+<h3 id="upgrades">7. Upgrades on their own branch<a class="anchor" href="#upgrades" aria-label="Link to this section">#</a></h3>
+<p>Testing Laravel's next major version or a new PHP release? Open a branch and give its preview a different PHP version:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>PREVIEW_PHP=8.5 PREVIEW_DOMAIN=preview.example.com .cipi/preview.sh up upgrade/php-8.5</pre></div>
+<p>The preview server needs that PHP installed (<code>sudo cipi php install 8.5</code>). Production stays on its version until you merge and change it there.</p>
+<h3 id="demos">8. Demos that don't break<a class="anchor" href="#demos" aria-label="Link to this section">#</a></h3>
+<p>Sales wants to show a feature that isn't released yet. A <code>demo/new-dashboard</code> branch with its own preview and its own seeded data is a stable demo that nobody's merge will break. Delete the branch when the demo is over; the nightly cleanup removes the preview.</p>
+<h3 id="hotfix">9. Hotfixes checked in minutes<a class="anchor" href="#hotfix" aria-label="Link to this section">#</a></h3>
+<p>A production bug, a one-line fix, a pull request: the preview is up before the reviewer opens the diff. Reproduce the bug there, confirm the fix, merge with confidence.</p>
+<h3 id="onboarding">10. Onboarding<a class="anchor" href="#onboarding" aria-label="Link to this section">#</a></h3>
+<p>A new developer's first pull request comes with a live link, and they can see their change running before their local setup is perfect. Reviewing others' previews is also the fastest way to learn the app.</p>
+<h2 id="staging">Previews or a shared staging?<a class="anchor" href="#staging" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>Shared staging</th><th>Previews</th></tr></thead><tbody><tr><td>Environments</td><td>One</td><td>One per pull request</td></tr><tr><td>Waiting</td><td>Changes queue up</td><td>Nobody waits</td></tr><tr><td>Data</td><td>Shared, drifts over time</td><td>Fresh per preview, seeded the same way</td></tr><tr><td>What it tests</td><td>Several changes together</td><td>One change alone</td></tr><tr><td>Lifetime</td><td>Permanent</td><td>As long as the pull request</td></tr><tr><td>Best for</td><td>Release candidates, integrations</td><td>Reviews, sign-off, QA, E2E</td></tr></tbody></table></div>
+<p>Most teams keep both: previews for every pull request, and one <a href="/guides/cipi-yml-staging-production">staging app</a> that follows <code>develop</code> for the release as a whole.</p>
+<h2 id="rules">Rules that keep previews healthy<a class="anchor" href="#rules" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why</th><th>How</th></tr></thead><tbody><tr><td>A separate server</td><td>Reviews never slow production; the preview token can't touch production apps</td><td>One small VPS is enough to start</td></tr><tr><td>No production data</td><td>A preview is easier to reach than production</td><td>Seeders, or <a href="/guides/anonymized-database-dumps">anonymized dumps</a></td></tr><tr><td>No side effects</td><td>A preview must never e-mail customers or charge cards</td><td><code>MAIL_MAILER=log</code> (the script sets it), sandbox keys</td></tr><tr><td>Private by default</td><td>Unguessable addresses are still findable</td><td><a href="/docs/zero-trust">Cloudflare Zero Trust</a>, or basic auth</td></tr><tr><td>Light by default</td><td>Dozens of previews add up</td><td>A <code>cipi-preview.yml</code> with one worker and no scheduler</td></tr><tr><td>Clean up</td><td>Forgotten previews fill the server</td><td>Delete on close, plus the <a href="/docs/preview-environments#cleanup">nightly cleanup</a></td></tr><tr><td>No forks</td><td>Code from outside the team shouldn't run on your server</td><td>The recipes skip pull requests from forks</td></tr><tr><td>A separate domain</td><td>Let's Encrypt allows 50 new certificates per registered domain per week</td><td><code>acme-preview.dev</code> for previews, <code>acme.com</code> for production</td></tr></tbody></table></div>
+<h2 id="rollout">Rolling previews out in a team<a class="anchor" href="#rollout" aria-label="Link to this section">#</a></h2>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Week 1</b><span>one developer, by hand</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Week 2</b><span>CI on one repository</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Week 3</b><span>reviews use the link</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Week 4</b><span>E2E and cleanup</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Week 1</b></div><p>Set up the preview server and run <code>.cipi/preview.sh up</code> from a laptop for a couple of branches. Check memory, seeders and e-mail settings.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Week 2</b></div><p>Add the GitHub or GitLab recipe to one repository. Every pull request gets a link; closing it deletes the preview.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Week 3</b></div><p>Agree that reviews start from the preview link, and that product sign-off happens there.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Week 4</b></div><p>Add the end-to-end job and the nightly cleanup. Watch the server's memory as the number of open pull requests grows.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>E2E tests run against old code</td><td>Use <code>.cipi/preview-wait.sh</code> before the tests; it waits for the latest deploy to finish</td></tr><tr><td>Reviewers see stale data</td><td>The seeders run once, when the preview is created: <code>.cipi/preview.sh down</code> and <code>up</code> to start fresh</td></tr><tr><td>Server runs out of memory</td><td>Lighter <code>cipi-preview.yml</code>, close stale pull requests, or a bigger preview server</td></tr><tr><td>Client sees a login error</td><td>Zero Trust: add their e-mail to the access policy; basic auth: send them the user and password</td></tr><tr><td>A preview has no link in the pull request</td><td>Pull requests from forks are skipped on purpose</td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/preview-environments">Preview environments</a></li><li><a href="/docs/yml">cipi.yml</a></li><li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li><li><a href="/docs/anonymizer">Database anonymizer</a></li><li><a href="/docs/api">REST API</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>Do previews replace staging?</summary><p>For reviewing single changes, yes. Many teams keep one staging app too, for testing several merged changes together before a release.</p></details><details><summary>How much do previews cost?</summary><p>They run on a server you already pay for. Each idle preview is a PHP pool, a worker and a small database; a 4 GB server holds about a dozen. There is no charge per environment.</p></details><details><summary>Can non-developers use them?</summary><p>That's the point: product managers, designers, clients and support open a link. They never need Git, Docker or a local setup.</p></details><details><summary>Are previews safe to share with clients?</summary><p>Put them behind Cloudflare Zero Trust or basic auth, use seeded or anonymized data, and sandbox keys for anything with side effects. Never copy production data into a preview.</p></details><details><summary>Can a preview use a different PHP version?</summary><p>Yes. <code>PREVIEW_PHP=8.5 .cipi/preview.sh up</code> creates that branch's preview on PHP 8.5, as long as the preview server has it installed.</p></details><details><summary>What happens to previews nobody closes?</summary><p>The nightly cleanup script deletes previews whose branch no longer exists. Open pull requests keep theirs.</p></details><details><summary>Can I run end-to-end tests against previews?</summary><p>Yes: the recipe in this guide waits for the preview to finish deploying, then runs Playwright or Cypress against its URL.</p></details><details><summary>Where do I start?</summary><p>Follow <a href="/guides/laravel-preview-environments">Preview environments for every Laravel pull request</a>: one script, one CI file, about 30 minutes.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#tldr">In 30 seconds</a></li><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#who">Who gains what</a></li><li><a class="l2" href="#uses">Ten things teams do with previews</a></li><li><a class="l2" href="#staging">Previews or a shared staging?</a></li><li><a class="l2" href="#rules">Rules that keep previews healthy</a></li><li><a class="l2" href="#rollout">Rolling previews out in a team</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/laravel-preview-environments"><span class="g-cat">Laravel</span><b>Preview environments for every Laravel pull request</b><span class="g-desc">Give every pull request its own live URL with a database, workers and HTTPS, created when it opens, updated on every push and deleted when it closes, with one script and GitHub Actions or GitLab review apps.</span><span class="g-meta">4 min read</span></a></li><li><a class="g-card" href="/guides/agent-vs-pipeline-deploys"><span class="g-cat">Laravel</span><b>Push to deploy or CI pipeline? Agent vs pipeline deploys for Laravel</b><span class="g-desc">How Cipi&#x27;s two deploy modes work, side by side, with an honest verdict on when to use the agent&#x27;s push-to-deploy webhook, when to use a CI pipeline, and how to switch between them.</span><span class="g-meta">5 min read</span></a></li><li><a class="g-card" href="/guides/anonymized-database-dumps"><span class="g-cat">Cipi Agent &amp; AI</span><b>Anonymize a Laravel database with Cipi Agent, step by step</b><span class="g-desc">Give developers, QA, staging and AI assistants a realistic copy of production with every personal field replaced, explained from zero: install the agent, scan the schema, review the rules, request a dump from your laptop, import it, and keep it GDPR-safe.</span><span class="g-meta">4 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> in Italy by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+
+</body>
+</html>
