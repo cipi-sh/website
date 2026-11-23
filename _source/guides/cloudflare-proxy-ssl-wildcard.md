@@ -127,8 +127,10 @@ $ curl -sI https://test.example.com | head -1
 | Let's Encrypt issues wildcards only via DNS-01 | Cipi needs the Cloudflare token (step 3) |
 | Cloudflare's free edge certificate covers `example.com` and `*.example.com` | Keep tenants one level deep |
 | Exact names beat the wildcard | `api.example.com` can still be another app |
+| `@` and `*` must have the same proxy status | Otherwise the apex and the tenants get different certificates and IPs |
+| Any name with its own DNS record skips `*` | A stray record silently takes a tenant name away |
 
-Full walkthrough with Laravel tenant resolution: [Multi-tenant SaaS on wildcard subdomains](/guides/laravel-multi-tenant-wildcard).
+Every Cloudflare setting for wildcards, with checks and errors: [Wildcard domains](/docs/wildcard-domains). Full walkthrough with Laravel tenant resolution: [Multi-tenant SaaS on wildcard subdomains](/guides/laravel-multi-tenant-wildcard).
 
 ## 6. Real visitor IPs {#real-ip}
 
