@@ -1,0 +1,135 @@
+<!--META {"path": "/api", "crumb": "REST API", "app_name": "Cipi API", "seo_title": "Cipi REST API — automate your Laravel servers with tokens, abilities and jobs", "og_title": "The Cipi REST API: every server, scriptable", "description": "A self-hosted REST API on each Cipi server: create apps, deploy, manage domains, SSL, databases, backups and cipi.yml from CI, scripts, the PHP SDK, cipi-cli, WHMCS or AI assistants. Scoped tokens, IP allowlist, async jobs.", "keywords": "laravel server api, cipi api, server management rest api, deploy api laravel, laravel forge api alternative", "faq": [["Is the API hosted by Cipi?", "No. Each server runs its own API on a subdomain you choose (`cipi api api.example.com`). Nothing goes through a third party."], ["Can a token do everything?", "Only if you create it with `--full-access`. Otherwise it gets the abilities you list, for example `deploy-manage` only for a CI job, and an optional expiry date."], ["What can't the API do?", "On purpose: install software, drop databases, remove PHP versions or change Zero Trust. Those stay on the CLI, so a leaked token can't do them."], ["Is there an OpenAPI spec?", "Yes. Swagger UI is served at `/docs` on the API's domain, generated from the OpenAPI document."], ["Do I need the API?", "Only for automation: the web panel, cipi-cli, the PHP SDK, CI pipelines, WHMCS and the server MCP use it. The CLI on the server works without it."], ["How do I install it?", "`sudo cipi api api.example.com` on the server, with that hostname pointing at it. It issues its own certificate and runs as `www-data`. See [API docs](/docs/api)."], ["How are tokens scoped?", "Each token has abilities (for example `apps-view`, `deploy`, `ssl-manage`, `mcp-access`). Give each client only what it needs, and revoke with `cipi api token revoke`."], ["Can I restrict who reaches the API?", "Yes, with an IP allowlist in `/etc/cipi/api-ip-whitelist`, and by putting it behind [Cloudflare Zero Trust](/guides/cloudflare-zero-trust-laravel)."], ["Is there an SDK?", "Yes, a [PHP SDK](/docs/php-sdk) for Laravel apps, and [cipi-cli](/docs/cli-client) for terminals and CI."], ["Are long operations synchronous?", "No. Deploys, SSL and backups return a job id you poll; the panel and SDK do it for you."]]}-->
+<section class="lp-hero" aria-labelledby="lp-title">
+    <div class="page-w lp-hero-grid">
+        <div class="lp-copy">
+            <span class="lp-kicker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13.5 6l-3 12"/></svg>REST API · on every server</span>
+            <h1 id="lp-title">Every server, scriptable.</h1>
+            <p class="lp-lead">One command adds a REST API to a Cipi server. Create apps, deploy, issue certificates, back up databases and apply <code>cipi.yml</code> from CI, scripts, your own dashboard or an AI assistant. Scoped tokens, an IP allowlist and nothing hosted by anyone else.</p>
+            <div class="cmd"><code>cipi api api.example.com</code><button class="copy-btn" type="button" data-copy="cipi api api.example.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div>
+            <div class="lp-ctas"><a class="btn btn-primary" href="/docs/api">Read the API reference</a><a class="btn btn-ghost" href="#clients">Pick a client</a></div>
+            <ul class="lp-facts">
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Sanctum tokens with abilities</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>OpenAPI + Swagger UI</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>MCP server included</li>
+            </ul>
+        </div>
+        <div class="lp-visual">
+            <div class="lp-code"><div class="lp-code-h"><span class="term-dots"><i></i><i></i><i></i></span><span>deploy from anywhere</span></div>
+<pre><span class="p">$ </span>curl -X POST https://api.example.com/api/apps/shop/deploy \
+    -H "Authorization: Bearer $CIPI_TOKEN"
+<span class="s">{"job_id":"9f1c2a…","status":"pending"}</span>
+
+<span class="p">$ </span>curl https://api.example.com/api/jobs/9f1c2a… \
+    -H "Authorization: Bearer $CIPI_TOKEN"
+<span class="s">{"status":"completed","type":"app-deploy",</span>
+<span class="s"> "result":{"release":134,"duration":"58s"}}</span>
+
+<span class="c"># or from PHP</span>
+<span class="k">$cipi</span>-&gt;wait(<span class="k">$cipi</span>-&gt;deploys()-&gt;start(<span class="s">'shop'</span>));</pre></div>
+        </div>
+    </div>
+</section>
+
+<section class="lp-band" aria-label="At a glance">
+    <div class="page-w"><ul>
+        <li><b>100+</b><span>Endpoints for apps, deploys, domains, data and server</span></li>
+        <li><b>40+</b><span>Token abilities, or full access</span></li>
+        <li><b>1</b><span>API per server, on its own subdomain</span></li>
+        <li><b>$0</b><span>Free, MIT, self-hosted</span></li>
+    </ul></div>
+</section>
+
+<section class="lp-sec" aria-labelledby="cover-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="cover-title">What you can automate</h2><p>Reads answer immediately. Writes become jobs you poll, with the CLI's output and a structured result.</p></div>
+        <div class="lp-endpoints">
+            <div class="lp-ep"><b>Apps</b><code><i>GET</i>/api/apps</code><code><i>POST</i>/api/apps</code><code><i>PUT</i>/api/apps/{name}/env</code><code><i>POST</i>/api/apps/{name}/artisan</code></div>
+            <div class="lp-ep"><b>Deploys</b><code><i>POST</i>/api/apps/{name}/deploy</code><code><i>POST</i>…/deploy/rollback</code><code><i>GET</i>…/deploy/status</code><code><i>GET</i>…/deploy/audit</code></div>
+            <div class="lp-ep"><b>cipi.yml</b><code><i>GET</i>/api/apps/{name}/yml</code><code><i>POST</i>…/yml/apply</code><code><i>POST</i>…/yml/auto/enable</code></div>
+            <div class="lp-ep"><b>Domains & SSL</b><code><i>POST</i>…/aliases/{alias}</code><code><i>POST</i>/api/apps/{name}/ssl</code><code><i>POST</i>…/redirects</code><code><i>POST</i>…/proxies</code></div>
+            <div class="lp-ep"><b>Databases</b><code><i>POST</i>/api/dbs</code><code><i>POST</i>/api/dbs/{name}/backup</code><code><i>POST</i>/api/dbs/{name}/restore</code><code><i>POST</i>/api/dbs/uploads</code></div>
+            <div class="lp-ep"><b>Backups</b><code><i>GET</i>/api/backups</code><code><i>POST</i>/api/backups/run</code><code><i>POST</i>/api/backups/verify</code></div>
+            <div class="lp-ep"><b>Server</b><code><i>GET</i>/api/status</code><code><i>GET</i>/api/disk</code><code><i>POST</i>/api/php/install</code><code><i>POST</i>/api/services/{name}/restart</code></div>
+            <div class="lp-ep"><b>Jobs</b><code><i>GET</i>/api/jobs/{id}</code><span style="display:block;margin-top:6px;color:var(--muted);font-size:13px">status, output and parsed result: credentials, release, backup path</span></div>
+        </div>
+        <p style="margin-top:24px"><a class="link-arrow" href="/docs/api#endpoints">Full endpoint reference</a></p>
+    </div>
+</section>
+
+<section class="lp-sec" id="clients" aria-labelledby="clients-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="clients-title">Use it from wherever you work</h2><p>Official clients for the places people automate servers.</p></div>
+        <div class="lp-split">
+            <div><h3>cipi-cli, on your laptop</h3><p>A single Go binary for Linux and macOS. One profile per server, so a fleet is one command away, with no SSH.</p><ul class="lp-checks"><li><code>cipi-cli prod deploy shop</code></li><li>Anonymized database dumps straight into your local DB</li><li><code>--json</code> everywhere for scripts</li></ul><p><a class="link-arrow" href="/docs/cli-client">Read: CLI client</a></p></div>
+            <div><cipi-term name="cli-client"></cipi-term></div>
+        </div>
+        <div class="lp-split lp-split--rev">
+            <div><h3>The PHP SDK, in your apps</h3><p><code>composer require cipi/sdk</code>, then call the API from Laravel, Symfony or a script. It waits on jobs, throws typed exceptions and never leaks the token.</p><ul class="lp-checks"><li>Laravel facade and config, auto-discovered</li><li>Chunked uploads for big database dumps</li><li>HTTPS only, no redirects followed, reads retried, writes never</li></ul><p><a class="link-arrow" href="/docs/php-sdk">Read: PHP SDK</a></p></div>
+            <div class="lp-code"><div class="lp-code-h"><span class="term-dots"><i></i><i></i><i></i></span><span>app/Console/Commands/Release.php</span></div>
+<pre><span class="k">use</span> Cipi\Sdk\Laravel\Facades\Cipi;
+
+<span class="c">// a staging copy of every pull request</span>
+Cipi::wait(Cipi::apps()-&gt;create([
+    <span class="s">'user'</span>       =&gt; <span class="s">"pr{$number}"</span>,
+    <span class="s">'domain'</span>     =&gt; <span class="s">"pr{$number}.preview.acme.app"</span>,
+    <span class="s">'repository'</span> =&gt; <span class="s">'git@github.com:acme/shop.git'</span>,
+    <span class="s">'branch'</span>     =&gt; <span class="k">$branch</span>,
+    <span class="s">'env'</span>        =&gt; <span class="s">'preview'</span>,
+]));
+Cipi::wait(Cipi::deploys()-&gt;start(<span class="s">"pr{$number}"</span>));</pre></div>
+        </div>
+        <div class="lp-grid" style="margin-top:72px">
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>CI pipelines</h3><p>A token with only <code>deploy-manage</code> deploys from GitHub Actions or GitLab CI over HTTPS, no SSH key on the runner.</p><a class="more" href="/guides/laravel-ci-cd-git-workflow">Guide: CI/CD</a></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>WHMCS</h3><p>Sell Laravel and PHP hosting: orders create apps, suspensions show a 503 page, terminations remove them.</p><a class="more" href="/docs/whmcs">Docs: WHMCS module</a></article>
+            <article class="lp-card"><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>AI assistants</h3><p>The same API exposes an MCP server at <code>/mcp</code> for Claude, Cursor and VS Code.</p><a class="more" href="/mcp">MCP for AI</a></article>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="sec-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="sec-title">Powerful, on a short leash</h2><p>The API runs as <code>www-data</code> and can only call an explicit allowlist of <code>cipi</code> commands through sudo. Credentials stay in Cipi's vault, never in PHP.</p></div>
+        <div class="lp-arch">
+            <div><small>1</small><b>Client</b><span>CI, SDK, cipi-cli, panel, MCP</span></div>
+            <div><small>2</small><b>Token + IP check</b><span>abilities, expiry, allowlist</span></div>
+            <div><small>3</small><b>cipi/api</b><span>sync reads, queued jobs</span></div>
+            <div><small>4</small><b>sudo allowlist</b><span>exact command shapes</span></div>
+            <div><small>5</small><b>cipi CLI</b><span>the same validation as SSH</span></div>
+        </div>
+        <table class="lp-table" style="margin-top:40px">
+            <tr><th>Scoped tokens</th><td><code>cipi api token create --name=ci --abilities=deploy-manage --expires=2027-06-30</code></td></tr>
+            <tr><th>IP allowlist</th><td><code>cipi api ip-whitelist set --ips=203.0.113.0/24</code>; your own IP is kept when you tighten it.</td></tr>
+            <tr><th>Jobs are private</th><td>A job is readable only with the ability it was created under, so one token can't read another's credentials.</td></tr>
+            <tr><th>Off-limits by design</th><td>Installing software, dropping databases, removing PHP, Zero Trust changes, S3 secret keys.</td></tr>
+            <tr><th>Kept current</th><td>The API package updates itself nightly; <code>cipi api upgrade</code> rebuilds with automatic rollback.</td></tr>
+        </table>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="docs-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="docs-title">Go deeper in the docs</h2></div>
+        <div class="lp-docs">
+            <a href="/docs/api"><small>Reference</small><b>REST API</b><span>Install, domains, tokens, every endpoint, examples.</span></a>
+            <a href="/docs/api#tokens"><small>Security</small><b>Tokens and abilities</b><span>The ability for each endpoint, and full access.</span></a>
+            <a href="/docs/api#cipi-api-host"><small>Internals</small><b>Host integration</b><span>The sudo allowlist and troubleshooting.</span></a>
+            <a href="/docs/cli-client"><small>Client</small><b>cipi-cli</b><span>Profiles, every command, token abilities.</span></a>
+            <a href="/docs/php-sdk"><small>Client</small><b>PHP SDK</b><span>Apps, deploys, cipi.yml, data, errors.</span></a>
+            <a href="/docs/whmcs"><small>Integration</small><b>WHMCS</b><span>Provisioning lifecycle and admin buttons.</span></a>
+        </div>
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="faq-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="faq-title">Questions</h2></div>
+        {{FAQ}}
+    </div>
+</section>
+
+<section class="lp-sec" aria-labelledby="more-title">
+    <div class="page-w">
+        <div class="lp-head"><h2 id="more-title">Also part of Cipi</h2></div>
+        {{SIBLINGS}}
+    </div>
+</section>

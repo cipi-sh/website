@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database anonymizer — Cipi docs</title>
+    <meta name="description" content="Copy production data without personal data.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/anonymizer">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/anonymizer">
+    <meta property="og:title" content="Database anonymizer — Cipi docs">
+    <meta property="og:description" content="Copy production data without personal data.">
+    <meta property="og:image" content="https://cipi.sh/img/og/docs-anonymizer.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/docs-anonymizer.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Database anonymizer", "description": "Copy production data without personal data.", "url": "https://cipi.sh/docs/anonymizer", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Cipi Agent & AI", "item": "https://cipi.sh/docs/agent"}, {"@type": "ListItem", "position": 3, "name": "Database anonymizer", "item": "https://cipi.sh/docs/anonymizer"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group"><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group" open><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer" aria-current="page">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/agent">Cipi Agent &amp; AI</a></li><li aria-current="page">Database anonymizer</li></ol>
+<h1>Database anonymizer</h1>
+<p class="docs-lead">Copy production data without personal data.</p>
+<div class="docs-meta"><span>Cipi Agent &amp; AI</span></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="agent-anonymizer">
+<p>The anonymizer gives you <strong>a copy of production that looks real but contains no real people</strong>. Developers, QA, staging and contractors get the same tables, volumes and relations, with e-mails, names, phones, addresses and notes replaced by Faker values. MySQL, MariaDB and PostgreSQL are supported.</p>
+<p>It lives inside your Laravel app (<code>cipi/agent</code>), runs as a queued job, and is safe by construction: the raw dump is deleted as soon as it's processed, outputs are <code>0600</code>, database passwords travel in the environment, never on a command line, and the download link expires.</p>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Request</b><span>POST /cipi/db, cipi-cli or Artisan</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Queue</b><span>AnonymizeDatabaseJob</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Dump</b><span>mysqldump / pg_dump</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Rewrite</b><span>only configured columns</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="4"><b>Email</b><span>signed link, 15 minutes</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 5</span><b>Request</b></div><p>You ask for a dump in one of three ways: <code>cipi-cli prod db anonymize myapp --email you@example.com</code> from your laptop, a <code>POST /cipi/db</code> with the anonymizer token, or <code>php artisan cipi:anonymize</code> on the server.</p><p>The HTTP request returns <code>{"status":"queued"}</code> at once: the work happens in the background.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 5</span><b>Queue</b></div><p><code>AnonymizeDatabaseJob</code> goes on the app's queue and a worker runs it. No worker running means nothing happens: check with <code>cipi worker list myapp</code>.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 5</span><b>Dump</b></div><p>The job reads the database with the engine's own tool (<code>mysqldump</code> for MariaDB/MySQL, <code>pg_dump</code> for PostgreSQL). It only reads: production is never changed.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 5</span><b>Rewrite</b></div><p>Each column listed in <code>anonymization.json</code> is replaced while the dump streams; tables in <code>truncate</code> are emptied; everything else is copied as is. The raw dump is deleted right away.</p></div><div class="fx-pane" role="tabpanel" data-i="4" hidden><div class="fx-head"><span class="fx-n">Step 5 of 5</span><b>Email</b></div><p>A signed download link is e-mailed to the address in the request, valid for 15 minutes (<code>CIPI_ANONYMIZER_TTL</code>). The API never returns it, so the e-mail is the only way to the file.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Use case</th><th>Why it fits</th></tr></thead><tbody><tr><td>Local development</td><td>Realistic data on every laptop, no production e-mails</td></tr><tr><td>Staging and previews</td><td>Production structure and volume, PII replaced</td></tr><tr><td>QA and demos</td><td>Reproduce bugs that depend on real relations, without GDPR risk</td></tr><tr><td>Contractors</td><td>Share a SQL file instead of production access</td></tr></tbody></table></div>
+<h2 id="agent-anonymizer-vs-api">Anonymizer vs backups<a class="anchor" href="#agent-anonymizer-vs-api" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>Anonymizer (<code>cipi/agent</code>)</th><th>Backups (<a href="/docs/api">Cipi API</a>)</th></tr></thead><tbody><tr><td>Scope</td><td>One Laravel app's database</td><td>Any database on the server</td></tr><tr><td>Output</td><td>SQL with fake values in sensitive columns</td><td>Full compressed backup, real data</td></tr><tr><td>Auth</td><td><code>CIPI_ANONYMIZER_TOKEN</code> (per app)</td><td>Sanctum token with <code>dbs-manage</code></td></tr><tr><td>For</td><td>People who need realistic data</td><td>Disaster recovery, cloning</td></tr></tbody></table></div>
+<p>Use both: backups for operations, anonymized dumps for humans.</p>
+<h2 id="requirements">Requirements<a class="anchor" href="#requirements" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Requirement</th><th>Why</th></tr></thead><tbody><tr><td><code>cipi/agent</code> installed</td><td>The anonymizer is part of the agent</td></tr><tr><td>A queue worker</td><td><code>POST /cipi/db</code> dispatches a job; without a worker nothing runs</td></tr><tr><td><code>mysqldump</code> / <code>mariadb-dump</code> / <code>pg_dump</code></td><td>Found on <code>PATH</code>, or set <code>CIPI_MYSQLDUMP</code> / <code>CIPI_PG_DUMP</code></td></tr><tr><td>Laravel mail (<code>MAIL_*</code>)</td><td>The download link only travels by e-mail</td></tr><tr><td><code>anonymization.json</code> on the server</td><td>In <code>~/.db/</code> (or <code>~/.cipi/</code>), outside the repository</td></tr></tbody></table></div>
+<h2 id="setup">Setup<a class="anchor" href="#setup" aria-label="Link to this section">#</a></h2>
+<p>As the app user on the server (<a href="/docs/app-ssh">SSH as the app user</a>), or remotely with <code>cipi-cli apps artisan myapp …</code>:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>composer require cipi/agent<span class="c">                   # commit, push, deploy</span>
+<span class="p"></span>php artisan cipi:service anonymize --enable
+<span class="p"></span>php artisan cipi:generate-token anonymize
+<span class="p"></span>php artisan cipi:init-anonymize --scan<span class="c">        # proposes a config from your schema</span>
+<span class="p"></span>php artisan cipi:anonymize-audit<span class="c">              # config vs live database</span></pre></div>
+<p><code>--scan</code> proposes a transformation for every column that looks like personal data (e-mails, names, phones, addresses, IPs, tokens, passwords, tax ids, card data, free text) and empties operational tables (<code>sessions</code>, <code>jobs</code>, <code>failed_jobs</code>, <code>password_reset_tokens</code>, <code>personal_access_tokens</code>, Telescope, Pulse). Foreign keys and timestamps are never touched. The file is written to <code>~/.db/anonymization.json</code> with mode <code>0640</code> and is never deployed.</p>
+<p>The audit fails on unknown tables, columns or transformations, warns about password columns not set to <code>password</code>, and lists uncovered columns that look personal, with a suggestion. <strong>Run it after every migration.</strong></p>
+<h2 id="agent-anonymizer-config">Configuration<a class="anchor" href="#agent-anonymizer-config" aria-label="Link to this section">#</a></h2>
+<p>Lookup order: <code>CIPI_ANONYMIZER_CONFIG</code>, then <code>~/.db/anonymization.json</code>, then <code>~/.cipi/anonymization.json</code>.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">json</span><button class="code-copy-btn" type="button">Copy</button></div><pre>{
+  "transformations": {
+    "users": {
+      "name": "fakeName",
+      "email": { "type": "fakeEmail", "unique": true, "consistent": true },
+      "password": "password",
+      "remember_token": "null",
+      "phone": "mask:3,2"
+    },
+    "orders": {
+      "customer_email": { "type": "fakeEmail", "consistent": true },
+      "card_last_four": "numerify:####",
+      "internal_notes": "fakeParagraph"
+    }
+  },
+  "truncate": ["sessions", "jobs", "failed_jobs", "password_reset_tokens"],
+  "options": { "faker_locale": "en_US", "consistent": true, "seed": "change-me" }
+}</pre></div>
+<p>Keys under <code>transformations</code> are tables, nested keys are columns. <strong>Columns not listed are copied unchanged</strong>, which is how ids, enums and business fields survive. <code>NULL</code> stays <code>NULL</code> (except with <code>fixed</code>).</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Effect</th></tr></thead><tbody><tr><td><code>consistent</code></td><td>Same original, same fake value, across tables and runs with the same <code>seed</code>: <code>users.email</code> still joins <code>orders.customer_email</code></td></tr><tr><td><code>unique</code></td><td>No duplicates in the column; default for <code>fakeEmail</code>, <code>fakeSafeEmail</code>, <code>fakeUserName</code>, <code>fakeUuid</code>, <code>fakeToken</code>, <code>fakeIban</code></td></tr><tr><td><code>truncate</code></td><td>Keeps the table, drops its rows</td></tr><tr><td><code>password</code></td><td>Every row gets the hash of <code>options.password</code> (computed once), so developers can log in</td></tr></tbody></table></div>
+<h3 id="transformations">Transformations<a class="anchor" href="#transformations" aria-label="Link to this section">#</a></h3>
+<p><code>php artisan cipi:anonymize --transformations</code> prints the catalogue.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Transformation</th><th>Output</th></tr></thead><tbody><tr><td><code>fakeName</code>, <code>fakeFirstName</code>, <code>fakeLastName</code>, <code>fakeUserName</code></td><td>Names</td></tr><tr><td><code>fakeEmail</code>, <code>fakeSafeEmail</code></td><td>E-mail (<code>fakeSafeEmail</code> uses example.com)</td></tr><tr><td><code>fakeCompany</code>, <code>fakeJobTitle</code></td><td>Company, job title</td></tr><tr><td><code>fakeAddress</code>, <code>fakeStreetAddress</code>, <code>fakeCity</code>, <code>fakeState</code>, <code>fakePostcode</code>, <code>fakeCountry</code>, <code>fakeCountryCode</code></td><td>Postal data</td></tr><tr><td><code>fakePhoneNumber</code></td><td>Phone</td></tr><tr><td><code>fakeDate</code>, <code>fakeDateTime</code></td><td><code>Y-m-d</code>, <code>Y-m-d H:i:s</code></td></tr><tr><td><code>fakeUrl</code>, <code>fakeDomain</code></td><td>URL, domain</td></tr><tr><td><code>fakeParagraph</code>, <code>fakeSentence</code>, <code>fakeText[:len]</code>, <code>fakeWord</code></td><td>Free text</td></tr><tr><td><code>fakeIban[:CC]</code>, <code>fakeCreditCardNumber</code></td><td>Banking data in test ranges</td></tr><tr><td><code>fakeIpv4</code>, <code>fakeIpv6</code>, <code>fakeMacAddress</code>, <code>fakeUserAgent</code></td><td>Network identifiers</td></tr><tr><td><code>fakeUuid</code>, <code>fakeToken[:len]</code>, <code>fakeIdentifier</code></td><td>UUID, hex token, tax-id-like value</td></tr><tr><td><code>fakeLatitude</code>, <code>fakeLongitude</code>, <code>fakeNumber[:digits]</code>, <code>fakeBoolean</code></td><td>Numbers</td></tr><tr><td><code>numerify:###</code>, <code>lexify:???</code>, <code>bothify:?#</code></td><td>Patterns (<code>#</code> digit, <code>?</code> letter)</td></tr><tr><td><code>password</code></td><td>Hash of <code>options.password</code></td></tr><tr><td><code>null</code>, <code>empty</code>, <code>fixed:value</code>, <code>redact</code></td><td><code>NULL</code>, <code>''</code>, a constant, <code>[REDACTED]</code></td></tr><tr><td><code>hash[:len]</code>, <code>mask:first,last</code>, <code>keep</code></td><td>Seeded SHA-256, partial mask (<code>j*******om</code>), unchanged</td></tr></tbody></table></div>
+<h3 id="options">Options<a class="anchor" href="#options" aria-label="Link to this section">#</a></h3>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Option</th><th>Default</th><th>Meaning</th></tr></thead><tbody><tr><td><code>hash_algorithm</code></td><td><code>auto</code></td><td>App Hash driver, or <code>bcrypt</code>, <code>argon2id</code>, <code>argon2i</code>, <code>argon2d</code></td></tr><tr><td><code>password</code></td><td><code>password</code></td><td>Plaintext behind every <code>password</code> column</td></tr><tr><td><code>faker_locale</code></td><td><code>en_US</code></td><td>e.g. <code>it_IT</code>, <code>de_DE</code></td></tr><tr><td><code>consistent</code></td><td><code>false</code></td><td>Default for all columns</td></tr><tr><td><code>seed</code></td><td><code>null</code></td><td>Keep it private; change it for a different dataset</td></tr><tr><td><code>gzip</code></td><td><code>false</code></td><td><code>.sql.gz</code> output</td></tr><tr><td><code>connection</code></td><td><code>null</code></td><td>Another <code>config/database.php</code> connection</td></tr><tr><td><code>dump_args</code></td><td><code>[]</code></td><td>Extra dump flags, one per entry</td></tr></tbody></table></div>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Anonymization is <strong>opt-in per column</strong>. PII in a JSON column, a blob or a column you forgot is copied verbatim. Watch <code>metadata</code>, <code>settings</code> and audit tables.</p></div></div>
+<h2 id="agent-anonymizer-email">Delivery by e-mail<a class="anchor" href="#agent-anonymizer-email" aria-label="Link to this section">#</a></h2>
+<p>The API never returns the download URL: <strong>the e-mail is the only channel</strong>, and it goes only to the <code>email</code> in the request (no CC, no fallback). Success sends a signed link valid for <code>CIPI_ANONYMIZER_TTL</code> minutes (default 15); failure sends the error and the job id.</p>
+<p>It uses your app's Laravel mail (<code>MAIL_*</code>), not the server's <code>cipi smtp</code>. Test it before the first export:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>php artisan tinker --execute="Mail::raw('test', fn (\$m) =&gt; \$m-&gt;to('you@example.com')-&gt;subject('Mail test'));"</pre></div>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p><code>{"status":"queued"}</code> only means the job was queued. If nothing arrives, check <code>storage/logs/laravel.log</code> and <code>php artisan queue:failed</code>. The file may already be in <code>storage/cipi/</code>.</p></div></div>
+<h2 id="agent-anonymizer-curl">HTTP API<a class="anchor" href="#agent-anonymizer-curl" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr></thead><tbody><tr><td><code>POST</code></td><td><code>/cipi/db</code></td><td>Bearer token</td><td>Validate the config, queue a job (<code>{"email", "gzip"}</code>)</td></tr><tr><td><code>POST</code></td><td><code>/cipi/db/user</code></td><td>Bearer token</td><td>Find <code>users.id</code> from a production e-mail (ids survive anonymization)</td></tr><tr><td><code>GET</code></td><td><code>/cipi/db/{token}</code></td><td>Signed URL</td><td>Download; expires after the TTL</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>curl -sS -X POST "$APP_URL/cipi/db" \
+    -H "Authorization: Bearer $CIPI_ANONYMIZER_TOKEN" \
+    -H "Accept: application/json" -H "Content-Type: application/json" \
+    -d '{"email": "developer@example.com"}'
+{"status":"queued","email":"developer@example.com","link_valid_minutes":15}
+
+<span class="p"></span>curl -sS -L -o anonymized.sql "&lt;signed url from the e-mail&gt;"</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>HTTP</th><th>Meaning</th><th>Fix</th></tr></thead><tbody><tr><td>403</td><td>Bad or missing token</td><td><code>cipi:generate-token anonymize</code></td></tr><tr><td>404</td><td>Service disabled or no config</td><td><code>cipi:service anonymize --enable</code>, <code>cipi:init-anonymize</code></td></tr><tr><td>400</td><td>Invalid <code>anonymization.json</code> (all errors listed)</td><td>Fix it; <code>cipi:anonymize-audit</code> prints the same list</td></tr><tr><td>422</td><td>Missing <code>email</code></td><td>Send <code>{"email": "…"}</code></td></tr><tr><td>410</td><td>Download link expired</td><td>Request a new dump</td></tr><tr><td>500</td><td>DB error or dump tool missing</td><td>Laravel logs, <code>CIPI_MYSQLDUMP</code> / <code>CIPI_PG_DUMP</code></td></tr></tbody></table></div>
+<h2 id="agent-anonymizer-cli">From your laptop<a class="anchor" href="#agent-anonymizer-cli" aria-label="Link to this section">#</a></h2>
+<p><code>cipi-cli</code> drives the same flow through the <a href="/docs/cli-client">Cipi API</a>: you name the app, it reads <code>APP_URL</code>, <code>CIPI_ROUTE_PREFIX</code> and the anonymizer token from the app's <code>.env</code>, and calls the agent. No SSH, no token in your shell history.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli prod db anonymize myapp --email dev@example.com
+→ Requesting anonymized dump of 'myapp' via https://myapp.example.com/cipi/db
+✓ Anonymization job queued for 'myapp'
+
+<span class="p"></span>cipi-cli db anonymize download "&lt;signed url&gt;" -o myapp.sql
+✓ Saved myapp.sql (24.5 MB)
+
+<span class="p"></span>cipi-cli db anonymize download "&lt;signed url&gt;" -o - | mysql -u root myapp_local</pre></div>
+<p>Every failure names its fix (service disabled, token missing, custom or Node app, redirect to another host: pass <code>--url</code>). The API token needs <code>apps-view</code> and <code>apps-env</code>, plus <code>apps-artisan</code> for remote setup.</p>
+<h2 id="artisan">On the server, without HTTP<a class="anchor" href="#artisan" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>php artisan cipi:anonymize<span class="c">                    # → storage/cipi/anonymized_&lt;timestamp&gt;.sql</span>
+<span class="p"></span>php artisan cipi:anonymize --gzip
+<span class="p"></span>php artisan cipi:anonymize &lt;config&gt; &lt;output.sql&gt;
+<span class="p"></span>php artisan cipi:anonymize --check<span class="c">            # validate + audit, no dump</span></pre></div>
+<p>Writes the file directly (no e-mail), reports rows transformed per table, tables emptied and warnings, and exits non-zero on failure. Good for cron and scripts.</p>
+<h2 id="security">Security checklist<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
+<ul><li>Keep <code>CIPI_ANONYMIZER_TOKEN</code> in a secrets manager; rotate it after team changes; disable the service when unused.</li><li>Tell recipients the shared password, and never use a real one in <code>options.password</code>.</li><li>Use <code>consistent: true</code> with a private <code>seed</code>.</li><li>Run <code>cipi:anonymize-audit</code> after every migration.</li><li>Any API token with <code>apps-env</code> can read the anonymizer token: scope tokens.</li><li>Verify a dump: grep for a known production e-mail. It must not appear.</li><li>Never commit <code>anonymization.json</code>: it maps your schema.</li></ul>
+</section>
+
+</div>
+<aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul><li><a href="/guides/anonymized-database-dumps"><b>Anonymize a Laravel database with Cipi Agent, step by step</b><span>Give developers, QA, staging and AI assistants a realistic copy of production with every personal field replaced, explained from zero: install the agent, scan the schema, review the rules, request a dump from your laptop, import it, and keep it GDPR-safe.</span></a></li><li><a href="/guides/cipi-agent-laravel-mcp"><b>Cipi Agent: connect your Laravel app to its server</b><span>Install cipi/agent to get push-to-deploy, a health endpoint, an MCP server for AI assistants, cipi.yml validation and GDPR-safe database dumps in any Laravel app.</span></a></li><li><a href="/guides/spec-driven-development-ai-laravel"><b>Spec-driven development with AI agents in Laravel</b><span>Write the spec first, let an agent implement it against tests, and close the loop on production through MCP, with guardrails that keep data and deploys safe.</span></a></li></ul></aside><nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/agent-yml" rel="prev"><small>Previous</small><b>cipi.yml tooling</b></a><a class="next" href="/docs/agent-config" rel="next"><small>Next</small><b>Agent security &amp; ENV</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#agent-anonymizer-vs-api">Anonymizer vs backups</a></li>
+<li><a class="l2" href="#requirements">Requirements</a></li>
+<li><a class="l2" href="#setup">Setup</a></li>
+<li><a class="l2" href="#agent-anonymizer-config">Configuration</a></li>
+<li><a class="l3" href="#transformations">Transformations</a></li>
+<li><a class="l3" href="#options">Options</a></li>
+<li><a class="l2" href="#agent-anonymizer-email">Delivery by e-mail</a></li>
+<li><a class="l2" href="#agent-anonymizer-curl">HTTP API</a></li>
+<li><a class="l2" href="#agent-anonymizer-cli">From your laptop</a></li>
+<li><a class="l2" href="#artisan">On the server, without HTTP</a></li>
+<li><a class="l2" href="#security">Security checklist</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/anonymizer.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/anonymizer" width="1" height="1" alt=""></noscript>
+</body>
+</html>

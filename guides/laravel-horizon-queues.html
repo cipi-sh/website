@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laravel queues and Horizon in production — Cipi guides</title>
+    <meta name="description" content="Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never run old code, failed jobs, alerts and cipi.yml.">
+    <meta name="keywords" content="laravel horizon production, laravel queue worker supervisor, laravel queue vps, laravel horizon nginx, queue:work timeout retry_after, laravel failed jobs production">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/laravel-horizon-queues">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/laravel-horizon-queues">
+    <meta property="og:title" content="Laravel queues and Horizon in production">
+    <meta property="og:description" content="Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never run old code, failed jobs, alerts and cipi.yml.">
+    <meta property="og:image" content="https://cipi.sh/img/og/guide-laravel-horizon-queues.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Laravel queues and Horizon in production">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Laravel queues and Horizon in production">
+    <meta name="twitter:description" content="Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never run old code, failed jobs, alerts and cipi.yml.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/guide-laravel-horizon-queues.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Laravel queues and Horizon in production", "description": "Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never run old code, failed jobs, alerts and cipi.yml.", "url": "https://cipi.sh/guides/laravel-horizon-queues", "mainEntityOfPage": "https://cipi.sh/guides/laravel-horizon-queues", "datePublished": "2026-04-15", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/guide-laravel-horizon-queues.jpg", "articleSection": "Laravel", "timeRequired": "PT3M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "laravel horizon production, laravel queue worker supervisor, laravel queue vps, laravel horizon nginx, queue:work timeout retry_after, laravel failed jobs production"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "Laravel queues and Horizon in production", "description": "Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never run old code, failed jobs, alerts and cipi.yml.", "totalTime": "PT13M", "step": [{"@type": "HowToStep", "position": 1, "name": "Key ideas, in plain words", "url": "https://cipi.sh/guides/laravel-horizon-queues#ideas"}, {"@type": "HowToStep", "position": 2, "name": "Before you start", "url": "https://cipi.sh/guides/laravel-horizon-queues#before"}, {"@type": "HowToStep", "position": 3, "name": "1. Add and scale queues", "url": "https://cipi.sh/guides/laravel-horizon-queues#queues"}, {"@type": "HowToStep", "position": 4, "name": "2. Timeouts and retries, the part people get wrong", "url": "https://cipi.sh/guides/laravel-horizon-queues#timeouts"}, {"@type": "HowToStep", "position": 5, "name": "3. Failed jobs", "url": "https://cipi.sh/guides/laravel-horizon-queues#failed"}, {"@type": "HowToStep", "position": 6, "name": "4. Switch to Horizon", "url": "https://cipi.sh/guides/laravel-horizon-queues#horizon"}, {"@type": "HowToStep", "position": 7, "name": "5. Protect the dashboard", "url": "https://cipi.sh/guides/laravel-horizon-queues#dashboard"}, {"@type": "HowToStep", "position": 8, "name": "6. Deploys don't break jobs", "url": "https://cipi.sh/guides/laravel-horizon-queues#deploys"}, {"@type": "HowToStep", "position": 9, "name": "7. Get alerted", "url": "https://cipi.sh/guides/laravel-horizon-queues#alerts"}, {"@type": "HowToStep", "position": 10, "name": "8. In cipi.yml", "url": "https://cipi.sh/guides/laravel-horizon-queues#yml"}, {"@type": "HowToStep", "position": 11, "name": "Troubleshooting", "url": "https://cipi.sh/guides/laravel-horizon-queues#troubleshooting"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Workers or Horizon?", "acceptedAnswer": {"@type": "Answer", "text": "Plain workers are enough for a few queues. Horizon adds a dashboard, metrics, auto-balancing between queues and tagged job search, and needs the queues on Redis (Valkey). One or the other per app, not both."}}, {"@type": "Question", "name": "Do workers run old code after a deploy?", "acceptedAnswer": {"@type": "Answer", "text": "No. Cipi stops them before the release swap and restarts them on the new code, so no job runs old code against a migrated database."}}, {"@type": "Question", "name": "My job takes 20 minutes and gets killed.", "acceptedAnswer": {"@type": "Answer", "text": "Laravel kills a job after 60 seconds unless the job says otherwise: set public $timeout = 1500; on it, give its worker a --timeout at least as long, and set retry_after in config/queue.php higher, or it may be picked up twice."}}, {"@type": "Question", "name": "Where do failed jobs go?", "acceptedAnswer": {"@type": "Answer", "text": "The failed_jobs table. List them with cipi app artisan shop queue:failed , retry with queue:retry all . Horizon shows them in the dashboard."}}, {"@type": "Question", "name": "How many processes should I run?", "acceptedAnswer": {"@type": "Answer", "text": "Start with 1–2 per queue and watch the wait time. Each process uses about the memory of one request (often 50–150 MB). Horizon can scale between a min and max for you."}}, {"@type": "Question", "name": "Who can open /horizon in production?", "acceptedAnswer": {"@type": "Answer", "text": "Nobody until you allow them in the viewHorizon gate. Add your team's e-mails, or put the whole app behind basic auth or Zero Trust."}}, {"@type": "Question", "name": "Do queued jobs survive a server restart?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Jobs live in the database or in Valkey (saved to disk), and Supervisor starts the workers again at boot."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "Laravel queues and Horizon in production", "item": "https://cipi.sh/guides/laravel-horizon-queues"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">Laravel queues and Horizon in production</li></ol>
+<a class="art-eyebrow" href="/guides/#laravel">Laravel</a>
+<h1>Laravel queues and Horizon in production</h1>
+<p class="art-lead">Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never run old code, failed jobs, alerts and cipi.yml.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>3 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=Laravel%20queues%20and%20Horizon%20in%20production&url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-horizon-queues" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-horizon-queues" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-horizon-queues&title=Laravel%20queues%20and%20Horizon%20in%20production" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-horizon-queues&t=Laravel%20queues%20and%20Horizon%20in%20production" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-horizon-queues&text=Laravel%20queues%20and%20Horizon%20in%20production" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=Laravel%20queues%20and%20Horizon%20in%20production%20https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-horizon-queues" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/laravel-horizon-queues" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>A <strong>queue</strong> lets your app answer the visitor immediately and do slow work (e-mails, PDFs, imports, webhooks) a moment later, in the background. A <strong>worker</strong> is a long-running process that takes jobs from the queue and runs them. This guide sets both up for production, then switches to <strong>Horizon</strong> when you want a dashboard.</p>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Job</strong></td><td>A class with a <code>handle()</code> method, dispatched with <code>SendInvoice::dispatch($order)</code></td></tr><tr><td><strong>Queue</strong></td><td>A named line of jobs: <code>default</code>, <code>emails</code>, <code>exports</code></td></tr><tr><td><strong>Connection</strong></td><td>Where jobs are stored: <code>database</code> (Cipi's default) or <code>redis</code> (Valkey)</td></tr><tr><td><strong>Worker</strong></td><td><code>php artisan queue:work</code>, running forever, processing jobs</td></tr><tr><td><strong>Supervisor</strong></td><td>The Linux service that keeps workers running and restarts them if they crash</td></tr><tr><td><strong>Horizon</strong></td><td>Laravel's worker manager for Redis queues, with a dashboard</td></tr></tbody></table></div>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Request</b><span>dispatch job, reply fast</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Queue</b><span>database or Valkey</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Worker</b><span>Supervisor keeps it alive</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Job runs</b><span>retries on failure</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="4"><b>failed_jobs</b><span>after the last try</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 5</span><b>Request</b></div><p>The controller calls <code>SendInvoice::dispatch($order)</code> and answers the visitor straight away.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 5</span><b>Queue</b></div><p>The job is stored in the queue: the database by default, or Valkey with Horizon.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 5</span><b>Worker</b></div><p>A worker kept alive by Supervisor takes the next job.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 5</span><b>Job runs</b></div><p>The job runs. If it throws, it's retried according to <code>$tries</code> and <code>$backoff</code>.</p></div><div class="fx-pane" role="tabpanel" data-i="4" hidden><div class="fx-head"><span class="fx-n">Step 5 of 5</span><b>failed_jobs</b></div><p>After the last failed attempt it lands in <code>failed_jobs</code>, where you can inspect and retry it.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<h2 id="before">Before you start<a class="anchor" href="#before" aria-label="Link to this section">#</a></h2>
+<ul><li>A Laravel app deployed with Cipi: it already has <strong>one worker on <code>default</code></strong>.</li><li>Jobs implement <code>ShouldQueue</code>. Without it they run inline, in the request.</li></ul>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi worker list shop</pre></div>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(7 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Queue workers</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Queue workers">$ cipi worker add shop --queue=emails --processes=2
+$ cipi worker list shop</pre><script type="application/json" class="term-script">[{"c": "cipi worker add shop --queue=emails --processes=2"}, {"o": [["✓ ", "ok"], ["Worker shop-emails: 2 processes under Supervisor", ""]], "d": 600}, {"c": "cipi worker list shop"}, {"o": [["WORKER          PROCS  STATE", "dim"]], "d": 300}, {"o": [["shop-default    1      ", ""], ["RUNNING", "ok"]], "d": 150}, {"o": [["shop-emails     2      ", ""], ["RUNNING", "ok"]], "d": 150}]</script></div>
+<h2 id="queues">1. Add and scale queues<a class="anchor" href="#queues" aria-label="Link to this section">#</a></h2>
+<p>Put slow or bursty work on its own queue, so a big export never delays password-reset e-mails:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi worker add shop --queue=emails --processes=3
+<span class="p"></span>sudo cipi worker add shop --queue=exports --processes=1 --timeout=7200
+<span class="p"></span>sudo cipi worker edit shop --queue=default --processes=2
+<span class="p"></span>sudo cipi worker list shop</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Meaning</th><th>Default</th></tr></thead><tbody><tr><td><code>--queue</code></td><td>Queue to consume</td><td><code>default</code></td></tr><tr><td><code>--processes</code></td><td>Parallel processes</td><td>1</td></tr><tr><td><code>--tries</code></td><td>Attempts before a job goes to <code>failed_jobs</code></td><td>3</td></tr><tr><td><code>--timeout</code></td><td>Seconds a worker process lives before it's recycled (<code>--max-time</code>), and how long a stop waits for the running job</td><td>3600</td></tr></tbody></table></div>
+<p>Plain workers consume the <strong><code>database</code></strong> connection. To move queues to Valkey, use Horizon (step 4).</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>SendInvoice::dispatch($order)-&gt;onQueue('emails');
+ExportOrders::dispatch($user)-&gt;onQueue('exports');</pre></div>
+<h2 id="timeouts">2. Timeouts and retries, the part people get wrong<a class="anchor" href="#timeouts" aria-label="Link to this section">#</a></h2>
+<ul class="flow stack"><li><b>$timeout on the job</b><span>the job is killed after N seconds (Laravel's default: 60)</span></li><li><b>retry_after</b><span>the queue hands the job to another worker after N seconds</span></li><li><b>--timeout of the worker</b><span>how long the process lives, and how long a stop waits for it</span></li><li><b>$tries / $backoff</b><span>per job: how many attempts, how long between</span></li></ul>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Example</th></tr></thead><tbody><tr><td>Long jobs declare their own limit</td><td><code>public $timeout = 7000;</code> on <code>ExportOrders</code></td></tr><tr><td>The worker waits at least that long</td><td><code>cipi worker add shop --queue=exports --timeout=7200</code></td></tr><tr><td><code>retry_after</code> &gt; the longest job</td><td><code>'retry_after' =&gt; 7260</code> for that connection</td></tr><tr><td>Jobs that call APIs get a backoff</td><td><code>public $backoff = [10, 60, 300];</code></td></tr><tr><td>Limit attempts</td><td><code>public $tries = 5;</code> or <code>retryUntil()</code></td></tr><tr><td>Make jobs safe to run twice</td><td>Check state first: "already sent?"</td></tr></tbody></table></div>
+<p><code>retry_after</code> is set per connection in <code>config/queue.php</code>. If it's shorter than a job's runtime, the job runs twice.</p>
+<h2 id="failed">3. Failed jobs<a class="anchor" href="#failed" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app artisan shop queue:failed
+<span class="p"></span>sudo cipi app artisan shop queue:retry all
+<span class="p"></span>sudo cipi app artisan shop queue:retry 5f1c…<span class="c">           # one job</span>
+<span class="p"></span>sudo cipi app artisan shop queue:prune-failed --hours=168</pre></div>
+<p>Add a <code>failed()</code> method to the job to notify yourself, or alert on the count from the scheduler.</p>
+<h2 id="horizon">4. Switch to Horizon<a class="anchor" href="#horizon" aria-label="Link to this section">#</a></h2>
+<p>Horizon needs the queues on Redis. Each app has its own <a href="/guides/laravel-valkey-cache-sessions">Valkey</a> ready.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># on your laptop</span>
+<span class="p"></span>composer require laravel/horizon
+<span class="p"></span>php artisan horizon:install
+<span class="p"></span>git commit -am "Add Horizon" &amp;&amp; git push
+<span class="c"># on the server</span>
+<span class="p"></span>sudo cipi app env shop --set=QUEUE_CONNECTION=redis
+<span class="p"></span>sudo cipi app artisan shop config:cache
+<span class="p"></span>sudo cipi worker horizon enable shop
+<span class="p"></span>sudo cipi worker horizon status shop</pre></div>
+<p>Horizon replaces the app's <code>queue:work</code> workers: one or the other. Define supervisors in <code>config/horizon.php</code>:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>'environments' =&gt; [
+    'production' =&gt; [
+        'fast' =&gt; ['connection' =&gt; 'redis', 'queue' =&gt; ['default', 'emails'],
+                   'balance' =&gt; 'auto', 'minProcesses' =&gt; 1, 'maxProcesses' =&gt; 6, 'tries' =&gt; 3],
+        'slow' =&gt; ['connection' =&gt; 'redis', 'queue' =&gt; ['exports'],
+                   'maxProcesses' =&gt; 1, 'timeout' =&gt; 7200, 'tries' =&gt; 1],
+    ],
+],</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>The deploy finds</th><th>It does</th></tr></thead><tbody><tr><td>Horizon, queues on Redis, no worker</td><td>Enables Horizon</td></tr><tr><td>Horizon plus existing workers</td><td>Explains how to switch; changes nothing</td></tr><tr><td>Horizon, queues not on Redis</td><td>Tells you which variable to set</td></tr></tbody></table></div>
+<h2 id="dashboard">5. Protect the dashboard<a class="anchor" href="#dashboard" aria-label="Link to this section">#</a></h2>
+<p><code>/horizon</code> is closed in production until you open it:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c">// app/Providers/HorizonServiceProvider.php</span>
+protected function gate(): void
+{
+    Gate::define('viewHorizon', fn ($user) =&gt; in_array($user-&gt;email, [
+        'you@example.com',
+    ]));
+}</pre></div>
+<p>For extra safety, <a href="/docs/basic-auth">basic auth</a> or <a href="/guides/cloudflare-zero-trust-laravel">Zero Trust</a> in front of the app.</p>
+<h2 id="deploys">6. Deploys don't break jobs<a class="anchor" href="#deploys" aria-label="Link to this section">#</a></h2>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Stop workers</b><span>before the swap</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Swap release</b><span>atomic</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Restart workers</b><span>on the new code</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 3</span><b>Stop workers</b></div><p>During a deploy, workers stop first and finish their current job.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 3</span><b>Swap release</b></div><p>The new release goes live in one atomic switch.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 3</span><b>Restart workers</b></div><p>Workers start again on the new code.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<p>Workers stop gracefully: the running job finishes first, up to the worker's <code>--timeout</code>. Jobs dispatched by the old code must still work with the new code, so don't rename a job class or change its constructor in the same deploy that removes the old one.</p>
+<h2 id="alerts">7. Get alerted<a class="anchor" href="#alerts" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Signal</th><th>How</th></tr></thead><tbody><tr><td>Worker crashed repeatedly</td><td>Supervisor restarts it; <a href="/guides/notifications-alerts">Cipi alerts</a> cover server events</td></tr><tr><td>Long waits</td><td>Horizon's <code>waits</code> config sends a notification when a queue waits too long</td></tr><tr><td>Failed jobs</td><td><code>failed()</code> on the job, or a scheduled count check</td></tr><tr><td>Nothing processing at all</td><td><code>sudo cipi pending</code> lists apps with Horizon installed but no worker</td></tr></tbody></table></div>
+<h2 id="yml">8. In cipi.yml<a class="anchor" href="#yml" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre>workers:
+  horizon: false
+  queues:
+    - { queue: default, processes: 2 }
+    - { queue: emails, processes: 3, tries: 5, timeout: 300 }
+    - { queue: exports, processes: 1, timeout: 7200 }</pre></div>
+<p>Or <code>horizon: true</code> to hand everything to Horizon. <a href="/guides/manage-apps-with-cipi-yml">More on cipi.yml</a>.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>Jobs never run</td><td>No worker on that queue (<code>cipi worker list shop</code>), job not <code>ShouldQueue</code>, or <code>QUEUE_CONNECTION=redis</code> with plain workers: they read <code>database</code>, so enable Horizon or set it back</td></tr><tr><td>Job runs twice</td><td><code>retry_after</code> shorter than the job's runtime</td></tr><tr><td><code>MaxAttemptsExceededException</code> / job killed at 60 s</td><td>Set <code>$timeout</code> on the job and raise <code>retry_after</code></td></tr><tr><td>Code change ignored by jobs</td><td>Workers not restarted: <code>sudo cipi worker restart shop</code></td></tr><tr><td>Horizon shows "Inactive"</td><td>Not enabled: <code>cipi worker horizon enable shop</code>; or <code>QUEUE_CONNECTION</code> isn't <code>redis</code></td></tr><tr><td><code>/horizon</code> returns 403</td><td>The <code>viewHorizon</code> gate doesn't include your user</td></tr><tr><td>Memory grows over time</td><td>A job leaks: <code>--max-jobs</code> / <code>maxJobs</code> in Horizon restarts processes regularly</td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/workers">Queues &amp; Horizon</a></li><li><a href="/docs/valkey">Valkey</a></li><li><a href="/docs/environment">Environment variables</a></li><li><a href="/docs/yml">cipi.yml</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>Workers or Horizon?</summary><p>Plain workers are enough for a few queues. Horizon adds a dashboard, metrics, auto-balancing between queues and tagged job search, and needs the queues on Redis (Valkey). One or the other per app, not both.</p></details><details><summary>Do workers run old code after a deploy?</summary><p>No. Cipi stops them before the release swap and restarts them on the new code, so no job runs old code against a migrated database.</p></details><details><summary>My job takes 20 minutes and gets killed.</summary><p>Laravel kills a job after 60 seconds unless the job says otherwise: set <code>public $timeout = 1500;</code> on it, give its worker a <code>--timeout</code> at least as long, and set <code>retry_after</code> in <code>config/queue.php</code> higher, or it may be picked up twice.</p></details><details><summary>Where do failed jobs go?</summary><p>The <code>failed_jobs</code> table. List them with <code>cipi app artisan shop queue:failed</code>, retry with <code>queue:retry all</code>. Horizon shows them in the dashboard.</p></details><details><summary>How many processes should I run?</summary><p>Start with 1–2 per queue and watch the wait time. Each process uses about the memory of one request (often 50–150 MB). Horizon can scale between a min and max for you.</p></details><details><summary>Who can open /horizon in production?</summary><p>Nobody until you allow them in the <code>viewHorizon</code> gate. Add your team's e-mails, or put the whole app behind basic auth or Zero Trust.</p></details><details><summary>Do queued jobs survive a server restart?</summary><p>Yes. Jobs live in the database or in Valkey (saved to disk), and Supervisor starts the workers again at boot.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#before">Before you start</a></li><li><a class="l2" href="#queues">1. Add and scale queues</a></li><li><a class="l2" href="#timeouts">2. Timeouts and retries, the part people get wrong</a></li><li><a class="l2" href="#failed">3. Failed jobs</a></li><li><a class="l2" href="#horizon">4. Switch to Horizon</a></li><li><a class="l2" href="#dashboard">5. Protect the dashboard</a></li><li><a class="l2" href="#deploys">6. Deploys don&#x27;t break jobs</a></li><li><a class="l2" href="#alerts">7. Get alerted</a></li><li><a class="l2" href="#yml">8. In cipi.yml</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/laravel-valkey-cache-sessions"><span class="g-cat">Laravel</span><b>Laravel cache, sessions and queues on Valkey (Redis)</b><span class="g-desc">What Redis and Valkey are, when to move Laravel&#x27;s cache, sessions and queues off the database, and how to do it on Cipi with one isolated Valkey instance per app: switching drivers, memory limits, eviction, moving off a shared instance, and debugging.</span><span class="g-meta">3 min read</span></a></li><li><a class="g-card" href="/guides/laravel-scheduler-cron"><span class="g-cat">Laravel</span><b>Laravel scheduler and cron jobs in production</b><span class="g-desc">How Laravel&#x27;s task scheduler works on a server, explained from zero: the one cron line, how Cipi runs it per app, writing scheduled tasks that don&#x27;t overlap, running them on one server only, extra cron jobs, alerts when a job fails and how to debug one that never ran.</span><span class="g-meta">3 min read</span></a></li><li><a class="g-card" href="/guides/laravel-reverb-websockets"><span class="g-cat">Laravel</span><b>Real-time Laravel with Reverb, on your own domain</b><span class="g-desc">Run Laravel Reverb WebSockets behind your app&#x27;s own domain and certificate, with Supervisor, Nginx and Echo configured for you. No extra ports, no Pusher bill.</span><span class="g-meta">2 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+<script src="/assets/js/term.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/guides/laravel-horizon-queues" width="1" height="1" alt=""></noscript>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staging and production from one repository with cipi.yml — Cipi guides</title>
+    <meta name="description" content="A beginner-friendly walkthrough to run a staging copy and a production copy of the same Laravel app, each deploying its own branch with its own settings, driven by cipi-staging.yml and cipi.yml.">
+    <meta name="keywords" content="laravel staging environment, cipi-staging.yml, laravel staging production same server, laravel environments git branches">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/cipi-yml-staging-production">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/cipi-yml-staging-production">
+    <meta property="og:title" content="Staging and production from one repository with cipi.yml">
+    <meta property="og:description" content="A beginner-friendly walkthrough to run a staging copy and a production copy of the same Laravel app, each deploying its own branch with its own settings, driven by cipi-staging.yml and cipi.yml.">
+    <meta property="og:image" content="https://cipi.sh/img/og/guide-cipi-yml-staging-production.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Staging and production from one repository with cipi.yml">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Staging and production from one repository with cipi.yml">
+    <meta name="twitter:description" content="A beginner-friendly walkthrough to run a staging copy and a production copy of the same Laravel app, each deploying its own branch with its own settings, driven by cipi-staging.yml and cipi.yml.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/guide-cipi-yml-staging-production.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Staging and production from one repository with cipi.yml", "description": "A beginner-friendly walkthrough to run a staging copy and a production copy of the same Laravel app, each deploying its own branch with its own settings, driven by cipi-staging.yml and cipi.yml.", "url": "https://cipi.sh/guides/cipi-yml-staging-production", "mainEntityOfPage": "https://cipi.sh/guides/cipi-yml-staging-production", "datePublished": "2026-09-14", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/guide-cipi-yml-staging-production.jpg", "articleSection": "cipi.yml", "timeRequired": "PT4M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "laravel staging environment, cipi-staging.yml, laravel staging production same server, laravel environments git branches"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "Staging and production from one repository with cipi.yml", "description": "A beginner-friendly walkthrough to run a staging copy and a production copy of the same Laravel app, each deploying its own branch with its own settings, driven by cipi-staging.yml and cipi.yml.", "totalTime": "PT14M", "step": [{"@type": "HowToStep", "position": 1, "name": "What you'll build", "url": "https://cipi.sh/guides/cipi-yml-staging-production#what-you-ll-build"}, {"@type": "HowToStep", "position": 2, "name": "Key ideas, in plain words", "url": "https://cipi.sh/guides/cipi-yml-staging-production#ideas"}, {"@type": "HowToStep", "position": 3, "name": "Before you start", "url": "https://cipi.sh/guides/cipi-yml-staging-production#before"}, {"@type": "HowToStep", "position": 4, "name": "1. Create the staging app as a clone", "url": "https://cipi.sh/guides/cipi-yml-staging-production#clone"}, {"@type": "HowToStep", "position": 5, "name": "2. Keep strangers out of staging", "url": "https://cipi.sh/guides/cipi-yml-staging-production#protect"}, {"@type": "HowToStep", "position": 6, "name": "3. Write the two settings files", "url": "https://cipi.sh/guides/cipi-yml-staging-production#files"}, {"@type": "HowToStep", "position": 7, "name": "4. Plan, then apply on staging", "url": "https://cipi.sh/guides/cipi-yml-staging-production#apply"}, {"@type": "HowToStep", "position": 8, "name": "5. Push-to-deploy for each branch", "url": "https://cipi.sh/guides/cipi-yml-staging-production#push"}, {"@type": "HowToStep", "position": 9, "name": "6. Get realistic data into staging", "url": "https://cipi.sh/guides/cipi-yml-staging-production#data"}, {"@type": "HowToStep", "position": 10, "name": "The daily workflow", "url": "https://cipi.sh/guides/cipi-yml-staging-production#workflow"}, {"@type": "HowToStep", "position": 11, "name": "Troubleshooting", "url": "https://cipi.sh/guides/cipi-yml-staging-production#troubleshooting"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is the difference between an \"app\" and an \"environment\" here?", "acceptedAnswer": {"@type": "Answer", "text": "On Cipi every running copy of your code is an app with its own Linux user, database and domain. \"Environment\" is a label on the app (production, staging, preview…) that decides which settings file it reads. Two environments of the same project are two apps."}}, {"@type": "Question", "name": "Do staging and production share a database?", "acceptedAnswer": {"@type": "Answer", "text": "No. The staging app has its own database and credentials. Copy data in on purpose, ideally an anonymized dump, never by pointing staging at production."}}, {"@type": "Question", "name": "Can staging and production be on different servers?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, and it's often wiser. Create the staging app on the other server with --env=staging ; it reads the same cipi-staging.yml from the same repository."}}, {"@type": "Question", "name": "Which file wins if both cipi.yml and cipi-staging.yml exist?", "acceptedAnswer": {"@type": "Answer", "text": "An app with env staging reads cipi-staging.yml . If that file doesn't exist it falls back to cipi.yml . If it exists but is invalid, nothing is applied and the error names the file: there is no silent fallback."}}, {"@type": "Question", "name": "Can a developer make production read the staging file by committing something?", "acceptedAnswer": {"@type": "Answer", "text": "No. The environment is set on the server ( --env ), never in the file. A commit can change what a file says, not which file an app reads."}}, {"@type": "Question", "name": "How do I keep production settings out of staging, like backups to S3?", "acceptedAnswer": {"@type": "Answer", "text": "Put them only in cipi.yml . The staging file starts from nothing: it doesn't inherit from cipi.yml , so anything you don't write in it isn't applied to staging."}}, {"@type": "Question", "name": "What about secrets that differ, like Stripe test keys?", "acceptedAnswer": {"@type": "Answer", "text": "Keep them in each app's .env on the server ( cipi app env shop-stg --set=STRIPE_KEY=… ). Both files can require them by name with env.required , so a missing key blocks the plan."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "Staging and production from one repository with cipi.yml", "item": "https://cipi.sh/guides/cipi-yml-staging-production"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">Staging and production from one repository with cipi.yml</li></ol>
+<a class="art-eyebrow" href="/guides/#cipi-yml">cipi.yml</a>
+<h1>Staging and production from one repository with cipi.yml</h1>
+<p class="art-lead">A beginner-friendly walkthrough to run a staging copy and a production copy of the same Laravel app, each deploying its own branch with its own settings, driven by cipi-staging.yml and cipi.yml.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>4 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=Staging%20and%20production%20from%20one%20repository%20with%20cipi.yml&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-yml-staging-production" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-yml-staging-production" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-yml-staging-production&title=Staging%20and%20production%20from%20one%20repository%20with%20cipi.yml" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-yml-staging-production&t=Staging%20and%20production%20from%20one%20repository%20with%20cipi.yml" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-yml-staging-production&text=Staging%20and%20production%20from%20one%20repository%20with%20cipi.yml" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=Staging%20and%20production%20from%20one%20repository%20with%20cipi.yml%20https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-yml-staging-production" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/cipi-yml-staging-production" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Most teams want two copies of the same app: <strong>production</strong>, which your customers use, and <strong>staging</strong>, where you try changes first. This guide sets that up on Cipi from scratch, explaining each idea along the way. No previous Cipi experience needed.</p>
+<h2 id="what-you-ll-build">What you'll build<a class="anchor" href="#what-you-ll-build" aria-label="Link to this section">#</a></h2>
+<ul class="flow stack"><li><b>Git repository</b><span>one codebase, two branches</span></li><li><b>shop (production)</b><span>branch main → reads cipi.yml</span></li><li><b>shop-stg (staging)</b><span>branch develop → reads cipi-staging.yml</span></li></ul>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>Production</th><th>Staging</th></tr></thead><tbody><tr><td>App name (Linux user)</td><td><code>shop</code></td><td><code>shop-stg</code></td></tr><tr><td>Domain</td><td><code>shop.example.com</code></td><td><code>staging.shop.example.com</code></td></tr><tr><td>Branch that deploys</td><td><code>main</code></td><td><code>develop</code></td></tr><tr><td>Settings file</td><td><code>cipi.yml</code></td><td><code>cipi-staging.yml</code></td></tr><tr><td>Database</td><td><code>shop</code></td><td><code>shop-stg</code> (separate)</td></tr><tr><td>Who can see it</td><td>everyone</td><td>only your team (password)</td></tr></tbody></table></div>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>App</strong></td><td>One running copy of your code on the server: its own user, folder, PHP pool, database and domain</td></tr><tr><td><strong>Environment</strong></td><td>A label on an app (<code>production</code>, <code>staging</code>…). Laravel sees it as <code>APP_ENV</code>, Cipi uses it to pick a settings file</td></tr><tr><td><strong>Branch</strong></td><td>The Git branch an app deploys. Push to it and that app updates</td></tr><tr><td><strong><code>cipi.yml</code></strong></td><td>A file in your repository that describes how the server should run the app: PHP version, workers, backups… (<a href="/cipi-yml">what it is</a>)</td></tr><tr><td><strong>Plan / apply</strong></td><td>Cipi first shows what the file would change (plan), then does it (apply)</td></tr></tbody></table></div>
+<h2 id="before">Before you start<a class="anchor" href="#before" aria-label="Link to this section">#</a></h2>
+<ul><li>A server with Cipi and your production app already running (<a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a>).</li><li>A <code>develop</code> branch in your repository: <code>git checkout -b develop &amp;&amp; git push -u origin develop</code>.</li><li>A DNS record for <code>staging.shop.example.com</code> pointing at the server (same IP as production).</li></ul>
+<h2 id="clone">1. Create the staging app as a clone<a class="anchor" href="#clone" aria-label="Link to this section">#</a></h2>
+<p>A <strong>clone</strong> copies the app's configuration (PHP version, repository, workers, deploy settings) into a new, fully separate app:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app clone shop --domain=staging.shop.example.com --name=shop-stg \
+    --branch=develop --env=staging --with-db</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Why</th></tr></thead><tbody><tr><td><code>--domain</code></td><td>The address of the new app</td></tr><tr><td><code>--name</code></td><td>Its Linux user and app name</td></tr><tr><td><code>--branch=develop</code></td><td>Staging deploys the <code>develop</code> branch</td></tr><tr><td><code>--env=staging</code></td><td>Marks it as staging: it will read <code>cipi-staging.yml</code> and get <code>APP_ENV=staging</code></td></tr><tr><td><code>--with-db</code></td><td>Creates a fresh, <strong>empty</strong> database for it</td></tr></tbody></table></div>
+<p>The clone gets new database credentials, its own deploy key, its own Reverb credentials and search key. <strong>Nothing points back to production.</strong> Save the summary it prints.</p>
+<p>Then deploy it once and add HTTPS:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi deploy shop-stg
+<span class="p"></span>sudo cipi ssl install shop-stg</pre></div>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(16 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Deploy, list releases, roll back</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Deploy, list releases, roll back">$ cipi deploy shop
+$ cipi deploy shop --releases
+$ cipi deploy shop --rollback</pre><script type="application/json" class="term-script">[{"c": "cipi deploy shop"}, {"o": [["task ", "dim"], ["deploy:prepare", ""]], "d": 300}, {"o": [["task ", "dim"], ["deploy:update_code", ""], ["    main @ 9d1f3a5", "dim"]], "d": 500}, {"o": [["task ", "dim"], ["deploy:vendors", ""]], "d": 900}, {"o": [["task ", "dim"], ["artisan:migrate", ""]], "d": 500}, {"o": [["task ", "dim"], ["artisan:optimize", ""]], "d": 300}, {"o": [["task ", "dim"], ["deploy:symlink", ""], ["        current → releases/133", "dim"]], "d": 300}, {"o": [["task ", "dim"], ["artisan:queue:restart", ""]], "d": 300}, {"o": [["✓ ", "ok"], ["Deploy completed  (release 133, 1m43s)", ""]], "d": 400}, {"c": "cipi deploy shop --releases", "wait": 500}, {"o": [["Releases for 'shop'", "hl"]], "d": 200}, {"o": "  133  2026-10-27 05:30  1m43s  9d1f3a5  hotfix: checkout tax rounding   (current)"}, {"o": "  132  2026-10-26 08:30    45s  e4a8b1c  orders: export to CSV"}, {"c": "cipi deploy shop --rollback", "wait": 500}, {"o": [["✓ ", "ok"], ["Rollback done  (now on release 132)", ""]], "d": 500}]</script></div>
+<h2 id="protect">2. Keep strangers out of staging<a class="anchor" href="#protect" aria-label="Link to this section">#</a></h2>
+<p>Staging often contains unfinished features. Put a password in front of it:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi basicauth enable shop-stg --user=preview --password='a-long-random-passphrase'</pre></div>
+<p>Pick a long password and share it with your team (without <code>--user</code> and <code>--password</code>, Cipi generates both and shows them once). Search engines and visitors now get a login prompt.</p>
+<h2 id="files">3. Write the two settings files<a class="anchor" href="#files" aria-label="Link to this section">#</a></h2>
+<p>In your repository root, production keeps its <code>cipi.yml</code>. Add a second file, <code>cipi-staging.yml</code>, with what staging needs. The staging file <strong>does not inherit</strong> from <code>cipi.yml</code>: write everything staging needs.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># cipi.yml — production</span>
+version: 1
+app:
+  php: "8.6"
+  aliases: ["www.shop.example.com"]
+  www: to-root
+workers:
+  horizon: true
+schedule: true
+health:
+  url: "https://shop.example.com/up"
+  rollback_on_unhealthy: true
+deploy:
+  branch: main
+  predeploy_snapshot: true
+env: { required: [STRIPE_KEY, MAIL_HOST] }
+backup:
+  profiles:
+    - { name: shop-nightly, scope: all, cron: "0 2 * * *", keep_days: 14, destinations: [s3], encrypt: true }</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># cipi-staging.yml — staging</span>
+version: 1
+app:
+  php: "8.6"
+  basic_auth:
+    users: [preview]           # the user created above; keeps its password
+workers:
+  queues:
+    - { queue: default, processes: 1 }
+schedule: true
+deploy:
+  branch: develop
+env: { required: [STRIPE_KEY] }   # test keys, set on the staging server</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Difference</th><th>Why</th></tr></thead><tbody><tr><td>No aliases or www redirect</td><td>Staging has one domain</td></tr><tr><td>One queue worker instead of Horizon</td><td>Less memory; enough for testing</td></tr><tr><td>No backup profile</td><td>Staging data is disposable</td></tr><tr><td><code>basic_auth</code> in the file</td><td>The password protection can't be removed by accident</td></tr><tr><td><code>deploy.branch: develop</code></td><td>Pushes to <code>develop</code> deploy staging</td></tr></tbody></table></div>
+<p>Validate both before you commit (with the <a href="/docs/agent-yml">Cipi Agent</a> installed in the app):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>php artisan cipi:yml validate
+<span class="p"></span>CIPI_ENV=staging php artisan cipi:yml validate</pre></div>
+<p>Commit and push to <strong>both</strong> branches (merge <code>develop</code> into <code>main</code> later, or cherry-pick the files).</p>
+<h2 id="apply">4. Plan, then apply on staging<a class="anchor" href="#apply" aria-label="Link to this section">#</a></h2>
+<p>After the next deploy of <code>shop-stg</code> the file is on the server. See what it would change:</p>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(16 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">cipi.yml</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: cipi.yml">$ cipi yml plan shop
+$ cipi yml apply shop
+$ cipi yml auto shop on</pre><script type="application/json" class="term-script">[{"c": "cipi yml plan shop"}, {"o": [[" ", ""]], "d": 400}, {"o": [["Plan for 'shop'", "key"], [" ", ""], ["(/home/shop/current/cipi.yml)", "dim"]], "d": 300}, {"o": [[" ", ""]], "d": 300}, {"o": [["  ", ""], ["Would change", "key"]], "d": 300}, {"o": [["    ", ""], ["→", "info"], [" PHP 8.5 → 8.6", ""]], "d": 250}, {"o": [["    ", ""], ["→", "info"], [" workers: add queue 'emails' (2 processes)", ""]], "d": 200}, {"o": [["    ", ""], ["→", "info"], [" alias add: shop.example.org", ""]], "d": 200}, {"o": [["    ", ""], ["→", "info"], [" backup profile 'nightly': every 1d to s3, keep 14 days", ""]], "d": 200}, {"o": [[" ", ""]], "d": 300}, {"c": "cipi yml apply shop"}, {"o": [["✓ ", "ok"], ["Applied 4 change(s) from cipi.yml", ""]], "d": 900}, {"c": "cipi yml auto shop on"}, {"o": [["✓ ", "ok"], ["cipi.yml will be applied after every successful deploy of 'shop'", ""]], "d": 500}, {"o": [["! ", "warn"], ["Anyone who can commit to the repository can now change this app's", ""]], "d": 300}]</script></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi yml plan shop-stg
+<span class="p"></span>sudo cipi yml apply shop-stg
+<span class="p"></span>sudo cipi yml auto shop-stg on<span class="c">      # apply after every deploy from now on</span></pre></div>
+<p>Do the same for production with <code>shop</code>. From now on, the files are the source of truth: change them in a pull request, merge, and each app applies its own file on the next deploy.</p>
+<h2 id="push">5. Push-to-deploy for each branch<a class="anchor" href="#push" aria-label="Link to this section">#</a></h2>
+<p>Each app has its own webhook and only deploys its own branch:</p>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>git push develop</b><span>GitHub webhook</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>shop-stg</b><span>deploys develop</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>git push main</b><span>GitHub webhook</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>shop</b><span>deploys main</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>git push develop</b></div><p>You push to <code>develop</code>. GitHub calls the webhook of the staging app.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>shop-stg</b></div><p>The staging app <code>shop-stg</code> deploys <code>develop</code> and reads <code>cipi-staging.yml</code>.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>git push main</b></div><p>You push (or merge) to <code>main</code>. GitHub calls the production app's webhook.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>shop</b></div><p>The production app <code>shop</code> deploys <code>main</code> and reads <code>cipi.yml</code>. One repository, two apps, never mixed.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<p>Get each app's webhook URL and secret with <code>sudo cipi deploy shop-stg --webhook</code> and add it to the repository (<a href="/docs/auto-deploy">auto-deploy</a>). Pushes to other branches answer <code>skipped</code>.</p>
+<h2 id="data">6. Get realistic data into staging<a class="anchor" href="#data" aria-label="Link to this section">#</a></h2>
+<p>An empty database isn't much of a test. Never copy production as is: personal data ends up in a less protected place. Use an <strong>anonymized dump</strong>:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli prod db anonymize shop --email you@example.com
+<span class="p"></span>cipi-cli db anonymize download "&lt;signed link&gt;" -o shop-anon.sql
+<span class="c"># copy it to the server, then:</span>
+<span class="p"></span>sudo cipi db restore shop-stg /home/cipi/shop-anon.sql</pre></div>
+<p>Step by step: <a href="/guides/anonymized-database-dumps">GDPR-safe production data</a>.</p>
+<h2 id="workflow">The daily workflow<a class="anchor" href="#workflow" aria-label="Link to this section">#</a></h2>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Branch</b><span>feature/x from develop</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Merge to develop</b><span>staging deploys</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Test on staging</b><span>behind the password</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Merge to main</b><span>production deploys</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Branch</b></div><p>Create a feature branch from <code>develop</code> and work there.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Merge to develop</b></div><p>Merge it into <code>develop</code>: staging deploys it automatically.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Test on staging</b></div><p>Test on the staging URL, behind its password, with anonymized data.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Merge to main</b></div><p>When it's good, merge <code>develop</code> into <code>main</code>: production deploys.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td><code>cipi yml plan shop-stg</code> says it reads <code>cipi.yml</code></td><td>The app's env isn't <code>staging</code>: <code>sudo cipi app edit shop-stg --env=staging</code></td></tr><tr><td>Plan says "blocked: STRIPE_KEY missing"</td><td>Set it on the staging app: <code>sudo cipi app env shop-stg --set=STRIPE_KEY=sk_test_…</code></td></tr><tr><td>Staging deploys <code>main</code></td><td><code>deploy.branch</code> is applied from the <strong>next</strong> deploy, or set it now: <code>sudo cipi app edit shop-stg --branch=develop</code></td></tr><tr><td>Invalid <code>cipi-staging.yml</code></td><td>The error names the file; validate locally with <code>CIPI_ENV=staging php artisan cipi:yml validate</code></td></tr><tr><td>Staging sends real e-mails</td><td>Use a mail catcher or a sandbox SMTP in the staging <code>.env</code></td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/yml">cipi.yml</a></li><li><a href="/docs/manage-apps">Manage apps</a></li><li><a href="/docs/environment">Environment variables</a></li><li><a href="/docs/basic-auth">Basic auth</a></li><li><a href="/docs/auto-deploy">Auto-deploy on push</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>What is the difference between an &quot;app&quot; and an &quot;environment&quot; here?</summary><p>On Cipi every running copy of your code is an app with its own Linux user, database and domain. "Environment" is a label on the app (production, staging, preview…) that decides which settings file it reads. Two environments of the same project are two apps.</p></details><details><summary>Do staging and production share a database?</summary><p>No. The staging app has its own database and credentials. Copy data in on purpose, ideally an anonymized dump, never by pointing staging at production.</p></details><details><summary>Can staging and production be on different servers?</summary><p>Yes, and it's often wiser. Create the staging app on the other server with <code>--env=staging</code>; it reads the same <code>cipi-staging.yml</code> from the same repository.</p></details><details><summary>Which file wins if both cipi.yml and cipi-staging.yml exist?</summary><p>An app with env <code>staging</code> reads <code>cipi-staging.yml</code>. If that file doesn't exist it falls back to <code>cipi.yml</code>. If it exists but is invalid, nothing is applied and the error names the file: there is no silent fallback.</p></details><details><summary>Can a developer make production read the staging file by committing something?</summary><p>No. The environment is set on the server (<code>--env</code>), never in the file. A commit can change what a file says, not which file an app reads.</p></details><details><summary>How do I keep production settings out of staging, like backups to S3?</summary><p>Put them only in <code>cipi.yml</code>. The staging file starts from nothing: it doesn't inherit from <code>cipi.yml</code>, so anything you don't write in it isn't applied to staging.</p></details><details><summary>What about secrets that differ, like Stripe test keys?</summary><p>Keep them in each app's <code>.env</code> on the server (<code>cipi app env shop-stg --set=STRIPE_KEY=…</code>). Both files can require them by name with <code>env.required</code>, so a missing key blocks the plan.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#what-you-ll-build">What you&#x27;ll build</a></li><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#before">Before you start</a></li><li><a class="l2" href="#clone">1. Create the staging app as a clone</a></li><li><a class="l2" href="#protect">2. Keep strangers out of staging</a></li><li><a class="l2" href="#files">3. Write the two settings files</a></li><li><a class="l2" href="#apply">4. Plan, then apply on staging</a></li><li><a class="l2" href="#push">5. Push-to-deploy for each branch</a></li><li><a class="l2" href="#data">6. Get realistic data into staging</a></li><li><a class="l2" href="#workflow">The daily workflow</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/manage-apps-with-cipi-yml"><span class="g-cat">cipi.yml</span><b>cipi.yml: keep your server settings in the repository</b><span class="g-desc">Keep PHP, workers, scheduler, domains, databases, health checks, backups and deploy options in a cipi.yml next to your Laravel code, explained from zero: generate it, edit it, validate it, review it in pull requests, plan and apply it safely.</span><span class="g-meta">3 min read</span></a></li><li><a class="g-card" href="/guides/laravel-preview-environments"><span class="g-cat">Laravel</span><b>Preview environments for every Laravel branch</b><span class="g-desc">Give every branch its own live URL with a database, workers and HTTPS, created on the first push and deleted with the branch, using GitHub Actions and a wildcard certificate.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/cipi-yml-recipes"><span class="g-cat">cipi.yml</span><b>cipi.yml recipes for common Laravel setups</b><span class="g-desc">18 copy-paste cipi.yml recipes, each with when to use it and what to change: a first app, SaaS with Horizon and Reverb, Octane API, online shop, multi-tenant, staging, redirects, Next.js, Nuxt, static sites, long jobs, AI apps, backups and tuning.</span><span class="g-meta">8 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+<script src="/assets/js/term.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/guides/cipi-yml-staging-production" width="1" height="1" alt=""></noscript>
+</body>
+</html>

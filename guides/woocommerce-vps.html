@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WooCommerce on your own VPS, step by step — Cipi guides</title>
+    <meta name="description" content="Host a WooCommerce shop on an Ubuntu VPS from zero, explained for beginners: an isolated app, the database, HTTPS, PHP limits for a shop, real cron for Action Scheduler, caching, frequent backups, a staging copy and security.">
+    <meta name="keywords" content="woocommerce vps hosting, woocommerce nginx php-fpm, woocommerce performance server, self-hosted woocommerce, woocommerce cron action scheduler">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/woocommerce-vps">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/woocommerce-vps">
+    <meta property="og:title" content="WooCommerce on your own VPS, step by step">
+    <meta property="og:description" content="Host a WooCommerce shop on an Ubuntu VPS from zero, explained for beginners: an isolated app, the database, HTTPS, PHP limits for a shop, real cron for Action Scheduler, caching, frequent backups, a staging copy and security.">
+    <meta property="og:image" content="https://cipi.sh/img/og/guide-woocommerce-vps.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="WooCommerce on your own VPS, step by step">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="WooCommerce on your own VPS, step by step">
+    <meta name="twitter:description" content="Host a WooCommerce shop on an Ubuntu VPS from zero, explained for beginners: an isolated app, the database, HTTPS, PHP limits for a shop, real cron for Action Scheduler, caching, frequent backups, a staging copy and security.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/guide-woocommerce-vps.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "WooCommerce on your own VPS, step by step", "description": "Host a WooCommerce shop on an Ubuntu VPS from zero, explained for beginners: an isolated app, the database, HTTPS, PHP limits for a shop, real cron for Action Scheduler, caching, frequent backups, a staging copy and security.", "url": "https://cipi.sh/guides/woocommerce-vps", "mainEntityOfPage": "https://cipi.sh/guides/woocommerce-vps", "datePublished": "2026-11-23", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/guide-woocommerce-vps.jpg", "articleSection": "PHP, WordPress & e-commerce", "timeRequired": "PT4M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "woocommerce vps hosting, woocommerce nginx php-fpm, woocommerce performance server, self-hosted woocommerce, woocommerce cron action scheduler"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "WooCommerce on your own VPS, step by step", "description": "Host a WooCommerce shop on an Ubuntu VPS from zero, explained for beginners: an isolated app, the database, HTTPS, PHP limits for a shop, real cron for Action Scheduler, caching, frequent backups, a staging copy and security.", "totalTime": "PT14M", "step": [{"@type": "HowToStep", "position": 1, "name": "What you'll build", "url": "https://cipi.sh/guides/woocommerce-vps#what-you-ll-build"}, {"@type": "HowToStep", "position": 2, "name": "Key ideas, in plain words", "url": "https://cipi.sh/guides/woocommerce-vps#ideas"}, {"@type": "HowToStep", "position": 3, "name": "Before you start", "url": "https://cipi.sh/guides/woocommerce-vps#before"}, {"@type": "HowToStep", "position": 4, "name": "1. Create the app and its database", "url": "https://cipi.sh/guides/woocommerce-vps#create"}, {"@type": "HowToStep", "position": 5, "name": "2. Install WordPress", "url": "https://cipi.sh/guides/woocommerce-vps#wordpress"}, {"@type": "HowToStep", "position": 6, "name": "3. HTTPS before anything else", "url": "https://cipi.sh/guides/woocommerce-vps#https"}, {"@type": "HowToStep", "position": 7, "name": "4. PHP limits for a shop", "url": "https://cipi.sh/guides/woocommerce-vps#php"}, {"@type": "HowToStep", "position": 8, "name": "5. A real cron for Action Scheduler", "url": "https://cipi.sh/guides/woocommerce-vps#cron"}, {"@type": "HowToStep", "position": 9, "name": "6. Order e-mails that arrive", "url": "https://cipi.sh/guides/woocommerce-vps#mail"}, {"@type": "HowToStep", "position": 10, "name": "7. Speed", "url": "https://cipi.sh/guides/woocommerce-vps#speed"}, {"@type": "HowToStep", "position": 11, "name": "8. Backups that match your orders", "url": "https://cipi.sh/guides/woocommerce-vps#backups"}, {"@type": "HowToStep", "position": 12, "name": "9. A staging copy for updates", "url": "https://cipi.sh/guides/woocommerce-vps#staging"}, {"@type": "HowToStep", "position": 13, "name": "10. Security", "url": "https://cipi.sh/guides/woocommerce-vps#security"}, {"@type": "HowToStep", "position": 14, "name": "Troubleshooting", "url": "https://cipi.sh/guides/woocommerce-vps#troubleshooting"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How big a server do I need?", "acceptedAnswer": {"@type": "Answer", "text": "For a small shop with up to a few hundred orders a day, 2 GB of RAM and 2 vCPU are comfortable. Large catalogues, many concurrent shoppers or heavy plugins need 4 GB or more. Watch cipi status and add RAM before CPU."}}, {"@type": "Question", "name": "Can WooCommerce share the server with my Laravel apps?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Each app runs as its own Linux user with its own PHP pool and open_basedir , so a vulnerable plugin can't read the other apps' files."}}, {"@type": "Question", "name": "Why disable WP-Cron?", "acceptedAnswer": {"@type": "Answer", "text": "WP-Cron only runs when someone visits the site. Orders, stock holds, subscription renewals and webhooks scheduled by Action Scheduler can wait or pile up. A real cron runs them every minute, whatever the traffic."}}, {"@type": "Question", "name": "Which payment plugins work?", "acceptedAnswer": {"@type": "Answer", "text": "All of them: the server doesn't restrict outgoing HTTPS. Make sure the shop is on HTTPS ( cipi ssl force ) before you enable live payments, and keep test keys on staging."}}, {"@type": "Question", "name": "How do I update plugins safely?", "acceptedAnswer": {"@type": "Answer", "text": "On the staging copy first, then on production right after a fresh database backup ( cipi db backup shop ). Cipi patches PHP itself every night; plugins and WordPress core are updated by you from the dashboard."}}, {"@type": "Question", "name": "Does Cipi install a page cache like Varnish?", "acceptedAnswer": {"@type": "Answer", "text": "No. Use a WordPress page-cache plugin that writes static files, and keep the cart, checkout and account pages uncached (WooCommerce does this with good plugins out of the box)."}}, {"@type": "Question", "name": "What if the shop gets hacked?", "acceptedAnswer": {"@type": "Answer", "text": "Restore files and database from the last clean backup, rotate passwords ( cipi db password shop ), update every plugin, and run cipi scan shop . Backups every 30 minutes keep the loss small."}}, {"@type": "Question", "name": "Can I send order e-mails from the server?", "acceptedAnswer": {"@type": "Answer", "text": "Send them through an SMTP or API provider (Postmark, Mailgun, SES, Brevo…) with an SMTP plugin. Direct mail from a VPS usually lands in spam, and many providers block port 25."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "WooCommerce on your own VPS, step by step", "item": "https://cipi.sh/guides/woocommerce-vps"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">WooCommerce on your own VPS, step by step</li></ol>
+<a class="art-eyebrow" href="/guides/#php">PHP, WordPress &amp; e-commerce</a>
+<h1>WooCommerce on your own VPS, step by step</h1>
+<p class="art-lead">Host a WooCommerce shop on an Ubuntu VPS from zero, explained for beginners: an isolated app, the database, HTTPS, PHP limits for a shop, real cron for Action Scheduler, caching, frequent backups, a staging copy and security.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>4 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=WooCommerce%20on%20your%20own%20VPS%2C%20step%20by%20step&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fwoocommerce-vps" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fwoocommerce-vps" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fwoocommerce-vps&title=WooCommerce%20on%20your%20own%20VPS%2C%20step%20by%20step" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fwoocommerce-vps&t=WooCommerce%20on%20your%20own%20VPS%2C%20step%20by%20step" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fwoocommerce-vps&text=WooCommerce%20on%20your%20own%20VPS%2C%20step%20by%20step" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=WooCommerce%20on%20your%20own%20VPS%2C%20step%20by%20step%20https%3A%2F%2Fcipi.sh%2Fguides%2Fwoocommerce-vps" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/woocommerce-vps" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>WooCommerce turns WordPress into a shop. A shop is more demanding than a blog: orders arrive all day, payment webhooks must never be missed, and losing a day of data means losing orders. This guide sets up a WooCommerce shop on your own server with Cipi, from an empty VPS to a protected, backed-up store, explaining each step.</p>
+<h2 id="what-you-ll-build">What you'll build<a class="anchor" href="#what-you-ll-build" aria-label="Link to this section">#</a></h2>
+<ul class="flow stack"><li><b>Visitors</b><span>https://shop.example.com</span></li><li><b>Nginx + PHP-FPM</b><span>isolated app "shop", its own PHP pool</span></li><li><b>WordPress + WooCommerce</b><span>files in /home/shop/htdocs</span></li><li><b>MariaDB</b><span>database "shop", its own user</span></li><li><b>Cron every minute</b><span>Action Scheduler: orders, e-mails, webhooks</span></li><li><b>Backups</b><span>DB every 30 min, everything nightly to S3</span></li></ul>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Custom app</strong></td><td>How Cipi hosts any PHP software that isn't Laravel: code in <code>~/htdocs</code>, served by Nginx and PHP-FPM (<a href="/docs/custom-apps">docs</a>)</td></tr><tr><td><strong>PHP-FPM pool</strong></td><td>The PHP processes that run your shop. Each app has its own, with its own limits</td></tr><tr><td><strong>Action Scheduler</strong></td><td>The queue WooCommerce uses for background tasks (e-mails, stock, webhooks, subscriptions)</td></tr><tr><td><strong>WP-Cron</strong></td><td>WordPress' built-in scheduler, triggered by visits. Not reliable for a shop</td></tr><tr><td><strong>Staging</strong></td><td>A private copy of the shop where you try updates first</td></tr></tbody></table></div>
+<h2 id="before">Before you start<a class="anchor" href="#before" aria-label="Link to this section">#</a></h2>
+<ul><li>A VPS with Cipi installed (<a href="/docs/quickstart">quickstart</a>): 2 GB RAM or more.</li><li>A domain, with an <code>A</code> record for <code>shop.example.com</code> pointing at the server.</li><li>An account at an e-mail provider for order e-mails (SMTP credentials).</li></ul>
+<h2 id="create">1. Create the app and its database<a class="anchor" href="#create" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app create --custom --user=shop --domain=shop.example.com --php=8.4
+<span class="p"></span>sudo cipi db create --name=shop --app=shop</pre></div>
+<p>The first command creates a Linux user <code>shop</code>, the folder <code>/home/shop/htdocs</code>, a PHP pool and the Nginx site. The second creates the database <code>shop</code> with its own user and links it to the app. <strong>Save the database password</strong> from the output: it's shown once.</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Check your plugins' PHP support before choosing the version. You can change it later with <code>sudo cipi app edit shop --php=8.5</code>.</p></div></div>
+<h2 id="wordpress">2. Install WordPress<a class="anchor" href="#wordpress" aria-label="Link to this section">#</a></h2>
+<p>Log in as the app user and download WordPress into the web folder:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh shop@203.0.113.10<span class="c">          # password and key from the create summary</span>
+<span class="p"></span>cd ~/htdocs &amp;&amp; rm -f index.html
+<span class="p"></span>curl -sO https://wordpress.org/latest.tar.gz
+<span class="p"></span>tar xzf latest.tar.gz --strip-components=1 &amp;&amp; rm latest.tar.gz</pre></div>
+<p>Prefer a graphical tool? Connect with SFTP (FileZilla, Transmit, Cyberduck) as <code>shop</code> and upload the files to <code>htdocs</code>.</p>
+<h2 id="https">3. HTTPS before anything else<a class="anchor" href="#https" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi ssl install shop
+<span class="p"></span>sudo cipi ssl force shop</pre></div>
+<p>The certificate is free (Let's Encrypt), covers every alias and renews itself. <code>force</code> redirects every <code>http://</code> request to <code>https://</code>, which payment providers require.</p>
+<p>Now open <code>https://shop.example.com</code>, run the WordPress installer (database <code>shop</code>, user <code>shop</code>, the saved password, host <code>127.0.0.1</code>), then install <strong>WooCommerce</strong> from Plugins.</p>
+<h2 id="php">4. PHP limits for a shop<a class="anchor" href="#php" aria-label="Link to this section">#</a></h2>
+<p>Product imports, big carts and payment callbacks need more than WordPress' defaults. Put the settings in a <code>cipi.yml</code> at the root of <code>htdocs</code> (Nginx never serves it):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># /home/shop/htdocs/cipi.yml</span>
+version: 1
+app:
+  php: "8.4"
+  ini:
+    memory_limit: 512M
+    max_execution_time: 120
+    upload_max_filesize: 64M
+    post_max_size: 64M</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi yml plan shop &amp;&amp; sudo cipi yml apply shop
+<span class="p"></span>sudo cipi app limits shop --fpm-max-children=12<span class="c">     # parallel PHP workers</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Setting</th><th>Why a shop needs it</th></tr></thead><tbody><tr><td><code>memory_limit</code></td><td>WooCommerce with a page builder and a few plugins easily exceeds 256 MB</td></tr><tr><td><code>max_execution_time</code></td><td>CSV imports and report generation take time</td></tr><tr><td>Upload sizes</td><td>Product images and import files</td></tr><tr><td><code>fpm_max_children</code></td><td>How many shoppers PHP serves at once. Each child uses ~60–120 MB: 12 children ≈ 1.5 GB</td></tr></tbody></table></div>
+<h2 id="cron">5. A real cron for Action Scheduler<a class="anchor" href="#cron" aria-label="Link to this section">#</a></h2>
+<p>Tell WordPress to stop running cron on page views. In <code>wp-config.php</code>, above "That's all, stop editing":</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>define('DISABLE_WP_CRON', true);</pre></div>
+<p>Then add a real cron as the app user (<code>crontab -e</code>):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">text</span><button class="code-copy-btn" type="button">Copy</button></div><pre>* * * * * php ~/htdocs/wp-cron.php &gt;/dev/null 2&gt;&amp;1</pre></div>
+<p>Check it: WooCommerce → Status → Scheduled Actions should show past-due actions going to zero.</p>
+<h2 id="mail">6. Order e-mails that arrive<a class="anchor" href="#mail" aria-label="Link to this section">#</a></h2>
+<p>Install an SMTP plugin (WP Mail SMTP, FluentSMTP…) and enter your provider's SMTP host, port 587 and credentials. Send a test e-mail from the plugin. Add your provider's SPF and DKIM records to your DNS.</p>
+<h2 id="speed">7. Speed<a class="anchor" href="#speed" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Layer</th><th>What to do</th></tr></thead><tbody><tr><td>PHP</td><td>OPcache is on by default. Keep PHP current: Cipi patches it every night</td></tr><tr><td>Page cache</td><td>A plugin that writes static HTML (cart, checkout and account pages excluded)</td></tr><tr><td>Images</td><td>Serve WebP; the optional <code>image-optimizers</code> host package adds <code>cwebp</code>, <code>jpegoptim</code>, <code>pngquant</code> (<code>sudo cipi package install image-optimizers</code>)</td></tr><tr><td>CDN</td><td>Cloudflare in front (orange cloud) with SSL mode <strong>Full (strict)</strong></td></tr><tr><td>Database</td><td>Keep <code>wp_options</code> autoload small; delete old transients</td></tr></tbody></table></div>
+<h2 id="backups">8. Backups that match your orders<a class="anchor" href="#backups" aria-label="Link to this section">#</a></h2>
+<p>A shop changes every few minutes, so back up the database often and everything nightly, to another place:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi backup configure<span class="c">          # once: your S3-compatible bucket</span>
+<span class="p"></span>sudo cipi backup profile add shop-db --scope=db --databases=shop --every=30m --keep=48 --dest=local
+<span class="p"></span>sudo cipi backup profile add shop-nightly --scope=all --cron='0 3 * * *' --keep-days=30 --dest=s3 --encrypt
+<span class="p"></span>sudo cipi backup verify</pre></div>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Every 30 min</b><span>database dump, kept 24 h</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Every night</b><span>files + database, encrypted</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Off-site</b><span>S3-compatible bucket</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Verify</b><span>archives checked automatically</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Every 30 min</b></div><p>A database-only backup every 30 minutes, kept for 24 hours: orders placed in the last half hour are the most you can lose.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Every night</b></div><p>Every night, files and database together, encrypted.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Off-site</b></div><p>Archives go to an S3-compatible bucket at another provider or region.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Verify</b></div><p>Cipi checks the archives can be opened and alerts you if a profile stops producing backups.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<p>At worst you lose 30 minutes of orders. Full guide: <a href="/guides/backup-vps-s3">backups to S3</a>.</p>
+<h2 id="staging">9. A staging copy for updates<a class="anchor" href="#staging" aria-label="Link to this section">#</a></h2>
+<p>Never update WooCommerce, the theme or payment plugins straight on the live shop.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app create --custom --user=shopstg --domain=staging.shop.example.com --php=8.4
+<span class="p"></span>sudo cipi db create --name=shopstg --app=shopstg
+<span class="p"></span>sudo cipi basicauth enable shopstg
+<span class="p"></span>sudo cipi ssl install shopstg</pre></div>
+<p>Copy the files (<code>rsync -a /home/shop/htdocs/ /home/shopstg/htdocs/</code> as root, then <code>sudo cipi app fix-permissions shopstg</code>), restore last night's dump into <code>shopstg</code>, change the database name, user and password in <code>wp-config.php</code>, and set <code>WP_HOME</code> and <code>WP_SITEURL</code> to the staging URL. Then <strong>turn off</strong> payment gateways (or switch them to test mode) and outgoing e-mail on staging.</p>
+<h2 id="security">10. Security<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Item</th><th>How</th></tr></thead><tbody><tr><td>HTTPS everywhere</td><td>Done in step 3</td></tr><tr><td>Brute-force on <code>/wp-login.php</code></td><td>fail2ban is on; add Cloudflare Access on <code>/wp-admin</code> for the team (<a href="/guides/cloudflare-zero-trust-laravel">guide</a>)</td></tr><tr><td>File changes</td><td><code>sudo cipi scan shop</code> finds known malware; run it after installing plugins</td></tr><tr><td>Isolation</td><td>Other apps on the server can't read <code>/home/shop</code></td></tr><tr><td>Updates</td><td>PHP patched nightly by Cipi; WordPress, themes and plugins by you, after staging</td></tr><tr><td>Alerts</td><td>Backup failures and server problems on Telegram or Slack (<a href="/guides/notifications-alerts">guide</a>)</td></tr></tbody></table></div>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Symptom</th><th>Likely cause and fix</th></tr></thead><tbody><tr><td>"Error establishing a database connection"</td><td>Wrong DB credentials in <code>wp-config.php</code>, or host <code>localhost</code> instead of <code>127.0.0.1</code></td></tr><tr><td>White page or 502 after a plugin install</td><td>PHP memory: raise <code>memory_limit</code>, check <code>sudo cipi app logs shop --type=php</code></td></tr><tr><td>Uploads fail above 2 MB</td><td><code>upload_max_filesize</code> and <code>post_max_size</code> not applied: <code>sudo cipi yml plan shop</code></td></tr><tr><td>Orders stuck "pending payment"</td><td>Payment webhook blocked: the shop must be reachable over HTTPS; check the gateway's webhook log</td></tr><tr><td>Scheduled actions past due</td><td>Real cron missing: <code>crontab -l</code> as <code>shop</code></td></tr><tr><td>Mixed-content warnings</td><td>Site URLs still <code>http://</code>: update them in Settings → General</td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li><li><a href="/docs/databases">Databases</a></li><li><a href="/docs/ssl">SSL certificates</a></li><li><a href="/docs/backups">Backups to S3</a></li><li><a href="/docs/basic-auth">Basic auth</a></li><li><a href="/docs/malware-scan">Malware scan</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>How big a server do I need?</summary><p>For a small shop with up to a few hundred orders a day, 2 GB of RAM and 2 vCPU are comfortable. Large catalogues, many concurrent shoppers or heavy plugins need 4 GB or more. Watch <code>cipi status</code> and add RAM before CPU.</p></details><details><summary>Can WooCommerce share the server with my Laravel apps?</summary><p>Yes. Each app runs as its own Linux user with its own PHP pool and <code>open_basedir</code>, so a vulnerable plugin can't read the other apps' files.</p></details><details><summary>Why disable WP-Cron?</summary><p>WP-Cron only runs when someone visits the site. Orders, stock holds, subscription renewals and webhooks scheduled by Action Scheduler can wait or pile up. A real cron runs them every minute, whatever the traffic.</p></details><details><summary>Which payment plugins work?</summary><p>All of them: the server doesn't restrict outgoing HTTPS. Make sure the shop is on HTTPS (<code>cipi ssl force</code>) before you enable live payments, and keep test keys on staging.</p></details><details><summary>How do I update plugins safely?</summary><p>On the staging copy first, then on production right after a fresh database backup (<code>cipi db backup shop</code>). Cipi patches PHP itself every night; plugins and WordPress core are updated by you from the dashboard.</p></details><details><summary>Does Cipi install a page cache like Varnish?</summary><p>No. Use a WordPress page-cache plugin that writes static files, and keep the cart, checkout and account pages uncached (WooCommerce does this with good plugins out of the box).</p></details><details><summary>What if the shop gets hacked?</summary><p>Restore files and database from the last clean backup, rotate passwords (<code>cipi db password shop</code>), update every plugin, and run <code>cipi scan shop</code>. Backups every 30 minutes keep the loss small.</p></details><details><summary>Can I send order e-mails from the server?</summary><p>Send them through an SMTP or API provider (Postmark, Mailgun, SES, Brevo…) with an SMTP plugin. Direct mail from a VPS usually lands in spam, and many providers block port 25.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#what-you-ll-build">What you&#x27;ll build</a></li><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#before">Before you start</a></li><li><a class="l2" href="#create">1. Create the app and its database</a></li><li><a class="l2" href="#wordpress">2. Install WordPress</a></li><li><a class="l2" href="#https">3. HTTPS before anything else</a></li><li><a class="l2" href="#php">4. PHP limits for a shop</a></li><li><a class="l2" href="#cron">5. A real cron for Action Scheduler</a></li><li><a class="l2" href="#mail">6. Order e-mails that arrive</a></li><li><a class="l2" href="#speed">7. Speed</a></li><li><a class="l2" href="#backups">8. Backups that match your orders</a></li><li><a class="l2" href="#staging">9. A staging copy for updates</a></li><li><a class="l2" href="#security">10. Security</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/deploy-wordpress-custom-app"><span class="g-cat">PHP, WordPress &amp; e-commerce</span><b>Host WordPress on your own VPS next to Laravel apps</b><span class="g-desc">Run WordPress as an isolated custom app with its own PHP pool, database, HTTPS, backups and Git or SFTP deploys, on the same server as your Laravel apps.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/php-ecommerce-vps"><span class="g-cat">PHP, WordPress &amp; e-commerce</span><b>Self-host PHP e-commerce on a VPS: Bagisto, Lunar, Sylius, PrestaShop and more</b><span class="g-desc">A practical map of open-source PHP shop platforms and how to run each on your own server with Cipi, explained for beginners, with full setups for a Laravel-based shop (Bagisto) and a Symfony-based one (Sylius), plus what every shop needs.</span><span class="g-meta">3 min read</span></a></li><li><a class="g-card" href="/guides/backup-vps-s3"><span class="g-cat">Operations</span><b>Back up Laravel apps and databases to S3, and restore them</b><span class="g-desc">Encrypted, scheduled backups of every app and database to AWS S3 or any S3-compatible storage (Hetzner, DigitalOcean Spaces, Backblaze B2, Wasabi, MinIO), with retention, verification and a tested restore.</span><span class="g-meta">2 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/guides/woocommerce-vps" width="1" height="1" alt=""></noscript>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your own S3 storage for Laravel with Johnny — Cipi guides</title>
+    <meta name="description" content="Set up Johnny, free self-hosted S3-compatible object storage, on its own VPS, create buckets and scoped access keys, connect Laravel&#x27;s filesystem, send Cipi backups to it, and import buckets from AWS, Spaces or R2, step by step from zero.">
+    <meta name="keywords" content="self-hosted s3 laravel, s3 compatible storage vps, laravel filesystem s3 self hosted, garage s3 laravel, johnny s3, minio alternative">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/johnny-s3-storage">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/johnny-s3-storage">
+    <meta property="og:title" content="Your own S3 storage for Laravel with Johnny">
+    <meta property="og:description" content="Set up Johnny, free self-hosted S3-compatible object storage, on its own VPS, create buckets and scoped access keys, connect Laravel&#x27;s filesystem, send Cipi backups to it, and import buckets from AWS, Spaces or R2, step by step from zero.">
+    <meta property="og:image" content="https://cipi.sh/img/og/guide-johnny-s3-storage.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Your own S3 storage for Laravel with Johnny">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Your own S3 storage for Laravel with Johnny">
+    <meta name="twitter:description" content="Set up Johnny, free self-hosted S3-compatible object storage, on its own VPS, create buckets and scoped access keys, connect Laravel&#x27;s filesystem, send Cipi backups to it, and import buckets from AWS, Spaces or R2, step by step from zero.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/guide-johnny-s3-storage.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Your own S3 storage for Laravel with Johnny", "description": "Set up Johnny, free self-hosted S3-compatible object storage, on its own VPS, create buckets and scoped access keys, connect Laravel's filesystem, send Cipi backups to it, and import buckets from AWS, Spaces or R2, step by step from zero.", "url": "https://cipi.sh/guides/johnny-s3-storage", "mainEntityOfPage": "https://cipi.sh/guides/johnny-s3-storage", "datePublished": "2026-11-23", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/guide-johnny-s3-storage.jpg", "articleSection": "Operations", "timeRequired": "PT4M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "self-hosted s3 laravel, s3 compatible storage vps, laravel filesystem s3 self hosted, garage s3 laravel, johnny s3, minio alternative"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "Your own S3 storage for Laravel with Johnny", "description": "Set up Johnny, free self-hosted S3-compatible object storage, on its own VPS, create buckets and scoped access keys, connect Laravel's filesystem, send Cipi backups to it, and import buckets from AWS, Spaces or R2, step by step from zero.", "totalTime": "PT14M", "step": [{"@type": "HowToStep", "position": 1, "name": "Key ideas, in plain words", "url": "https://cipi.sh/guides/johnny-s3-storage#ideas"}, {"@type": "HowToStep", "position": 2, "name": "Before you start", "url": "https://cipi.sh/guides/johnny-s3-storage#before"}, {"@type": "HowToStep", "position": 3, "name": "1. Install Johnny", "url": "https://cipi.sh/guides/johnny-s3-storage#install"}, {"@type": "HowToStep", "position": 4, "name": "2. Create a bucket and a key per app", "url": "https://cipi.sh/guides/johnny-s3-storage#bucket"}, {"@type": "HowToStep", "position": 5, "name": "3. Connect a Laravel app", "url": "https://cipi.sh/guides/johnny-s3-storage#laravel"}, {"@type": "HowToStep", "position": 6, "name": "4. Send Cipi backups to Johnny", "url": "https://cipi.sh/guides/johnny-s3-storage#backups"}, {"@type": "HowToStep", "position": 7, "name": "5. Bring your files from AWS, Spaces or R2", "url": "https://cipi.sh/guides/johnny-s3-storage#import"}, {"@type": "HowToStep", "position": 8, "name": "6. Keep a copy elsewhere", "url": "https://cipi.sh/guides/johnny-s3-storage#nightly"}, {"@type": "HowToStep", "position": 9, "name": "Security checklist", "url": "https://cipi.sh/guides/johnny-s3-storage#security"}, {"@type": "HowToStep", "position": 10, "name": "Troubleshooting", "url": "https://cipi.sh/guides/johnny-s3-storage#troubleshooting"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is Johnny?", "acceptedAnswer": {"@type": "Answer", "text": "A free, open-source (MIT) object storage server by Andrea Pollastri. It speaks the S3 API (built on Garage), with HTTPS through Caddy, a web panel, a CLI, a REST API and nightly backups to SFTP. Any S3 client works with it."}}, {"@type": "Question", "name": "Why not just use AWS S3 or R2?", "acceptedAnswer": {"@type": "Answer", "text": "You can, and Cipi works with them. Johnny is for when you want storage on servers you control: no per-GB or per-request bill, data in the country you choose, and no third party holding your files."}}, {"@type": "Question", "name": "Can Johnny run on my Cipi server?", "acceptedAnswer": {"@type": "Answer", "text": "No: Johnny brings its own web server (Caddy) on ports 80 and 443, which Cipi's Nginx already uses. Give Johnny its own small VPS, ideally in another region or provider so it also works as off-site backup."}}, {"@type": "Question", "name": "Is a single server safe for storage?", "acceptedAnswer": {"@type": "Answer", "text": "Johnny runs a single-node Garage cluster, so the server's disk is a single point of failure. That's why Johnny syncs every bucket to SFTP targets every night. Configure at least one."}}, {"@type": "Question", "name": "Why `AWS_USE_PATH_STYLE_ENDPOINT=true`?", "acceptedAnswer": {"@type": "Answer", "text": "Johnny serves buckets as https://s3.example.com/bucket rather than https://bucket.s3.example.com . Path style tells the S3 client to use the first form."}}, {"@type": "Question", "name": "Can I limit what an app can do?", "acceptedAnswer": {"@type": "Answer", "text": "Yes: create a key per app, limited to its bucket, with read only, read and write, write only or full control. Garage doesn't split permissions more finely, so a writer can also overwrite and delete."}}, {"@type": "Question", "name": "Can I move my files from AWS or DigitalOcean?", "acceptedAnswer": {"@type": "Answer", "text": "Yes: Transfers in the panel imports buckets from any S3 provider (or SFTP), once or on a schedule."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "Your own S3 storage for Laravel with Johnny", "item": "https://cipi.sh/guides/johnny-s3-storage"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">Your own S3 storage for Laravel with Johnny</li></ol>
+<a class="art-eyebrow" href="/guides/#ops">Operations</a>
+<h1>Your own S3 storage for Laravel with Johnny</h1>
+<p class="art-lead">Set up Johnny, free self-hosted S3-compatible object storage, on its own VPS, create buckets and scoped access keys, connect Laravel&#x27;s filesystem, send Cipi backups to it, and import buckets from AWS, Spaces or R2, step by step from zero.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>4 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=Your%20own%20S3%20storage%20for%20Laravel%20with%20Johnny&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fjohnny-s3-storage" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fjohnny-s3-storage" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fjohnny-s3-storage&title=Your%20own%20S3%20storage%20for%20Laravel%20with%20Johnny" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fjohnny-s3-storage&t=Your%20own%20S3%20storage%20for%20Laravel%20with%20Johnny" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fjohnny-s3-storage&text=Your%20own%20S3%20storage%20for%20Laravel%20with%20Johnny" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=Your%20own%20S3%20storage%20for%20Laravel%20with%20Johnny%20https%3A%2F%2Fcipi.sh%2Fguides%2Fjohnny-s3-storage" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/johnny-s3-storage" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Laravel apps store uploads, exports and backups in <strong>object storage</strong>: S3 and its compatibles. <a href="https://johnny.web.ap.it">Johnny</a> gives you that on your own VPS, with a clean panel. Your Cipi apps then use it exactly like AWS S3.</p>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Object storage</strong></td><td>Storage for files ("objects") reached over HTTP, not a disk you mount</td></tr><tr><td><strong>S3</strong></td><td>Amazon's object storage API, now a standard many products speak</td></tr><tr><td><strong>Bucket</strong></td><td>A named container of files, e.g. <code>shop-uploads</code></td></tr><tr><td><strong>Access key</strong></td><td>An ID and a secret an app uses to read or write buckets</td></tr><tr><td><strong>Endpoint</strong></td><td>The URL of the storage server, e.g. <code>https://s3.example.com</code></td></tr><tr><td><strong>Path style</strong></td><td>Bucket in the path (<code>/shop-uploads/…</code>), as Johnny expects</td></tr></tbody></table></div>
+<ul class="flow stack"><li><b>Cipi server</b><span>your Laravel apps, Storage::disk('s3')</span></li><li><b>HTTPS</b><span>path-style S3 requests</span></li><li><b>Johnny VPS</b><span>Caddy + Garage + panel</span></li><li><b>SFTP target</b><span>nightly copy of every bucket</span></li></ul>
+<h2 id="before">Before you start<a class="anchor" href="#before" aria-label="Link to this section">#</a></h2>
+<ul><li>A <strong>separate</strong> VPS with <strong>Ubuntu 24.04</strong>, with enough disk for your files (storage-optimised plans are cheap at Hetzner, OVHcloud and others).</li><li>Two subdomains pointing at it <strong>before</strong> installing: one for S3 (<code>s3.example.com</code>), one for the panel (<code>panel.storage.example.com</code>).</li><li>Optional but recommended: an SFTP destination for nightly backups (a storage box, another server).</li></ul>
+<h2 id="install">1. Install Johnny<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh root@STORAGE_IP
+<span class="p"></span>mkdir -p /opt &amp;&amp; git clone https://github.com/andreapollastri/johnny /opt/johnny
+<span class="p"></span>cd /opt/johnny
+<span class="p"></span>bash scripts/autoinstall.sh</pre></div>
+<p>The wizard installs Garage and Caddy, issues HTTPS for your S3 domain, creates a <code>default</code> bucket and keys, sets up the nightly jobs and, if you say yes, the panel. Check it:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>source /etc/johnny/credentials/default-s3.env
+<span class="p"></span>aws s3 ls --endpoint-url "$AWS_ENDPOINT_URL"</pre></div>
+<p>Create your panel login:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo -u www-data php /opt/johnny/panel/artisan johnny:admin you@example.com 'a-strong-password'</pre></div>
+<p>Open the panel, sign in, and turn on two-factor authentication in <strong>Settings</strong>.</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.storage.example.com</span></div>
+<img src="/img/guides/johnny/dashboard.webp" width="1440" height="1252" alt="Johnny dashboard with stored data, disk usage, largest buckets and recent transfers" loading="lazy" decoding="async">
+</div>
+<figcaption>The dashboard: what's stored, disk left, biggest buckets, recent transfers.</figcaption>
+</figure>
+<h2 id="bucket">2. Create a bucket and a key per app<a class="anchor" href="#bucket" aria-label="Link to this section">#</a></h2>
+<p><strong>Buckets → New</strong>: <code>shop-uploads</code>. Then <strong>Access keys → New</strong>: name it after the app, give it <strong>read and write</strong> on <code>shop-uploads</code> only.</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.storage.example.com</span></div>
+<img src="/img/guides/johnny/key.webp" width="1440" height="990" alt="Johnny access key page with scope limited to one bucket" loading="lazy" decoding="async">
+</div>
+<figcaption>One key per app, limited to its own bucket: a leaked key can't touch anything else.</figcaption>
+</figure>
+<p>Copy the key ID and secret now. In the bucket's <strong>Connect</strong> tab, Johnny shows ready-made configuration snippets.</p>
+<h2 id="laravel">3. Connect a Laravel app<a class="anchor" href="#laravel" aria-label="Link to this section">#</a></h2>
+<p>In the app (on your laptop):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>composer require league/flysystem-aws-s3-v3 "^3.0" --with-all-dependencies</pre></div>
+<p>Commit and deploy. Then set the variables on the Cipi server:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app env shop<span class="c">        # add these lines:</span></pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">text</span><button class="code-copy-btn" type="button">Copy</button></div><pre>FILESYSTEM_DISK=s3
+AWS_ACCESS_KEY_ID=GK…
+AWS_SECRET_ACCESS_KEY=…
+AWS_DEFAULT_REGION=johnny
+AWS_BUCKET=shop-uploads
+AWS_ENDPOINT=https://s3.example.com
+AWS_USE_PATH_STYLE_ENDPOINT=true</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app artisan shop config:cache
+<span class="p"></span>sudo cipi worker restart shop
+<span class="p"></span>sudo cipi app artisan shop tinker --execute="Storage::disk('s3')-&gt;put('hello.txt','hi'); echo Storage::disk('s3')-&gt;exists('hello.txt') ? 'ok' : 'fail';"</pre></div>
+<p><code>ok</code> means the app writes to Johnny. The file appears in the panel's object browser.</p>
+<h2 id="backups">4. Send Cipi backups to Johnny<a class="anchor" href="#backups" aria-label="Link to this section">#</a></h2>
+<p>Create a <code>cipi-backups</code> bucket and a key for it, then on each Cipi server:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi backup destination add johnny --bucket=cipi-backups \
+    --key=GK… --secret=… --region=johnny --endpoint=https://s3.example.com
+<span class="p"></span>sudo cipi backup destination test
+<span class="p"></span>sudo cipi backup profile add shop-nightly --scope=all --cron='0 2 * * *' \
+    --keep-days=14 --dest=johnny --encrypt</pre></div>
+<p>Backups are encrypted on the Cipi server before they leave it, so Johnny only ever stores encrypted archives. <a href="/guides/backup-vps-s3">More on backups</a>.</p>
+<h2 id="import">5. Bring your files from AWS, Spaces or R2<a class="anchor" href="#import" aria-label="Link to this section">#</a></h2>
+<p><strong>Transfers → New connection</strong>: enter the provider's endpoint and keys. Johnny lists its buckets: import them once, or set a scheduled sync (copy or mirror, with a dry run first).</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.storage.example.com</span></div>
+<img src="/img/guides/johnny/connection.webp" width="1440" height="1083" alt="Johnny transfer connection to DigitalOcean Spaces listing buckets to import" loading="lazy" decoding="async">
+</div>
+<figcaption>Import buckets from another provider; transfers show progress as they run.</figcaption>
+</figure>
+<p>When the copy is complete, switch the app's <code>AWS_*</code> variables to Johnny and run <code>config:cache</code>.</p>
+<h2 id="nightly">6. Keep a copy elsewhere<a class="anchor" href="#nightly" aria-label="Link to this section">#</a></h2>
+<p>Every night at 03:00 Johnny copies every bucket to the SFTP targets in <code>/etc/johnny/backup.json</code>, in dated folders, and deletes folders older than the retention (90 days by default). Add at least one target: a single storage server is a single point of failure. Logs: <code>/var/log/johnny-nightly.log</code>.</p>
+<h2 id="security">Security checklist<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Do</th><th>Why</th></tr></thead><tbody><tr><td>One key per app, scoped to its bucket</td><td>Limits the damage of a leaked key</td></tr><tr><td>Keys only in the server's <code>.env</code></td><td>Never in Git (<a href="/guides/laravel-env-secrets">secrets guide</a>)</td></tr><tr><td>Two-factor on the panel</td><td>The panel can create keys</td></tr><tr><td>An SFTP backup target in another place</td><td>Disk or server failure</td></tr><tr><td>Expiring share links</td><td>Links to private files expire in an hour, a day or a week</td></tr></tbody></table></div>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td><code>Could not resolve host shop-uploads.s3.example.com</code></td><td>Path style is off: <code>AWS_USE_PATH_STYLE_ENDPOINT=true</code>, then <code>config:cache</code></td></tr><tr><td><code>AccessDenied</code></td><td>The key isn't allowed on that bucket, or is read-only</td></tr><tr><td><code>Class "League\Flysystem\AwsS3V3\…" not found</code></td><td>Install <code>league/flysystem-aws-s3-v3</code> and deploy</td></tr><tr><td>Certificate error at install</td><td>DNS didn't point at the VPS before installing: fix DNS, run the installer again</td></tr><tr><td><code>destination test</code> fails from Cipi</td><td>Check endpoint, region <code>johnny</code>, and that the key can write to the bucket</td></tr><tr><td>Uploads work, browser can't load files</td><td>Bucket is private (good): serve files through signed URLs (<code>Storage::temporaryUrl</code>)</td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/backups">Backups to S3</a></li><li><a href="/docs/environment">Environment variables</a></li><li><a href="/docs/packages">Packages</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>What is Johnny?</summary><p>A free, open-source (MIT) object storage server by Andrea Pollastri. It speaks the S3 API (built on Garage), with HTTPS through Caddy, a web panel, a CLI, a REST API and nightly backups to SFTP. Any S3 client works with it.</p></details><details><summary>Why not just use AWS S3 or R2?</summary><p>You can, and Cipi works with them. Johnny is for when you want storage on servers you control: no per-GB or per-request bill, data in the country you choose, and no third party holding your files.</p></details><details><summary>Can Johnny run on my Cipi server?</summary><p>No: Johnny brings its own web server (Caddy) on ports 80 and 443, which Cipi's Nginx already uses. Give Johnny its own small VPS, ideally in another region or provider so it also works as off-site backup.</p></details><details><summary>Is a single server safe for storage?</summary><p>Johnny runs a single-node Garage cluster, so the server's disk is a single point of failure. That's why Johnny syncs every bucket to SFTP targets every night. Configure at least one.</p></details><details><summary>Why `AWS_USE_PATH_STYLE_ENDPOINT=true`?</summary><p>Johnny serves buckets as <code>https://s3.example.com/bucket</code> rather than <code>https://bucket.s3.example.com</code>. Path style tells the S3 client to use the first form.</p></details><details><summary>Can I limit what an app can do?</summary><p>Yes: create a key per app, limited to its bucket, with read only, read and write, write only or full control. Garage doesn't split permissions more finely, so a writer can also overwrite and delete.</p></details><details><summary>Can I move my files from AWS or DigitalOcean?</summary><p>Yes: Transfers in the panel imports buckets from any S3 provider (or SFTP), once or on a schedule.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#before">Before you start</a></li><li><a class="l2" href="#install">1. Install Johnny</a></li><li><a class="l2" href="#bucket">2. Create a bucket and a key per app</a></li><li><a class="l2" href="#laravel">3. Connect a Laravel app</a></li><li><a class="l2" href="#backups">4. Send Cipi backups to Johnny</a></li><li><a class="l2" href="#import">5. Bring your files from AWS, Spaces or R2</a></li><li><a class="l2" href="#nightly">6. Keep a copy elsewhere</a></li><li><a class="l2" href="#security">Security checklist</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/backup-vps-s3"><span class="g-cat">Operations</span><b>Back up Laravel apps and databases to S3, and restore them</b><span class="g-desc">Encrypted, scheduled backups of every app and database to AWS S3 or any S3-compatible storage (Hetzner, DigitalOcean Spaces, Backblaze B2, Wasabi, MinIO), with retention, verification and a tested restore.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/laravel-env-secrets"><span class="g-cat">Laravel</span><b>Laravel .env and secrets in production, done right</b><span class="g-desc">What the .env file is, why it never goes in Git, where Cipi keeps it so it survives deploys and rollbacks, how to change values safely from the CLI, the panel or the API, rotating database passwords and API keys, config caching, and keeping secrets out of logs and AI tools.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/migrate-server-cipi-sync"><span class="g-cat">Operations</span><b>Move Laravel apps to a new server with cipi sync</b><span class="g-desc">Migrate one app or a whole server between providers (AWS to Hetzner, an old VPS to a bigger one) with encrypted archives, the same deploy keys, database and storage, and a DNS switch when you&#x27;re ready.</span><span class="g-meta">2 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/guides/johnny-s3-storage" width="1" height="1" alt=""></noscript>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deploy &amp; roll back — Cipi docs</title>
+    <meta name="description" content="cipi deploy, releases, rollback, status and logs.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/deploying">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/deploying">
+    <meta property="og:title" content="Deploy &amp; roll back — Cipi docs">
+    <meta property="og:description" content="cipi deploy, releases, rollback, status and logs.">
+    <meta property="og:image" content="https://cipi.sh/img/og/docs-deploying.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/docs-deploying.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/clips.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Deploy & roll back", "description": "cipi deploy, releases, rollback, status and logs.", "url": "https://cipi.sh/docs/deploying", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Deploy", "item": "https://cipi.sh/docs/deploy"}, {"@type": "ListItem", "position": 3, "name": "Deploy & roll back", "item": "https://cipi.sh/docs/deploying"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group" open><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying" aria-current="page">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group"><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/deploy">Deploy</a></li><li aria-current="page">Deploy &amp; roll back</li></ol>
+<h1>Deploy &amp; roll back</h1>
+<p class="docs-lead">cipi deploy, releases, rollback, status and logs.</p>
+<div class="docs-meta"><span>Deploy</span></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="cli-deploy">
+<p>A deploy builds the new release next to the live one and switches traffic with a single atomic symlink. Visitors never see a half-deployed app, and the previous five releases stay ready for an instant rollback.</p>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(16 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">Deploy, list releases, roll back</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: Deploy, list releases, roll back">$ cipi deploy shop
+$ cipi deploy shop --releases
+$ cipi deploy shop --rollback</pre><script type="application/json" class="term-script">[{"c": "cipi deploy shop"}, {"o": [["task ", "dim"], ["deploy:prepare", ""]], "d": 300}, {"o": [["task ", "dim"], ["deploy:update_code", ""], ["    main @ 9d1f3a5", "dim"]], "d": 500}, {"o": [["task ", "dim"], ["deploy:vendors", ""]], "d": 900}, {"o": [["task ", "dim"], ["artisan:migrate", ""]], "d": 500}, {"o": [["task ", "dim"], ["artisan:optimize", ""]], "d": 300}, {"o": [["task ", "dim"], ["deploy:symlink", ""], ["        current → releases/133", "dim"]], "d": 300}, {"o": [["task ", "dim"], ["artisan:queue:restart", ""]], "d": 300}, {"o": [["✓ ", "ok"], ["Deploy completed  (release 133, 1m43s)", ""]], "d": 400}, {"c": "cipi deploy shop --releases", "wait": 500}, {"o": [["Releases for 'shop'", "hl"]], "d": 200}, {"o": "  133  2026-10-27 05:30  1m43s  9d1f3a5  hotfix: checkout tax rounding   (current)"}, {"o": "  132  2026-10-26 08:30    45s  e4a8b1c  orders: export to CSV"}, {"c": "cipi deploy shop --rollback", "wait": 500}, {"o": [["✓ ", "ok"], ["Rollback done  (now on release 132)", ""]], "d": 500}]</script></div>
+<h2 id="pipeline">The pipeline<a class="anchor" href="#pipeline" aria-label="Link to this section">#</a></h2>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Stop workers</b><span>no old code on new data</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Clone</b><span>into releases/N</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Composer</b><span>--no-dev, app's PHP</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Link shared</b><span>.env, storage</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="4"><b>Migrate &amp; optimize</b><span>migrate --force, optimize</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="5"><b>Swap</b><span>current → releases/N</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="6"><b>Restart &amp; verify</b><span>workers, health check</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 7</span><b>Stop workers</b></div><p>Queue workers stop first (each finishes its current job), so no job runs old code against a database the new release is about to migrate.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 7</span><b>Clone</b></div><p>The repository is cloned into a new folder, <code>releases/&lt;timestamp&gt;</code>. The live release is untouched and keeps serving visitors.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 7</span><b>Composer</b></div><p><code>composer install --no-dev</code> runs with <strong>the app's</strong> PHP version, inside the new folder.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 7</span><b>Link shared</b></div><p><code>.env</code> and <code>storage/</code> live in <code>shared/</code> and are linked into the release, so they survive every deploy and rollback.</p></div><div class="fx-pane" role="tabpanel" data-i="4" hidden><div class="fx-head"><span class="fx-n">Step 5 of 7</span><b>Migrate &amp; optimize</b></div><p><code>php artisan migrate --force</code> and <code>optimize</code> run in the new release. If something fails here, the deploy stops and the old release is still live.</p></div><div class="fx-pane" role="tabpanel" data-i="5" hidden><div class="fx-head"><span class="fx-n">Step 6 of 7</span><b>Swap</b></div><p>The <code>current</code> link switches to the new folder in one atomic step. Requests before the switch got the old code; requests after get the new one. None fail.</p></div><div class="fx-pane" role="tabpanel" data-i="6" hidden><div class="fx-head"><span class="fx-n">Step 7 of 7</span><b>Restart &amp; verify</b></div><p>Workers start again on the new code. With a health check set, Cipi probes the site and can roll back automatically.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<p>Deployer and Composer always use <strong>the app's PHP version</strong>, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a <a href="/docs/manage-apps#edit">front-end build</a> run it before the swap.</p>
+<h2 id="commands">Commands<a class="anchor" href="#commands" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>cipi deploy myapp</code></td><td>Deploy the latest commit of the branch</td></tr><tr><td><code>cipi deploy myapp --rollback</code></td><td>Back to the previous release, instantly</td></tr><tr><td><code>cipi deploy myapp --status</code></td><td>Is a deploy running, queued or interrupted? (safe to poll)</td></tr><tr><td><code>cipi deploy myapp --history</code></td><td>Past deploys and rollbacks: result, release, duration, trigger</td></tr><tr><td><code>cipi deploy --last</code></td><td>The last deploy of every app</td></tr><tr><td><code>cipi deploy myapp --releases</code></td><td>Releases on disk with date, duration, commit</td></tr><tr><td><code>cipi deploy myapp --log=200</code></td><td>Timestamped deploy log</td></tr><tr><td><code>cipi deploy myapp --audit</code></td><td>Who deployed what, from where (<a href="/docs/deploy-audit">audit ledger</a>)</td></tr><tr><td><code>cipi deploy myapp --snapshot</code></td><td>Dump the database first (<a href="/docs/safe-deploy">safe deploy</a>)</td></tr><tr><td><code>cipi deploy myapp --rollback-on-unhealthy</code></td><td>Undo the release if the <a href="/docs/health-checks">health check</a> fails</td></tr><tr><td><code>cipi deploy myapp --key</code> / <code>--webhook</code></td><td>Show the deploy key / webhook URL and token</td></tr><tr><td><code>cipi deploy myapp --unlock</code></td><td>Clear the lock of an interrupted deploy</td></tr><tr><td><code>cipi deploy myapp --trust-host=git.example.com:2222</code></td><td>Trust a self-hosted Git server</td></tr></tbody></table></div>
+<h2 id="outcome">Know whether it worked<a class="anchor" href="#outcome" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Signal</th><th>Detail</th></tr></thead><tbody><tr><td>Exit code</td><td>Non-zero on failure, so CI and scripts can react</td></tr><tr><td>Email / alerts</td><td>Success and failure, with branch, release, commit, author, duration and health verdict (<a href="/docs/notifications">notifications</a>)</td></tr><tr><td>Log</td><td><code>~/logs/deploy.log</code>: every line timestamped, each run framed by trigger, branch, release and duration</td></tr><tr><td>History</td><td><code>--history</code> reads rotated logs too, so last month's webhook deploy still shows how long it took</td></tr></tbody></table></div>
+<p>The success notice is sent only <strong>after</strong> the post-deploy health check, so it never announces a release that returns errors.</p>
+<h2 id="status">Status values<a class="anchor" href="#status" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th><code>--status</code></th><th>Meaning</th></tr></thead><tbody><tr><td><code>running</code></td><td>Building (<code>deploy</code>) or verifying (<code>post-deploy</code>); shows trigger, branch and elapsed time</td></tr><tr><td><code>queued</code></td><td>A push arrived; the deploy starts within a minute</td></tr><tr><td><code>interrupted</code></td><td>The process died (reboot, kill); clear with <code>--unlock</code></td></tr><tr><td><code>idle</code></td><td>Nothing running; shows how the last run ended</td></tr></tbody></table></div>
+<p>A failed deploy releases its own lock; only an interrupted one needs <code>--unlock</code>.</p>
+<h2 id="in-the-panel">In the web panel<a class="anchor" href="#in-the-panel" aria-label="Link to this section">#</a></h2>
+<p>Deploy, follow the release and read the audit from the browser. The <a href="/docs/gui">web panel</a> is optional; everything here also works from the CLI.</p>
+<div data-clips="deploy" data-single></div><noscript><p>Animated clips of the web panel; see the <a href="/docs/gui-overview#gui-tour">screenshot tour</a>.</p></noscript>
+<h2 id="problems">Common problems<a class="anchor" href="#problems" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td><code>Permission denied (publickey)</code></td><td>Deploy key missing on the repository: <code>cipi deploy myapp --key</code></td></tr><tr><td>Deploy locked</td><td>A previous deploy was interrupted: <code>cipi deploy myapp --status</code>, then <code>--unlock</code></td></tr><tr><td>Composer fails on PHP version</td><td>Align <code>--php</code> with what <code>composer.lock</code> needs</td></tr><tr><td>Migration fails</td><td>The old release keeps serving; fix the migration and deploy again</td></tr></tbody></table></div>
+<h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Does a failed deploy take the site down?</td><td>No. The new release goes live only after every step succeeded.</td></tr><tr><td>How do I go back?</td><td><code>cipi deploy myapp --rollback</code>, instant.</td></tr><tr><td>Are migrations rolled back too?</td><td>No: rollback restores code. Use a <a href="/docs/safe-deploy">pre-deploy snapshot</a> for data.</td></tr></tbody></table></div>
+</section>
+
+</div>
+<aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul><li><a href="/guides/deploy-laravel-ubuntu-vps"><b>Deploy Laravel on an Ubuntu VPS with zero downtime</b><span>From a fresh Ubuntu 24.04 or 26.04 server to a Laravel app on HTTPS with queues, scheduler and push-to-deploy, explained from zero: install, create the app, connect Git, deploy, HTTPS, rollbacks and the first-day problems.</span></a></li><li><a href="/guides/manage-apps-with-cipi-yml"><b>cipi.yml: keep your server settings in the repository</b><span>Keep PHP, workers, scheduler, domains, databases, health checks, backups and deploy options in a cipi.yml next to your Laravel code, explained from zero: generate it, edit it, validate it, review it in pull requests, plan and apply it safely.</span></a></li></ul></aside><nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/how-deploys-work" rel="prev"><small>Previous</small><b>How deploys work</b></a><a class="next" href="/docs/git" rel="next"><small>Next</small><b>Git providers &amp; deploy keys</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#pipeline">The pipeline</a></li>
+<li><a class="l2" href="#commands">Commands</a></li>
+<li><a class="l2" href="#outcome">Know whether it worked</a></li>
+<li><a class="l2" href="#status">Status values</a></li>
+<li><a class="l2" href="#in-the-panel">In the web panel</a></li>
+<li><a class="l2" href="#problems">Common problems</a></li>
+<li><a class="l2" href="#questions">Questions</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/deploying.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+<script src="/assets/js/clips.js" defer></script>
+<script src="/assets/js/term.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/docs/deploying" width="1" height="1" alt=""></noscript>
+</body>
+</html>

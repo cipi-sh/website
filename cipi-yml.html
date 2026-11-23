@@ -1,820 +1,291 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
-
+<html lang="en" data-theme="light" data-follow-system>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cipi.yml — Server Configuration That Ships With Your Laravel Code | Cipi</title>
-    <meta name="description" content="cipi.yml is a file you commit next to your Laravel app: domain aliases, PHP version and php.ini, extra databases, queue workers or Horizon, Laravel Reverb, the scheduler, healthcheck, backup profiles, post-deploy steps and, since 5.4, redirects, proxies, basic auth, crons and Node builds — reconciled with cipi yml plan and cipi yml apply.">
-    <meta name="keywords" content="cipi.yml, Laravel configuration as code, server config in repository, cipi yml apply, cipi yml plan, Laravel deploy configuration file, queue workers YAML, Laravel Reverb YAML, backup profiles YAML, nginx redirects YAML, reverse proxy YAML, Node app build config, Laravel cron YAML">
+    <title>cipi.yml — Laravel server configuration as code, reviewed in pull requests | Cipi</title>
+    <meta name="description" content="cipi.yml puts an app&#x27;s PHP version, workers, scheduler, domains, databases, health checks, backups and deploy steps in your Git repository. Every change is planned, reviewed and applied all-or-nothing.">
+    <meta name="keywords" content="cipi.yml, laravel infrastructure as code, laravel server configuration git, laravel forge alternative config as code">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="Andrea Pollastri">
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/cipi-yml">
-    <link rel="sitemap" type="application/xml" href="/sitemap.xml">
-
-    <meta property="og:type" content="website">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
     <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
     <meta property="og:url" content="https://cipi.sh/cipi-yml">
-    <meta property="og:title" content="cipi.yml — configuration that travels with the code">
-    <meta property="og:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups, post-deploy steps, redirects, proxies, crons and Node builds. Plan it, apply it, or reconcile on every deploy.">
-    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta property="og:title" content="cipi.yml: your server settings, in your repository">
+    <meta property="og:description" content="cipi.yml puts an app&#x27;s PHP version, workers, scheduler, domains, databases, health checks, backups and deploy steps in your Git repository. Every change is planned, reviewed and applied all-or-nothing.">
+    <meta property="og:image" content="https://cipi.sh/img/og/cipi-yml.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="cipi.yml — Cipi configuration file">
-    <meta property="og:locale" content="en_US">
+    <meta property="og:image:alt" content="cipi.yml: your server settings, in your repository">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="cipi.yml — configuration that travels with the code">
-    <meta name="twitter:description" content="One committed file describes what an app expects from the server: aliases, PHP, databases, workers, Reverb, scheduler, health, backups, post-deploy steps, redirects, proxies, crons and Node builds. Plan it, apply it, or reconcile on every deploy.">
-    <meta name="twitter:image" content="https://cipi.sh/og.png">
-
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "TechArticle",
-      "name": "cipi.yml",
-      "headline": "cipi.yml — configuration that travels with the code",
-      "url": "https://cipi.sh/cipi-yml",
-      "description": "How the cipi.yml file works: the sections it can configure, the plan/apply workflow, automatic reconciliation on deploy and the rules that keep it safe to accept over Git.",
-      "inLanguage": "en",
-      "image": "https://cipi.sh/og.png",
-      "datePublished": "2026-09-02",
-      "dateModified": "2026-10-23",
-      "author": { "@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri" },
-      "about": { "@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/", "softwareVersion": "5.7.0" },
-      "publisher": { "@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/" },
-      "isPartOf": { "@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/" }
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "Do I have to write cipi.yml by hand?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No. cipi yml generate <app> prints the app's current server configuration as a ready-to-commit cipi.yml. Since 5.5.2, cipi yml generate <app> --save writes /home/<app>/cipi.yml; apply still reads the copy committed in the release. cipi yml example prints a blank commented template if you prefer to start from scratch." }
-        },
-        {
-          "@type": "Question",
-          "name": "What can cipi.yml configure?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Domain aliases, the PHP version and per-app php.ini overrides, extra MariaDB or PostgreSQL databases, queue workers or Horizon, Laravel Reverb for WebSockets, the Laravel scheduler, an HTTP healthcheck with optional rollback, the app's backup profiles, post-deploy steps, and since Cipi 5.4 the www redirect, basic auth users, app and path redirects, reverse proxy prefixes, Meilisearch, Deployer recipe options, resource limits, forced HTTPS, required .env names, crons and a Node app's build settings. Since 5.5.2, deploy.node_build is the Laravel asset build that runs before the release goes live, deploy.predeploy_snapshot is the pre-deploy database snapshot (the name snapshot is still accepted), and backup profiles this file created are removed from the schedule when the file drops them." }
-        },
-        {
-          "@type": "Question",
-          "name": "Does a deploy apply cipi.yml automatically?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Only if you opt in with cipi yml auto <app> on. Until then deploys ignore the file and you reconcile manually with cipi yml plan and cipi yml apply." }
-        },
-        {
-          "@type": "Question",
-          "name": "Is it safe to accept configuration from a Git repository?",
-          "acceptedAnswer": { "@type": "Answer", "text": "The schema carries no shell commands or include paths, an app can only touch databases named after itself and its own backup profiles, the healthcheck URL must be one of its own domains, unknown keys are errors, commands (deploy.post and crons) use allowlisted runners only, basic auth takes password hashes never passwords, proxies cannot target Cipi's own ports or cloud metadata, and an invalid file is rejected as a whole rather than applied halfway." }
-        }
-      ]
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/" },
-        { "@type": "ListItem", "position": 2, "name": "cipi.yml", "item": "https://cipi.sh/cipi-yml" }
-      ]
-    }
-    </script>
-
-    <link rel="icon" id="favicon" type="image/png" sizes="48x48" href="/favicon-light.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-light-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
-
+    <meta name="twitter:title" content="cipi.yml: your server settings, in your repository">
+    <meta name="twitter:description" content="cipi.yml puts an app&#x27;s PHP version, workers, scheduler, domains, databases, health checks, backups and deploy steps in your Git repository. Every change is planned, reviewed and applied all-or-nothing.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/cipi-yml.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
-    <link rel="stylesheet" href="/docs/style.css">
-    <style>
-        .cmp { max-width: var(--max); margin: 0 auto; padding: calc(var(--nav-height) + 3rem) var(--gutter) 4rem; }
-        /* Wide frame, readable measure: only running prose is capped. */
-        .cmp > p, .cmp > ul, .cmp > ol { max-width: 76ch; }
-        .cmp-breadcrumb { display:inline-flex; align-items:center; flex-wrap:wrap; gap:.15rem; font-size:.82rem; margin-bottom:1.6rem; padding:.35rem .6rem; border:1px solid var(--border); border-radius: 0; background:var(--bg-card); }
-        .cmp-breadcrumb a { display:inline-flex; align-items:center; color: var(--text-secondary); text-decoration: none; padding:.2rem .55rem; border-radius: 0; transition:color .15s, background .15s; }
-        .cmp-breadcrumb a:hover { color: var(--accent); background:var(--tag-bg); }
-        .cmp-breadcrumb .sep { color: var(--text-muted); opacity:.5; font-size:1rem; line-height:1; }
-        .cmp-breadcrumb .current { color: var(--text); font-weight:600; padding:.2rem .55rem; }
-        .cmp-breadcrumb .home-ico { width:13px; height:13px; margin-right:.35rem; }
-        .cmp-eyebrow { display:inline-block; font-family:var(--font-mono); font-size:.78rem; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); background:var(--tag-bg); padding:.32rem .65rem; border-radius: 0; margin-bottom:1rem; }
-        .cmp h1 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.08; letter-spacing: -.02em; margin-bottom: 1.1rem; }
-        .cmp h1 em { color: var(--accent); font-style: normal; }
-        .cmp .lead { font-size: 1.18rem; color: var(--text-secondary); max-width: 44rem; }
-        .cmp-cta { display:flex; flex-wrap:wrap; gap:.75rem; margin:2rem 0 .5rem; }
-        .btn-primary { display:inline-flex; align-items:center; gap:.5rem; background:var(--accent); color:#0A0A0A; font-weight:600; padding:.75rem 1.4rem; border-radius:var(--radius-sm); text-decoration:none; box-shadow:var(--shadow-sm); transition:transform .15s, box-shadow .15s; }
-        .btn-primary:hover { transform:translateY(-1px); box-shadow: var(--shadow-md); }
-        .btn-ghost { display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--border); color:var(--text); padding:.75rem 1.4rem; border-radius:var(--radius-sm); text-decoration:none; transition:border-color .15s, color .15s; }
-        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-        .cmp h2 { font-family: var(--font-display); font-size:1.7rem; margin:3.2rem 0 1rem; letter-spacing:-.01em; }
-        .cmp p { color: var(--text-secondary); margin-bottom:1rem; }
-        .cmp a.inline { color: var(--accent); text-decoration:none; }
-        .cmp a.inline:hover { text-decoration:underline; }
-        .alt-grid { display:grid; gap:1rem; grid-template-columns:1fr; margin:1.5rem 0; }
-        @media(min-width:680px){ .alt-grid{ grid-template-columns:1fr 1fr; } }
-        .alt-card { display:block; border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem 1.5rem; background:var(--bg-card); box-shadow:var(--shadow-sm); text-decoration:none; transition:transform .15s, border-color .15s, box-shadow .15s; }
-        .alt-card:hover { transform:translateY(-2px); border-color:var(--accent); box-shadow:var(--shadow-md); }
-        .alt-card h3 { font-family:var(--font-display); font-size:1.2rem; margin-bottom:.35rem; }
-        .alt-card h3 span { color:var(--accent); }
-        .alt-card p { font-size:.92rem; margin:0 0 .7rem; color:var(--text-secondary); }
-        .alt-card .go { font-size:.85rem; font-weight:600; color:var(--accent); font-family:var(--font-display); }
-        .alt-tag { display:inline-block; font-size:.72rem; font-family:var(--font-mono); color:var(--text-muted); border:1px solid var(--border); border-radius: 0; padding:.15rem .55rem; margin-bottom:.8rem; }
-        .hero-header { position:relative; overflow:hidden; padding:2.6rem 2rem; margin:0 0 2.2rem; border:1px solid var(--border); border-radius:calc(var(--radius) + 4px); background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-card)) 0%, var(--bg-card) 45%, color-mix(in srgb, var(--accent) 4%, transparent) 100%); box-shadow:var(--shadow-md); }
-        .hero-header::before { content:""; position:absolute; inset:auto -80px -120px auto; width:260px; height:260px; background:radial-gradient(circle, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 70%); pointer-events:none; }
-        .hero-header::after { content:""; position:absolute; inset:-120px auto auto -100px; width:220px; height:220px; background:radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 72%); pointer-events:none; }
-        .hero-header-inner { position:relative; z-index:1; display:grid; gap:1.5rem; }
-        .hero-kicker { display:inline-flex; align-items:center; gap:.5rem; width:max-content; font-family:var(--font-mono); font-size:.76rem; letter-spacing:.05em; text-transform:uppercase; color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); border:1px solid color-mix(in srgb, var(--accent) 22%, var(--border)); padding:.42rem .75rem; border-radius: 0; }
-        .hero-title { max-width: 18ch; margin:0; font-family:var(--font-display); font-size:clamp(2.4rem, 6vw, 4.4rem); line-height:.98; letter-spacing:-.04em; }
-        .hero-title .accent { color:var(--accent); }
-        .hero-copy { max-width: 43rem; margin:0; font-size:1.06rem; line-height:1.75; color:var(--text-secondary); }
-        .hero-metrics { display:grid; gap:.85rem; grid-template-columns:repeat(3, minmax(0, 1fr)); }
-        .hero-metric { padding:1rem 1rem 1.05rem; border:1px solid var(--border); border-radius: 0; background:color-mix(in srgb, var(--bg-card) 92%, white 8%); backdrop-filter:blur(6px); }
-        .hero-metric strong { display:block; font-family:var(--font-display); font-size:1.2rem; margin-bottom:.2rem; }
-        .hero-metric span { display:block; font-size:.82rem; line-height:1.5; color:var(--text-muted); }
-        @media(max-width:700px){ .hero-header { padding:2rem 1.25rem; } .hero-metrics { grid-template-columns:1fr; } .hero-title { max-width:none; } }
-        .cmp-h2-lg { font-family: var(--font-display); font-size: clamp(1.6rem, 3.5vw, 2.2rem) !important; margin: 2.4rem 0 1rem !important; letter-spacing: -.02em; }
-        .alt-card.featured { border-color: var(--accent); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--bg-card)), var(--bg-card)); }
-        .faq-item { border-bottom:1px solid var(--border); padding:1.2rem 0; }
-        .faq-item:last-child { border-bottom:none; }
-        .faq-item h3 { font-family:var(--font-display); font-size:1.08rem; margin-bottom:.45rem; }
-        .faq-item p { margin:0; }
-    </style>
-    <meta name="theme-color" content="#65A30D" id="themeColor">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "cipi.yml: your server settings, in your repository", "description": "cipi.yml puts an app's PHP version, workers, scheduler, domains, databases, health checks, backups and deploy steps in your Git repository. Every change is planned, reviewed and applied all-or-nothing.", "url": "https://cipi.sh/cipi-yml", "dateModified": "2026-11-23", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/cipi-yml.jpg", "inLanguage": "en"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it like Docker Compose or Terraform?", "acceptedAnswer": {"@type": "Answer", "text": "Smaller and safer. It configures one app on a Cipi server (runtime, workers, domains, backups), can't create or delete apps, and refuses anything outside the app's own namespace."}}, {"@type": "Question", "name": "What happens with an invalid file?", "acceptedAnswer": {"@type": "Answer", "text": "Nothing is applied. The plan reports the error; with auto-apply on you get a yml_fail notification and the deploy itself still succeeds."}}, {"@type": "Question", "name": "Can I start using it on an existing app?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. cipi yml generate <app> --save writes the current setup as a file; commit it and the next plan shows nothing to change."}}, {"@type": "Question", "name": "Do I have to describe everything?", "acceptedAnswer": {"@type": "Answer", "text": "No. Write only the sections you want to manage from the repository. Anything you leave out stays as it is on the server, and you can keep using the CLI or the panel for it."}}, {"@type": "Question", "name": "Who can change the server once auto-apply is on?", "acceptedAnswer": {"@type": "Answer", "text": "Anyone who can merge to the deploy branch. Protect the branch and require reviews, as you do for code. Without cipi yml auto <app> on , changes apply only when someone runs cipi yml apply ."}}, {"@type": "Question", "name": "How do I undo a change?", "acceptedAnswer": {"@type": "Answer", "text": "Revert the commit and deploy: the plan shows the way back. Or roll back the release and apply."}}, {"@type": "Question", "name": "Where can I see every option?", "acceptedAnswer": {"@type": "Answer", "text": "In the cipi.yml reference , with ready-made setups in the recipes ."}}, {"@type": "Question", "name": "Does it work for Node and custom apps?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, with the sections that apply to them (domains, routes, deploy steps, backups). Workers, scheduler and search are Laravel-only."}}, {"@type": "Question", "name": "Do secrets end up in Git?", "acceptedAnswer": {"@type": "Answer", "text": "No. env.required lists names only; credentials Cipi creates go to shared/ , and basic-auth users are names or hashes."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "cipi.yml", "item": "https://cipi.sh/cipi-yml"}]}</script>
 </head>
-
-<body>
-    <div class="atmosphere" aria-hidden="true"></div>
-
-    <nav>
-        <div class="nav-inner">
-            <div class="nav-left">
-                <a href="/" class="nav-logo">
-                    <svg class="tux-logo cipi-mark" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor" /><rect x="34" y="2" width="28" height="28" style="fill:var(--signal)" /><rect x="2" y="34" width="28" height="28" fill="currentColor" /><rect x="34" y="34" width="28" height="28" fill="currentColor" /><path d="M40 9 L47 16 L40 23" fill="none" stroke="#14171e" stroke-width="4" stroke-linecap="square" /><rect x="49" y="20" width="8" height="4" fill="#14171e" /></svg>
-                    <span>cipi</span>
-                </a>
-                <span class="nav-badge">cipi.yml</span>
-            </div>
-            <div class="nav-right">
-                <a href="/guides/" class="nav-link">Guides</a>
-                <a href="/discovery" class="nav-link">Discovery</a>
-                <a href="/docs/" class="nav-link">Docs</a>
-                <a href="/cipi-yml" class="nav-link">cipi.yml</a>
-                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
-                    </svg>
-                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="5" />
-                        <line x1="12" y1="1" x2="12" y2="3" />
-                        <line x1="12" y1="21" x2="12" y2="23" />
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                        <line x1="1" y1="12" x2="3" y2="12" />
-                        <line x1="21" y1="12" x2="23" y2="12" />
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                    </svg>
-                </button>
-                <a href="https://github.com/cipi-sh/cipi" target="_blank" class="btn-nav-sm">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.2-1.695-.39-.21-.945-.735-.015-.75.885-.015 1.515.81 1.725 1.14 1.005 1.695 2.61 1.215 3.255.93.105-.72.39-1.215.705-1.5-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405 1.02 0 2.04.135 3 .405 2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.285 0 .315.21.69.825.57C20.565 21.795 24 17.31 24 12c0-6.63-5.37-12-12-12z" />
-                    </svg>
-                    GitHub
-                </a>
-                <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
-                    <svg class="icon-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                        <line x1="4" y1="7" x2="20" y2="7" />
-                        <line x1="4" y1="12" x2="20" y2="12" />
-                        <line x1="4" y1="17" x2="20" y2="17" />
-                    </svg>
-                    <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                        <line x1="6" y1="18" x2="18" y2="6" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Mobile menu overlay (outside nav to avoid backdrop-filter stacking context) -->
-    <div class="mobile-menu" id="mobileMenu">
-        <ul>
-            <li><a href="/guides/">Guides</a></li>
-            <li><a href="/discovery">Discovery</a></li>
-            <li><a href="/docs/">Docs</a></li>
-            <li><a href="/cipi-yml">cipi.yml</a></li>
-        </ul>
-    </div>
-
-
-    <main class="cmp">
-        <nav class="cmp-breadcrumb" aria-label="Breadcrumb">
-            <a href="/"><svg class="home-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
-            <span class="sep">&rsaquo;</span>
-            <span class="current">cipi.yml</span>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
         </nav>
-
-        <section class="hero-header" aria-labelledby="cipi-yml-title">
-            <div class="hero-header-inner">
-                <span class="hero-kicker">Since Cipi 5.1</span>
-                <h1 id="cipi-yml-title" class="hero-title"><span class="accent">cipi.yml</span> — config that ships with the code.</h1>
-                <p class="hero-copy">One file at the root of your repository describes the state an app expects on the
-                    server: domain aliases, PHP version and per-app settings, extra databases, queue workers, the
-                    scheduler, its healthcheck and its backup profiles — and since <strong>5.4</strong> its redirects,
-                    proxies, basic auth, crons, recipe options and a Node app's build. Review it in a pull request, ship it with the
-                    release, and let <code>cipi yml apply</code> reconcile the server with it.</p>
-                <div class="hero-metrics" aria-label="Highlights">
-                    <div class="hero-metric"><strong>20+ keys</strong><span>Aliases, PHP, databases, workers, health, backups, routes, basic auth, search, limits, crons, Node.</span></div>
-                    <div class="hero-metric"><strong>plan → apply</strong><span>Nothing changes until you look at the diff and say yes.</span></div>
-                    <div class="hero-metric"><strong>Fail-closed</strong><span>Scoped to one app, allowlisted runners only, no shell anywhere in the schema.</span></div>
-                </div>
-                <div class="cmp-cta">
-                    <a class="btn-primary" href="/docs/deploy#cli-yml">Full reference in the docs</a>
-                    <a class="btn-ghost" href="/whats-new">What's new in 5.4</a>
-                </div>
-            </div>
-        </section>
-
-        <h2 class="cmp-h2-lg" id="what-it-is">Server configuration, reviewed like code</h2>
-        <p>Server state usually lives somewhere else: a panel, a wiki page, or the memory of whoever set the box up.
-            A <code>cipi.yml</code> committed next to your Laravel application makes that state part of the same pull
-            request as the code that depends on it. A release that adds a queue also adds its worker. A release that
-            needs a bigger <code>upload_max_filesize</code> carries it. Roll the code back, and the configuration rolls
-            back with it.</p>
-        <p>The file is <strong>declarative</strong>: it describes the end state, not the steps. Cipi reads what the
-            server has, compares it with the file and shows you the difference before touching anything.</p>
-
-        <h2 class="cmp-h2-lg" id="commands">The commands</h2>
-        <div class="code-block">
-            <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <pre><span class="p"></span>cipi yml generate myapp          <span class="c"># print this app's current config</span>
-<span class="p"></span>cipi yml generate myapp --save   <span class="c"># write /home/myapp/cipi.yml (5.5.2+)</span>
-<span class="p"></span>cipi yml example myapp           <span class="c"># blank commented template, in myapp's namespace</span>
-<span class="p"></span>cipi yml validate myapp          <span class="c"># parse and check, change nothing</span>
-<span class="p"></span>cipi yml plan myapp              <span class="c"># show exactly what would change</span>
-<span class="p"></span>cipi yml plan myapp --json       <span class="c"># the same plan as JSON (5.6.4+)</span>
-<span class="p"></span>cipi yml apply myapp [--yes]     <span class="c"># apply it</span>
-<span class="p"></span>cipi yml auto myapp on|off|status  <span class="c"># apply after every successful deploy</span>
-<span class="p"></span>cipi yml post-deploy myapp       <span class="c"># run the declared deploy.post steps now (5.2.3+)</span></pre>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
         </div>
-        <div class="table-scroll">
-            <table class="cmd-table">
-                <thead>
-                    <tr>
-                        <th>Command</th>
-                        <th>What it does</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>cipi yml generate</code></td>
-                        <td>Prints the app's configuration <em>as it stands on the server</em> — aliases, PHP version
-                            and per-app settings, extra databases, queue workers read back out of Supervisor, the
-                            scheduler, the backup profiles the app owns and, since 5.4.0, the new keys below (basic auth
-                            user names only, never hashes) — as a ready-to-commit file. Since 5.5.2,
-                            <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code>
-                            (<code>--save=&lt;path&gt;</code>, <code>--force</code> to overwrite). Apply still reads
-                            the copy committed in the release. Since 5.8.0 it emits <code>deploy.branch</code> and names
-                            the file to commit — <code>cipi-&lt;env&gt;.yml</code> when the app's environment is not
-                            production.</td>
-                    </tr>
-                    <tr>
-                        <td><code>cipi yml example</code></td>
-                        <td>A blank, fully commented template. Pass an app name and the placeholder databases and
-                            profiles land inside that app's namespace, so the template validates as-is.</td>
-                    </tr>
-                    <tr>
-                        <td><code>cipi yml validate</code></td>
-                        <td>Parses the file and checks every value against the schema. Changes nothing.</td>
-                    </tr>
-                    <tr>
-                        <td><code>php artisan cipi:yml validate</code></td>
-                        <td>The same validator, inside the Laravel app (<a href="/docs/agent#agent-yml">cipi/agent 2.0</a>):
-                            the server's verdict and messages on your laptop and in CI, before the push.
-                            <code>cipi:yml generate</code> infers a first file from the application,
-                            <code>cipi:yml schema</code> gives editors a JSON Schema.</td>
-                    </tr>
-                    <tr>
-                        <td><code>cipi yml plan</code></td>
-                        <td>The diff: every alias, worker, database, setting and profile that would be added, changed
-                            or removed. Read this before you apply. Since 5.6.4, <code>--json</code> prints it as one
-                            object for scripts and the panel API; since 5.8.0 it carries <code>env</code> and shows a
-                            branch change as <code>deploy branch: main → develop (from the next deploy)</code>.</td>
-                    </tr>
-                    <tr>
-                        <td><code>cipi yml apply</code></td>
-                        <td>Applies the plan. Add <code>--yes</code> for scripts and CI.</td>
-                    </tr>
-                    <tr>
-                        <td><code>cipi yml auto</code></td>
-                        <td>Opt in — or out — of reconciling automatically after every successful deploy.
-                            <code>status</code> reports the current setting (<code>--json</code> since 5.6.4) and, since
-                            5.8.0, the app's environment and the file in use.</td>
-                    </tr>
-                    <tr>
-                        <td><code>cipi yml post-deploy</code> <em>(5.2.3)</em></td>
-                        <td>Runs the declared <code>deploy.post</code> steps now, against <code>current/</code> — for
-                            testing them without pushing a commit.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <p>The file is looked up in <code>current/cipi.yml</code>, then <code>current/cipi.yaml</code>, then
-            <code>htdocs/cipi.yml</code> and <code>htdocs/cipi.yaml</code> (since <strong>5.2.3</strong>, where a custom
-            app's repository lives), then <code>shared/cipi.yml</code>. Since <strong>5.8.0</strong> an app whose
-            environment is <code>&lt;label&gt;</code> (<code>cipi app create --env</code>, default
-            <code>production</code>) tries <code>cipi-&lt;label&gt;.yml</code> / <code>.yaml</code> first in each of
-            those places and falls back to <code>cipi.yml</code>: a staging app reads <code>cipi-staging.yml</code>,
-            a production app <code>cipi-production.yml</code> then <code>cipi.yml</code>. Override with
-            <code>--file=&lt;path&gt;</code>. Since 5.2.3 every app vhost also denies <code>/cipi.yml</code> and
-            <code>/cipi.yaml</code> — and since 5.8.0 <code>/cipi-&lt;anything&gt;.yml|yaml</code> — so the file is
-            never downloadable from the site it configures.</p>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li aria-current="page">cipi.yml</li></ol>
+<a class="art-eyebrow" href="/docs/yml">Configuration as code</a>
+<h1>cipi.yml: your server settings, in your repository</h1>
+<p class="art-lead">One file next to your code describes how the server runs the app. Change it in a pull request; Cipi shows the plan and applies it, all or nothing.</p>
 
-        <h2 class="cmp-h2-lg" id="what-it-configures">What the file can configure</h2>
-        <div class="alt-grid">
-            <a class="alt-card" href="/docs/infrastructure#cli-aliases">
-                <span class="alt-tag">app.aliases</span>
-                <h3>Domain <span>aliases</span></h3>
-                <p>The declared list replaces the current one — an alias you delete from the file is removed from
-                    Nginx. Wildcards such as <code>*.myapp.com</code> are accepted, for multi-tenant subdomains. The
-                    primary domain is never managed here.</p>
-                <span class="go">Aliases in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/infrastructure#cli-ini">
-                <span class="alt-tag">app.php · app.ini</span>
-                <h3>PHP version and <span>php.ini</span></h3>
-                <p>Pin the app to PHP 8.3, 8.4, 8.5 or 8.6 (already installed on the server) and set per-app overrides —
-                    <code>upload_max_filesize</code>, <code>post_max_size</code>, <code>memory_limit</code> and the
-                    rest. Server-wide values stay with <code>cipi ini set</code>.</p>
-                <span class="go">php.ini in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/infrastructure#cli-db">
-                <span class="alt-tag">databases</span>
-                <h3>Extra <span>databases</span></h3>
-                <p>Beyond the one created with the app: reporting, analytics, whatever the release needs, on MariaDB or
-                    PostgreSQL. Credentials land in <code>shared/cipi-databases.env</code> and are never written back
-                    to the repository. Databases are created, never dropped.</p>
-                <span class="go">Databases in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/infrastructure#cli-workers">
-                <span class="alt-tag">workers</span>
-                <h3>Queue workers and <span>Horizon</span></h3>
-                <p>Declare each queue with its process count, tries and timeout, and Supervisor is reconciled to
-                    match. Or set <code>horizon: true</code> and let Horizon own the queues instead. Since
-                    <strong>5.1.2</strong>, <code>horizon: false</code> and <code>reverb: false</code> are actually
-                    read — previously <code>false</code> was treated like a missing key, so declaring
-                    <code>horizon: false</code> on an app running Horizon did nothing.</p>
-                <span class="go">Workers in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/apps#cli-app-reverb">
-                <span class="alt-tag">workers.reverb</span>
-                <h3>WebSockets with <span>Reverb</span></h3>
-                <p>Since <strong>5.1.2</strong>, <code>reverb: true</code> gives the app a Laravel Reverb server — a
-                    localhost port, a Supervisor program, an nginx proxy for <code>/app</code> and <code>/apps</code> on
-                    its own domain, and generated <code>REVERB_*</code> credentials. Laravel apps only.</p>
-                <span class="go">Reverb in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/infrastructure#cli-schedule">
-                <span class="alt-tag">schedule</span>
-                <h3>The Laravel <span>scheduler</span></h3>
-                <p>One boolean turns <code>* * * * * artisan schedule:run</code> on or off for the app. No crontab
-                    editing, no forgotten entry on the next server.</p>
-                <span class="go">Scheduler in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/infrastructure#cli-health">
-                <span class="alt-tag">health</span>
-                <h3>Healthcheck and <span>rollback</span></h3>
-                <p>An HTTP probe on one of the app's own domains, checked every five minutes and again right after
-                    every deploy. Optionally roll a failing release back automatically — the code symlink only,
-                    migrations are not undone. <code>enabled: false</code> removes the check — ignored before
-                    5.3.0, honoured since.</p>
-                <span class="go">Health checks in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/infrastructure#cli-backup">
-                <span class="alt-tag">backup.profiles</span>
-                <h3>Backup <span>profiles</span></h3>
-                <p>Per-app profiles with their own scope, schedule, retention, destinations and encryption — a cheap
-                    database run every 30 minutes, a complete encrypted copy to S3 at night. Profile names are scoped
-                    to the app. Since 5.5.2 the list is authoritative for profiles this file created: rename or drop
-                    one and it leaves the schedule. Archives stay until <code>cipi backup prune</code>. Since 5.6.0
-                    <code>destinations</code> also takes named S3 buckets set up with
-                    <code>cipi backup destination add</code>.</p>
-                <span class="go">Backups in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/deploy#cli-yml-deploy-post">
-                <span class="alt-tag">deploy.post</span>
-                <h3>Post-deploy <span>steps</span></h3>
-                <p>New in 5.2.3. They run after the release is live: a declared list of allowlisted commands —
-                    <code>artisan</code>, <code>npm</code>, <code>composer</code>, a <code>php</code> or
-                    <code>node</code> script — with no free shell, and the one section that does not need
-                    <code>yml auto</code>. The Laravel asset build is <code>deploy.node_build</code> (5.5.2), the same
-                    command as <code>cipi app deploy-config --node-build</code>, and it runs inside the release before
-                    it goes live.</p>
-                <span class="go">deploy.post in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/deploy#cli-yml-routes">
-                <span class="alt-tag">app.www · app.basic_auth</span>
-                <h3>www redirect and <span>basic auth</span></h3>
-                <p>New in 5.4.0. <code>to-root</code>, <code>from-root</code> or <code>none</code>, checked against the
-                    alias list at plan time. Basic auth users by name — keeping the server's password — or with a bcrypt
-                    / SHA-512 hash. Never a password in the repository.</p>
-                <span class="go">www and basic auth →</span>
-            </a>
-            <a class="alt-card" href="/docs/deploy#cli-yml-routes">
-                <span class="alt-tag">redirect · redirects · proxies</span>
-                <h3>Redirects and <span>proxy prefixes</span></h3>
-                <p>New in 5.4.0. The whole-app redirect, path redirects and reverse proxies, validated as one set and
-                    applied as one <code>nginx -t</code>. Stricter than the CLI: no <code>--force</code>, no Cipi ports,
-                    no link-local or cloud-metadata upstreams.</p>
-                <span class="go">Routes in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/deploy#cli-yml-more">
-                <span class="alt-tag">search · deploy · app.limits</span>
-                <h3>Search, recipe and <span>limits</span></h3>
-                <p>New in 5.4.0. Meilisearch for Scout, the <code>deploy-config</code> options (releases kept, migrate,
-                    optimize, extra artisan, <code>predeploy_snapshot</code>) and, since 5.5.2,
-                    <code>deploy.node_build</code> for the asset build before go-live. Per-app memory, FPM, Octane and worker limits — out of bounds
-                    blocks the plan instead of being clamped. The 5.5 disk limit stays server-side, out of the
-                    repository's reach.</p>
-                <span class="go">More keys in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/deploy#cli-yml-more">
-                <span class="alt-tag">ssl · env.required · crons</span>
-                <h3>HTTPS, required env and <span>crons</span></h3>
-                <p>New in 5.4.0. Force HTTPS once the certificate exists. Block a release while a named
-                    <code>.env</code> variable is missing. Scheduled commands through allowlisted runners, in tagged
-                    crontab lines that never touch the rest.</p>
-                <span class="go">More keys in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/deploy#cli-yml-node">
-                <span class="alt-tag">node</span>
-                <h3>A Node app's <span>build</span></h3>
-                <p>New in 5.4.0. Framework, mode, Node major, build and start commands, output and health path — read
-                    by the deploy from <em>that</em> release, so the commit that changes the start command is built and
-                    started with it.</p>
-                <span class="go">node: in the docs →</span>
-            </a>
-            <a class="alt-card" href="/docs/deploy#cli-yml-env">
-                <span class="alt-tag">deploy.branch · cipi-&lt;env&gt;.yml</span>
-                <h3>Staging and production, <span>one repository</span></h3>
-                <p>New in 5.8.0. Every app has an environment label (<code>cipi app create --env=staging</code>), and
-                    reads <code>cipi-&lt;env&gt;.yml</code> before <code>cipi.yml</code>. <code>deploy.branch</code>
-                    sets the branch the app deploys, from the next deploy — <code>develop</code> in the staging file,
-                    <code>main</code> in the production one. The server picks the file, never the commit.</p>
-                <span class="go">Environments in the docs →</span>
-            </a>
-            <a class="alt-card featured" href="/docs/deploy#cli-yml">
-                <span class="alt-tag">reference</span>
-                <h3>Every key, <span>documented</span></h3>
-                <p>The full schema, the lookup order, the validation rules and the notification hooks live in the
-                    deploy chapter of the documentation.</p>
-                <span class="go">Read the reference →</span>
-            </a>
-        </div>
-
-        <h2 class="cmp-h2-lg" id="example">A complete file</h2>
-        <p>You do not have to write it by hand. <code>cipi yml generate &lt;app&gt;</code> prints what the server
-            already has. Since 5.5.2, <code>--save</code> writes <code>/home/&lt;app&gt;/cipi.yml</code>; commit that
-            file at the repository root and <code>cipi yml plan</code> reports nothing to do. Apply reads the committed
-            copy, so a file left only in the home directory is not what a deploy reconciles.</p>
-        <div class="code-block">
-            <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <pre><span class="p"></span>cipi yml generate myapp --save      <span class="c"># writes /home/myapp/cipi.yml — commit it at the repo root</span>
-<span class="p"></span>cipi yml plan myapp                  <span class="c"># reports nothing to do</span></pre>
-        </div>
-        <div class="code-block">
-            <div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <pre>version: 1
-
-app:
-  <span class="c"># 8.3, 8.4, 8.5 or 8.6 — must already be installed (cipi php install 8.5)</span>
-  php: <span class="s">"8.5"</span>
-
-  <span class="c"># The declared list replaces the current aliases: one you remove here is
-  # removed from the server. The primary domain is not managed here.</span>
-  aliases:
-    - <span class="s">"www.myapp.com"</span>
-    - <span class="s">"*.myapp.com"</span>      <span class="c"># wildcard, for multi-tenant subdomains</span>
-
-  <span class="c"># Per-app php.ini overrides. Server-wide values stay with `cipi ini set`.</span>
-  ini:
-    upload_max_filesize: 50M
-    post_max_size: 60M
-    memory_limit: 512M
-
-  <span class="c"># 5.4.0+: canonical www redirect and basic auth (names or hashes, never passwords)</span>
-  www: to-root
-  basic_auth:
-    users:
-      - admin
-
-<span class="c"># Extra databases beyond the one created with the app. Credentials land in
-# /home/myapp/shared/cipi-databases.env — never written back to the repo.</span>
-databases:
-  - name: myapp_reporting
-  - name: myapp_analytics
-    engine: pgsql          <span class="c"># mariadb (default) or pgsql</span>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=cipi.yml%3A%20your%20server%20settings%2C%20in%20your%20repository&url=https%3A%2F%2Fcipi.sh%2Fcipi-yml" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fcipi-yml" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fcipi-yml&title=cipi.yml%3A%20your%20server%20settings%2C%20in%20your%20repository" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fcipi-yml&t=cipi.yml%3A%20your%20server%20settings%2C%20in%20your%20repository" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fcipi-yml&text=cipi.yml%3A%20your%20server%20settings%2C%20in%20your%20repository" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=cipi.yml%3A%20your%20server%20settings%2C%20in%20your%20repository%20https%3A%2F%2Fcipi.sh%2Fcipi-yml" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/cipi-yml" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<h2 id="intro">What it is, in one minute<a class="anchor" href="#intro" aria-label="Link to this section">#</a></h2>
+<p>Without <code>cipi.yml</code>, an app's server settings (PHP version, queue workers, domains, backups…) live only on the server: you change them with commands, and nobody else sees what changed or why. With <code>cipi.yml</code>, they live in a file <strong>at the root of your repository</strong>, next to <code>composer.json</code>. You change the file, a teammate reviews it, you deploy, and Cipi makes the server match it.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Without cipi.yml</th><th>With cipi.yml</th></tr></thead><tbody><tr><td>Settings scattered across commands you ran months ago</td><td>One readable file that describes the whole app</td></tr><tr><td>"Who added that worker?"</td><td>Git history and pull requests answer it</td></tr><tr><td>A new server means retyping everything</td><td>Deploy the same repository: the file recreates the setup</td></tr><tr><td>Staging and production drift apart</td><td><code>cipi.yml</code> and <code>cipi-staging.yml</code>, side by side</td></tr><tr><td>A typo can half-change a server</td><td>Every change is planned first and applied all or nothing</td></tr></tbody></table></div>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>You don't have to adopt it all at once. A file with only <code>workers:</code> is valid: everything you don't write stays as it is on the server.</p></div></div>
+<h2 id="create">Create your first cipi.yml<a class="anchor" href="#create" aria-label="Link to this section">#</a></h2>
+<h3 id="from-an-app-you-already-have-recommended">From an app you already have (recommended)<a class="anchor" href="#from-an-app-you-already-have-recommended" aria-label="Link to this section">#</a></h3>
+<p>Cipi writes the file from the app's current setup, so the first plan changes nothing:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh cipi@your-server
+<span class="p"></span>sudo cipi yml generate shop &gt; cipi.yml<span class="c">        # or --save to keep a copy on the server</span></pre></div>
+<p>Copy the output into <code>cipi.yml</code> at the root of your repository, commit, push, deploy. Then <code>sudo cipi yml plan shop</code> should say <strong>Nothing to do</strong>: the file and the server agree. From now on, change the file instead of running commands.</p>
+<h3 id="from-zero">From zero<a class="anchor" href="#from-zero" aria-label="Link to this section">#</a></h3>
+<p>Start from a commented template that already validates:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi yml example shop</pre></div>
+<p>Or write the smallest useful file by hand:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre>version: 1
 
 workers:
-  horizon: false           <span class="c"># true replaces the queue workers below</span>
-
-  <span class="c"># Laravel Reverb (5.1.2+). Cipi gives it a localhost port, a Supervisor program
-  # and an nginx proxy for /app/{key} and /apps/{id}/… on this app's own domain, and
-  # generates REVERB_APP_ID/KEY/SECRET (plus the VITE_ copies) in the .env the first
-  # time it is enabled. An app with its own /app or /apps route cannot use it behind
-  # the same domain — those paths belong to the Pusher protocol.</span>
-  reverb: false
-
   queues:
-    - queue: default
-      processes: 2
-    - queue: emails
-      processes: 1
-      tries: 5
-      timeout: 300
+    - { queue: default, processes: 2 }
 
-<span class="c"># Laravel scheduler (* * * * * artisan schedule:run)</span>
+schedule: true</pre></div>
+<p>Validate it before committing, with the same rules as the server (needs <a href="/docs/agent-yml">Cipi Agent</a>):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>composer require cipi/agent
+<span class="p"></span>php artisan cipi:yml validate</pre></div>
+<h3 id="where-it-goes">Where it goes<a class="anchor" href="#where-it-goes" aria-label="Link to this section">#</a></h3>
+<div class="tree-block"><pre>your-repository/
+  app/
+  composer.json
+  cipi.yml              ← production (and any app without its own file)
+  cipi-staging.yml      ← optional: apps created with --env=staging</pre></div>
+<h2 id="workflow">The workflow, step by step<a class="anchor" href="#workflow" aria-label="Link to this section">#</a></h2>
+<p>Click a step to jump to it. The map stays at the top while you read.</p>
+<nav class="flow-nav" aria-label="Steps on this page"><ol><li><a href="#file"><b>Edit cipi.yml</b><span>in a branch</span></a></li><li><a href="#validate"><b>Review</b><span>in the pull request</span></a></li><li><a href="#environments"><b>Deploy</b><span>the file ships with the release</span></a></li><li><a href="#plan"><b>Plan</b><span>every change listed</span></a></li><li><a href="#safe"><b>Apply</b><span>all or nothing</span></a></li></ol></nav>
+<h2 id="file">1. Edit: the whole app, in one file<a class="anchor" href="#file" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre>version: 1
+
+app:
+  php: "8.6"
+  aliases: ["www.shop.example.com"]
+  www: to-root
+  ini: { upload_max_filesize: 50M }
+
+workers:
+  horizon: true
+  reverb: true
+
 schedule: true
+search: true
 
-<span class="c"># HTTP healthcheck. Probed every 5 minutes and right after every deploy.
-# The URL must be one of this app's own domains.
-# To remove an existing healthcheck, write only  health: { enabled: false }  (honoured since 5.3.0).</span>
 health:
-  url: <span class="s">"https://myapp.com/up"</span>
-  expect: 200
-  <span class="c"># grace: 8                      # seconds before the first probe after a deploy
-  # postdeploy: false             # skip the check right after a deploy
-  # rollback_on_unhealthy: true   # undo a release that fails the check
-  #                               # (the code symlink only — migrations are NOT undone)</span>
+  url: "https://shop.example.com/up"
+  rollback_on_unhealthy: true
 
-<span class="c"># branch (5.8.0+) is the branch the app deploys, like `cipi app edit --branch`,
-# from the next deploy: develop in cipi-staging.yml, main here.
-# node_build (5.5.2+) runs inside the release, before it goes live.
-# deploy.post (5.2.3+) runs after, and does not need `cipi yml auto`.
-# snapshot is still accepted and stored as predeploy_snapshot.</span>
 deploy:
-  branch: main
   predeploy_snapshot: true
-  node_build: <span class="s">"npm ci &amp;&amp; npm run build"</span>
+  node_build: "npm ci &amp;&amp; npm run build"
   post:
-    - artisan cache:clear
-    - artisan scout:import --force
-    - composer dump-autoload -o
-  <span class="c"># post_on_failure: abort   # default warn: log + email, release stays live</span>
-  <span class="c"># keep_releases: 5</span>
+    - artisan scout:sync-index-settings
 
-<span class="c"># 5.4.0+: Meilisearch for Scout (the engine is installed by root first)</span>
-search: false
+env: { required: [STRIPE_KEY, MAIL_HOST] }
 
-<span class="c"># 5.4.0+: names (never values) the .env must carry, and allowlisted crons</span>
-env:
-  required: [ STRIPE_KEY ]
-crons:
-  - every: 30m
-    run: artisan queue:prune-batches
-
-<span class="c"># 5.4.0+: path redirects and reverse proxy prefixes (each list replaces the current one)</span>
-redirects:
-  - from: /blog/
-    to: <span class="s">"https://blog.myapp.com/"</span>
-proxies:
-  - prefix: /api/
-    upstream: <span class="s">"http://127.0.0.1:3000"</span>
-    strip_prefix: true
-
-<span class="c"># Backup strategy for this app. Profile names must be myapp or myapp-*.</span>
 backup:
   profiles:
-    <span class="c"># Frequent and cheap: databases only, without the noisy tables.</span>
-    - name: myapp-db
-      scope: db
-      databases: [<span class="s">"myapp"</span>, <span class="s">"myapp_*"</span>, <span class="s">"tenant_*"</span>]
-      exclude_tables: [<span class="s">"*.jobs"</span>, <span class="s">"*.telescope_*"</span>]
-      every: 30m           <span class="c"># 5m/10m/15m/20m/30m, 1h..12h, 1d..28d</span>
-      keep: 48             <span class="c"># keep the last 48 runs</span>
-      destinations: [local]
-
-    <span class="c"># Slower, complete, off-site and encrypted.</span>
-    - name: myapp-nightly
-      scope: all           <span class="c"># all | files | db</span>
-      cron: <span class="s">"0 2 * * *"</span>
-      keep_days: 14
-      destinations: [s3]   <span class="c"># or [s3, offsite]: a named bucket (5.6.0+)</span>
-      encrypt: true</pre>
-        </div>
-
-        <h2 class="cmp-h2-lg" id="auto">Deploys ignore the file until you opt in</h2>
-        <p>Nothing happens on deploy until you run <code>cipi yml auto &lt;app&gt; on</code>. With that opt-in given,
-            every <strong>successful</strong> deploy reconciles — <code>cipi deploy</code>, a deploy from the control
-            panel or the API, and the Git webhook. A release that carries no <code>cipi.yml</code> is a quiet no-op,
-            and a file that fails validation is reported by email (<code>yml_fail</code>) and <strong>never partially
-            applied</strong>. A successful reconcile fires <code>yml_apply</code>. Before <strong>5.6.4</strong> the
-            webhook path never applied the file (its sudoers check could not see <code>/etc/sudoers.d</code>); update
-            if you rely on pushes.</p>
-        <p>Since 5.6.4 the same switch, the plan and apply are on the
-            <a href="/docs/advanced#cipi-api-yml">panel API</a> (<code>cipi/api</code> 1.35.0+, abilities
-            <code>yml-view</code> and <code>yml-manage</code>): the control panel has a <code>cipi.yml</code> tab on
-            the app page, and <code>cipi-cli</code> and the PHP SDK can do the same remotely.</p>
-        <div class="code-block">
-            <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <pre><span class="p"></span>cipi yml auto myapp on       <span class="c"># reconcile after every successful deploy</span>
-<span class="p"></span>cipi yml auto myapp status   <span class="c"># is it on? warns if the webhook's sudoers rule is missing</span>
-<span class="p"></span>cipi yml auto myapp off      <span class="c"># back to manual apply</span></pre>
-        </div>
-
-        <h3 id="deploy-post"><code>deploy.post</code> — the one exception (5.2.3)</h3>
-        <p>Post-deploy steps are the single section that does <strong>not</strong> wait for
-            <code>cipi yml auto</code>. Commit a <code>deploy.post</code> list and it runs from the live release after
-            every successful deploy — <code>cipi deploy</code> and the Git webhook alike. It can afford to, because it
-            accepts no shell: only <code>artisan</code>, <code>npm</code>/<code>npx</code>/<code>yarn</code>/<code>pnpm</code>,
-            <code>composer</code>, and one relative <code>php</code> or <code>node</code> script under the release.
-            Unknown runners, <code>bash</code>, pipes, <code>;</code>, <code>..</code> in paths and
-            <code>artisan tinker</code> are all refused.</p>
-        <p>The order is: Deployer finishes → optional <code>yml apply</code> → <code>deploy.post</code> →
-            post-deploy healthcheck → success notification. A failing step logs and emails
-            <code>yml_post_fail</code> while the release stays live; set
-            <code>deploy.post_on_failure: abort</code> to make <code>cipi deploy</code> fail with it instead — useful
-            in CI when <code>npm run build</code> must pass.</p>
-        <p>Before <strong>5.6.1</strong> every <code>artisan</code> step failed with
-            <code>/usr/bin/phpX.Yartisan: No such file or directory</code>, the log always said
-            <code>FAILED (0)</code>, and <code>abort</code> did not fail the deploy. Since 5.6.1 artisan steps run as
-            <code>/usr/bin/phpX.Y artisan …</code> and a failed step reports its real exit code.</p>
-        <div class="code-block">
-            <div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button></div>
-            <pre><span class="p"></span>cipi yml post-deploy myapp   <span class="c"># run the steps now, against current/</span>
-<span class="p"></span>cipi yml plan myapp          <span class="c"># lists them under "After deploy"</span></pre>
-        </div>
-
-        <h2 class="cmp-h2-lg" id="safety">Why it is safe to accept over Git</h2>
-        <p>The file arrives from a repository, so anyone who can commit controls its contents. It is fail-closed
-            throughout:</p>
-        <ul>
-            <li>It can only <strong>configure</strong> an app that already exists — never create, rename or delete
-                one.</li>
-            <li>Its databases must be named <code>&lt;app&gt;</code> or <code>&lt;app&gt;_*</code>, and its backup
-                profiles <code>&lt;app&gt;</code> or <code>&lt;app&gt;-*</code>.</li>
-            <li>Its healthcheck URL must resolve to one of the app's own domains — otherwise a commit could aim the
-                server's prober at an internal address and read the answer back out of the alert emails.</li>
-            <li>Unknown keys are errors, and no field carries a shell command or a path to include.
-                <code>deploy.post</code> (5.2.3) and <code>crons</code> (5.4.0) are the sections that run something,
-                and they take allowlisted runners only — never a shell line.</li>
-            <li>Basic auth accepts user names or bcrypt / SHA-512 hashes — never a password, and never apr1/MD5.</li>
-            <li>Proxies declared in the file cannot target Cipi's own local ports, link-local addresses or cloud
-                metadata; resolved hostnames are checked as well as literal IPs. <code>ssl.force_https</code> can only
-                be turned on, and out-of-bounds limits block the plan instead of being clamped.</li>
-            <li>The parser implements a deliberately small YAML subset and refuses anchors, aliases, tags, merge keys,
-                block scalars and flow mappings outright.</li>
-        </ul>
-        <div class="callout warning">
-            <svg class="callout-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            <div>Once <code>yml auto</code> is on, anyone who can push to that repository can change the app's aliases,
-                PHP settings, workers, healthcheck, backup profiles, basic auth users, redirects, proxies, crons, deploy
-                branch (5.8.0) and a Node app's build. That is the point of configuration-as-code —
-                treat write access to the repo accordingly. Which environment file the server reads is not up to the
-                commit: that is the app's own label.</div>
-        </div>
-
-        <h2 class="cmp-h2-lg" id="faq">Questions</h2>
-        <div class="faq-item">
-            <h3>Do I have to write the file by hand?</h3>
-            <p>No. <code>cipi yml generate &lt;app&gt;</code> prints the app's current server configuration as a
-                ready-to-commit <code>cipi.yml</code>. Since 5.5.2, <code>--save</code> writes
-                <code>/home/&lt;app&gt;/cipi.yml</code>; apply still reads the copy committed in the release.
-                <code>cipi yml example</code> prints a blank commented template if you would rather start from scratch.</p>
-        </div>
-        <div class="faq-item">
-            <h3>Can a commit break my server?</h3>
-            <p>The schema carries no shell commands and no include paths, an app can only touch its own databases and
-                backup profiles, and a file that fails validation is rejected as a whole rather than applied halfway.
-                Deploys ignore the file entirely until you turn <code>cipi yml auto</code> on — with the single
-                exception of <a href="#deploy-post"><code>deploy.post</code></a> (5.2.3), which runs a fixed
-                allowlist of runners and no shell.</p>
-        </div>
-        <div class="faq-item">
-            <h3>What happens to things the file does not mention?</h3>
-            <p>They are left alone. Only the sections you declare are reconciled. Two lists are authoritative:
-                aliases, so removing an alias removes it from the server, and since 5.5.2 the backup profiles this
-                file created, so renaming or dropping one removes it from the schedule. Archives stay until
-                <code>cipi backup prune</code> ages them out. Profiles added by hand stay unless the file names them.</p>
-        </div>
-        <div class="faq-item">
-            <h3>Can one repository serve staging and production?</h3>
-            <p>Yes, since 5.8.0. Create (or clone) the staging app with <code>--env=staging</code> and commit a
-                <code>cipi-staging.yml</code> next to <code>cipi.yml</code>: the staging app reads the first, the
-                production app the second (or a <code>cipi-production.yml</code>). Put <code>deploy: { branch: develop
-                }</code> in one and <code>deploy: { branch: main }</code> in the other and each app deploys its own
-                branch from the next deploy. <code>cipi yml auto &lt;app&gt; status</code> tells you which file an app
-                is reading. <a href="/docs/deploy#cli-yml-env">How it fits together</a>.</p>
-        </div>
-        <div class="faq-item">
-            <h3>Does it work with the Git webhook?</h3>
-            <p>Yes, since 5.6.4. With <code>cipi yml auto</code> on, <code>cipi deploy</code>, a panel or API deploy
-                and a webhook-triggered deploy all reconcile after a successful release; before 5.6.4 the webhook
-                skipped it. <a href="#deploy-post"><code>deploy.post</code></a> runs on every path too, and does not
-                need the opt-in.</p>
-        </div>
-
-        <div class="cmp-cta">
-            <a class="btn-primary" href="/docs/deploy#cli-yml">Full cipi.yml reference</a>
-            <a class="btn-ghost" href="/guides/manage-apps-with-cipi-yml">Practical guide</a>
-            <a class="btn-ghost" href="/docs/getting-started">Install Cipi</a>
-        </div>
-    </main>
-
-    <footer>
-        <div class="footer-shell">
-            <div class="footer-grid">
-                <div class="footer-brand">
-                    <a href="/" class="footer-logo">Cipi</a>
-                    <p>Free open-source Laravel deploy CLI for Ubuntu VPS — Octane, Horizon, Reverb and zero-downtime Git deploys.</p>
-                    <ul class="footer-brand-links">
-                        <li><a href="/docs/getting-started">Get started</a></li>
-                    <li><a href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener">GitHub</a></li>
-                    <li><a href="https://t.me/cipicloud" target="_blank" rel="noopener">Telegram</a></li>
-                    </ul>
-                </div>
-                <nav class="footer-col footer-col--compare" aria-label="Compare Cipi with alternatives">
-                    <strong>Compare Cipi</strong>
-                    <ul>
-                        <li><a href="/alternative-to-laravel-forge">Laravel Forge alternative</a></li>
-                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud alternative</a></li>
-                    <li><a href="/alternative-to-ploi">Ploi alternative</a></li>
-                    <li><a href="/alternative-to-coolify">Coolify alternative</a></li>
-                    <li><a href="/alternative-to-runcloud">RunCloud alternative</a></li>
-                    <li><a href="/alternative-to-cloudpanel">CloudPanel alternative</a></li>
-                    <li><a href="/alternative-to-cpanel">cPanel alternative</a></li>
-                    <li><a href="/alternative-to-plesk">Plesk alternative</a></li>
-                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives 2026</a></li>
-                    <li><a href="/alternatives">All comparisons</a></li>
-                    </ul>
-                </nav>
-                <nav class="footer-col" aria-label="Free Laravel guides">
-                    <strong>Free guides</strong>
-                    <ul>
-                        <li><a href="/guides/manage-apps-with-cipi-yml">Manage apps with cipi.yml</a></li>
-                    <li><a href="/guides/cipi-gui-and-api">Control panel and API</a></li>
-                    <li><a href="/guides/cipi-agent-laravel-mcp">cipi/agent and project MCP</a></li>
-                    <li><a href="/guides/deploy-wordpress-custom-app">Deploy WordPress on Cipi</a></li>
-                    <li><a href="/guides/">All guides</a></li>
-                    </ul>
-                </nav>
+    - { name: shop-nightly, scope: all, cron: "0 2 * * *", keep_days: 14, destinations: [s3], encrypt: true }</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Block</th><th>What it controls</th></tr></thead><tbody><tr><td><code>app</code></td><td>PHP version, aliases, www/apex, <code>php.ini</code> values, resource limits, basic auth</td></tr><tr><td><code>workers</code>, <code>schedule</code></td><td>Queues, Horizon, Reverb, the scheduler</td></tr><tr><td><code>search</code></td><td>Meilisearch for Laravel Scout</td></tr><tr><td><code>health</code></td><td>URL probed every 5 minutes and after each deploy, with automatic rollback</td></tr><tr><td><code>deploy</code></td><td>Branch, releases kept, DB snapshot, asset build, post-deploy steps</td></tr><tr><td><code>databases</code>, <code>backup</code></td><td>Extra databases and backup profiles for this app</td></tr><tr><td><code>redirects</code>, <code>proxies</code>, <code>crons</code>, <code>node</code></td><td>Routes, scheduled commands, Node apps</td></tr></tbody></table></div>
+<p>Full reference: <a href="/docs/yml">cipi.yml docs</a>. Ready-made files: <a href="/guides/cipi-yml-recipes">recipes</a>.</p>
+<h2 id="validate">2. Review: validate before you push<a class="anchor" href="#validate" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>composer require cipi/agent
+<span class="p"></span>php artisan cipi:yml validate<span class="c">          # same validator as the server</span>
+<span class="p"></span>php artisan cipi:yml generate --write<span class="c">  # a first file inferred from your code</span>
+<span class="p"></span>php artisan cipi:yml schema --write<span class="c">    # autocompletion in your editor</span></pre></div>
+<p>Add <code>php artisan cipi:yml validate --json</code> to CI and a broken file never reaches a server. AI assistants connected through the <a href="/guides/cipi-mcp-ai-agents">agent's MCP</a> can validate drafts too.</p>
+<h2 id="environments">3. Deploy: one repository, every environment<a class="anchor" href="#environments" aria-label="Link to this section">#</a></h2>
+<p>The file ships inside each release: what you merged is what the server reads. Which file an app reads depends on its environment.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>File</th><th>Read by</th></tr></thead><tbody><tr><td><code>cipi.yml</code></td><td>Production apps</td></tr><tr><td><code>cipi-staging.yml</code></td><td>Apps created with <code>--env=staging</code></td></tr><tr><td><code>cipi-preview.yml</code></td><td>Preview apps per branch</td></tr></tbody></table></div>
+<p>Walkthrough: <a href="/guides/cipi-yml-staging-production">staging and production from one repository</a>.</p>
+<h2 id="plan">4. Plan: see every change first<a class="anchor" href="#plan" aria-label="Link to this section">#</a></h2>
+<div class="term" data-term data-autoplay="view" style="--term-min:calc(16 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">cipi.yml</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: cipi.yml">$ cipi yml plan shop
+$ cipi yml apply shop
+$ cipi yml auto shop on</pre><script type="application/json" class="term-script">[{"c": "cipi yml plan shop"}, {"o": [[" ", ""]], "d": 400}, {"o": [["Plan for 'shop'", "key"], [" ", ""], ["(/home/shop/current/cipi.yml)", "dim"]], "d": 300}, {"o": [[" ", ""]], "d": 300}, {"o": [["  ", ""], ["Would change", "key"]], "d": 300}, {"o": [["    ", ""], ["→", "info"], [" PHP 8.5 → 8.6", ""]], "d": 250}, {"o": [["    ", ""], ["→", "info"], [" workers: add queue 'emails' (2 processes)", ""]], "d": 200}, {"o": [["    ", ""], ["→", "info"], [" alias add: shop.example.org", ""]], "d": 200}, {"o": [["    ", ""], ["→", "info"], [" backup profile 'nightly': every 1d to s3, keep 14 days", ""]], "d": 200}, {"o": [[" ", ""]], "d": 300}, {"c": "cipi yml apply shop"}, {"o": [["✓ ", "ok"], ["Applied 4 change(s) from cipi.yml", ""]], "d": 900}, {"c": "cipi yml auto shop on"}, {"o": [["✓ ", "ok"], ["cipi.yml will be applied after every successful deploy of 'shop'", ""]], "d": 500}, {"o": [["! ", "warn"], ["Anyone who can commit to the repository can now change this app's", ""]], "d": 300}]</script></div>
+<p><code>plan</code> lists each change and each blocker. <code>apply</code> performs them in one transaction. <code>auto on</code> applies the file after every successful deploy, from the CLI, the webhook or the panel.</p>
+<h2 id="safe">5. Apply: all or nothing, safe to accept from Git<a class="anchor" href="#safe" aria-label="Link to this section">#</a></h2>
+<p><code>cipi yml apply</code> performs the plan in one transaction: if any step fails, nothing is left half done. With <code>cipi yml auto &lt;app&gt; on</code> it runs after every deploy. Anyone who can push controls the file, so it's designed to fail closed.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Guard</th><th>Effect</th></tr></thead><tbody><tr><td>Configure only</td><td>It can never create, rename or delete an app</td></tr><tr><td>Namespaced</td><td>Databases are <code>shop</code> or <code>shop_*</code>, backup profiles <code>shop</code> or <code>shop-*</code>: no reaching into other apps</td></tr><tr><td>No secrets</td><td>Required variables are names; generated credentials stay on the server</td></tr><tr><td>No shell</td><td>Only allowlisted runners (<code>artisan</code>, <code>composer</code>, <code>npm</code>, <code>php</code>…), no pipes or <code>;</code></td></tr><tr><td>Small YAML</td><td>Anchors, tags, merges and block scalars are refused</td></tr><tr><td>Strict routes</td><td>Proxies can't target Cipi's own ports, link-local or cloud-metadata addresses</td></tr><tr><td>Server picks the file</td><td>Staging reads <code>cipi-staging.yml</code> because the server says so, never because a commit asks</td></tr></tbody></table></div>
+<h2 id="start">Start in two minutes<a class="anchor" href="#start" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi yml generate shop --save<span class="c">      # the app as it is today</span>
+<span class="p"></span>cat /home/shop/cipi.yml<span class="c">                 # commit it at the repository root</span>
+<span class="p"></span>sudo cipi deploy shop &amp;&amp; sudo cipi yml plan shop</pre></div>
+<p>Step by step: <a href="/guides/manage-apps-with-cipi-yml">keep your server settings in the repository</a>.</p>
+<section class="art-faq"><h2 id="faq">Questions</h2><details><summary>Is it like Docker Compose or Terraform?</summary><p>Smaller and safer. It configures one app on a Cipi server (runtime, workers, domains, backups), can't create or delete apps, and refuses anything outside the app's own namespace.</p></details><details><summary>What happens with an invalid file?</summary><p>Nothing is applied. The plan reports the error; with auto-apply on you get a <code>yml_fail</code> notification and the deploy itself still succeeds.</p></details><details><summary>Can I start using it on an existing app?</summary><p>Yes. <code>cipi yml generate &lt;app&gt; --save</code> writes the current setup as a file; commit it and the next plan shows nothing to change.</p></details><details><summary>Do I have to describe everything?</summary><p>No. Write only the sections you want to manage from the repository. Anything you leave out stays as it is on the server, and you can keep using the CLI or the panel for it.</p></details><details><summary>Who can change the server once auto-apply is on?</summary><p>Anyone who can merge to the deploy branch. Protect the branch and require reviews, as you do for code. Without <code>cipi yml auto &lt;app&gt; on</code>, changes apply only when someone runs <code>cipi yml apply</code>.</p></details><details><summary>How do I undo a change?</summary><p>Revert the commit and deploy: the plan shows the way back. Or roll back the release and apply.</p></details><details><summary>Where can I see every option?</summary><p>In the <a href="/docs/yml">cipi.yml reference</a>, with ready-made setups in the <a href="/guides/cipi-yml-recipes">recipes</a>.</p></details><details><summary>Does it work for Node and custom apps?</summary><p>Yes, with the sections that apply to them (domains, routes, deploy steps, backups). Workers, scheduler and search are Laravel-only.</p></details><details><summary>Do secrets end up in Git?</summary><p>No. <code>env.required</code> lists names only; credentials Cipi creates go to <code>shared/</code>, and basic-auth users are names or hashes.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#intro">What it is, in one minute</a></li><li><a class="l2" href="#create">Create your first cipi.yml</a></li><li><a class="l3" href="#from-an-app-you-already-have-recommended">From an app you already have (recommended)</a></li><li><a class="l3" href="#from-zero">From zero</a></li><li><a class="l3" href="#where-it-goes">Where it goes</a></li><li><a class="l2" href="#workflow">The workflow, step by step</a></li><li><a class="l2" href="#file">1. Edit: the whole app, in one file</a></li><li><a class="l2" href="#validate">2. Review: validate before you push</a></li><li><a class="l2" href="#environments">3. Deploy: one repository, every environment</a></li><li><a class="l2" href="#plan">4. Plan: see every change first</a></li><li><a class="l2" href="#safe">5. Apply: all or nothing, safe to accept from Git</a></li><li><a class="l2" href="#start">Start in two minutes</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
             </div>
-            <div class="footer-content">
-                <div class="footer-left">
-                    Made with ❤️ by <a href="https://web.ap.it" target="_blank" rel="noopener">Andrea Pollastri</a>
-                    <span class="footer-license"> · Open source, MIT Licensed</span>
-                </div>
-                <ul class="footer-links">
-                    <li><a href="/docs/">Docs</a></li>
-                    <li><a href="/discovery">Discovery</a></li>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
                 </ul>
-            </div>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
         </div>
-    </footer>
-
-    <script>
-        function updateFavicon(theme) {
-            const variant = theme === 'dark' ? 'dark' : 'light';
-            document.getElementById('favicon').href = `/favicon-${variant}.png`;
-        }
-        function toggleTheme() {
-            const html = document.documentElement;
-            const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-            html.setAttribute('data-theme', next);
-            var tc=document.getElementById('themeColor'); if(tc) tc.content=(html.getAttribute('data-theme')==='dark')?'#A3E635':'#65A30D';
-            localStorage.setItem('cipi-theme', next);
-            updateFavicon(next);
-        }
-        (function () {
-            const saved = localStorage.getItem('cipi-theme');
-            if (saved) { document.documentElement.setAttribute('data-theme', saved); updateFavicon(saved); }
-            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.documentElement.setAttribute('data-theme', 'dark'); updateFavicon('dark');
-            }
-        })();
-        function copyCode(btn) {
-            const pre = btn.closest('.code-block').querySelector('pre');
-            navigator.clipboard.writeText(pre.innerText).then(() => {
-                btn.textContent = 'Copied!';
-                setTimeout(() => btn.textContent = 'Copy', 2000);
-            });
-        }
-    </script>
-
-    <script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
-    <noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/" width="1" height="1" /></noscript>
-    <script defer src="/js/nav.js"></script>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+<script src="/assets/js/term.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/cipi-yml" width="1" height="1" alt=""></noscript>
 </body>
-
 </html>

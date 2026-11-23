@@ -1,0 +1,55 @@
+@section cli-deploy-config
+
+Most apps never touch the deploy recipe: the options below cover the common needs and are kept safely across updates. For anything else, add your own Deployer tasks.
+
+## Deploy options {#options}
+
+```bash
+$ cipi app deploy-config myapp                                  # show
+$ cipi app deploy-config myapp --keep-releases=10
+$ cipi app deploy-config myapp --no-migrate --no-optimize
+$ cipi app deploy-config myapp --horizon-terminate --queue-restart
+$ cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
+$ cipi app deploy-config myapp --node-build='npm ci && npm run build'
+$ cipi app deploy-config myapp --predeploy-snapshot
+```
+
+| Option | Effect | Default |
+| --- | --- | --- |
+| `--keep-releases` | Releases kept for rollback | 5 |
+| `--migrate` / `--no-migrate` | `migrate --force` | on |
+| `--optimize` / `--no-optimize` | `artisan optimize` | on |
+| `--storage-link` | `storage:link` | on |
+| `--queue-restart`, `--horizon-terminate` | Reload workers / Horizon | on |
+| `--extra-artisan` | More Artisan commands after migrations | none |
+| `--node-build` | Front-end build before the swap (npm, yarn, pnpm, bun) | none |
+| `--predeploy-snapshot` | Database dump before migrations | off |
+
+Saving regenerates `deploy.php` from Cipi's template. Also via REST (`GET|PUT /api/apps/{name}/deploy-config`), MCP and the panel's Deploy tab. The same settings can live in [cipi.yml](/docs/yml).
+
+@section cli-deploy-script
+
+## Custom Deployer tasks {#custom}
+
+The recipe is `/home/myapp/.deployer/deploy.php`. Add tasks **at the bottom**, below the Cipi-managed blocks:
+
+```php
+// ── Custom tasks (keep below Cipi-managed blocks) ──
+task('app:warm', function () {
+    run('{{bin/php}} {{release_path}}/artisan app:warm-cache');
+});
+after('artisan:migrate', 'app:warm');
+```
+
+| Hook point | Use for |
+| --- | --- |
+| `after('deploy:shared', …)` | Builds that need `.env` (e.g. Vite reads `VITE_*`) |
+| `after('artisan:migrate', …)` | Seeders, cache warm-up |
+| `before('deploy:symlink', …)` | Last checks before going live |
+| `after('deploy:symlink', …)` | Notifications, cache purges |
+
+The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → **symlink** → restart workers → cleanup.
+
+> [!warning] Changing PHP or branch with `cipi app edit` regenerates `deploy.php`. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer `deploy-config` and [cipi.yml](/docs/yml), which are never lost.
+
+Test every change with a normal deploy; `cipi deploy myapp --rollback` is always one command away, and the log is in `cipi app logs myapp --type=deploy`.
