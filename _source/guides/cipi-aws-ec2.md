@@ -1,6 +1,6 @@
 ---
 title: Install Cipi on AWS EC2
-description: Launch an Ubuntu 24.04 EC2 instance, open the right ports in the security group, attach an Elastic IP and install Cipi to host Laravel and PHP apps on AWS.
+description: Launch an AWS EC2 instance for Laravel step by step (Ubuntu AMI, instance type, gp3 storage, security group, Elastic IP), install Cipi, point DNS, and connect S3, SES and CodeCommit.
 category: providers
 order: 1
 published: 2026-11-23
@@ -14,8 +14,33 @@ related:
 faq:
   - Which instance size? | Start with 2 GB of RAM (for example a t3.small) for one or two apps; add RAM before CPU when you add Octane, Meilisearch or more apps.
   - Can I use RDS or S3? | Yes. Point an app's `DB_*` variables at RDS if you prefer a managed database, and use S3 as the destination for `cipi backup`.
+  - Why can't I send e-mail from the instance? | AWS restricts outbound port 25 by default. Use SES (or another SMTP provider) on port 587 for the app and for Cipi's notifications.
+  - Can I use Graviton (ARM) instances? | Choose x86 to be safe: parts of the stack, such as the AWS CLI used for S3 backups, are installed as x86_64 builds.
+  - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
+  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+docs:
+  - installation
+  - firewall
+  - backups
+  - notifications
 ---
 EC2 gives you a full virtual machine, which is exactly what Cipi needs. This walkthrough uses the AWS console; the same settings work from Terraform or the CLI.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Instance / server** | The virtual machine you rent |
+| **Image** | The operating system it starts with: pick plain Ubuntu LTS, nothing pre-installed |
+| **Public IP** | The address visitors and DNS point to; make it static so it survives rebuilds |
+| **Provider firewall** | Rules in the provider's console, before traffic reaches the server. Cipi adds its own (UFW) on the server |
+| **SSH key** | How you log in: the public half goes to the provider, the private half stays on your laptop ([basics](/guides/vps-ssh-dns-basics)) |
+
+## Before you start {#before}
+
+- An account with the provider and a payment method.
+- An SSH key on your laptop (`ssh-keygen -t ed25519`), see [VPS, SSH and DNS basics](/guides/vps-ssh-dns-basics).
+- A domain whose DNS you can edit.
 
 ```flow
 Launch | Ubuntu 24.04 LTS | #launch
@@ -79,3 +104,14 @@ Create an `A` record (Route 53 or your DNS provider) for your domain to the Elas
 | Snapshots of the whole disk | EBS snapshots, on top of Cipi's database and file backups |
 
 > [!tip] Outbound port 25 is restricted on EC2 by default. Use SES or another provider on port 587 for app mail and for Cipi's [notifications](/docs/notifications).
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| Installer stops: container detected | You picked a container product (LXC/OpenVZ): choose a KVM virtual machine |
+| Installer stops: unsupported OS | Use a plain Ubuntu 24.04 or 26.04 LTS image, not a marketplace app |
+| `Permission denied (publickey)` after the install | Log in as `cipi`, not `root` or `ubuntu`, with the key you pasted in the installer |
+| Certificate fails | Port 80 closed in the provider firewall, or DNS not pointing at the server yet |
+| Site unreachable on 443 | Add 443 to the provider firewall (IPv4 and IPv6) |
+| Notification e-mail never arrives | Port 25 is blocked by most providers: use an SMTP service on 587 |

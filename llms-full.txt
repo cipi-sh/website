@@ -656,7 +656,7 @@ $ cipi app env myapp --unset=LEGACY_KEY
 $ cipi worker restart myapp                   # after changing queue or cache drivers
 ```
 
-New requests read the change immediately (Octane apps: reload on next deploy or `cipi worker restart`). Also via REST (`GET|PUT /api/apps/{name}/env`) and MCP. Custom apps have no `.env`.
+Deploys cache the config, so rebuild it after a change: `cipi app artisan myapp config:cache` (or deploy). Workers and Octane also need `cipi worker restart myapp`. Also via REST (`GET|PUT /api/apps/{name}/env`) and MCP. Custom apps have no `.env`.
 
 ## What Cipi writes 
 
@@ -703,7 +703,10 @@ $ cipi worker restart myapp
 | --- | --- | --- |
 | `--queue` | Queue to consume | `default` |
 | `--processes` | Parallel processes | 1 |
-| `--timeout` | Seconds before a job is killed | 60 |
+| `--tries` | Attempts before `failed_jobs` | 3 |
+| `--timeout` | Seconds a process lives before it's recycled (`--max-time`), and how long a stop waits for the running job | 3600 |
+
+Plain workers consume the `database` connection; Redis (Valkey) queues run under Horizon. A single job's time limit is its own `$timeout` property (Laravel's default is 60 seconds).
 
 ## Horizon 
 
@@ -2348,9 +2351,11 @@ New apps keep cache, sessions and queues in their database. Switch whatever you 
 ```bash
 $ cipi app env myapp --set=CACHE_STORE=redis
 $ cipi app env myapp --set=SESSION_DRIVER=redis
-$ cipi app env myapp --set=QUEUE_CONNECTION=redis
-$ cipi worker restart myapp            # or enable Horizon
+$ cipi app artisan myapp config:cache
+$ cipi worker restart myapp
 ```
+
+Queues on Valkey run under Horizon: set `QUEUE_CONNECTION=redis` and `cipi worker horizon enable myapp` ([Horizon](https://cipi.sh/docs/workers#horizon)). Plain `queue:work` workers read the `database` connection.
 
 ## Manage instances 
 
@@ -5408,6 +5413,18 @@ URL: https://cipi.sh/guides/deploy-laravel-ubuntu-vps
 
 This guide takes a fresh VPS to a live Laravel app with HTTPS, a queue worker, the scheduler and deploys on every `git push`. It uses [Cipi](https://cipi.sh/), a free, open-source tool that installs and runs the whole stack on your own server.
 
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Release** | One deployed copy of your code, in its own timestamped folder |
+| **`current`** | A link to the live release; switching it is the deploy |
+| **Deploy key** | A read-only SSH key that lets the server clone one repository |
+| **Webhook** | A URL your Git provider calls on every push, which starts a deploy |
+| **Worker** | A background process that runs queued jobs |
+
+New to servers? Read [VPS, SSH and DNS basics](https://cipi.sh/guides/vps-ssh-dns-basics) first: ten minutes, no jargon.
+
 ```flow
 Server | Ubuntu 24.04 or 26.04 | #server
 Install | one command, ~10 min | #install
@@ -5470,6 +5487,18 @@ $ sudo cipi git check shop
 $ sudo cipi deploy shop
 ```
 
+```tree
+/home/shop/
+  current -> releases/20261123_101500   ← live
+  releases/
+    20261123_101500/
+    20261122_174210/                     ← rollback target
+  shared/
+    .env
+    storage/
+  logs/
+```
+
 Each deploy clones into a new release folder, runs `composer install`, links `.env` and `storage`, runs migrations, builds assets if you set a build command, then switches `current` with one atomic symlink and restarts workers. Visitors never see a half-deployed app.
 
 ## 7. Turn on HTTPS 
@@ -5494,12 +5523,356 @@ With the webhook in place, every push to `main` deploys. Prefer tests first? Tur
 | Alerts on Telegram or Slack | [Monitoring and alerts](https://cipi.sh/guides/server-monitoring-alerts) |
 | A browser UI for the team | [Web panel and API](https://cipi.sh/guides/cipi-gui-and-api) |
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `Permission denied (publickey)` on deploy | The deploy key isn't on the repository: `sudo cipi deploy shop --key`, add it, `sudo cipi git check shop` |
+| Composer fails on the PHP version | The app's PHP is older than `composer.lock` needs: `sudo cipi app edit shop --php=8.6` |
+| 500 error after the first deploy | Read the log: `sudo cipi app logs shop --type=laravel`; usually a missing `.env` key |
+| Certificate fails | DNS doesn't point at the server yet: `dig +short shop.example.com` |
+| Push doesn't deploy | Webhook missing or wrong branch: `sudo cipi deploy shop --webhook`, check `CIPI_DEPLOY_BRANCH` |
+| A deploy hangs or was interrupted | `sudo cipi deploy shop --status`, then `--unlock` |
+| Assets 404 | No build command: `sudo cipi app deploy-config shop --node-build='npm ci && npm run build'` |
+
+
+## Move a Laravel app from Forge (or Ploi) to Cipi
+
+URL: https://cipi.sh/guides/migrate-from-laravel-forge
+
+This guide moves one Laravel app from a Forge (or Ploi) server to a new server running Cipi. The old server keeps running until the very last step, so you can stop at any point and nothing breaks.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Cut-over** | The moment traffic moves to the new server (a DNS change) |
+| **TTL** | How long the world caches a DNS answer. Lower it before the move |
+| **Dump** | A file with the whole database, used to copy it |
+| **Rollback plan** | How to go back: point DNS at the old server again |
+
+```flow
+Prepare | lower TTL, new server
+Build | app, .env, workers
+Rehearse | copy data, test
+Cut-over | final dump, DNS
+Keep old | a week, then delete
+```
+
+## Forge and Ploi features, in Cipi 
+
+| Forge / Ploi | Cipi |
+| --- | --- |
+| Server provisioning | `wget -O - https://cipi.sh/setup.sh \| bash` on a fresh VPS |
+| Site | `cipi app create` (Laravel, Node or custom) |
+| Deploy script | Built-in steps plus `cipi app deploy-config`, `deploy.post` in `cipi.yml` |
+| Quick deploy | Push-to-deploy webhook, created with the app |
+| Environment | `cipi app env` (`/home//shared/.env`) |
+| Daemons / queue workers | `cipi worker add`, `cipi worker horizon enable` |
+| Scheduler | On by default per app |
+| Databases | `cipi db` (MariaDB, PostgreSQL) |
+| SSL (Let's Encrypt) | `cipi ssl install` |
+| Backups | `cipi backup` (local and S3, encrypted) |
+| Monitoring, health checks | `cipi monitor`, health checks with auto-rollback |
+| Team access | Panel roles, API tokens with abilities |
+| Monthly plan | None: MIT licensed |
+
+## Before you start 
+
+- Access to the Forge server (`ssh forge@OLD_IP`) and your DNS.
+- The app's repository and branch.
+- A new VPS with a fresh Ubuntu 24.04 or 26.04 ([choose one](https://cipi.sh/guides/vps-ssh-dns-basics)).
+- A day before: lower the DNS TTL of the domain to 300 seconds.
+
+## 1. Install Cipi on the new server 
+
+```bash
+$ ssh root@NEW_IP
+$ wget -O - https://cipi.sh/setup.sh | bash
+```
+
+Install the PHP version the app uses today, and PostgreSQL if it's on Postgres:
+
+```bash
+$ ssh cipi@NEW_IP
+$ sudo cipi php install 8.4
+$ sudo cipi db install pgsql          # only if needed
+```
+
+## 2. Create the app 
+
+```bash
+$ sudo cipi app create --user=shop --domain=shop.example.com \
+    --repository=git@github.com:you/shop.git --branch=main --php=8.4
+```
+
+The summary shows a **deploy key**. Add it to the repository (GitHub → Settings → Deploy keys, read-only). With a Git provider token saved, Cipi does it for you.
+
+## 3. Copy the .env 
+
+On the old server, print it:
+
+```bash
+$ ssh forge@OLD_IP "cat /home/forge/shop.example.com/.env"
+```
+
+Copy **your own keys** (Stripe, mail, S3, Pusher, APIs) into the new app and keep Cipi's values for the database and Redis. One exception: `APP_KEY` must be the **old** one, or encrypted data and sessions become unreadable.
+
+```bash
+$ sudo cipi app env shop --set=APP_KEY=base64:OLD_KEY…
+$ sudo cipi app env shop --set=STRIPE_SECRET=sk_live_…
+$ sudo cipi app env shop                  # or paste the rest in the editor
+```
+
+| Keep from Cipi | Bring from Forge |
+| --- | --- |
+| `DB_*`, `REDIS_*`, `CIPI_*` | `APP_KEY`, mail, payments, storage, third-party APIs |
+| `APP_URL` (switched to https by `cipi ssl install`) | Custom keys your code reads |
+
+## 4. Deploy once 
+
+```bash
+$ sudo cipi deploy shop
+```
+
+Migrations create an empty schema; the data comes next. If your Forge deploy script ran extra commands, add them:
+
+```bash
+$ sudo cipi app deploy-config shop --extra-artisan=event:cache,icons:cache
+$ sudo cipi app deploy-config shop --node-build='npm ci && npm run build'
+```
+
+## 5. Rehearse the data copy 
+
+Database, from the old server to the new one:
+
+```bash
+# on the old server
+$ mysqldump --single-transaction --quick -u forge -p shop | gzip > /tmp/shop.sql.gz
+# from your laptop
+$ scp forge@OLD_IP:/tmp/shop.sql.gz . && scp shop.sql.gz cipi@NEW_IP:/tmp/
+# on the new server
+$ sudo cipi db restore shop /tmp/shop.sql.gz
+```
+
+Uploaded files in `storage/app` (skip this if they're on S3):
+
+```bash
+$ rsync -az forge@OLD_IP:/home/forge/shop.example.com/storage/app/ /tmp/shop-storage/
+$ sudo rsync -a /tmp/shop-storage/ /home/shop/shared/storage/app/ && sudo chown -R shop:shop /home/shop/shared/storage/app
+```
+
+Test without touching DNS: add `NEW_IP shop.example.com` to your laptop's `/etc/hosts` and browse. Remove the line when done.
+
+## 6. Workers, scheduler, certificate 
+
+```bash
+$ sudo cipi worker add shop --queue=emails --processes=2   # one per Forge daemon queue
+$ sudo cipi worker horizon enable shop                     # if Forge ran Horizon
+$ sudo cipi schedule status shop                           # already on
+```
+
+Or write it all in a [`cipi.yml`](https://cipi.sh/guides/manage-apps-with-cipi-yml), so the setup lives with the code:
+
+```yaml
+workers:
+  horizon: false
+  queues:
+    - { queue: default, processes: 2 }
+    - { queue: emails, processes: 2 }
+schedule: true
+```
+
+The certificate needs DNS pointing at the new server, so it comes right after the cut-over.
+
+## 7. Cut-over 
+
+```flow
+Old: artisan down | stop writes
+Final dump | restore on new
+DNS | A record → NEW_IP
+SSL | cipi ssl install
+Check | old server stays down
+```
+
+```bash
+# old server
+$ php /home/forge/shop.example.com/artisan down
+# dump, copy, restore as in step 5
+# DNS: change the A record to NEW_IP, then on the new server
+$ sudo cipi ssl install shop
+```
+
+Stop the old server's workers and scheduler (Forge → Daemons, Scheduler) so they don't process jobs against the old database.
+
+## 8. Rollback plan 
+
+Until you delete the old server, going back is one DNS change plus `artisan up` there. Keep it a week, then cancel it.
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `The MAC is invalid` | The new app has a different `APP_KEY`: set the old one |
+| Images missing | `storage/app` not copied, or `storage:link` missing: redeploy |
+| Deploy fails on Composer | PHP version differs from Forge: `cipi app edit shop --php=8.x` |
+| `Permission denied (publickey)` on deploy | Deploy key not added to the repository |
+| Certificate fails | DNS not pointing at the new server yet: `dig +short shop.example.com` |
+| Jobs processed twice | Old server's workers still running: stop them |
+
+
+## VPS, SSH and DNS for Laravel developers who never ran a server
+
+URL: https://cipi.sh/guides/vps-ssh-dns-basics
+
+Deploying to your own server sounds harder than it is. You need three skills: **get a server**, **log in with SSH**, and **point a domain at it**. This guide explains each from zero, then hands over to the [first deploy guide](https://cipi.sh/guides/deploy-laravel-ubuntu-vps).
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **VPS** | A virtual private server: a slice of a physical machine you rent by the hour or month, with its own IP and full control |
+| **Ubuntu LTS** | The Linux version Cipi runs on (24.04 or 26.04). LTS = 5 years of security updates |
+| **IP address** | The server's number on the internet, e.g. `203.0.113.10` |
+| **SSH** | An encrypted way to log in and type commands on the server |
+| **SSH key** | A pair of files: the private one stays on your laptop, the public one goes on the server. Safer than a password |
+| **DNS** | The internet's phonebook: turns `shop.example.com` into an IP |
+| **A record** | A DNS entry: "this name → this IPv4 address" |
+
+```flow
+Your laptop | SSH key
+VPS | Ubuntu, public IP
+Cipi | installs the stack
+Domain | A record → IP
+Visitors | https://shop.example.com
+```
+
+## 1. Choose a server 
+
+| Need | Pick |
+| --- | --- |
+| Best price in Europe | [Hetzner](https://cipi.sh/guides/cipi-hetzner) |
+| Simple, worldwide | [DigitalOcean](https://cipi.sh/guides/cipi-digitalocean), [Vultr, Linode, OVHcloud](https://cipi.sh/guides/cipi-vultr-linode-ovhcloud) |
+| Already on AWS | [Lightsail](https://cipi.sh/guides/cipi-aws-lightsail) or [EC2](https://cipi.sh/guides/cipi-aws-ec2) |
+
+| Setting | Choose |
+| --- | --- |
+| Image | Ubuntu 24.04 LTS or 26.04 LTS, nothing pre-installed |
+| Size | 2 vCPU, 4 GB RAM for a comfortable start |
+| Region | Close to your users |
+| Login | Your SSH key (next step) |
+
+## 2. Create an SSH key 
+
+On macOS, Linux or Windows (PowerShell), the same command:
+
+```bash
+$ ssh-keygen -t ed25519 -C "you@laptop"
+# press Enter for the default path, then choose a passphrase
+$ cat ~/.ssh/id_ed25519.pub
+ssh-ed25519 AAAAC3Nza… you@laptop
+```
+
+```tree
+~/.ssh/
+  id_ed25519        ← private: never share, never upload
+  id_ed25519.pub    ← public: paste it into the provider
+```
+
+Paste the **public** line into the provider's "SSH keys" field when you create the server.
+
+## 3. Log in 
+
+```bash
+$ ssh root@203.0.113.10
+```
+
+The first time, SSH asks whether you trust the server's fingerprint: type `yes`. You're in when the prompt changes to `root@…`. Now install Cipi ([installation](https://cipi.sh/docs/installation)):
+
+```bash
+$ wget -O - https://cipi.sh/setup.sh | bash
+```
+
+Early on, the installer asks for the public key that will open the `cipi` user: paste the same `id_ed25519.pub` line (you can add a second machine's key too). After the install, root login is disabled. From then on you log in as `cipi`:
+
+```bash
+$ ssh cipi@203.0.113.10
+```
+
+Make it shorter with an entry in `~/.ssh/config`:
+
+```text
+Host shop
+  HostName 203.0.113.10
+  User cipi
+```
+
+Then `ssh shop` is enough.
+
+## 4. Point your domain 
+
+At your registrar or DNS provider (Cloudflare, Namecheap, OVH…), add:
+
+| Type | Name | Value | TTL |
+| --- | --- | --- | --- |
+| A | `shop` (or `@` for the bare domain) | `203.0.113.10` | Auto / 300 |
+| A | `www` | `203.0.113.10` | Auto / 300 |
+| AAAA | same names | the server's IPv6, if it has one | Auto |
+
+Check it from your laptop:
+
+```bash
+$ dig +short shop.example.com
+203.0.113.10
+```
+
+On Cloudflare, keep the cloud **grey** ("DNS only") until the certificate is issued, then you can turn the proxy on with SSL/TLS **Full (strict)**.
+
+## 5. What Cipi does for you 
+
+| Job | Without Cipi | With Cipi |
+| --- | --- | --- |
+| Install Nginx, PHP, MariaDB, Valkey, Supervisor | Hours of setup | One command |
+| Firewall, Fail2ban, key-only SSH | Easy to get wrong | On by default |
+| One user, database and pool per app | Rarely done | Every app |
+| HTTPS certificates and renewals | certbot by hand | `cipi ssl install` |
+| Security patches | Remember to log in | Nightly, automatic |
+| Deploys with rollback | Scripts | `cipi deploy`, on push |
+
+Next: [deploy your first Laravel app](https://cipi.sh/guides/deploy-laravel-ubuntu-vps).
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `Permission denied (publickey)` | Wrong user or key: `ssh -i ~/.ssh/id_ed25519 cipi@IP`; check the key was added at creation |
+| `Connection timed out` | Wrong IP, or the provider's firewall blocks 22: allow 22, 80, 443 |
+| `REMOTE HOST IDENTIFICATION HAS CHANGED` | You rebuilt the server: `ssh-keygen -R 203.0.113.10` |
+| `dig` shows nothing or an old IP | Record not saved or still cached: wait the TTL, check the name |
+| Browser shows the provider's parking page | DNS still points at the registrar: change the A record |
+
 
 ## Install Cipi on AWS EC2
 
 URL: https://cipi.sh/guides/cipi-aws-ec2
 
 EC2 gives you a full virtual machine, which is exactly what Cipi needs. This walkthrough uses the AWS console; the same settings work from Terraform or the CLI.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Instance / server** | The virtual machine you rent |
+| **Image** | The operating system it starts with: pick plain Ubuntu LTS, nothing pre-installed |
+| **Public IP** | The address visitors and DNS point to; make it static so it survives rebuilds |
+| **Provider firewall** | Rules in the provider's console, before traffic reaches the server. Cipi adds its own (UFW) on the server |
+| **SSH key** | How you log in: the public half goes to the provider, the private half stays on your laptop ([basics](https://cipi.sh/guides/vps-ssh-dns-basics)) |
+
+## Before you start 
+
+- An account with the provider and a payment method.
+- An SSH key on your laptop (`ssh-keygen -t ed25519`), see [VPS, SSH and DNS basics](https://cipi.sh/guides/vps-ssh-dns-basics).
+- A domain whose DNS you can edit.
 
 ```flow
 Launch | Ubuntu 24.04 LTS | #launch
@@ -5564,12 +5937,39 @@ Create an `A` record (Route 53 or your DNS provider) for your domain to the Elas
 
 > [!tip] Outbound port 25 is restricted on EC2 by default. Use SES or another provider on port 587 for app mail and for Cipi's [notifications](https://cipi.sh/docs/notifications).
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Installer stops: container detected | You picked a container product (LXC/OpenVZ): choose a KVM virtual machine |
+| Installer stops: unsupported OS | Use a plain Ubuntu 24.04 or 26.04 LTS image, not a marketplace app |
+| `Permission denied (publickey)` after the install | Log in as `cipi`, not `root` or `ubuntu`, with the key you pasted in the installer |
+| Certificate fails | Port 80 closed in the provider firewall, or DNS not pointing at the server yet |
+| Site unreachable on 443 | Add 443 to the provider firewall (IPv4 and IPv6) |
+| Notification e-mail never arrives | Port 25 is blocked by most providers: use an SMTP service on 587 |
+
 
 ## Install Cipi on Amazon Lightsail
 
 URL: https://cipi.sh/guides/cipi-aws-lightsail
 
 Lightsail is AWS with a fixed monthly price: a good fit for one to a handful of apps. Use the **OS-only** Ubuntu blueprint so Cipi can own the stack.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Instance / server** | The virtual machine you rent |
+| **Image** | The operating system it starts with: pick plain Ubuntu LTS, nothing pre-installed |
+| **Public IP** | The address visitors and DNS point to; make it static so it survives rebuilds |
+| **Provider firewall** | Rules in the provider's console, before traffic reaches the server. Cipi adds its own (UFW) on the server |
+| **SSH key** | How you log in: the public half goes to the provider, the private half stays on your laptop ([basics](https://cipi.sh/guides/vps-ssh-dns-basics)) |
+
+## Before you start 
+
+- An account with the provider and a payment method.
+- An SSH key on your laptop (`ssh-keygen -t ed25519`), see [VPS, SSH and DNS basics](https://cipi.sh/guides/vps-ssh-dns-basics).
+- A domain whose DNS you can edit.
 
 ## 1. Create the instance
 
@@ -5610,6 +6010,17 @@ Point an `A` record at the static IP (Lightsail DNS zones work), then create and
 
 > [!note] Lightsail's own snapshots copy the whole disk. Keep Cipi's [S3 backups](https://cipi.sh/guides/backup-vps-s3) too: they're per app, encrypted and restorable on any server.
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Installer stops: container detected | You picked a container product (LXC/OpenVZ): choose a KVM virtual machine |
+| Installer stops: unsupported OS | Use a plain Ubuntu 24.04 or 26.04 LTS image, not a marketplace app |
+| `Permission denied (publickey)` after the install | Log in as `cipi`, not `root` or `ubuntu`, with the key you pasted in the installer |
+| Certificate fails | Port 80 closed in the provider firewall, or DNS not pointing at the server yet |
+| Site unreachable on 443 | Add 443 to the provider firewall (IPv4 and IPv6) |
+| Notification e-mail never arrives | Port 25 is blocked by most providers: use an SMTP service on 587 |
+
 
 ## Install Cipi on a DigitalOcean Droplet
 
@@ -5617,13 +6028,29 @@ URL: https://cipi.sh/guides/cipi-digitalocean
 
 A Droplet is a full KVM virtual machine: exactly what Cipi needs.
 
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Instance / server** | The virtual machine you rent |
+| **Image** | The operating system it starts with: pick plain Ubuntu LTS, nothing pre-installed |
+| **Public IP** | The address visitors and DNS point to; make it static so it survives rebuilds |
+| **Provider firewall** | Rules in the provider's console, before traffic reaches the server. Cipi adds its own (UFW) on the server |
+| **SSH key** | How you log in: the public half goes to the provider, the private half stays on your laptop ([basics](https://cipi.sh/guides/vps-ssh-dns-basics)) |
+
+## Before you start 
+
+- An account with the provider and a payment method.
+- An SSH key on your laptop (`ssh-keygen -t ed25519`), see [VPS, SSH and DNS basics](https://cipi.sh/guides/vps-ssh-dns-basics).
+- A domain whose DNS you can edit.
+
 ## 1. Create the Droplet
 
 **Create → Droplets**:
 
 | Setting | Choose |
 | --- | --- |
-| Image | **Ubuntu 24.04 (LTS) x64** |
+| Image | **Ubuntu 24.04 (LTS) x64** or 26.04 |
 | Size | Basic, 2 GB RAM is comfortable for a few apps |
 | Authentication | **SSH key** (add yours) |
 | Extras | Monitoring agent optional; Cipi has its own [monitor](https://cipi.sh/docs/monitor) |
@@ -5659,12 +6086,51 @@ Add an `A` record (DigitalOcean DNS or your registrar) to the Droplet's IP and c
 | Managed database | Point `DB_*` at a Managed MySQL/PostgreSQL cluster if you prefer |
 | Behind a load balancer | Terminate TLS on the balancer or pass through to Cipi's certificates |
 
+## Off-site backups on Spaces 
+
+Create a Space in another region and a Spaces access key, then:
+
+```bash
+$ sudo cipi backup destination add spaces --bucket=acme-backups \
+    --key=… --secret=… --endpoint=https://ams3.digitaloceanspaces.com --region=ams3
+$ sudo cipi backup destination test
+```
+
+[Full backup guide](https://cipi.sh/guides/backup-vps-s3).
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Installer stops: container detected | You picked a container product (LXC/OpenVZ): choose a KVM virtual machine |
+| Installer stops: unsupported OS | Use a plain Ubuntu 24.04 or 26.04 LTS image, not a marketplace app |
+| `Permission denied (publickey)` after the install | Log in as `cipi`, not `root` or `ubuntu`, with the key you pasted in the installer |
+| Certificate fails | Port 80 closed in the provider firewall, or DNS not pointing at the server yet |
+| Site unreachable on 443 | Add 443 to the provider firewall (IPv4 and IPv6) |
+| Notification e-mail never arrives | Port 25 is blocked by most providers: use an SMTP service on 587 |
+
 
 ## Install Cipi on Hetzner Cloud
 
 URL: https://cipi.sh/guides/cipi-hetzner
 
 Hetzner Cloud is a popular choice for Laravel in Europe: KVM servers at low prices, with data centres in Germany and Finland as well as the US and Singapore. Data stays in the region you pick, which helps with GDPR.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Instance / server** | The virtual machine you rent |
+| **Image** | The operating system it starts with: pick plain Ubuntu LTS, nothing pre-installed |
+| **Public IP** | The address visitors and DNS point to; make it static so it survives rebuilds |
+| **Provider firewall** | Rules in the provider's console, before traffic reaches the server. Cipi adds its own (UFW) on the server |
+| **SSH key** | How you log in: the public half goes to the provider, the private half stays on your laptop ([basics](https://cipi.sh/guides/vps-ssh-dns-basics)) |
+
+## Before you start 
+
+- An account with the provider and a payment method.
+- An SSH key on your laptop (`ssh-keygen -t ed25519`), see [VPS, SSH and DNS basics](https://cipi.sh/guides/vps-ssh-dns-basics).
+- A domain whose DNS you can edit.
 
 ## 1. Create the server
 
@@ -5673,9 +6139,9 @@ Hetzner Cloud is a popular choice for Laravel in Europe: KVM servers at low pric
 | Setting | Choose |
 | --- | --- |
 | Location | Closest to your users |
-| Image | **Ubuntu 24.04** |
-| Type | Shared vCPU (x86) with 2 GB+ RAM to start |
-| Networking | **Public IPv4** on (Cipi needs one), IPv6 too |
+| Image | **Ubuntu 24.04** or **26.04** |
+| Type | Shared vCPU **x86**, 4 GB RAM is comfortable (2 GB for one small app) |
+| Networking | **Public IPv4** on (Cipi needs one), IPv6 too. Keep the IPv4 as a Primary IP |
 | SSH key | Add yours |
 
 ## 2. Firewall (optional)
@@ -5694,6 +6160,10 @@ $ ssh cipi@203.0.113.10        # afterwards
 
 Create the `A`/`AAAA` records and follow [the main guide](https://cipi.sh/guides/deploy-laravel-ubuntu-vps) from step 4.
 
+```bash
+$ dig +short shop.example.com      # must print the server IP
+```
+
 ## Hetzner extras that fit
 
 | Need | Use |
@@ -5701,6 +6171,29 @@ Create the `A`/`AAAA` records and follow [the main guide](https://cipi.sh/guides
 | Off-site backups | **Object Storage** (S3-compatible) as a `cipi backup` destination, in another location |
 | More disk | Volumes for large uploads; keep `shared/` on fast local disk |
 | A second server | Move or replicate apps with [`cipi sync`](https://cipi.sh/guides/migrate-server-cipi-sync) |
+
+## Off-site backups on Hetzner Object Storage 
+
+Create a bucket in **another location** than the server, and S3 credentials for it, then:
+
+```bash
+$ sudo cipi backup destination add hetzner --bucket=acme-backups \
+    --key=… --secret=… --endpoint=https://fsn1.your-objectstorage.com --region=fsn1
+$ sudo cipi backup destination test
+```
+
+Full setup: [backups to S3](https://cipi.sh/guides/backup-vps-s3).
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Installer stops: container detected | You picked a container product (LXC/OpenVZ): choose a KVM virtual machine |
+| Installer stops: unsupported OS | Use a plain Ubuntu 24.04 or 26.04 LTS image, not a marketplace app |
+| `Permission denied (publickey)` after the install | Log in as `cipi`, not `root` or `ubuntu`, with the key you pasted in the installer |
+| Certificate fails | Port 80 closed in the provider firewall, or DNS not pointing at the server yet |
+| Site unreachable on 443 | Add 443 to the provider firewall (IPv4 and IPv6) |
+| Notification e-mail never arrives | Port 25 is blocked by most providers: use an SMTP service on 587 |
 
 
 ## Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway
@@ -5715,6 +6208,22 @@ Any provider works as long as you get a **full virtual machine** (KVM or similar
 | **Akamai Linode** | Create → Linode | Ubuntu 24.04 LTS | Cloud Firewalls (22, 80, 443) | Object Storage is S3-compatible |
 | **OVHcloud** | VPS or Public Cloud instance | Ubuntu 24.04 | Edge firewall / security groups | VPS images may log you in as `ubuntu`: run the installer with `sudo -i` |
 | **Scaleway** | Instances → Create | Ubuntu 24.04 (Noble) | Security groups (22, 80, 443) | Object Storage is S3-compatible |
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Instance / server** | The virtual machine you rent |
+| **Image** | The operating system it starts with: pick plain Ubuntu LTS, nothing pre-installed |
+| **Public IP** | The address visitors and DNS point to; make it static so it survives rebuilds |
+| **Provider firewall** | Rules in the provider's console, before traffic reaches the server. Cipi adds its own (UFW) on the server |
+| **SSH key** | How you log in: the public half goes to the provider, the private half stays on your laptop ([basics](https://cipi.sh/guides/vps-ssh-dns-basics)) |
+
+## Before you start 
+
+- An account with the provider and a payment method.
+- An SSH key on your laptop (`ssh-keygen -t ed25519`), see [VPS, SSH and DNS basics](https://cipi.sh/guides/vps-ssh-dns-basics).
+- A domain whose DNS you can edit.
 
 ## Install
 
@@ -5735,6 +6244,17 @@ Then log in as `cipi` and follow [the main guide](https://cipi.sh/guides/deploy-
 | Outbound 25 often blocked | Send mail through an SMTP provider on 587 |
 | A second region or provider for backups | Point `cipi backup` at an S3-compatible bucket elsewhere |
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Installer stops: container detected | You picked a container product (LXC/OpenVZ): choose a KVM virtual machine |
+| Installer stops: unsupported OS | Use a plain Ubuntu 24.04 or 26.04 LTS image, not a marketplace app |
+| `Permission denied (publickey)` after the install | Log in as `cipi`, not `root` or `ubuntu`, with the key you pasted in the installer |
+| Certificate fails | Port 80 closed in the provider firewall, or DNS not pointing at the server yet |
+| Site unreachable on 443 | Add 443 to the provider firewall (IPv4 and IPv6) |
+| Notification e-mail never arrives | Port 25 is blocked by most providers: use an SMTP service on 587 |
+
 
 ## A Laravel API with a Next.js or Nuxt front end on one server
 
@@ -5747,6 +6267,15 @@ acme.app | Node app, SSR, blue/green restarts
 api.acme.app | Laravel app, FPM or Octane
 Server | one Cipi install
 ```
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **API** | The Laravel app answers JSON, no HTML |
+| **SSR** | Server-side rendering: Next.js or Nuxt runs as a Node process that builds HTML per request |
+| **Sanctum** | Laravel's auth for SPAs (cookies) and mobile apps (tokens) |
+| **CORS** | Browser rules for calling an API on another domain |
 
 ## 1. The API
 
@@ -5792,12 +6321,35 @@ $ sudo cipi deploy web
 
 Each repository can carry its own `cipi.yml`: workers, schedule and health for the API, `node:` settings for the front end. Examples in [cipi.yml recipes](https://cipi.sh/guides/cipi-yml-recipes).
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| CORS error in the browser | Add the front end's origin in `config/cors.php`, `supports_credentials` true for cookies |
+| 419 CSRF on login | Call `/sanctum/csrf-cookie` first; check `SANCTUM_STATEFUL_DOMAINS` and `SESSION_DOMAIN` |
+| 401 after login | Cookie on the wrong domain: `SESSION_DOMAIN=.acme.app` |
+| Front end calls the old API URL | `NEXT_PUBLIC_*` is baked at build: redeploy the front end |
+
 
 ## CI/CD for Laravel with GitHub Actions or GitLab CI
 
 URL: https://cipi.sh/guides/laravel-ci-cd-git-workflow
 
 Push-to-deploy is great until a broken test reaches production. A pipeline adds the gate: test, optionally back up, deploy, and roll back if the deploy fails.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **CI** | Continuous integration: tests run on every push |
+| **CD** | Continuous delivery: a passing build deploys by itself |
+| **Pipeline / workflow** | The list of steps GitHub Actions or GitLab CI runs |
+| **Secret** | A value stored in the CI settings (a key, a token), never in the repository |
+
+## Before you start 
+
+- A Laravel app deployed with Cipi, with tests (`php artisan test`).
+- Admin access to the repository settings to add secrets.
 
 ```flow
 Push | to main
@@ -5889,6 +6441,15 @@ $ cipi-cli prod deploy shop
 
 Next: a live URL for every branch with [preview environments](https://cipi.sh/guides/laravel-preview-environments).
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `Permission denied (publickey)` in CI | The CI public key isn't on the server: `sudo cipi ssh add "…"` |
+| `Host key verification failed` | Add the server's host key to `known_hosts` in the workflow (`ssh-keyscan`) |
+| Deploys twice per push | The webhook is still on: remove it from the repository |
+| CI passes, site broken | Add a [health check](https://cipi.sh/docs/health-checks) with `--rollback-on-unhealthy` |
+
 
 ## The self-hosted Laravel developer stack (2026)
 
@@ -5950,7 +6511,7 @@ Laravel is a framework plus a family of first-party and community tools. Choosin
 | Tool | Job | On Cipi |
 | --- | --- | --- |
 | MariaDB / MySQL | Default relational store | Default |
-| PostgreSQL | JSONB, extensions, analytics | `cipi db install pgsql` |
+| [PostgreSQL](https://cipi.sh/guides/laravel-postgresql) | JSONB, extensions, analytics | `cipi db install pgsql` |
 | Valkey (Redis) | Cache, sessions, queues for Horizon | Included |
 | [Scout + Meilisearch](https://cipi.sh/guides/laravel-scout-meilisearch) | Full-text search | `cipi search install` |
 
@@ -5977,14 +6538,182 @@ Laravel is a framework plus a family of first-party and community tools. Choosin
 
 You can rent all of this as a managed platform, rent a dashboard to manage your own VPS, or run it yourself for free. That trade-off is the subject of [our comparisons](https://cipi.sh/alternatives); the [developer stack guide](https://cipi.sh/guides/laravel-developer-stack-2026) does the cost math.
 
+## Where to go next 
+
+| Need | Guide |
+| --- | --- |
+| Cache, sessions, queues on Valkey | [Valkey guide](https://cipi.sh/guides/laravel-valkey-cache-sessions) |
+| Scheduled tasks | [Scheduler and cron](https://cipi.sh/guides/laravel-scheduler-cron) |
+| Many customers on subdomains | [Multi-tenant SaaS](https://cipi.sh/guides/laravel-multi-tenant-wildcard) |
+| Secrets and `.env` | [.env and secrets](https://cipi.sh/guides/laravel-env-secrets) |
+
+
+## Laravel .env and secrets in production, done right
+
+URL: https://cipi.sh/guides/laravel-env-secrets
+
+Every Laravel app reads its settings and secrets (database password, Stripe key, mail credentials) from a file called `.env`. Getting it right is mostly about **where it lives, who can read it and how you change it** without breaking a running app.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **`.env`** | A text file of `KEY=value` lines, read when Laravel boots |
+| **Secret** | A value that grants access: passwords, API keys, tokens |
+| **`config:cache`** | Laravel's compiled config: after it, `.env` isn't read again until the cache is rebuilt |
+| **Rotation** | Replacing a secret with a new one and retiring the old |
+| **Shared folder** | `/home//shared`: files that stay the same across releases |
+
+```tree
+/home/shop/
+  shared/
+    .env            ← the only copy, survives deploys
+    storage/
+  releases/
+    20261122_101500/
+      .env -> ../../shared/.env
+  current -> releases/20261122_101500
+```
+
+## Before you start 
+
+- A Laravel app on Cipi. Cipi wrote its `.env` at creation with the database, Valkey, app key and webhook values.
+
+## 1. Read and change values 
+
+```bash
+$ sudo cipi app env shop --show            # secrets visible: careful when screen sharing
+$ sudo cipi app env shop --get=APP_URL
+$ sudo cipi app env shop --set=STRIPE_SECRET=sk_live_…
+$ sudo cipi app env shop --unset=OLD_KEY
+$ sudo cipi app env shop                   # open in nano, as the app user
+```
+
+Every deploy caches Laravel's config, and a cached config doesn't read `.env` again. So after any change:
+
+```bash
+$ sudo cipi app artisan shop config:cache     # web requests see the new value
+$ sudo cipi worker restart shop               # workers, Horizon and Octane too
+```
+
+Or simply deploy: the deploy rebuilds the cache and restarts workers.
+
+The same edit is available in the [web panel](https://cipi.sh/web-panel) (secrets masked, changes tracked), through the REST API (`PUT /api/apps/shop/env`) and through MCP.
+
+In the [web panel](https://cipi.sh/web-panel), secrets are masked and every change is tracked:
+
+## 2. Keep secrets out of Git 
+
+```text
+# .gitignore
+.env
+.env.*
+!.env.example
+```
+
+```text
+# .env.example: the names, never the values
+STRIPE_KEY=
+STRIPE_SECRET=
+MAIL_MAILER=smtp
+```
+
+If a secret was ever committed, **rotate it**: removing it from history doesn't un-leak it.
+
+## 3. Rotate the database password 
+
+```bash
+$ sudo cipi db password shop
+```
+
+Cipi changes the password in the database and in `.env` together. Rebuild the config cache right after (`sudo cipi app artisan shop config:cache`) so the app picks it up. Never change it by hand in one place only.
+
+## 4. Rotate third-party keys 
+
+```flow
+Create new key | at the provider
+Set it | cipi app env --set
+Restart workers | if jobs use it
+Check | logs, a test payment
+Revoke old key | at the provider
+```
+
+Most providers (Stripe, Mailgun, AWS) let two keys be valid at once, so there's no gap.
+
+## 5. APP_KEY 
+
+`APP_KEY` encrypts cookies, sessions and anything you store with `Crypt::`. Cipi generates it once. Rotating it:
+
+```bash
+$ sudo cipi app env shop --set=APP_PREVIOUS_KEYS=base64:OLDKEY…
+$ sudo cipi app artisan shop key:generate --force
+```
+
+With `APP_PREVIOUS_KEYS`, Laravel can still decrypt values made with the old key. Users are logged out once.
+
+## 6. Different values per environment 
+
+Staging and production are separate apps with separate `.env` files: a staging key can never reach production. `APP_ENV`/`CIPI_ENV` are set by `--env=staging` at creation ([staging guide](https://cipi.sh/guides/cipi-yml-staging-production)).
+
+## Keep secrets from leaking 
+
+| Leak | Prevention |
+| --- | --- |
+| Error pages | `APP_DEBUG=false` in production, always |
+| Logs | Don't log request bodies or headers with tokens |
+| Screenshots, screen sharing | Use `--get` for one value instead of `--show` |
+| AI assistants | Give them [anonymized data](https://cipi.sh/guides/anonymized-database-dumps); MCP tokens without `apps-env` can't read `.env` |
+| Backups | [Encrypt them](https://cipi.sh/guides/backup-vps-s3); the server's own config is [encrypted at rest](https://cipi.sh/docs/vault) |
+| `phpinfo()` routes | Remove them: they print the environment |
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Change ignored | Cached config: `cipi app artisan shop config:cache`, then `cipi worker restart shop` |
+| `env()` returns `null` in code | `env()` only works inside `config/` files once config is cached: read via `config('services.stripe.secret')` |
+| `The MAC is invalid` | `APP_KEY` changed without `APP_PREVIOUS_KEYS` |
+| `Access denied for user` | Password changed by hand: run `sudo cipi db password shop` |
+| Value with spaces breaks | Quote it: `--set='MAIL_FROM_NAME="Acme Shop"'` |
+
 
 ## Laravel queues and Horizon in production
 
 URL: https://cipi.sh/guides/laravel-horizon-queues
 
-Every Laravel app on Cipi starts with one worker on the `default` queue, under Supervisor. This guide adds queues, scales them, and switches to Horizon when you want a dashboard.
+A **queue** lets your app answer the visitor immediately and do slow work (e-mails, PDFs, imports, webhooks) a moment later, in the background. A **worker** is a long-running process that takes jobs from the queue and runs them. This guide sets both up for production, then switches to **Horizon** when you want a dashboard.
 
-## 1. Add and scale queues
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Job** | A class with a `handle()` method, dispatched with `SendInvoice::dispatch($order)` |
+| **Queue** | A named line of jobs: `default`, `emails`, `exports` |
+| **Connection** | Where jobs are stored: `database` (Cipi's default) or `redis` (Valkey) |
+| **Worker** | `php artisan queue:work`, running forever, processing jobs |
+| **Supervisor** | The Linux service that keeps workers running and restarts them if they crash |
+| **Horizon** | Laravel's worker manager for Redis queues, with a dashboard |
+
+```flow
+Request | dispatch job, reply fast
+Queue | database or Valkey
+Worker | Supervisor keeps it alive
+Job runs | retries on failure
+failed_jobs | after the last try
+```
+
+## Before you start 
+
+- A Laravel app deployed with Cipi: it already has **one worker on `default`**.
+- Jobs implement `ShouldQueue`. Without it they run inline, in the request.
+
+```bash
+$ sudo cipi worker list shop
+```
+
+## 1. Add and scale queues 
+
+Put slow or bursty work on its own queue, so a big export never delays password-reset e-mails:
 
 ```bash
 $ sudo cipi worker add shop --queue=emails --processes=3
@@ -5997,25 +6726,99 @@ $ sudo cipi worker list shop
 | --- | --- | --- |
 | `--queue` | Queue to consume | `default` |
 | `--processes` | Parallel processes | 1 |
-| `--timeout` | Seconds before a job is killed | 60 |
+| `--tries` | Attempts before a job goes to `failed_jobs` | 3 |
+| `--timeout` | Seconds a worker process lives before it's recycled (`--max-time`), and how long a stop waits for the running job | 3600 |
 
-Dispatch to a queue as usual: `SendInvoice::dispatch($order)->onQueue('emails')`.
+Plain workers consume the **`database`** connection. To move queues to Valkey, use Horizon (step 4).
 
-## 2. Switch to Horizon
-
-Horizon needs the queues on Redis. Each app has [Valkey](https://cipi.sh/docs/valkey), a drop-in Redis, ready:
-
-```bash
-$ composer require laravel/horizon && php artisan horizon:install   # commit, deploy
-$ sudo cipi app env shop --set=QUEUE_CONNECTION=redis
-$ sudo cipi worker horizon enable shop
+```php
+SendInvoice::dispatch($order)->onQueue('emails');
+ExportOrders::dispatch($user)->onQueue('exports');
 ```
 
-Horizon replaces the app's `queue:work` workers. Configure supervisors per queue in `config/horizon.php`. Protect the dashboard with the `viewHorizon` gate.
+## 2. Timeouts and retries, the part people get wrong 
 
-When a deploy finds Horizon installed and queues on Redis with no worker, it enables Horizon for you; it never overrides a choice you made.
+```stack
+$timeout on the job | the job is killed after N seconds (Laravel's default: 60)
+retry_after | the queue hands the job to another worker after N seconds
+--timeout of the worker | how long the process lives, and how long a stop waits for it
+$tries / $backoff | per job: how many attempts, how long between
+```
 
-## 3. Deploys don't break jobs
+| Rule | Example |
+| --- | --- |
+| Long jobs declare their own limit | `public $timeout = 7000;` on `ExportOrders` |
+| The worker waits at least that long | `cipi worker add shop --queue=exports --timeout=7200` |
+| `retry_after` > the longest job | `'retry_after' => 7260` for that connection |
+| Jobs that call APIs get a backoff | `public $backoff = [10, 60, 300];` |
+| Limit attempts | `public $tries = 5;` or `retryUntil()` |
+| Make jobs safe to run twice | Check state first: "already sent?" |
+
+`retry_after` is set per connection in `config/queue.php`. If it's shorter than a job's runtime, the job runs twice.
+
+## 3. Failed jobs 
+
+```bash
+$ sudo cipi app artisan shop queue:failed
+$ sudo cipi app artisan shop queue:retry all
+$ sudo cipi app artisan shop queue:retry 5f1c…           # one job
+$ sudo cipi app artisan shop queue:prune-failed --hours=168
+```
+
+Add a `failed()` method to the job to notify yourself, or alert on the count from the scheduler.
+
+## 4. Switch to Horizon 
+
+Horizon needs the queues on Redis. Each app has its own [Valkey](https://cipi.sh/guides/laravel-valkey-cache-sessions) ready.
+
+```bash
+# on your laptop
+$ composer require laravel/horizon
+$ php artisan horizon:install
+$ git commit -am "Add Horizon" && git push
+# on the server
+$ sudo cipi app env shop --set=QUEUE_CONNECTION=redis
+$ sudo cipi app artisan shop config:cache
+$ sudo cipi worker horizon enable shop
+$ sudo cipi worker horizon status shop
+```
+
+Horizon replaces the app's `queue:work` workers: one or the other. Define supervisors in `config/horizon.php`:
+
+```php
+'environments' => [
+    'production' => [
+        'fast' => ['connection' => 'redis', 'queue' => ['default', 'emails'],
+                   'balance' => 'auto', 'minProcesses' => 1, 'maxProcesses' => 6, 'tries' => 3],
+        'slow' => ['connection' => 'redis', 'queue' => ['exports'],
+                   'maxProcesses' => 1, 'timeout' => 7200, 'tries' => 1],
+    ],
+],
+```
+
+| The deploy finds | It does |
+| --- | --- |
+| Horizon, queues on Redis, no worker | Enables Horizon |
+| Horizon plus existing workers | Explains how to switch; changes nothing |
+| Horizon, queues not on Redis | Tells you which variable to set |
+
+## 5. Protect the dashboard 
+
+`/horizon` is closed in production until you open it:
+
+```php
+// app/Providers/HorizonServiceProvider.php
+protected function gate(): void
+{
+    Gate::define('viewHorizon', fn ($user) => in_array($user->email, [
+        'you@example.com',
+    ]));
+}
+```
+
+For extra safety, [basic auth](https://cipi.sh/docs/basic-auth) or [Zero Trust](https://cipi.sh/guides/cloudflare-zero-trust-laravel) in front of the app.
+
+## 6. Deploys don't break jobs 
 
 ```flow
 Stop workers | before the swap
@@ -6023,9 +6826,18 @@ Swap release | atomic
 Restart workers | on the new code
 ```
 
-Workers never run old code against a migrated database. Long jobs: set `--timeout` above the job's duration so a deploy doesn't kill them mid-run.
+Workers stop gracefully: the running job finishes first, up to the worker's `--timeout`. Jobs dispatched by the old code must still work with the new code, so don't rename a job class or change its constructor in the same deploy that removes the old one.
 
-## 4. In cipi.yml
+## 7. Get alerted 
+
+| Signal | How |
+| --- | --- |
+| Worker crashed repeatedly | Supervisor restarts it; [Cipi alerts](https://cipi.sh/guides/notifications-alerts) cover server events |
+| Long waits | Horizon's `waits` config sends a notification when a queue waits too long |
+| Failed jobs | `failed()` on the job, or a scheduled count check |
+| Nothing processing at all | `sudo cipi pending` lists apps with Horizon installed but no worker |
+
+## 8. In cipi.yml 
 
 ```yaml
 workers:
@@ -6033,9 +6845,166 @@ workers:
   queues:
     - { queue: default, processes: 2 }
     - { queue: emails, processes: 3, tries: 5, timeout: 300 }
+    - { queue: exports, processes: 1, timeout: 7200 }
 ```
 
 Or `horizon: true` to hand everything to Horizon. [More on cipi.yml](https://cipi.sh/guides/manage-apps-with-cipi-yml).
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Jobs never run | No worker on that queue (`cipi worker list shop`), job not `ShouldQueue`, or `QUEUE_CONNECTION=redis` with plain workers: they read `database`, so enable Horizon or set it back |
+| Job runs twice | `retry_after` shorter than the job's runtime |
+| `MaxAttemptsExceededException` / job killed at 60 s | Set `$timeout` on the job and raise `retry_after` |
+| Code change ignored by jobs | Workers not restarted: `sudo cipi worker restart shop` |
+| Horizon shows "Inactive" | Not enabled: `cipi worker horizon enable shop`; or `QUEUE_CONNECTION` isn't `redis` |
+| `/horizon` returns 403 | The `viewHorizon` gate doesn't include your user |
+| Memory grows over time | A job leaks: `--max-jobs` / `maxJobs` in Horizon restarts processes regularly |
+
+
+## Multi-tenant Laravel SaaS with wildcard subdomains
+
+URL: https://cipi.sh/guides/laravel-multi-tenant-wildcard
+
+A multi-tenant app serves many customers from one codebase. A common shape gives each customer an address like `acme.yourapp.com`. Three things have to line up: **DNS** sends every subdomain to your server, **Nginx** sends them to your app, and a **certificate** covers all of them.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Tenant** | One customer (company, team, workspace) of your SaaS |
+| **Wildcard DNS** | A record `*.yourapp.com` that points every subdomain at one IP |
+| **Wildcard alias** | Tells Cipi's Nginx to send `*.yourapp.com` to your app |
+| **Wildcard certificate** | One HTTPS certificate valid for every `*.yourapp.com` |
+| **DNS-01** | How Let's Encrypt checks you own the domain for a wildcard: via a DNS record, not a web page |
+
+```flow
+acme.yourapp.com | browser
+DNS | * → 203.0.113.10
+Nginx | alias *.yourapp.com → app saas
+Laravel | Host header → tenant acme
+```
+
+## Before you start 
+
+- A Laravel app on Cipi with its primary domain, e.g. `yourapp.com` ([first deploy](https://cipi.sh/guides/deploy-laravel-ubuntu-vps)).
+- The domain's DNS on Cloudflare (free). Moving DNS doesn't move your traffic: you can keep records "DNS only" (grey cloud).
+
+## 1. DNS records 
+
+In Cloudflare, add:
+
+| Type | Name | Content | Proxy |
+| --- | --- | --- | --- |
+| A | `@` | your server IP | your choice |
+| A | `*` | your server IP | same as above |
+
+## 2. A Cloudflare API token 
+
+Cloudflare → My Profile → API Tokens → Create token → template "Edit zone DNS", limited to this zone. That's the only permission needed (**Zone → DNS → Edit**).
+
+```bash
+$ sudo cipi ssl dns set --token=YOUR_CLOUDFLARE_TOKEN
+```
+
+## 3. Route every subdomain to the app 
+
+```bash
+$ sudo cipi alias add saas '*.yourapp.com'      # the quotes matter
+$ sudo cipi alias list saas
+```
+
+## 4. Issue the wildcard certificate 
+
+```bash
+$ sudo cipi ssl install saas --dns=cloudflare
+$ sudo cipi ssl status
+$ curl -sI https://acme.yourapp.com | head -1
+HTTP/2 200
+```
+
+Takes about a minute. Renewals reuse the same token automatically. If the records are **proxied** (orange cloud), set Cloudflare SSL/TLS to **Full (strict)**.
+
+Aliases and certificates are also visible in the [web panel](https://cipi.sh/web-panel):
+
+## 5. Find the tenant in Laravel 
+
+A middleware reads the subdomain and loads the tenant:
+
+```php
+// app/Http/Middleware/ResolveTenant.php
+public function handle(Request $request, Closure $next)
+{
+    $host = $request->getHost();                       // acme.yourapp.com
+    $sub  = Str::before($host, '.yourapp.com');
+
+    $tenant = Tenant::where('slug', $sub)
+        ->orWhere('custom_domain', $host)
+        ->firstOrFail();
+
+    app()->instance(Tenant::class, $tenant);
+    URL::defaults(['tenant' => $tenant->slug]);
+
+    return $next($request);
+}
+```
+
+Or with route domains:
+
+```php
+Route::domain('{tenant}.yourapp.com')->middleware('tenant')->group(function () {
+    Route::get('/', DashboardController::class);
+});
+```
+
+| Concern | Tip |
+| --- | --- |
+| Data isolation | A global scope on `tenant_id`, or a package such as stancl/tenancy or spatie/laravel-multitenancy |
+| Sessions | Leave `SESSION_DOMAIN` empty so each tenant has its own cookie; `.yourapp.com` only to share a login across tenants |
+| Queued jobs | Pass the tenant id to the job; don't rely on the request |
+| Cache keys | Prefix with the tenant: `"tenant:{$id}:stats"` |
+| Reserved names | Block `www`, `api`, `admin`, `mail` as tenant slugs |
+
+## 6. Customer custom domains 
+
+A customer wants `portal.acme.com`. The routing part is easy: add it as an alias and save it as the tenant's `custom_domain`.
+
+```bash
+$ sudo cipi alias add saas portal.acme.com
+```
+
+The certificate needs a plan. An app has one certificate; with a wildcard issued over Cloudflare DNS, a name outside your Cloudflare zone can't join it over DNS, and a plain HTTP reissue would drop the wildcard.
+
+| Approach | How | Good for |
+| --- | --- | --- |
+| **Cloudflare for SaaS** (recommended) | Customers CNAME to a hostname you proxy; Cloudflare issues each customer's certificate at the edge; your origin keeps its wildcard and Full (strict) | Many customers, self-service |
+| **Separate app for custom domains** | A second Cipi app from the same repository, pointed at the same database, with the customer names as aliases and an HTTP-01 certificate (`cipi ssl install`) | A handful of customers, no Cloudflare |
+| **No wildcard** | List every tenant subdomain and custom domain as aliases, HTTP-01, up to 100 names per certificate | Few, known tenants |
+
+Automate whichever you pick from your app with the [Cipi API](https://cipi.sh/docs/api) when a customer saves the domain (`POST /api/apps/{name}/aliases`, then `POST /api/apps/{name}/ssl`).
+
+## 7. When to give a tenant its own app 
+
+```flow
+Shared app | one DB, tenant_id
+Database per tenant | same app, many DBs
+App per tenant | own user, PHP, DB, backups
+Server per tenant | enterprise contracts
+```
+
+For the last two, create apps through the API from your signup flow (`POST /api/apps`), one per tenant, each with its own domain, database and backups.
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `ERR_TOO_MANY_REDIRECTS` | Cloudflare SSL/TLS is Flexible: set Full (strict) |
+| 525 SSL handshake failed | The name has no alias or certificate yet |
+| 526 Invalid SSL certificate | Certificate doesn't cover the name: `cipi ssl status`, reissue |
+| `a.b.yourapp.com` fails | One-level wildcard only: keep tenants one label deep |
+| Every subdomain shows the same tenant | Middleware reads the wrong part of the host; log `$request->getHost()` |
+| Unknown subdomain shows another site | It can't: unknown hosts are closed by Cipi's default server |
 
 
 ## Laravel Octane with FrankenPHP on your own server
@@ -6043,6 +7012,26 @@ Or `horizon: true` to hand everything to Horizon. [More on cipi.yml](https://cip
 URL: https://cipi.sh/guides/laravel-octane-frankenphp
 
 [Laravel Octane](https://laravel.com/docs/octane) boots your app once and keeps it in memory, so each request skips the framework bootstrap. With FrankenPHP as the server, a typical app answers several times faster on the same hardware. Cipi runs it natively, without containers, next to your PHP-FPM apps.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **PHP-FPM** | The classic way: PHP boots Laravel for **every** request |
+| **Octane** | Boots Laravel **once** and keeps it in memory; requests reuse it |
+| **FrankenPHP** | A modern PHP server (one binary with PHP inside) that Octane runs on |
+| **Octane worker** | One long-lived process handling requests in turn |
+| **State leak** | Data from one request still in memory during the next: the main thing to avoid |
+
+```flow
+PHP-FPM | boot, handle, forget: every request
+Octane | boot once, handle many
+```
+
+## Before you start 
+
+- A Laravel app on Cipi ([first deploy](https://cipi.sh/guides/deploy-laravel-ubuntu-vps)) with a test suite.
+- About 150 MB of free RAM per Octane worker you plan to run.
 
 ## 1. Prepare the project
 
@@ -6116,12 +7105,222 @@ app:
   limits: { octane_workers: 4 }
 ```
 
+## Avoid state leaks 
+
+| Risky | Safer |
+| --- | --- |
+| `static $cache = []` in a service | Laravel's cache, or reset it per request |
+| Injecting `Request` into a singleton's constructor | Resolve the request inside the method |
+| Singletons holding the logged-in user | Bind as `scoped()` instead of `singleton()` |
+| Growing arrays in long-lived objects | Octane recycles each worker after 500 requests by default, which limits the damage, not the cause |
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| 502 Bad Gateway | Octane isn't running: `sudo cipi worker list shop`, then `sudo cipi app logs shop --type=worker` |
+| One user sees another's data | A state leak: see the table above |
+| `.env` change ignored | `cipi app artisan shop config:cache`, then `cipi worker restart shop` |
+| Memory climbs until restart | A leak in a long-lived object: find it (static arrays, listeners added per request); lower the worker count meanwhile |
+| `cipi php upgrade` lists the app | Its FrankenPHP build is behind: `sudo cipi frankenphp upgrade shop` |
+| Uploads larger than a few MB fail | Raise `client_max_body_size` and `upload_max_filesize` with `cipi ini` |
+
+
+## Laravel on PostgreSQL, on your own server
+
+URL: https://cipi.sh/guides/laravel-postgresql
+
+PostgreSQL is an open-source database known for being strict, predictable and extensible. Laravel supports it natively: same Eloquent, same migrations, `DB_CONNECTION=pgsql`. This guide sets it up on a Cipi server, explains what changes compared to MySQL, and covers the day-two tasks.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Engine** | The database server program: MariaDB (MySQL-compatible) or PostgreSQL |
+| **Database** | One container of tables, e.g. `shop` |
+| **Database user** | The login an app uses. On Cipi each app has its own, which owns its database |
+| **Superuser** | `postgres`: can do anything. Cipi keeps its password in the encrypted vault |
+| **SSH tunnel** | A way to reach the database from your laptop through SSH, without opening a port |
+
+```stack
+Your Laravel app | DB_CONNECTION=pgsql, own user
+PostgreSQL | port 5432, localhost only
+MariaDB | port 3306, localhost only, always installed
+Ubuntu server | firewall: 22, 80, 443 open
+```
+
+## When PostgreSQL is the better choice 
+
+| You need | PostgreSQL gives you |
+| --- | --- |
+| Rich JSON queries | `jsonb` columns with GIN indexes; Laravel's `whereJsonContains` uses them |
+| Safe migrations | DDL runs inside transactions: a failing migration rolls back cleanly |
+| Strict data | No silent truncation or invalid dates |
+| Advanced indexes | Partial, expression and full-text indexes |
+| Extensions | pgvector (AI embeddings), PostGIS (maps), pg_trgm (fuzzy search) |
+
+## Before you start 
+
+- A Cipi server ([install guide](https://cipi.sh/guides/deploy-laravel-ubuntu-vps)) and SSH access as `cipi`.
+- A Laravel app in a Git repository. Nothing in your code needs to change unless you used MySQL-only SQL (see [differences](#differences)).
+
+## 1. Install PostgreSQL 
+
+```bash
+$ sudo cipi db install pgsql
+$ sudo cipi db engines
+```
+
+Cipi installs `postgresql` and `postgresql-contrib`, makes it listen on `localhost` only, sets a random superuser password in the vault and pins the package so unattended upgrades never restart it. MariaDB keeps running next to it.
+
+Want every new app on PostgreSQL by default?
+
+```bash
+$ sudo cipi db default pgsql
+```
+
+## 2. Create a Laravel app on PostgreSQL 
+
+```bash
+$ sudo cipi app create --user=shop --domain=shop.example.com \
+    --repository=git@github.com:you/shop.git --branch=main --engine=pgsql
+```
+
+```flow
+Linux user | shop
+Database | shop, owned by user shop
+.env | DB_CONNECTION=pgsql, port 5432
+First deploy | php artisan migrate --force
+```
+
+Cipi creates the database with `UTF8` encoding and gives the app user ownership of it and of the `public` schema, so migrations can create, alter and drop anything inside it, and nothing outside it.
+
+Check the result:
+
+```bash
+$ sudo cipi app env shop --get=DB_CONNECTION
+pgsql
+$ sudo cipi db list
+```
+
+## 3. Extra databases 
+
+An analytics database for the same app, or a database for a tool:
+
+```bash
+$ sudo cipi db create --name=analytics --engine=pgsql --app=shop
+```
+
+Add a second connection in `config/database.php` and the credentials Cipi prints to the app's `.env` (`sudo cipi app env shop`).
+
+## 4. Connect from your laptop 
+
+The database port is never exposed. TablePlus, DBeaver, DataGrip and Postico all support an SSH tunnel:
+
+| Field | Value |
+| --- | --- |
+| SSH host / user | Server IP, `cipi` (your SSH key) |
+| Database host / port | `127.0.0.1`, `5432` |
+| Database, user, password | From `sudo cipi app env shop --show` |
+
+Or from a terminal:
+
+```bash
+$ ssh -L 5433:127.0.0.1:5432 cipi@203.0.113.10
+# in another terminal
+$ psql "postgresql://shop:PASSWORD@127.0.0.1:5433/shop"
+```
+
+## 5. Backups and restores 
+
+```bash
+$ sudo cipi db backup shop                     # one-off pg_dump, gzipped
+$ sudo cipi backup profile add hourly-db --scope=db --databases=shop --every=1h --keep=48 --dest=s3 --encrypt
+$ sudo cipi db restore shop /var/log/cipi/backups/shop_20261123_101500.sql.gz
+```
+
+PostgreSQL restores run **in one transaction**: if the file is truncated or a statement fails, nothing changes and your data stays as it was. Full setup in the [backup guide](https://cipi.sh/guides/backup-vps-s3).
+
+## 6. Upgrades 
+
+```bash
+$ sudo cipi db upgrade pgsql
+```
+
+Minor releases (security and bug fixes) install with a brief restart. Plan it outside peak hours, or schedule it with [stack upgrades](https://cipi.sh/docs/stack-upgrades).
+
+The same databases, backups and password rotation in the [web panel](https://cipi.sh/web-panel):
+
+## MySQL habits that change 
+
+| MySQL / MariaDB | PostgreSQL |
+| --- | --- |
+| `LIKE` is case-insensitive | `LIKE` is case-sensitive: use `ILIKE` or `whereLike(..., caseSensitive: false)` |
+| `GROUP BY` lets you select any column | Every selected column must be grouped or aggregated |
+| Backticks `` `name` `` | Double quotes `"name"` (Laravel handles this for you) |
+| `0000-00-00` dates accepted | Rejected: use `NULL` |
+| Auto-increment | `bigserial` / identity, same `$table->id()` |
+| `FIELD()`, `IF()` | `CASE WHEN … END` |
+
+Raw SQL (`DB::raw`, `whereRaw`) is where problems hide: grep for it before switching.
+
+## Move an existing app from MySQL 
+
+There's no in-place switch. You create a PostgreSQL app and move the data once:
+
+```flow
+Test locally | run the suite on pgsql
+New app | --engine=pgsql, same repo
+Copy data | pgloader or an export job
+Check | counts, a few pages
+Switch DNS | or swap the domain
+```
+
+1. Run your test suite against PostgreSQL locally (`DB_CONNECTION=pgsql` in `.env.testing`) and fix raw queries.
+2. Create `shop-pg` with `--engine=pgsql` and deploy: migrations build the schema.
+3. Copy the data. [pgloader](https://pgloader.io) reads MySQL and writes PostgreSQL directly; install it on the server (`sudo apt install pgloader`) and run it against both local databases with `--with "data only"` so it fills the tables your migrations created.
+4. Reset sequences (pgloader does it; for a hand-made import run `SELECT setval(...)` per table).
+5. Compare row counts, click through the app, then move the domain (`sudo cipi app edit shop-pg --domain=shop.example.com` after removing it from the old app).
+
+Do a dry run with a copy first, ideally an [anonymized one](https://cipi.sh/guides/anonymized-database-dumps).
+
+## pgvector and other extensions 
+
+App users own their database but aren't superusers, so they can't create most extensions themselves. As `cipi`:
+
+```bash
+$ psql --version                                # e.g. 16 on Ubuntu 24.04
+$ sudo apt install postgresql-16-pgvector        # postgresql--pgvector
+$ sudo -u postgres psql -d shop -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
+
+After that, migrations can use the `vector` column type.
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `could not find driver` | Rare: Cipi installs `php-pgsql` with every PHP version. Check `php -m` as the app user and reinstall the version if it's missing |
+| `permission denied to create extension` | Create it as `postgres` (see above) |
+| `column must appear in the GROUP BY clause` | Add the column to `groupBy()` or aggregate it |
+| Search stopped matching uppercase | `LIKE` is case-sensitive: use `ILIKE` |
+| Duplicate key on insert after an import | Sequences weren't reset |
+| `--engine=pgsql` refused | PostgreSQL isn't installed yet: `sudo cipi db install pgsql` |
+
 
 ## Preview environments for every Laravel branch
 
 URL: https://cipi.sh/guides/laravel-preview-environments
 
 Reviewers click a link instead of pulling a branch. Each preview is a complete, isolated Cipi app at `feature-x-shop-3a1f9c2e.preview.example.com`, removed when the branch is deleted.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Preview environment** | A temporary copy of the app for one branch or pull request |
+| **Wildcard certificate** | One HTTPS certificate for every `*.preview.example.com` |
+| **Slug** | The branch name made safe for a domain and a Linux user: `feature/cart` → `pr-cart` |
 
 ```flow
 Push feature/x | any branch but main
@@ -6168,12 +7367,36 @@ The app name is a short hash of branch and repository, so it's stable for the br
 
 The workflow's `delete` trigger removes the app. Check for leftovers now and then with `sudo cipi app list`.
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| App name refused | Names must be lowercase alphanumeric: sanitize the branch slug and keep it short |
+| Preview has no HTTPS | Wildcard certificate missing: see [wildcard domains](https://cipi.sh/docs/wildcard-domains) |
+| Leftover previews | `sudo cipi app list` and delete; check the workflow's delete trigger |
+| Previews send real e-mails | Set `MAIL_MAILER=log` (or a sandbox) for previews |
+
 
 ## Real-time Laravel with Reverb, on your own domain
 
 URL: https://cipi.sh/guides/laravel-reverb-websockets
 
 [Laravel Reverb](https://reverb.laravel.com) is Laravel's own WebSocket server. Here you'll add live notifications to an app and run Reverb in production on the same domain and certificate as the app: no Pusher account, no extra port to open, no credentials to invent.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **WebSocket** | A connection the browser keeps open, so the server can push messages |
+| **Broadcasting** | Laravel sending an event to connected browsers |
+| **Channel** | A named stream: public, private (logged-in users) or presence (who's online) |
+| **Echo** | The JavaScript client that listens on channels |
+| **Reverb** | The WebSocket server, a long-running process on your server |
+
+## Before you start 
+
+- A Laravel app on Cipi with a queue worker running (broadcasts are queued).
+- A domain with HTTPS, so browsers connect over `wss://`.
 
 ## 1. Add broadcasting to the project
 
@@ -6234,7 +7457,7 @@ Events are broadcast from queued jobs, so keep a [worker or Horizon](https://cip
 
 | Symptom | Fix |
 | --- | --- |
-| Clients use `ws://` after adding a certificate | `cipi app reverb enable shop` again, then deploy |
+| Clients use `ws://` after adding a certificate | Redeploy, so Vite rebuilds the bundle with `wss://` |
 | `Missing in .env` in status | Run `enable` again: it fills in missing keys, keeps port and credentials |
 | Domain changed | Redeploy so the bundle picks up the new host |
 
@@ -6248,12 +7471,187 @@ workers:
 
 A clone or staging copy gets its own port, credentials and host, never production's.
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Console: WebSocket connection failed | Reverb not running: `sudo cipi app reverb status shop` |
+| Connects, but no events | No queue worker, or the event isn't `ShouldBroadcast`; check `queue:failed` |
+| 403 on `/broadcasting/auth` | User not logged in, or the channel rule in `routes/channels.php` returns false |
+| Mixed content blocked | Page on HTTPS, socket on `ws://`: install the certificate, redeploy |
+| Works locally, not on the server | `VITE_REVERB_*` baked in at build time: redeploy after changing them |
+
+
+## Laravel scheduler and cron jobs in production
+
+URL: https://cipi.sh/guides/laravel-scheduler-cron
+
+Most apps need things to happen on their own: send a daily report, clear old records, renew subscriptions. Laravel's **scheduler** lets you list those tasks in code. A single cron line runs the scheduler every minute, and it decides what's due.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **cron** | The Linux service that runs commands at fixed times |
+| **crontab** | A user's list of cron jobs, one per line |
+| **Scheduler** | Laravel's list of tasks in `routes/console.php`, checked once a minute |
+| **`schedule:run`** | The Artisan command cron calls every minute; it runs what's due and exits |
+| **Overlap** | A task still running when its next run starts |
+
+```flow
+cron, every minute | as user shop
+schedule:run | reads routes/console.php
+Due tasks | run or dispatch to the queue
+Exit | until the next minute
+```
+
+## Before you start 
+
+- A Laravel app deployed with Cipi ([first deploy](https://cipi.sh/guides/deploy-laravel-ubuntu-vps)).
+- Nothing to configure: the cron line already exists.
+
+## 1. See what Cipi set up 
+
+```bash
+$ sudo cipi schedule status shop
+$ sudo crontab -u shop -l
+* * * * * /usr/bin/php8.6 /home/shop/current/artisan schedule:run >> /dev/null 2>&1
+```
+
+It runs as `shop`, so tasks have the app's permissions and nothing more, with **the app's** PHP version, against `current/`, which always points at the live release.
+
+## 2. Write your first tasks 
+
+In `routes/console.php`:
+
+```php
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('reports:daily')
+    ->dailyAt('06:00')
+    ->timezone('Europe/Rome')
+    ->withoutOverlapping()
+    ->onFailure(fn () => logger()->error('Daily report failed'));
+
+Schedule::command('model:prune')->daily();
+Schedule::job(new SyncStock)->everyFifteenMinutes();     // queued, runs on a worker
+Schedule::command('backup:clean')->weekly()->sundays()->at('03:00');
+```
+
+Commit and deploy. Then list them as the server sees them:
+
+```bash
+$ sudo cipi app artisan shop schedule:list
+```
+
+| Option | Use it when |
+| --- | --- |
+| `->withoutOverlapping()` | A run can take longer than the interval |
+| `->onOneServer()` | The app runs on more than one server (needs a shared cache) |
+| `->runInBackground()` | Several long commands are due at the same minute |
+| `->evenInMaintenanceMode()` | It must run during `artisan down` |
+| `Schedule::job(...)` | The work is heavy: the scheduler only dispatches it |
+
+## 3. Keep the scheduler light 
+
+`schedule:run` runs due tasks one after another. A ten-minute command at 06:00 delays every other task due at 06:00.
+
+```flow
+Scheduler | small, fast commands
+Queue | heavy work, retries, timeouts
+Worker | Supervisor, restarted on deploy
+```
+
+Schedule a job instead of the work itself, and give long queues their own worker ([queues guide](https://cipi.sh/guides/laravel-horizon-queues)):
+
+```bash
+$ sudo cipi worker add shop --queue=reports --processes=1 --timeout=1800
+```
+
+## 4. Get told when a task fails 
+
+Inside Laravel, `->onFailure()` and `->emailOutputOnFailure('ops@example.com')` (which needs working Laravel mail). On the server side, wrap a root cron job with `cipi-cron-notify` and it alerts the [channels you configured](https://cipi.sh/guides/notifications-alerts) when the command exits non-zero:
+
+```text
+# /etc/cron.d/shop-reports
+0 4 * * * root /usr/local/bin/cipi-cron-notify daily-report sudo -u shop php /home/shop/current/artisan report:daily
+```
+
+For "did it run at all?", schedule a heartbeat to an external monitor:
+
+```php
+Schedule::command('reports:daily')->dailyAt('06:00')
+    ->pingOnSuccess('https://hc-ping.com/your-uuid');
+```
+
+## 5. Extra cron jobs 
+
+Prefer the scheduler: tasks stay in code, versioned and deployed. When you really need a plain cron job (a shell script, a non-PHP tool), add it to the app user's crontab:
+
+```bash
+$ sudo su - shop
+$ crontab -e
+# keep the schedule:run line, add yours below
+*/15 * * * * /home/shop/current/scripts/sync.sh >> /home/shop/logs/sync.log 2>&1
+```
+
+| Rule | Why |
+| --- | --- |
+| Keep the `schedule:run` line | `cipi schedule on shop` puts it back if it goes |
+| Use absolute paths | Cron has a minimal `PATH` |
+| Log to a file | Otherwise output disappears |
+| Root jobs in `/etc/cron.d/` | Never give an app more rights than it needs |
+
+## 6. Pause and resume 
+
+```bash
+$ sudo cipi schedule off shop        # e.g. during a data migration
+$ sudo cipi schedule on shop
+```
+
+## Debug a task that never ran 
+
+```flow
+Is it listed? | schedule:list
+Is cron calling? | grep CRON syslog
+Did it fail? | laravel.log
+Run it by hand | artisan command
+```
+
+```bash
+$ sudo cipi app artisan shop schedule:list
+$ grep CRON /var/log/syslog | grep shop | tail -5
+$ sudo cipi app logs shop --type=laravel          # Laravel log
+$ sudo cipi app artisan shop reports:daily        # run it now, see the error
+$ sudo cipi app artisan shop schedule:clear-cache # stuck overlap lock
+```
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Task listed but never runs | `schedule status` says off: `cipi schedule on shop` |
+| Runs at the wrong hour | Server time is UTC: set `->timezone()` per task or `timezone` in `config/app.php` |
+| Skipped forever after a crash | Overlap lock left behind: `schedule:clear-cache` |
+| Runs twice | Two servers without `->onOneServer()`, or a duplicate line in the crontab |
+| Works by hand, fails from cron | Missing env or relative path: use absolute paths, check the log |
+| Skipped while the app is down | You ran `artisan down`: add `->evenInMaintenanceMode()` only to tasks that are safe then |
+
 
 ## Laravel Scout with Meilisearch, self-hosted
 
 URL: https://cipi.sh/guides/laravel-scout-meilisearch
 
 Here you'll add instant, typo-tolerant product search to a Laravel shop with [Scout](https://laravel.com/docs/scout) and [Meilisearch](https://www.meilisearch.com), running on the same server. Each app gets a key that can only touch its own indexes.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Scout** | Laravel's search layer: `Product::search('shoes')->get()` |
+| **Meilisearch** | An open-source search engine, typo-tolerant and fast |
+| **Index** | Meilisearch's copy of the searchable fields of your models |
+| **Filterable / sortable attributes** | Fields you can filter or sort on; they must be declared |
 
 ## 1. Install Meilisearch on the server
 
@@ -6334,12 +7732,181 @@ deploy:
 | Upgrade | `sudo cipi search upgrade` (old binary returns if the store is refused) |
 | Turn off for an app | `sudo cipi search disable shop --purge-indexes` |
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| No results | Not imported yet: `scout:import "App\Models\Product"` |
+| `Attribute is not filterable` | Declare it in `scout.meilisearch.index-settings`, then `scout:sync-index-settings` |
+| Changes don't show up | `SCOUT_QUEUE=true` and no worker running, or `searchable()` not called |
+| `invalid_api_key` | Key rotated: check `MEILISEARCH_KEY` in `.env`, `cipi search status --check` |
+
+
+## Laravel cache, sessions and queues on Valkey (Redis)
+
+URL: https://cipi.sh/guides/laravel-valkey-cache-sessions
+
+Laravel can keep **cache**, **sessions** and **queues** in several places. New apps on Cipi keep them in the database, which works fine at the start. As traffic grows, moving them to **Valkey**, an in-memory store, makes them much faster and lighter on the database.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Cache** | Saved results (`Cache::remember`) so you don't compute them again |
+| **Session** | What the app remembers about a logged-in visitor between requests |
+| **Queue** | Jobs waiting for a worker to process them |
+| **Valkey / Redis** | An in-memory key-value store: very fast, data mostly in RAM |
+| **Eviction** | What Valkey does when it's full: e.g. drop the least recently used keys |
+
+```stack
+Laravel app shop | CACHE_STORE, SESSION_DRIVER, QUEUE_CONNECTION
+Valkey for shop | 127.0.0.1:64xx, own password, user shop
+Valkey for blog | another port, another password
+Ubuntu server | nothing exposed to the internet
+```
+
+## When to switch 
+
+| Sign | Move |
+| --- | --- |
+| Heavy `Cache::` use, slow pages under load | `CACHE_STORE=redis` |
+| Many logged-in users, the `sessions` table grows | `SESSION_DRIVER=redis` |
+| You want Horizon, or many jobs per minute | `QUEUE_CONNECTION=redis` with Horizon |
+| Rate limiting, `Cache::lock()`, Reverb scaling | Already covered by `CACHE_STORE=redis` |
+
+You can switch one at a time.
+
+## Before you start 
+
+- A Laravel app on Cipi. `phpredis` is installed with every PHP version, and the `.env` already holds `REDIS_HOST`, `REDIS_PORT` and `REDIS_PASSWORD` for the app's own instance.
+
+```bash
+$ sudo cipi valkey list
+$ sudo cipi app env shop --get=REDIS_PORT
+```
+
+## 1. Switch the drivers 
+
+```bash
+$ sudo cipi app env shop --set=CACHE_STORE=redis
+$ sudo cipi app env shop --set=SESSION_DRIVER=redis
+$ sudo cipi app artisan shop config:cache  # deploys cache the config: rebuild it
+$ sudo cipi worker restart shop            # workers re-read the config
+```
+
+Queues on Valkey run under **Horizon** (plain workers read the `database` connection):
+
+```bash
+$ sudo cipi app env shop --set=QUEUE_CONNECTION=redis
+$ sudo cipi app artisan shop config:cache
+$ sudo cipi worker horizon enable shop     # needs laravel/horizon in the app
+```
+
+[Horizon guide](https://cipi.sh/guides/laravel-horizon-queues).
+
+| What happens | Effect |
+| --- | --- |
+| Cache | Starts empty: the first requests rebuild it |
+| Sessions | Logged-in users are logged out once (old sessions were in the database) |
+| Queue (with Horizon) | Jobs already in the `jobs` table stay there: drain them once with `queue:work database --stop-when-empty` |
+
+Switch sessions at a quiet time, or tell users they'll need to log in again.
+
+## 2. Check it works 
+
+```bash
+$ sudo cipi app artisan shop tinker --execute="Cache::put('ping','pong',60); echo Cache::get('ping');"
+pong
+$ sudo cipi valkey list                    # shop: its own instance, running
+```
+
+## 3. Cap memory and pick an eviction policy 
+
+Without a cap, an instance grows with your data. For an app that still uses the shared instance, set the cap while you isolate it (step 4):
+
+```bash
+$ sudo cipi valkey isolate shop --maxmemory=256mb --policy=allkeys-lru
+```
+
+For an app that already has its own instance (every new app), add the two lines to its config and restart it:
+
+```bash
+$ echo -e "maxmemory 256mb\nmaxmemory-policy allkeys-lru" | sudo tee -a /etc/cipi-valkey/shop.conf
+$ sudo cipi valkey restart shop
+```
+
+| Policy | Use for |
+| --- | --- |
+| `allkeys-lru` | Mostly cache: drops the least used keys when full |
+| `volatile-lru` | Cache plus data without expiry (sessions with TTL, queue): drops only keys with an expiry |
+| `noeviction` | Queues only: refuses writes when full, so jobs are never dropped silently |
+
+If you keep queues and cache in the same instance, `volatile-lru` is the safe middle: cache keys have a TTL, queued jobs don't.
+
+## 4. Apps still on the shared instance 
+
+Older servers started with one Valkey for everybody. Move each app to its own:
+
+```bash
+$ sudo cipi pending                          # lists apps still on the shared instance
+$ sudo cipi valkey isolate shop              # or --all
+```
+
+```flow
+Maintenance on | app returns 503 for seconds
+Workers stop | nothing writes
+Copy keys | with their expiry
+Switch .env | config cache rebuilt
+Back online | on its own instance
+```
+
+If the copy fails, the app stays exactly where it was. Once nobody uses the shared instance, `sudo cipi valkey flush-shared` empties it and changes its password.
+
+## 5. Look inside 
+
+```bash
+$ sudo cipi app env shop --get=REDIS_PORT
+$ valkey-cli -p 6401 -a "$(sudo cipi app env shop --get=REDIS_PASSWORD)" info memory
+$ valkey-cli -p 6401 -a "…" --scan --pattern '*cache*' | head
+```
+
+Avoid `KEYS *` on a big instance: it blocks it. `--scan` doesn't.
+
+## Good habits 
+
+| Habit | Why |
+| --- | --- |
+| Always set a TTL on cache keys | Lets eviction work and memory stay flat |
+| Don't treat cache as storage | Anything in it may disappear |
+| Separate queue and cache Redis databases (`REDIS_CACHE_DB`) | `cache:clear` won't touch queued jobs |
+| Restart workers after driver changes | They keep the old config in memory |
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `Connection refused` | Instance stopped: `sudo cipi valkey restart shop` |
+| `NOAUTH` / `WRONGPASS` | `.env` and instance disagree: compare `REDIS_PASSWORD` with `requirepass` in `/etc/cipi-valkey/shop.conf` |
+| Everyone logged out | Expected once after switching `SESSION_DRIVER` |
+| Jobs stuck in the database | Drain the old `jobs` table (see step 1) |
+| `OOM command not allowed` | Memory cap reached with `noeviction`: raise `--maxmemory` or change policy |
+| `Class "Redis" not found` | Very rare: the app's PHP lacks `phpredis`; reinstall that PHP version |
+
 
 ## Zero-downtime Laravel deploys with safe migrations
 
 URL: https://cipi.sh/guides/laravel-zero-downtime-migrations
 
 Zero downtime is two problems: switching code without a gap, and changing the database without breaking the code that's still live. Cipi solves the first. This guide shows how to handle the second.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Atomic release** | The new code goes live in one instant switch |
+| **Expand / contract** | First add (columns, tables) so old and new code both work; remove later |
+| **Snapshot** | A database dump taken right before migrations |
+| **Auto-rollback** | Cipi restores the previous release if the health check fails |
 
 ## How a release goes live
 
@@ -6405,12 +7972,33 @@ $ sudo cipi deploy shop --audit
 $ sudo cipi deploy shop --history
 ```
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Old release errors during deploy | A migration removed something it uses: split into expand and contract |
+| Deploy stuck on a migration | A table lock: check running queries, use online DDL |
+| Rolled back code, data still new | Expected: restore the snapshot if needed |
+| No snapshot was taken | `--snapshot` continues if the dump fails; use `--snapshot-required` |
+
 
 ## cipi.yml recipes for common Laravel setups
 
 URL: https://cipi.sh/guides/cipi-yml-recipes
 
 Start from the recipe closest to your app, run `php artisan cipi:yml validate`, commit, then `sudo cipi yml plan ` after the deploy. Every key is documented in the [reference](https://cipi.sh/docs/yml).
+
+## How to use a recipe 
+
+```flow
+Copy | into cipi.yml at the repo root
+Adapt | names, domains, sizes
+Validate | php artisan cipi:yml validate
+Deploy | the release carries the file
+Plan, apply | cipi yml plan / apply
+```
+
+Names inside the file (databases, backup profiles) must start with the app's name, so replace `shop` with yours. New to the file? Start with [the cipi.yml guide](https://cipi.sh/guides/manage-apps-with-cipi-yml).
 
 ## SaaS: Horizon, Reverb, search, backups
 
@@ -6507,66 +8095,206 @@ workers:
 deploy: { branch: develop, predeploy_snapshot: false }
 ```
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `search: true` blocked | Meilisearch isn't installed on the server: `sudo cipi search install` |
+| Wildcard alias works, HTTPS doesn't | The wildcard certificate needs DNS-01: [wildcard guide](https://cipi.sh/guides/laravel-multi-tenant-wildcard) |
+| `horizon: true` and queues both set | Horizon replaces the queues: keep one |
+| Engine `pgsql` blocked | PostgreSQL isn't installed: `sudo cipi db install pgsql` ([guide](https://cipi.sh/guides/laravel-postgresql)) |
+
 
 ## Staging and production from one repository with cipi.yml
 
 URL: https://cipi.sh/guides/cipi-yml-staging-production
 
-One repository, two apps: `shop` (production, branch `main`) and `shop-stg` (staging, branch `develop`). Each reads its own file, so staging can run fewer workers, skip backups and keep basic auth on, without a single `if` in your deploy scripts.
+Most teams want two copies of the same app: **production**, which your customers use, and **staging**, where you try changes first. This guide sets that up on Cipi from scratch, explaining each idea along the way. No previous Cipi experience needed.
+
+## What you'll build
 
 ```stack
-Repository | cipi.yml + cipi-staging.yml
-shop | env production → reads cipi.yml
-shop-stg | env staging → reads cipi-staging.yml
+Git repository | one codebase, two branches
+shop (production) | branch main → reads cipi.yml
+shop-stg (staging) | branch develop → reads cipi-staging.yml
 ```
 
-## 1. Clone production as staging
+| | Production | Staging |
+| --- | --- | --- |
+| App name (Linux user) | `shop` | `shop-stg` |
+| Domain | `shop.example.com` | `staging.shop.example.com` |
+| Branch that deploys | `main` | `develop` |
+| Settings file | `cipi.yml` | `cipi-staging.yml` |
+| Database | `shop` | `shop-stg` (separate) |
+| Who can see it | everyone | only your team (password) |
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **App** | One running copy of your code on the server: its own user, folder, PHP pool, database and domain |
+| **Environment** | A label on an app (`production`, `staging`…). Laravel sees it as `APP_ENV`, Cipi uses it to pick a settings file |
+| **Branch** | The Git branch an app deploys. Push to it and that app updates |
+| **`cipi.yml`** | A file in your repository that describes how the server should run the app: PHP version, workers, backups… ([what it is](https://cipi.sh/cipi-yml)) |
+| **Plan / apply** | Cipi first shows what the file would change (plan), then does it (apply) |
+
+## Before you start 
+
+- A server with Cipi and your production app already running ([Deploy Laravel on a VPS](https://cipi.sh/guides/deploy-laravel-ubuntu-vps)).
+- A `develop` branch in your repository: `git checkout -b develop && git push -u origin develop`.
+- A DNS record for `staging.shop.example.com` pointing at the server (same IP as production).
+
+## 1. Create the staging app as a clone 
+
+A **clone** copies the app's configuration (PHP version, repository, workers, deploy settings) into a new, fully separate app:
 
 ```bash
-$ sudo cipi app clone shop --domain=staging.shop.example.com --name=shop-stg --env=staging
+$ sudo cipi app clone shop --domain=staging.shop.example.com --name=shop-stg \
+    --branch=develop --env=staging --with-db
 ```
 
-The clone gets its own user, database, PHP pool, credentials and deploy key. It never shares production's secrets.
+| Flag | Why |
+| --- | --- |
+| `--domain` | The address of the new app |
+| `--name` | Its Linux user and app name |
+| `--branch=develop` | Staging deploys the `develop` branch |
+| `--env=staging` | Marks it as staging: it will read `cipi-staging.yml` and get `APP_ENV=staging` |
+| `--with-db` | Creates a fresh, **empty** database for it |
 
-## 2. Add the staging file
+The clone gets new database credentials, its own deploy key, its own Reverb credentials and search key. **Nothing points back to production.** Save the summary it prints.
+
+Then deploy it once and add HTTPS:
+
+```bash
+$ sudo cipi deploy shop-stg
+$ sudo cipi ssl install shop-stg
+```
+
+## 2. Keep strangers out of staging 
+
+Staging often contains unfinished features. Put a password in front of it:
+
+```bash
+$ sudo cipi basicauth enable shop-stg --user=preview --password='a-long-random-passphrase'
+```
+
+Pick a long password and share it with your team (without `--user` and `--password`, Cipi generates both and shows them once). Search engines and visitors now get a login prompt.
+
+## 3. Write the two settings files 
+
+In your repository root, production keeps its `cipi.yml`. Add a second file, `cipi-staging.yml`, with what staging needs. The staging file **does not inherit** from `cipi.yml`: write everything staging needs.
 
 ```yaml
-# cipi-staging.yml
+# cipi.yml — production
 version: 1
 app:
+  php: "8.6"
+  aliases: ["www.shop.example.com"]
+  www: to-root
+workers:
+  horizon: true
+schedule: true
+health:
+  url: "https://shop.example.com/up"
+  rollback_on_unhealthy: true
+deploy:
+  branch: main
+  predeploy_snapshot: true
+env: { required: [STRIPE_KEY, MAIL_HOST] }
+backup:
+  profiles:
+    - { name: shop-nightly, scope: all, cron: "0 2 * * *", keep_days: 14, destinations: [s3], encrypt: true }
+```
+
+```yaml
+# cipi-staging.yml — staging
+version: 1
+app:
+  php: "8.6"
   basic_auth:
-    users: [preview]          # password set once on the server
+    users: [preview]           # the user created above; keeps its password
 workers:
   queues:
     - { queue: default, processes: 1 }
 schedule: true
 deploy:
   branch: develop
-  predeploy_snapshot: false
+env: { required: [STRIPE_KEY] }   # test keys, set on the staging server
 ```
 
-Keep `cipi.yml` for production. An app reads `cipi-.yml` first, then falls back to `cipi.yml`.
+| Difference | Why |
+| --- | --- |
+| No aliases or www redirect | Staging has one domain |
+| One queue worker instead of Horizon | Less memory; enough for testing |
+| No backup profile | Staging data is disposable |
+| `basic_auth` in the file | The password protection can't be removed by accident |
+| `deploy.branch: develop` | Pushes to `develop` deploy staging |
 
-## 3. Plan and apply on staging
+Validate both before you commit (with the [Cipi Agent](https://cipi.sh/docs/agent-yml) installed in the app):
 
 ```bash
-$ sudo cipi deploy shop-stg
-$ sudo cipi yml plan shop-stg      # deploy branch: main → develop (from the next deploy)
-$ sudo cipi yml apply shop-stg
-$ sudo cipi yml auto shop-stg on
+$ php artisan cipi:yml validate
+$ CIPI_ENV=staging php artisan cipi:yml validate
 ```
 
-From now on, pushes to `develop` deploy staging and pushes to `main` deploy production.
+Commit and push to **both** branches (merge `develop` into `main` later, or cherry-pick the files).
 
-## Rules that keep production safe
+## 4. Plan, then apply on staging 
 
-| Rule | Why |
+After the next deploy of `shop-stg` the file is on the server. See what it would change:
+
+```bash
+$ sudo cipi yml plan shop-stg
+$ sudo cipi yml apply shop-stg
+$ sudo cipi yml auto shop-stg on      # apply after every deploy from now on
+```
+
+Do the same for production with `shop`. From now on, the files are the source of truth: change them in a pull request, merge, and each app applies its own file on the next deploy.
+
+## 5. Push-to-deploy for each branch 
+
+Each app has its own webhook and only deploys its own branch:
+
+```flow
+git push develop | GitHub webhook
+shop-stg | deploys develop
+git push main | GitHub webhook
+shop | deploys main
+```
+
+Get each app's webhook URL and secret with `sudo cipi deploy shop-stg --webhook` and add it to the repository ([auto-deploy](https://cipi.sh/docs/auto-deploy)). Pushes to other branches answer `skipped`.
+
+## 6. Get realistic data into staging 
+
+An empty database isn't much of a test. Never copy production as is: personal data ends up in a less protected place. Use an **anonymized dump**:
+
+```bash
+$ cipi-cli prod db anonymize shop --email you@example.com
+$ cipi-cli db anonymize download "" -o shop-anon.sql
+# copy it to the server, then:
+$ sudo cipi db restore shop-stg /home/cipi/shop-anon.sql
+```
+
+Step by step: [GDPR-safe production data](https://cipi.sh/guides/anonymized-database-dumps).
+
+## The daily workflow 
+
+```flow
+Branch | feature/x from develop
+Merge to develop | staging deploys
+Test on staging | behind the password
+Merge to main | production deploys
+```
+
+## Troubleshooting 
+
+| Problem | Fix |
 | --- | --- |
-| The server sets the environment (`--env`), not the file | A commit can't make production read the staging file |
-| An invalid `cipi-staging.yml` doesn't fall back to `cipi.yml` | Errors are explicit, never silent |
-| Staging data is never production's | Clones get new credentials; use the [anonymizer](https://cipi.sh/guides/anonymized-database-dumps) for realistic data |
-
-Want a URL per branch instead of one staging app? See [preview environments](https://cipi.sh/guides/laravel-preview-environments).
+| `cipi yml plan shop-stg` says it reads `cipi.yml` | The app's env isn't `staging`: `sudo cipi app edit shop-stg --env=staging` |
+| Plan says "blocked: STRIPE_KEY missing" | Set it on the staging app: `sudo cipi app env shop-stg --set=STRIPE_KEY=sk_test_…` |
+| Staging deploys `main` | `deploy.branch` is applied from the **next** deploy, or set it now: `sudo cipi app edit shop-stg --branch=develop` |
+| Invalid `cipi-staging.yml` | The error names the file; validate locally with `CIPI_ENV=staging php artisan cipi:yml validate` |
+| Staging sends real e-mails | Use a mail catcher or a sandbox SMTP in the staging `.env` |
 
 
 ## cipi.yml: keep your server settings in the repository
@@ -6574,6 +8302,29 @@ Want a URL per branch instead of one staging app? See [preview environments](htt
 URL: https://cipi.sh/guides/manage-apps-with-cipi-yml
 
 Most panels keep an app's server settings in a database you can't review. Cipi lets you put them in **`cipi.yml`**, a file at the root of your repository. It travels with each release: you review it in a pull request, see exactly what it would change, and apply it in one step.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **YAML** | A plain-text format of `key: value` lines, indented to nest |
+| **Desired state** | The file says how the app *should* be; Cipi works out the steps |
+| **Plan** | The list of changes Cipi would make, shown before anything happens |
+| **Apply** | Making those changes, all of them or none |
+| **Blocker** | A problem that stops the plan: an invalid value, a missing variable |
+
+```flow
+Edit cipi.yml | in a branch
+Review | pull request
+Merge, deploy | the file ships with the release
+Plan | what would change
+Apply | all or nothing
+```
+
+## Before you start 
+
+- A Laravel (or Node) app deployed with Cipi.
+- Shell access as `cipi` for the first `generate` and `plan`.
 
 ```flow
 Generate | from what the app has | #generate
@@ -6652,6 +8403,16 @@ Add `# yaml-language-server: $schema=./cipi.schema.json` at the top of the file 
 ## 4. Plan and apply 
 After deploying the release that contains the file:
 
+```bash
+$ sudo cipi yml plan shop
+Plan for 'shop' (/home/shop/current/cipi.yml)
+  Would change
+    → workers: add queue 'emails' (3 processes)
+    → backup profile 'shop-nightly': cron 0 2 * * * to s3, keep 14 days
+$ sudo cipi yml apply shop
+✓ Applied 2 change(s) from cipi.yml
+```
+
 `plan` lists every change and every blocker. `apply` performs them as one transaction: if anything fails, nothing is left half done.
 
 ## 5. Apply on every deploy 
@@ -6673,31 +8434,80 @@ From now on each successful deploy (CLI, webhook or panel) applies the file. **A
 
 Next: one repository, two servers or two apps, with [staging and production files](https://cipi.sh/guides/cipi-yml-staging-production).
 
+## Troubleshooting 
 
-## GDPR-safe production data for developers with the Cipi anonymizer
+| Problem | Fix |
+| --- | --- |
+| `plan` says nothing to do after an edit | The release with the edit isn't deployed yet: deploy first |
+| Blocked: required variable missing | Add it to the server's `.env` with `cipi app env shop --set=…` |
+| Blocked: database name | Extra databases must be named `shop` or `shop_*` |
+| Blocked: command not allowed | `deploy.post` and `crons` accept known runners only (`artisan`, `php`, `composer`, `npm`…) |
+| Validation passes locally, fails on server | Different Cipi Agent version: update `cipi/agent` |
+
+
+## Anonymize a Laravel database with Cipi Agent, step by step
 
 URL: https://cipi.sh/guides/anonymized-database-dumps
 
-Debugging with fake seed data misses the bugs that real data causes. Copying production to laptops is a GDPR problem. The anonymizer in [Cipi Agent](https://cipi.sh/guides/cipi-agent-laravel-mcp) gives you the middle ground: production's structure and volume, with every personal field replaced.
+Debugging with seed data misses the bugs real data causes. Copying production to laptops spreads personal data where it's least protected. The **anonymizer** in [Cipi Agent](https://cipi.sh/guides/cipi-agent-laravel-mcp) gives you the middle ground: production's structure, volume and relations, with every name, e-mail, phone, address and note replaced by realistic fake values.
+
+## What you'll build
 
 ```flow
-Enable | in the app | #enable
-Rules | what gets replaced | #rules
-Request | from your laptop | #request
-Check | no real data left | #check
+You ask | cipi-cli, HTTP or Artisan
+Queue job | in your Laravel app
+Dump | mysqldump / pg_dump
+Rewrite | only the columns you listed
+Signed link | by e-mail, valid 15 minutes
+Your laptop | import into a local DB
 ```
 
-## 1. Enable it in the app 
+| Term | Meaning |
+| --- | --- |
+| **Anonymization** | Replacing personal values with fake ones, so the data no longer identifies people |
+| **Transformation** | The rule for one column: `fakeEmail`, `fakeName`, `mask:3,2`, `null`… |
+| **Consistent** | The same original value always becomes the same fake value, across tables and runs |
+| **Seed** | A private value that makes `consistent` reproducible and not guessable |
+| **Truncate** | Keep the table, drop its rows (sessions, tokens, jobs) |
+
+## Before you start 
+
+- A Laravel app (12 or 13) deployed with Cipi, on MySQL, MariaDB or PostgreSQL.
+- A queue worker running (Cipi creates one with every Laravel app).
+- Working Laravel mail (`MAIL_*` in the app's `.env`): the download link is sent by e-mail.
+
+## 1. Install the agent and turn the anonymizer on 
+
+On your laptop:
+
 ```bash
-$ composer require cipi/agent                    # commit, deploy
-$ php artisan cipi:service anonymize --enable    # as the app user
+$ composer require cipi/agent
+$ git commit -am "Add Cipi Agent" && git push       # deploys
+```
+
+On the server, as the app user (or remotely with `cipi-cli apps artisan shop …`):
+
+```bash
+$ ssh shop@203.0.113.10
+$ cd ~/current
+$ php artisan cipi:service anonymize --enable
 $ php artisan cipi:generate-token anonymize
+```
+
+The service answers **404** until it's enabled, and every feature of the agent has its own token.
+
+## 2. Let it propose the rules 
+
+```bash
 $ php artisan cipi:init-anonymize --scan
 ```
 
-`--scan` reads your schema and proposes a transformation for every column that looks personal (e-mails, names, phones, addresses, IPs, tokens, passwords, tax ids, card data, free text) and empties tables like `sessions`, `jobs` and `password_reset_tokens`. The file goes to `~/.db/anonymization.json`, **outside the repository**.
+The agent reads your schema and proposes a transformation for each column that looks personal, plus tables to empty. It writes `~/.db/anonymization.json`, **outside the repository** (mode `0640`): the file maps your schema and never ships with your code.
 
-## 2. Review the rules 
+## 3. Review the rules 
+
+Open the file and check it. A typical result:
+
 ```json
 {
   "transformations": {
@@ -6705,50 +8515,102 @@ $ php artisan cipi:init-anonymize --scan
       "name": "fakeName",
       "email": { "type": "fakeEmail", "consistent": true },
       "password": "password",
-      "phone": "mask:3,2"
+      "remember_token": "null",
+      "phone": "mask:3,2",
+      "date_of_birth": "fakeDate"
     },
     "orders": {
       "customer_email": { "type": "fakeEmail", "consistent": true },
-      "internal_notes": "fakeParagraph"
-    }
+      "shipping_address": "fakeAddress",
+      "notes": "fakeParagraph",
+      "ip_address": "fakeIpv4"
+    },
+    "invoices": { "vat_number": "fakeIdentifier" }
   },
-  "truncate": ["sessions", "jobs", "failed_jobs", "password_reset_tokens"],
-  "options": { "faker_locale": "it_IT", "consistent": true, "seed": "keep-this-private" }
+  "truncate": ["sessions", "jobs", "failed_jobs", "password_reset_tokens", "personal_access_tokens"],
+  "options": { "faker_locale": "it_IT", "consistent": true, "seed": "a-private-random-string" }
 }
 ```
 
-Every password becomes the hash of `options.password` (default `password`), so developers can log in. Then audit against the live schema:
+| Rule | Effect |
+| --- | --- |
+| `fakeName`, `fakeEmail`, `fakeAddress`, `fakePhoneNumber` | Realistic values in the chosen locale |
+| `consistent: true` | `users.email` and `orders.customer_email` stay joinable |
+| `password` | Every password becomes the hash of `options.password` (default `password`), so developers can log in as any user |
+| `mask:3,2` | Keeps the first 3 and last 2 characters: `+39*******56` |
+| `null`, `redact`, `fixed:value` | Remove or replace entirely |
+| `truncate` | Empties tables with tokens and sessions |
+| Columns not listed | **Copied unchanged**: ids, prices, statuses, timestamps |
+
+Then check the rules against the real database (`php artisan cipi:anonymize --check` does the same plus validation, without dumping):
 
 ```bash
 $ php artisan cipi:anonymize-audit
 ```
 
-It fails on unknown tables or columns and lists personal-looking columns you didn't cover. **Run it after every migration.**
+The audit fails on tables or columns that don't exist and lists personal-looking columns you haven't covered, with a suggestion. **Run it after every migration** that adds a column.
 
-## 3. Get a dump from your laptop 
+## 4. Request a dump from your laptop 
+
+With [cipi-cli](https://cipi.sh/docs/cli-client) and an API token (abilities `apps-view` and `apps-env`), no SSH and no token in your shell history:
+
 ```bash
-$ cipi-cli prod db anonymize shop --email dev@example.com
+$ cipi-cli prod db anonymize shop --email you@example.com
+→ Requesting anonymized dump of 'shop' via https://shop.example.com/cipi/db
 ✓ Anonymization job queued for 'shop'
-$ cipi-cli db anonymize download "" -o - | mysql -u root shop_local
 ```
 
-No SSH, no token in your shell history: [cipi-cli](https://cipi.sh/docs/cli-client) reads it through the API. The link expires after 15 minutes.
+Within minutes you get an e-mail with a link valid for 15 minutes.
 
-## 4. Check it 
-```bash
-$ grep -c "real.customer@gmail.com" shop.sql     # must be 0
-```
-
-## Good practice
-
-| Do | Why |
+| Other ways to request | When |
 | --- | --- |
-| Use `consistent` with a private `seed` | Data stays joinable; fakes can't be reversed |
-| Never commit `anonymization.json` | It maps your schema |
-| Rotate the token when people leave | `cipi:generate-token anonymize` |
-| Give AI assistants the dump, not production | Same bugs, no personal data |
+| `POST https://shop.example.com/cipi/db` with the anonymizer token | From a script or CI |
+| `php artisan cipi:anonymize` on the server | No e-mail; writes the file to `storage/cipi/` |
+| The MCP `anonymizer` tool | From Claude, Cursor or VS Code |
 
-Full reference: [Database anonymizer](https://cipi.sh/docs/anonymizer).
+## 5. Import it locally 
+
+```bash
+$ cipi-cli db anonymize download "" -o shop.sql
+$ mysql -u root -e "CREATE DATABASE shop_local"
+$ mysql -u root shop_local " -o - | mysql -u root shop_local`.
+
+## 6. Check it 
+
+```bash
+$ grep -c "real.customer@gmail.com" shop.sql        # must print 0
+$ mysql shop_local -e "SELECT name, email FROM users LIMIT 5"
+```
+
+## Keep it safe 
+
+| Practice | Why |
+| --- | --- |
+| Private `seed`, never committed | Fakes can't be mapped back to people |
+| Audit after every migration | New personal columns are copied verbatim until listed |
+| Rotate the token when people leave | `php artisan cipi:generate-token anonymize` |
+| Disable when unused | `php artisan cipi:service anonymize --disable` (endpoints answer 404) |
+| Tell people the shared password | Every user's password is `options.password` |
+| Document the rules | For your records of processing and DPA |
+
+## Common uses 
+
+| Use | How |
+| --- | --- |
+| Staging with realistic data | Restore the dump into the staging app ([staging guide](https://cipi.sh/guides/cipi-yml-staging-production)) |
+| Reproduce a customer's bug | Find the user id first with `POST /cipi/db/user` (ids survive anonymization), then look it up in the dump |
+| AI assistants | Let them query the anonymized copy, not production ([MCP guide](https://cipi.sh/guides/cipi-mcp-ai-agents)) |
+| Contractors | Share a file instead of production access |
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `queued` but no e-mail | Laravel mail isn't working: test with `php artisan tinker --execute="Mail::raw('t', fn(\$m)=>\$m->to('you@example.com')->subject('t'));"`; the file may already be in `storage/cipi/` |
+| 404 from `/cipi/db` | Service disabled or no config: `cipi:service anonymize --enable`, `cipi:init-anonymize` |
+| 400 with a list of errors | Fix `anonymization.json`; `cipi:anonymize-audit` prints the same list |
+| 410 on download | The 15-minute link expired: request a new dump |
+| Job never runs | No queue worker: `sudo cipi worker list shop` |
 
 
 ## Monitor a Laravel app's health with the Cipi Agent and any uptime service
@@ -6756,6 +8618,14 @@ Full reference: [Database anonymizer](https://cipi.sh/docs/anonymizer).
 URL: https://cipi.sh/guides/cipi-agent-health-monitoring
 
 Laravel's `/up` route says the app boots. The agent's `/cipi/health` says whether the app actually works: database, cache, queue, storage and the deploy.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Health check** | A URL that answers "OK" only when the app really works |
+| **Uptime monitor** | An outside service that calls it every minute and alerts you |
+| **Degraded** | Up, but one dependency (queue, cache) has a problem |
 
 ## 1. Enable the endpoint
 
@@ -6798,6 +8668,15 @@ If the database, cache, queue or storage fails, `status` becomes `degraded` with
 
 The outside view catches what the server can't see about itself: DNS, network, a down server.
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Always 401 | Missing `Authorization: Bearer` header in the monitor |
+| `queue` not ok | Failed or pending jobs above threshold: check workers and `queue:failed` |
+| `storage` not ok | Disk full or permissions: `cipi app fix-permissions shop`, check disk |
+| Monitor flaps | Increase its timeout; the check queries the database each time |
+
 
 ## Cipi Agent: connect your Laravel app to its server
 
@@ -6812,6 +8691,14 @@ URL: https://cipi.sh/guides/cipi-agent-laravel-mcp
 | MCP for AI assistants | `/cipi/mcp` | [Claude, Cursor and the Cipi MCP](https://cipi.sh/guides/cipi-mcp-ai-agents) |
 | `cipi.yml` tooling | `php artisan cipi:yml` | [cipi.yml](https://cipi.sh/guides/manage-apps-with-cipi-yml) |
 | Anonymized dumps | `php artisan cipi:anonymize`, `/cipi/db` | [Safe data for developers](https://cipi.sh/guides/anonymized-database-dumps) |
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Agent** | A Composer package inside your app that talks to the server it runs on |
+| **Service** | One feature of the agent (health, MCP, anonymizer…), each off by default |
+| **Token** | One secret per service, in the app's `.env` |
 
 ## 1. Install
 
@@ -6852,12 +8739,29 @@ The agent ships the same `cipi.yml` validator as the server, so a broken file fa
 
 The agent works **inside one app**, on its domain. The [Cipi API](https://cipi.sh/docs/api) runs on its own domain and manages the **whole server**. Install the [PHP SDK](https://cipi.sh/docs/php-sdk) next to the agent and the app's MCP gains server-side tools: rollback, database backup, job status.
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `cipi:status` says not configured | The `.env` lacks the `CIPI_*` keys Cipi writes at creation: compare with a fresh app and add the missing ones |
+| An endpoint answers 404 | The service is disabled: `cipi:service  --enable` |
+| 403 with a valid-looking token | Token from another service: each has its own |
+| Package refuses to install | Laravel 12 or 13 and PHP 8.3+ are required |
+
 
 ## Push-to-deploy Laravel from GitHub, GitLab, Bitbucket or Gitea
 
 URL: https://cipi.sh/guides/cipi-agent-webhook-deploy
 
 With a token, Cipi sets up the webhook on GitHub, GitLab, Bitbucket and Azure DevOps by itself. This guide shows what happens behind it, and how to wire Gitea or Forgejo by hand.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Webhook** | An HTTP call your Git provider makes on each push |
+| **Signature** | A hash of the request made with a shared secret, proving it came from your provider |
+| **Trigger** | A small file the webhook leaves; a cron starts the deploy from it |
 
 ```flow
 git push | to the deploy branch
@@ -6910,6 +8814,15 @@ $ sudo cipi app webhook recreate shop --rotate-secret
 
 Need tests before deploying? Turn the webhook off and use [a pipeline](https://cipi.sh/guides/laravel-ci-cd-git-workflow).
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Provider shows 401/403 | Secret or token mismatch: copy it again from `cipi deploy shop --webhook` |
+| 200 but no deploy | Push to a branch that isn't the deploy branch |
+| Deploy starts a minute later | Normal: the cron picks the trigger up within a minute |
+| Nothing at all reaches the server | Webhook URL wrong, or the app is behind Zero Trust without a bypass rule for `/cipi/webhook` |
+
 
 ## Manage Laravel in production with Claude, Cursor and the Cipi MCP
 
@@ -6922,6 +8835,22 @@ MCP (Model Context Protocol) lets an AI assistant call tools. Cipi ships two MCP
 | Endpoint | `https://shop.example.com/cipi/mcp` | `https://api.example.com/mcp` |
 | Scope | One app: health, logs, database, Artisan, deploy, `cipi.yml` | The server: apps, domains, SSL, databases, backups, PHP |
 | Installed with | `composer require cipi/agent` | `cipi api api.example.com` |
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **MCP** | Model Context Protocol: a standard way for an AI assistant to call tools |
+| **Tool** | One action the assistant can take: read logs, run a query, deploy |
+| **Token** | The secret your assistant sends with every call; scoped and revocable |
+| **Guard** | A rule that blocks dangerous calls whatever the assistant asks |
+
+```flow
+You ask | in Claude, Cursor, VS Code
+Assistant | picks a tool
+MCP server | checks token and guards
+App or server | runs it, output redacted
+```
 
 ## 1. Turn on the agent's MCP server
 
@@ -6997,6 +8926,16 @@ Destructive host operations (dropping databases, removing PHP versions, installi
 
 > [!tip] For production, start with `CIPI_MCP_DB_WRITE=false`. Need realistic data for the assistant to experiment on? Give it an [anonymized dump](https://cipi.sh/guides/anonymized-database-dumps) instead of production.
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| 401 Unauthorized | Wrong or old token: generate a new one, update the client config |
+| 404 on `/cipi/mcp` | Service disabled: `php artisan cipi:service mcp --enable` |
+| Tool refused: blocked command | By design (DDL, `migrate:fresh`, `tinker`): run it yourself if you really need it |
+| Query returns 100 rows only | Reads are capped: ask for a narrower query or an aggregate |
+| Client can't connect | The client needs HTTP transport support; update it |
+
 
 ## Spec-driven development with AI agents in Laravel
 
@@ -7052,6 +8991,14 @@ Claude: [deploy_status] Release 134 live, 58 s, from the pipeline.
 URL: https://cipi.sh/guides/cloudflare-zero-trust-laravel
 
 With a Cloudflare Tunnel the server dials out to Cloudflare, and visitors reach it through Cloudflare's network. Once every app goes through the tunnel, you can close ports 80, 443 and even 22. Cipi does it in reversible steps; nothing closes until you ask.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Tunnel** | An outbound connection from your server to Cloudflare; traffic comes back through it |
+| **Access** | Cloudflare's login wall in front of an app or SSH |
+| **Closing ports** | Once everything goes through the tunnel, 80/443 (and 22) can be closed to the internet |
 
 ```flow
 Token & enable | tunnel; ports still open | #token
@@ -7116,6 +9063,15 @@ $ sudo cipi zt status
 
 Every step has its undo: `unlock http`, `ssh unlock`, `access disable`, `hostname remove`, `disable`.
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| 502 from Cloudflare | Tunnel down: `sudo cipi zt status` |
+| Locked out of SSH | Use the provider's console, `cipi zt` or reopen 22 temporarily |
+| Webhook deploys stopped | Add a bypass for `/cipi/webhook` |
+| Certificate renewals fail | Use DNS-01 (`--dns=cloudflare`) or an Origin CA: HTTP-01 can't reach a closed port 80 |
+
 
 ## Laravel production security checklist
 
@@ -7176,6 +9132,18 @@ Security on your own server is a list of boring things done every time. Here's t
 | Alerts where you look | Telegram, Slack, e-mail or webhooks ([guide](https://cipi.sh/guides/server-monitoring-alerts)) |
 | Health check with automatic rollback | `health.rollback_on_unhealthy: true` in `cipi.yml` |
 | Who deployed what | The [deploy audit](https://cipi.sh/docs/deploy-audit) |
+
+## Quick self-check 
+
+```bash
+$ sudo cipi app env shop --get=APP_DEBUG       # false
+$ composer audit                               # no known CVEs
+$ sudo cipi php list                           # every version patched
+$ curl -sI https://shop.example.com | grep -i strict-transport
+$ sudo cipi status                             # firewall, fail2ban, updates
+```
+
+Related: [.env and secrets](https://cipi.sh/guides/laravel-env-secrets), [anonymized data](https://cipi.sh/guides/anonymized-database-dumps), [Zero Trust](https://cipi.sh/guides/cloudflare-zero-trust-laravel).
 
 
 ## How Cipi handled the November 2026 PHP and nginx CVEs
@@ -7255,12 +9223,30 @@ If Octane doesn't answer after the upgrade, the previous build returns automatic
 
 Follow security notes as they ship on the [Telegram channel](https://t.me/cipicloud).
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `cipi php list` shows `VULNERABLE` | Run `sudo cipi php upgrade` now; the nightly job will also retry |
+| Octane app still on an old PHP | `sudo cipi frankenphp upgrade shop` |
+| Nginx didn't move to nginx.org | A file uses a headers-more directive or `nginx -t` fails: the warning names it, fix and re-run `cipi self-update` |
+
 
 ## Back up Laravel apps and databases to S3, and restore them
 
 URL: https://cipi.sh/guides/backup-vps-s3
 
 A backup you haven't restored is a hope. This guide sets up encrypted backups to S3-compatible storage, checks them automatically and walks through a restore.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Destination** | Where archives go: the server's disk, or an S3-compatible bucket |
+| **Profile** | What to back up, how often and how long to keep it |
+| **Retention** | How many runs or days are kept before old ones are deleted |
+| **Off-site** | In another place than the server, so one disaster can't take both |
+| **3-2-1** | Three copies, two kinds of storage, one off-site |
 
 ```flow
 Destination | S3-compatible bucket | #destination
@@ -7329,6 +9315,15 @@ For a whole server, restoring backups works, but moving with [`cipi sync`](https
 
 A local snapshot before migrations is cheap: `sudo cipi app edit shop --predeploy-snapshot`. See [safe migrations](https://cipi.sh/guides/laravel-zero-downtime-migrations).
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `destination test` fails | Key lacks bucket permissions, wrong region or endpoint |
+| Backups overdue | `cipi backup status` names the profile; check disk space and the log |
+| Can't open an archive | Wrong key: use the one from `cipi backup key show` at that time |
+| Restore refuses an empty dump | By design: an empty backup never wipes a database |
+
 
 ## The Cipi web panel and REST API
 
@@ -7387,12 +9382,30 @@ Or from PHP with the [SDK](https://cipi.sh/docs/php-sdk), from WHMCS with the [m
 | Small tokens | One per client, only the abilities it needs, with an expiry |
 | Keep it current | `sudo cipi gui update`, `sudo cipi api update` (the API also updates nightly) |
 
+See [Web panel](https://cipi.sh/web-panel), [API](https://cipi.sh/api) and [MCP](https://cipi.sh/mcp) for the full picture.
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| API install fails on DNS | The API's hostname must point at the server first |
+| 403 from the API | Token lacks the ability: create one with the right `--abilities` |
+| Panel can't reach the API | Check `cipi api status`; tokens and URL in the panel settings |
+
 
 ## Move Laravel apps to a new server with cipi sync
 
 URL: https://cipi.sh/guides/migrate-server-cipi-sync
 
 `cipi sync` copies whole apps between Cipi servers: configuration, deploy keys, workers, crontab, PHP version and, if you want, database and storage. Archives are encrypted with AES-256. The old server keeps serving until you switch DNS.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Sync** | Copying apps (settings, keys, workers, optionally data) between Cipi servers |
+| **Trust** | The new server accepts pushes from the old one's key only |
+| **Cut-over** | Switching DNS to the new server |
 
 ## 1. Prepare the new server
 
@@ -7446,6 +9459,295 @@ Run a last `sync push --with-db --update` just before the switch if the database
 
 The same command on a schedule replicates apps to a second server. Combined with [backups](https://cipi.sh/guides/backup-vps-s3), it covers both "restore yesterday" and "this server is gone".
 
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Push refused: not trusted | Run `cipi sync trust` on the new server with the old one's key |
+| App fails on the new server | Its PHP version isn't installed there: `cipi php install` |
+| Site still served by the old server | DNS TTL: wait, check `dig +short` |
+| Duplicate jobs during the move | Stop workers on the old server after the final sync |
+
+
+## Server notifications: Telegram, Slack, e-mail and webhooks done right
+
+URL: https://cipi.sh/guides/notifications-alerts
+
+A server that fails quietly is the worst kind. Cipi can tell you when something needs your attention (a failed deploy, a backup that didn't run, a full disk, an SSH login) on the channels you already use. This guide explains how notifications work and how to set them up so they help instead of becoming noise.
+
+## How it works
+
+```flow
+Something happens | deploy, backup, monitor, login…
+Trigger | is this event enabled?
+Event log | always written, kept a year
+Channels | every enabled channel, in parallel
+You | e-mail, chat or phone
+```
+
+| Term | Meaning |
+| --- | --- |
+| **Event** | Something that happened on the server: `deploy_fail`, `backup_stale`, `ssh_login`… |
+| **Trigger** | An on/off switch per event type. All are on by default |
+| **Channel** | A destination: an e-mail address, a Telegram chat, a Slack channel, a webhook URL |
+| **Event log** | `/var/log/cipi/events.log`, written for every event, muted or not |
+
+## 1. Choose your channels 
+
+| Channel | Good for | You need |
+| --- | --- | --- |
+| `smtp`, `resend`, `ses` | A searchable record of everything | SMTP credentials, a Resend key, or SES keys |
+| `telegram` | Alerts on your phone, free | A bot token and a chat id |
+| `slack`, `mattermost`, `googlechat`, `discord` | Team channels | An incoming webhook URL |
+| `ntfy`, `pushover` | Push notifications with priorities | A topic URL, or Pushover keys |
+| `webhook` | Your own automation (PagerDuty, n8n, a Laravel route) | A URL and a shared secret |
+
+A sensible start: **e-mail for the record, Telegram or Slack for action**.
+
+## 2. Add e-mail 
+
+```bash
+$ sudo cipi notification add smtp --host=smtp.example.com --port=587 \
+    --user=alerts@example.com --password=… --from=alerts@example.com --to=ops@example.com --tls=on
+```
+
+Use a transactional provider (Postmark, Mailgun, Brevo, SES): mail sent directly from a VPS usually lands in spam.
+
+## 3. Add Telegram 
+
+```flow
+@BotFather | /newbot → bot token
+Your chat | send /start to the bot
+getUpdates | read the chat id
+cipi notification add | token + chat id
+```
+
+1. In Telegram, open **@BotFather**, send `/newbot`, pick a name. Copy the **token**.
+2. Send `/start` to your new bot (or add it to a group and write something there).
+3. Open `https://api.telegram.org/bot/getUpdates` in a browser and copy `chat.id` (groups have negative ids).
+4. Add the channel:
+
+```bash
+$ sudo cipi notification add telegram oncall --token= --chat-id=
+```
+
+## 4. Add Slack (or Mattermost, Google Chat, Discord) 
+
+Create an **incoming webhook** for the channel (Slack: Apps → Incoming Webhooks), then:
+
+```bash
+$ sudo cipi notification add slack ops --url=https://hooks.slack.com/services/…
+```
+
+## 5. Test everything 
+
+```bash
+$ sudo cipi notification              # channels and triggers, no secrets shown
+$ sudo cipi notification test all
+```
+
+## 6. Decide what's worth an alert 
+
+Everything is on by default. Mute what you don't act on:
+
+```bash
+$ sudo cipi notification triggers
+$ sudo cipi notification triggers disable monitor_load
+$ sudo cipi notification triggers disable deploy_success
+```
+
+| Category | Events | Keep on? |
+| --- | --- | --- |
+| Deploy | `deploy_fail`, `deploy_rollback`, `deploy_health_fail`, `deploy_snapshot_fail` | **Yes** |
+| | `deploy_success` | Optional: noisy with many pushes |
+| Health & monitor | `health_fail`, `monitor_disk`, `monitor_ssl`, `monitor_services`, `monitor_workers`, `monitor_http_5xx` | **Yes** |
+| | `monitor_load`, `monitor_ok` | Optional |
+| Backups & cron | `backup_fail`, `backup_stale`, `cron_fail` | **Yes** |
+| Security | `ssh_login`, `sudo`, `su`, `ssh_key_*` | **Yes** if few people log in |
+| Apps & config | `app_create`, `alias_*`, `yml_apply`, `yml_fail` | Useful for teams |
+| Updates | `php_upgrade`, `nginx_upgrade`, `pending_report` | Useful as a weekly record |
+
+> [!tip] A good rule: if nobody would do anything after reading it, mute it. Alerts you ignore train you to ignore the ones that matter.
+
+## 7. Signed webhooks for your own automation 
+
+A webhook channel posts JSON (`server`, `trigger`, `subject`, `body`, `ts`). With a secret, each request carries `X-Cipi-Signature: sha256=…`. Verify it before trusting the payload, for example in a Laravel route:
+
+```php
+Route::post('/hooks/cipi', function (Request $request) {
+    $expected = 'sha256='.hash_hmac('sha256', $request->getContent(), config('services.cipi.secret'));
+    abort_unless(hash_equals($expected, (string) $request->header('X-Cipi-Signature')), 401);
+
+    $event = $request->json()->all();       // server, trigger, subject, body, ts
+    if (in_array($event['trigger'], ['deploy_fail', 'backup_fail', 'health_fail'])) {
+        // page the on-call person, open a ticket…
+    }
+    return response()->noContent();
+});
+```
+
+```bash
+$ sudo cipi notification add webhook router --url=https://ops.example.com/hooks/cipi --secret=…
+```
+
+This is also how you route: urgent triggers to a phone, the rest to a channel.
+
+## 8. Alerts for your own cron jobs 
+
+Wrap a job in a root cron file with `cipi-cron-notify  `:
+
+```text
+# /etc/cron.d/shop-reports
+0 4 * * * root /usr/local/bin/cipi-cron-notify daily-report sudo -u shop php /home/shop/current/artisan report:daily
+```
+
+A non-zero exit sends `cron_fail` with the label and the output, through the same channels. Cipi wraps its own nightly jobs the same way.
+
+## A setup that works for small teams 
+
+```stack
+E-mail | everything, searchable record
+Telegram group "ops" | deploy_fail, backup_*, health/monitor, security
+Muted | deploy_success, monitor_load, monitor_ok
+Weekly | read pending_report and update notes
+```
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| Telegram test doesn't arrive | Wrong chat id (groups are negative), or you never sent `/start` to the bot |
+| E-mail in spam | Use a provider; add SPF and DKIM for the `--from` domain |
+| Slack 404 | The webhook was revoked: create a new one and `cipi notification add` again |
+| Too many messages | Disable noisy triggers (step 6) |
+| Need history | `sudo tail -f /var/log/cipi/events.log` |
+
+
+## Upgrade PHP for a Laravel app without downtime
+
+URL: https://cipi.sh/guides/php-version-upgrade
+
+PHP has a new minor version every year (8.4, 8.5, 8.6…), each supported with security fixes for a few years. Moving apps forward keeps them fast and patched. On a Cipi server you can do it **one app at a time**, test it, and move back in seconds if needed.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Minor version** | 8.5, 8.6: new features, small breaking changes |
+| **Patch version** | 8.5.3 → 8.5.4: bug and security fixes only |
+| **PHP-FPM pool** | The PHP processes that serve one app's web requests |
+| **Server default** | The version for `php` on the command line and new apps |
+| **End of life (EOL)** | No more security fixes from PHP: move off it |
+
+```stack
+shop | PHP 8.6 pool
+blog | PHP 8.4 pool
+legacy | PHP 8.3 pool
+Nginx | routes each domain to its app's pool
+```
+
+## Before you start 
+
+- Know your app's current version: `sudo cipi app show shop`.
+- Read the PHP migration notes for the target version (php.net has one per minor).
+- Have a [backup](https://cipi.sh/guides/backup-vps-s3) or a [pre-deploy snapshot](https://cipi.sh/docs/safe-deploy).
+
+## 1. Check your code locally 
+
+```bash
+$ php -v                                    # run the target version on your laptop
+$ composer why-not php 8.6                  # which dependencies block it
+$ composer update                           # within your constraints
+$ php artisan test
+```
+
+Update `composer.json`'s `"php"` constraint (e.g. `"^8.3"`) only if you want to drop old versions. Commit the updated `composer.lock`.
+
+## 2. Install the version on the server 
+
+```bash
+$ sudo cipi php list
+$ sudo cipi php install 8.6
+```
+
+The install adds the version next to the others. Nothing changes for running apps.
+
+## 3. Try it on a copy first 
+
+With a staging app (or a clone):
+
+```bash
+$ sudo cipi app clone shop --domain=shop-86.example.com --name=shop-86
+$ sudo cipi app edit shop-86 --php=8.6
+$ sudo cipi deploy shop-86
+```
+
+Click through, run the queue, check `sudo cipi app logs shop-86 --type=laravel` for deprecations.
+
+## 4. Move the app 
+
+```bash
+$ sudo cipi app edit shop --php=8.6
+```
+
+```flow
+New pool | PHP 8.6 for shop
+Vhost | points to the new pool
+Nginx reload | no dropped requests
+Workers, cron | restarted on 8.6
+Old pool | removed for this app
+```
+
+Then deploy once, so Composer installs dependencies under the new version:
+
+```bash
+$ sudo cipi deploy shop
+```
+
+If the lock file rejects the new version, the deploy fails and **the live release keeps running**: update the dependency, commit, deploy again.
+
+## 5. Roll back if needed 
+
+```bash
+$ sudo cipi app edit shop --php=8.5
+$ sudo cipi deploy shop --rollback          # if a deploy changed the vendor folder
+```
+
+## 6. Change the server default and clean up 
+
+```bash
+$ sudo cipi php switch 8.6                  # CLI `php`, panel, new apps
+$ sudo cipi php remove 8.3                  # refused while any app uses it
+```
+
+## Patches happen on their own 
+
+| What | When | How |
+| --- | --- | --- |
+| PHP security releases | Every night at 03:30 | Only affected pools restart |
+| Check now | Any time | `sudo cipi php upgrade` |
+| Octane apps | With FrankenPHP | `sudo cipi frankenphp upgrade` |
+
+`cipi php list` shows the state of each version: `patched`, `VULNERABLE` (a fix exists, not installed yet), `distro`, `END OF LIFE`, `prerelease`. [How CVEs are handled](https://cipi.sh/guides/php-nginx-cve-patching).
+
+## php.ini settings survive 
+
+Settings set with `cipi ini` move with the app. Check them after the switch:
+
+```bash
+$ sudo cipi ini list --app=shop
+```
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `Your lock file does not contain a compatible set of packages` | A dependency doesn't support the version yet: `composer why-not php 8.6`, update or wait |
+| Assigning is refused: missing extensions | The extension isn't published for that version yet; `--force` only if the app doesn't use it |
+| Deprecation warnings flood the log | Set `LOG_DEPRECATIONS_CHANNEL=null` while you fix them |
+| `php -v` shows the old version | That's the server default: `cipi php switch` (apps use their own anyway) |
+| Worker still on the old version | `sudo cipi worker restart shop` |
+
 
 ## Server monitoring and alerts on Telegram, Slack and e-mail
 
@@ -7497,6 +9799,16 @@ $ sudo cipi health check shop
 ```
 
 The same check runs after every deploy and can [roll back automatically](https://cipi.sh/guides/laravel-zero-downtime-migrations). For a richer per-app status (database, cache, queue, storage, deploy), use the [agent's health endpoint](https://cipi.sh/guides/cipi-agent-health-monitoring) with an external uptime service.
+
+More channels and webhook signatures: [notifications and alerts](https://cipi.sh/guides/notifications-alerts).
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| No alerts at all | No channel configured: add one with `cipi notification add`, then `cipi notification test all` |
+| Telegram silent | Bot never received `/start`, or wrong chat id (groups are negative) |
+| Too many disk alerts | Clean logs and releases; lower `--keep-releases` |
 
 
 ## Deploy a Symfony app on an Ubuntu VPS with Cipi
@@ -7565,6 +9877,14 @@ $ sudo cipi health set billing --url=https://billing.example.com/ --expect=200
 ```
 
 Everything else (firewall, PHP patches, monitoring) is server-wide and already on.
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| 500 with no details | Check `var/log/prod.log`; `APP_ENV=prod` hides errors on screen |
+| Database connection refused | Wrong `DATABASE_URL`; MariaDB on 3306 or PostgreSQL on 5432, both localhost |
+| Cache permission errors | `var/` must belong to the app user: `cipi app fix-permissions billing` |
 
 
 ## Host WordPress on your own VPS next to Laravel apps
@@ -7637,119 +9957,367 @@ $ sudo cipi backup profile add blog-nightly --scope=all --cron='0 3 * * *' --kee
 
 `all` covers the database and the files. More in [backups to S3](https://cipi.sh/guides/backup-vps-s3). Running a shop? See [WooCommerce on a VPS](https://cipi.sh/guides/woocommerce-vps).
 
+## Troubleshooting 
 
-## Self-host PHP e-commerce (PrestaShop, Sylius, Bagisto and more) on a VPS
+| Problem | Fix |
+| --- | --- |
+| "Error establishing a database connection" | Credentials in `wp-config.php` don't match `cipi db create` output |
+| Upload size limit | `sudo cipi ini set upload_max_filesize=64M --app=blog` and `post_max_size` |
+| Permalinks 404 | Cipi's vhost already routes to `index.php`; resave permalinks |
+| Mixed content after HTTPS | Update `siteurl`/`home` to `https://` |
+
+
+## Self-host PHP e-commerce on a VPS: Bagisto, Lunar, Sylius, PrestaShop and more
 
 URL: https://cipi.sh/guides/php-ecommerce-vps
 
-PHP runs a large part of online commerce. Here's how the main open-source platforms map onto a Cipi server: Laravel-based ones run as Laravel apps with zero-downtime deploys, the rest as custom apps.
+PHP runs a large share of the world's online shops. There's no single "right" platform: some are full shops you configure from an admin panel, others are toolkits developers build on. This guide explains the options and shows how to run each on your own server with Cipi, starting from zero.
 
-| Platform | Built on | Run on Cipi as | Document root | Extra services |
-| --- | --- | --- | --- | --- |
-| **Bagisto** | Laravel | Laravel app | (managed) | Queue, scheduler: built in |
-| **Lunar** | Laravel package | Laravel app | (managed) | Search via [Meilisearch](https://cipi.sh/guides/laravel-scout-meilisearch) |
-| **Aimeos** | Laravel package | Laravel app | (managed) | Queue, scheduler |
-| **Sylius** | Symfony | Custom app | `public` | Messenger via cron ([Symfony guide](https://cipi.sh/guides/deploy-symfony)) |
-| **PrestaShop** | Symfony + legacy | Custom app | root | Cron for modules |
-| **WooCommerce** | WordPress | Custom app | root | [Real cron](https://cipi.sh/guides/woocommerce-vps) |
-| **Magento / Adobe Commerce** | Laminas/Symfony | Possible as custom app | `pub` | Needs OpenSearch, which Cipi doesn't install: host it elsewhere |
+## Key ideas, in plain words 
 
-## Laravel-based shops (Bagisto, Lunar, Aimeos)
+| Term | Meaning |
+| --- | --- |
+| **Laravel app** on Cipi | Deploys as atomic releases with zero downtime and rollback; gets queue workers, the scheduler and `cipi.yml` |
+| **Custom app** on Cipi | Any other PHP software: code in `~/htdocs`, deployed from Git (in place) or by SFTP |
+| **Document root** | The folder the web server exposes: `public/` for Laravel and Symfony, `pub/` for Magento, the root for PrestaShop |
+| **Queue / workers** | Background processes for e-mails, payments callbacks, imports |
+| **Headless** | A shop engine with an API; you build the storefront separately (for example with Next.js or Nuxt) |
 
-They get everything Laravel apps get: atomic releases, workers, scheduler, `cipi.yml`, health checks with rollback.
+## Which platform runs how 
+
+| Platform | Built on | Runs on Cipi as | Document root | Background tasks | Search |
+| --- | --- | --- | --- | --- | --- |
+| **Bagisto** | Laravel | Laravel app | managed | Workers + scheduler, built in | Database or Meilisearch |
+| **Lunar** | Laravel (package) | Laravel app | managed | Workers + scheduler | Scout + Meilisearch |
+| **Aimeos** | Laravel (package) | Laravel app | managed | Workers + scheduler | Database |
+| **Sylius** | Symfony | Custom app | `public` | Messenger via cron | Plugins |
+| **PrestaShop** | Symfony + legacy | Custom app | root | Module crons | Built in |
+| **WooCommerce** | WordPress | Custom app | root | Real cron ([guide](https://cipi.sh/guides/woocommerce-vps)) | Built in |
+| **Magento 2** | Laminas/Symfony | Possible as custom app | `pub` | Cron | Needs OpenSearch, hosted elsewhere |
+
+```flow
+Laravel-based? | yes → Laravel app, full automation
+Symfony or other PHP? | custom app + cipi.yml post-deploy steps
+Needs OpenSearch/Varnish? | host those services separately
+```
+
+## Example 1: Bagisto, a Laravel shop 
+
+Because Bagisto is a Laravel app, it gets everything: zero-downtime deploys, queue workers, the scheduler and Meilisearch.
+
+**1. Create the project** (on your laptop), commit it to Git:
+
+```bash
+$ composer create-project bagisto/bagisto store
+$ cd store && git init && git add . && git commit -m "Bagisto" && git push
+```
+
+**2. Create the app and deploy** (on the server):
 
 ```bash
 $ sudo cipi app create --user=store --domain=store.example.com \
-    --repository=git@github.com:acme/store.git --php=8.4
-$ sudo cipi deploy store && sudo cipi ssl install store
+    --repository=git@github.com:acme/store.git --branch=main --php=8.4
+$ sudo cipi deploy store
+$ sudo cipi ssl install store
 ```
 
-## Custom-app shops (PrestaShop, Sylius)
+Cipi writes the `.env` with database credentials, creates the database, a queue worker and the scheduler cron. Run Bagisto's installer once:
 
 ```bash
-$ sudo cipi app create --custom --user=store --domain=store.example.com --docroot=public   # Sylius
-$ sudo cipi db create --name=store
+$ sudo cipi app artisan store bagisto:install
 ```
 
-Then follow the platform's installer. Build steps after each Git deploy go in `cipi.yml` `deploy.post` (Composer, migrations, cache), as in the [Symfony guide](https://cipi.sh/guides/deploy-symfony).
-
-## What every shop should set
-
-| Need | Command |
-| --- | --- |
-| HTTPS, forced | `sudo cipi ssl install store && sudo cipi ssl force store` |
-| Frequent database backups | A `--every=30m` profile plus a nightly encrypted one to S3 ([guide](https://cipi.sh/guides/backup-vps-s3)) |
-| PHP limits | `app.ini` in `cipi.yml`: `memory_limit`, `max_execution_time`, upload sizes |
-| Enough PHP workers | `sudo cipi app limits store --fpm-max-children=12` |
-| A staging copy | Laravel shops: `sudo cipi app clone store --name=store-stg --domain=… --env=staging`; others: a second custom app with a restored dump |
-| Alerts | [Telegram, Slack or e-mail](https://cipi.sh/guides/server-monitoring-alerts) |
-
-> [!note] Check each platform's PHP version support before you pick a version per app. Cipi runs several PHP versions side by side, so a shop on PHP 8.3 and another on 8.5 can share a server.
-
-
-## WooCommerce on your own VPS: fast, isolated and backed up
-
-URL: https://cipi.sh/guides/woocommerce-vps
-
-A shop has stricter needs than a blog: orders arrive all day, so backups must be frequent, cron must be real, and updates must be tried somewhere safe first. Start from [WordPress on a VPS](https://cipi.sh/guides/deploy-wordpress-custom-app), then add the steps below.
-
-## 1. Size the server
-
-| Shop | Starting point |
-| --- | --- |
-| Small catalogue, few orders a day | 2 GB RAM |
-| Thousands of products, steady traffic | 4 GB+ RAM, more PHP workers |
-
-```bash
-$ sudo cipi app limits shop --fpm-max-children=12
-```
-
-## 2. PHP limits for imports and big carts
+**3. Describe the shop in `cipi.yml`** and commit it:
 
 ```yaml
-# cipi.yml in htdocs
 version: 1
 app:
   php: "8.4"
-  ini: { memory_limit: 512M, max_execution_time: 120, upload_max_filesize: 64M, post_max_size: 64M }
+  aliases: ["www.store.example.com"]
+  www: to-root
+  ini: { memory_limit: 512M, upload_max_filesize: 64M, post_max_size: 64M }
+workers:
+  queues:
+    - { queue: default, processes: 2 }
+schedule: true
+health:
+  url: "https://store.example.com/"
+  rollback_on_unhealthy: true
+deploy:
+  predeploy_snapshot: true
+  node_build: "npm ci && npm run build"
+backup:
+  profiles:
+    - { name: store-db, scope: db, every: 30m, keep: 48, destinations: [local] }
+    - { name: store-nightly, scope: all, cron: "0 3 * * *", keep_days: 30, destinations: [s3], encrypt: true }
 ```
 
-## 3. Real cron
+```bash
+$ sudo cipi deploy store && sudo cipi yml plan store && sudo cipi yml apply store
+```
 
-WooCommerce schedules emails, stock holds and webhooks through Action Scheduler. With `DISABLE_WP_CRON` set to true in `wp-config.php`, run it every minute as the app user:
+From now on, every push deploys with a database snapshot first, and rolls back by itself if the shop stops answering.
+
+## Example 2: Sylius, a Symfony shop 
+
+Sylius is Symfony, so it runs as a **custom app** with `public/` as document root. Build steps run after each pull through `cipi.yml`.
+
+**1. Create the app and the database:**
+
+```bash
+$ sudo cipi app create --custom --user=sylius --domain=shop.example.com \
+    --repository=git@github.com:acme/sylius-shop.git --branch=main --docroot=public --php=8.4
+$ sudo cipi db create --name=sylius --app=sylius
+$ sudo cipi ssl install sylius
+```
+
+**2. Configure the environment** as the app user, in `~/htdocs/.env.local` (never committed):
+
+```bash
+APP_ENV=prod
+APP_SECRET=change-me-to-a-random-string
+DATABASE_URL="mysql://sylius:PASSWORD@127.0.0.1:3306/sylius?serverVersion=mariadb-11.4.0"
+MESSENGER_TRANSPORT_DSN=doctrine://default
+```
+
+**3. Build steps after each deploy** in `htdocs/cipi.yml`:
+
+```yaml
+version: 1
+deploy:
+  post:
+    - composer install --no-dev --optimize-autoloader --no-interaction
+    - php bin/console doctrine:migrations:migrate --no-interaction
+    - php bin/console sylius:install:assets
+    - php bin/console cache:clear
+  post_on_failure: abort
+```
+
+```bash
+$ sudo cipi deploy sylius
+```
+
+**4. Background messages:** as the app user (`crontab -e`):
+
+```text
+* * * * * php ~/htdocs/bin/console messenger:consume async --time-limit=55 --quiet
+```
+
+> [!note] Custom apps deploy in place (a `git pull` into `htdocs`), not as atomic releases. Keep migrations backward compatible and deploy at quiet times. Full Symfony walkthrough: [Deploy Symfony](https://cipi.sh/guides/deploy-symfony).
+
+## Example 3: PrestaShop 
+
+```bash
+$ sudo cipi app create --custom --user=presta --domain=presta.example.com --php=8.3
+$ sudo cipi db create --name=presta --app=presta
+$ sudo cipi ssl install presta
+```
+
+Upload the PrestaShop release to `~/htdocs` by SFTP, open the domain and run the installer (database host `127.0.0.1`). Delete the `install` folder afterwards and rename the `admin` folder as the installer asks. Add the cron URLs of the modules you use to the app user's crontab.
+
+## What every shop needs 
+
+| Need | How |
+| --- | --- |
+| HTTPS, forced | `sudo cipi ssl install  && sudo cipi ssl force ` |
+| Database every 30 minutes | `--every=30m --keep=48` profile, local |
+| Everything nightly, off-site | `--cron='0 3 * * *' --dest=s3 --encrypt` profile ([guide](https://cipi.sh/guides/backup-vps-s3)) |
+| Verified backups | `sudo cipi backup verify` (alerts on failure) |
+| Enough PHP workers | `sudo cipi app limits  --fpm-max-children=12` |
+| A staging copy | Laravel shops: `cipi app clone`; others: a second custom app with a restored dump |
+| Alerts | [Telegram, Slack or e-mail](https://cipi.sh/guides/notifications-alerts) |
+| Transactional e-mail | An SMTP or API provider, never direct from the VPS |
+
+## Troubleshooting 
+
+| Symptom | Fix |
+| --- | --- |
+| 404 on every page but the home (Symfony, PrestaShop) | Wrong document root: recreate with `--docroot=public`, or check the platform's Nginx rules |
+| 500 after deploy (custom app) | Read `sudo cipi app logs  --type=php`; a `deploy.post` step may have failed |
+| Assets missing after deploy | Run the asset build in `deploy.post` (Symfony) or `node_build` (Laravel) |
+| Slow admin | Raise `memory_limit` and `fpm_max_children`; check slow queries |
+
+
+## WooCommerce on your own VPS, step by step
+
+URL: https://cipi.sh/guides/woocommerce-vps
+
+WooCommerce turns WordPress into a shop. A shop is more demanding than a blog: orders arrive all day, payment webhooks must never be missed, and losing a day of data means losing orders. This guide sets up a WooCommerce shop on your own server with Cipi, from an empty VPS to a protected, backed-up store, explaining each step.
+
+## What you'll build
+
+```stack
+Visitors | https://shop.example.com
+Nginx + PHP-FPM | isolated app "shop", its own PHP pool
+WordPress + WooCommerce | files in /home/shop/htdocs
+MariaDB | database "shop", its own user
+Cron every minute | Action Scheduler: orders, e-mails, webhooks
+Backups | DB every 30 min, everything nightly to S3
+```
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Custom app** | How Cipi hosts any PHP software that isn't Laravel: code in `~/htdocs`, served by Nginx and PHP-FPM ([docs](https://cipi.sh/docs/custom-apps)) |
+| **PHP-FPM pool** | The PHP processes that run your shop. Each app has its own, with its own limits |
+| **Action Scheduler** | The queue WooCommerce uses for background tasks (e-mails, stock, webhooks, subscriptions) |
+| **WP-Cron** | WordPress' built-in scheduler, triggered by visits. Not reliable for a shop |
+| **Staging** | A private copy of the shop where you try updates first |
+
+## Before you start 
+
+- A VPS with Cipi installed ([quickstart](https://cipi.sh/docs/quickstart)): 2 GB RAM or more.
+- A domain, with an `A` record for `shop.example.com` pointing at the server.
+- An account at an e-mail provider for order e-mails (SMTP credentials).
+
+## 1. Create the app and its database 
+
+```bash
+$ sudo cipi app create --custom --user=shop --domain=shop.example.com --php=8.4
+$ sudo cipi db create --name=shop --app=shop
+```
+
+The first command creates a Linux user `shop`, the folder `/home/shop/htdocs`, a PHP pool and the Nginx site. The second creates the database `shop` with its own user and links it to the app. **Save the database password** from the output: it's shown once.
+
+> [!tip] Check your plugins' PHP support before choosing the version. You can change it later with `sudo cipi app edit shop --php=8.5`.
+
+## 2. Install WordPress 
+
+Log in as the app user and download WordPress into the web folder:
+
+```bash
+$ ssh shop@203.0.113.10          # password and key from the create summary
+$ cd ~/htdocs && rm -f index.html
+$ curl -sO https://wordpress.org/latest.tar.gz
+$ tar xzf latest.tar.gz --strip-components=1 && rm latest.tar.gz
+```
+
+Prefer a graphical tool? Connect with SFTP (FileZilla, Transmit, Cyberduck) as `shop` and upload the files to `htdocs`.
+
+## 3. HTTPS before anything else 
+
+```bash
+$ sudo cipi ssl install shop
+$ sudo cipi ssl force shop
+```
+
+The certificate is free (Let's Encrypt), covers every alias and renews itself. `force` redirects every `http://` request to `https://`, which payment providers require.
+
+Now open `https://shop.example.com`, run the WordPress installer (database `shop`, user `shop`, the saved password, host `127.0.0.1`), then install **WooCommerce** from Plugins.
+
+## 4. PHP limits for a shop 
+
+Product imports, big carts and payment callbacks need more than WordPress' defaults. Put the settings in a `cipi.yml` at the root of `htdocs` (Nginx never serves it):
+
+```yaml
+# /home/shop/htdocs/cipi.yml
+version: 1
+app:
+  php: "8.4"
+  ini:
+    memory_limit: 512M
+    max_execution_time: 120
+    upload_max_filesize: 64M
+    post_max_size: 64M
+```
+
+```bash
+$ sudo cipi yml plan shop && sudo cipi yml apply shop
+$ sudo cipi app limits shop --fpm-max-children=12     # parallel PHP workers
+```
+
+| Setting | Why a shop needs it |
+| --- | --- |
+| `memory_limit` | WooCommerce with a page builder and a few plugins easily exceeds 256 MB |
+| `max_execution_time` | CSV imports and report generation take time |
+| Upload sizes | Product images and import files |
+| `fpm_max_children` | How many shoppers PHP serves at once. Each child uses ~60–120 MB: 12 children ≈ 1.5 GB |
+
+## 5. A real cron for Action Scheduler 
+
+Tell WordPress to stop running cron on page views. In `wp-config.php`, above "That's all, stop editing":
+
+```php
+define('DISABLE_WP_CRON', true);
+```
+
+Then add a real cron as the app user (`crontab -e`):
 
 ```text
 * * * * * php ~/htdocs/wp-cron.php >/dev/null 2>&1
 ```
 
-## 4. Backups that match your orders
+Check it: WooCommerce → Status → Scheduled Actions should show past-due actions going to zero.
+
+## 6. Order e-mails that arrive 
+
+Install an SMTP plugin (WP Mail SMTP, FluentSMTP…) and enter your provider's SMTP host, port 587 and credentials. Send a test e-mail from the plugin. Add your provider's SPF and DKIM records to your DNS.
+
+## 7. Speed 
+
+| Layer | What to do |
+| --- | --- |
+| PHP | OPcache is on by default. Keep PHP current: Cipi patches it every night |
+| Page cache | A plugin that writes static HTML (cart, checkout and account pages excluded) |
+| Images | Serve WebP; the optional `image-optimizers` host package adds `cwebp`, `jpegoptim`, `pngquant` (`sudo cipi package install image-optimizers`) |
+| CDN | Cloudflare in front (orange cloud) with SSL mode **Full (strict)** |
+| Database | Keep `wp_options` autoload small; delete old transients |
+
+## 8. Backups that match your orders 
+
+A shop changes every few minutes, so back up the database often and everything nightly, to another place:
 
 ```bash
+$ sudo cipi backup configure          # once: your S3-compatible bucket
 $ sudo cipi backup profile add shop-db --scope=db --databases=shop --every=30m --keep=48 --dest=local
 $ sudo cipi backup profile add shop-nightly --scope=all --cron='0 3 * * *' --keep-days=30 --dest=s3 --encrypt
 $ sudo cipi backup verify
 ```
 
-Half-hourly database dumps limit what you could lose to thirty minutes of orders.
-
-## 5. A staging copy for updates
-
-```bash
-$ sudo cipi app create --custom --user=shopstg --domain=staging.shop.example.com
-$ sudo cipi db create --name=shopstg
-$ sudo cipi basicauth enable shopstg
+```flow
+Every 30 min | database dump, kept 24 h
+Every night | files + database, encrypted
+Off-site | S3-compatible bucket
+Verify | archives checked automatically
 ```
 
-Copy the files (`rsync` between the two `htdocs` as root) and restore last night's dump into `shopstg`, then point `wp-config.php` and the site URLs at staging. Update plugins and themes there first. Turn off payment webhooks and outgoing e-mail on staging.
+At worst you lose 30 minutes of orders. Full guide: [backups to S3](https://cipi.sh/guides/backup-vps-s3).
 
-## 6. Security basics
+## 9. A staging copy for updates 
+
+Never update WooCommerce, the theme or payment plugins straight on the live shop.
+
+```bash
+$ sudo cipi app create --custom --user=shopstg --domain=staging.shop.example.com --php=8.4
+$ sudo cipi db create --name=shopstg --app=shopstg
+$ sudo cipi basicauth enable shopstg
+$ sudo cipi ssl install shopstg
+```
+
+Copy the files (`rsync -a /home/shop/htdocs/ /home/shopstg/htdocs/` as root, then `sudo cipi app fix-permissions shopstg`), restore last night's dump into `shopstg`, change the database name, user and password in `wp-config.php`, and set `WP_HOME` and `WP_SITEURL` to the staging URL. Then **turn off** payment gateways (or switch them to test mode) and outgoing e-mail on staging.
+
+## 10. Security 
 
 | Item | How |
 | --- | --- |
-| HTTPS everywhere | `sudo cipi ssl install shop && sudo cipi ssl force shop` |
-| Admin brute force | fail2ban is on; add Cloudflare Access on `/wp-admin` if you can ([guide](https://cipi.sh/guides/cloudflare-zero-trust-laravel)) |
-| Malware | `sudo cipi scan shop` |
-| PHP patched | Nightly, automatically |
+| HTTPS everywhere | Done in step 3 |
+| Brute-force on `/wp-login.php` | fail2ban is on; add Cloudflare Access on `/wp-admin` for the team ([guide](https://cipi.sh/guides/cloudflare-zero-trust-laravel)) |
+| File changes | `sudo cipi scan shop` finds known malware; run it after installing plugins |
+| Isolation | Other apps on the server can't read `/home/shop` |
+| Updates | PHP patched nightly by Cipi; WordPress, themes and plugins by you, after staging |
+| Alerts | Backup failures and server problems on Telegram or Slack ([guide](https://cipi.sh/guides/notifications-alerts)) |
+
+## Troubleshooting 
+
+| Symptom | Likely cause and fix |
+| --- | --- |
+| "Error establishing a database connection" | Wrong DB credentials in `wp-config.php`, or host `localhost` instead of `127.0.0.1` |
+| White page or 502 after a plugin install | PHP memory: raise `memory_limit`, check `sudo cipi app logs shop --type=php` |
+| Uploads fail above 2 MB | `upload_max_filesize` and `post_max_size` not applied: `sudo cipi yml plan shop` |
+| Orders stuck "pending payment" | Payment webhook blocked: the shop must be reachable over HTTPS; check the gateway's webhook log |
+| Scheduled actions past due | Real cron missing: `crontab -l` as `shop` |
+| Mixed-content warnings | Site URLs still `http://`: update them in Settings → General |
 
 
 ---

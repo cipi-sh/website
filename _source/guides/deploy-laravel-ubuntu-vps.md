@@ -1,6 +1,6 @@
 ---
 title: Deploy Laravel on an Ubuntu VPS with zero downtime
-description: From a fresh Ubuntu 24.04 or 26.04 server to a Laravel app on HTTPS with queues, scheduler and push-to-deploy, in about fifteen minutes and for free.
+description: From a fresh Ubuntu 24.04 or 26.04 server to a Laravel app on HTTPS with queues, scheduler and push-to-deploy, explained from zero: install, create the app, connect Git, deploy, HTTPS, rollbacks and the first-day problems.
 category: start
 order: 2
 published: 2026-03-10
@@ -15,8 +15,32 @@ faq:
   - How much does it cost? | Cipi is free and MIT licensed. You pay only for the server, from a few euros a month at Hetzner or DigitalOcean.
   - Can I host several apps on one server? | Yes. Each app gets its own Linux user, PHP pool, database and certificate, so apps can't read each other's files or data.
   - What if a deploy breaks the site? | Migrations and builds run on the new release before it goes live, and `cipi deploy myapp --rollback` swaps back in a second. With a health check set, a broken release is rolled back automatically.
+  - What does "zero downtime" mean here? | The new release is built in its own folder while the old one keeps serving. When it's ready, one atomic symlink switch makes it live, and workers restart on the new code. Visitors never hit a half-installed app.
+  - Where are my files on the server? | `/home/shop/current` is the live release, `/home/shop/shared` holds `.env` and `storage`, `/home/shop/releases` keeps the last five releases for rollback.
+  - Do I need to know Nginx or PHP-FPM? | No. Cipi writes and maintains the configuration. You can still tune things with `cipi ini`, `cipi nginx` and the deploy options.
+  - My repository is private. | That's the normal case: the per-app deploy key gives the server read-only access to that one repository.
+  - Can I deploy a Laravel app that also has a Vue or React front end? | Yes. Set `--node-build='npm ci && npm run build'` and Vite builds during the deploy, before the release goes live.
+docs:
+  - quickstart
+  - installation
+  - create-app
+  - deploying
+  - ssl
+  - git
 ---
 This guide takes a fresh VPS to a live Laravel app with HTTPS, a queue worker, the scheduler and deploys on every `git push`. It uses [Cipi](/), a free, open-source tool that installs and runs the whole stack on your own server.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Release** | One deployed copy of your code, in its own timestamped folder |
+| **`current`** | A link to the live release; switching it is the deploy |
+| **Deploy key** | A read-only SSH key that lets the server clone one repository |
+| **Webhook** | A URL your Git provider calls on every push, which starts a deploy |
+| **Worker** | A background process that runs queued jobs |
+
+New to servers? Read [VPS, SSH and DNS basics](/guides/vps-ssh-dns-basics) first: ten minutes, no jargon.
 
 ```flow
 Server | Ubuntu 24.04 or 26.04 | #server
@@ -84,6 +108,18 @@ $ sudo cipi deploy shop
 
 <cipi-term name="qs-deploy"></cipi-term>
 
+```tree
+/home/shop/
+  current -> releases/20261123_101500   ← live
+  releases/
+    20261123_101500/
+    20261122_174210/                     ← rollback target
+  shared/
+    .env
+    storage/
+  logs/
+```
+
 Each deploy clones into a new release folder, runs `composer install`, links `.env` and `storage`, runs migrations, builds assets if you set a build command, then switches `current` with one atomic symlink and restarts workers. Visitors never see a half-deployed app.
 
 ## 7. Turn on HTTPS {#https}
@@ -107,3 +143,15 @@ With the webhook in place, every push to `main` deploys. Prefer tests first? Tur
 | Faster responses | [Laravel Octane with FrankenPHP](/guides/laravel-octane-frankenphp) |
 | Alerts on Telegram or Slack | [Monitoring and alerts](/guides/server-monitoring-alerts) |
 | A browser UI for the team | [Web panel and API](/guides/cipi-gui-and-api) |
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| `Permission denied (publickey)` on deploy | The deploy key isn't on the repository: `sudo cipi deploy shop --key`, add it, `sudo cipi git check shop` |
+| Composer fails on the PHP version | The app's PHP is older than `composer.lock` needs: `sudo cipi app edit shop --php=8.6` |
+| 500 error after the first deploy | Read the log: `sudo cipi app logs shop --type=laravel`; usually a missing `.env` key |
+| Certificate fails | DNS doesn't point at the server yet: `dig +short shop.example.com` |
+| Push doesn't deploy | Webhook missing or wrong branch: `sudo cipi deploy shop --webhook`, check `CIPI_DEPLOY_BRANCH` |
+| A deploy hangs or was interrupted | `sudo cipi deploy shop --status`, then `--unlock` |
+| Assets 404 | No build command: `sudo cipi app deploy-config shop --node-build='npm ci && npm run build'` |

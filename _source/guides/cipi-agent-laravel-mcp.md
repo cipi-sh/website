@@ -11,6 +11,17 @@ related:
   - cipi-mcp-ai-agents
   - cipi-agent-webhook-deploy
   - anonymized-database-dumps
+docs:
+  - agent-install
+  - agent-config
+  - mcp
+  - agent-yml
+  - anonymizer
+faq:
+  - Does the agent slow my app down? | No. It adds routes under `/cipi/*` that are off until enabled, and does work only when called.
+  - Can I change the `/cipi` prefix? | Yes, with `CIPI_ROUTE_PREFIX` in `.env`. Update webhooks and monitors that use the old path.
+  - Does it work outside Cipi servers? | The `cipi.yml` validator and the anonymizer work anywhere; deploy, health and MCP features expect a Cipi server.
+  - How do I remove it? | `composer remove cipi/agent`, deploy. Routes and tokens go with it.
 ---
 `cipi/agent` is a Laravel package that lets your app talk to the server it runs on. One `composer require` and the app gains five features, each behind its own token and each off until you want it.
 
@@ -21,6 +32,14 @@ related:
 | MCP for AI assistants | `/cipi/mcp` | [Claude, Cursor and the Cipi MCP](/guides/cipi-mcp-ai-agents) |
 | `cipi.yml` tooling | `php artisan cipi:yml` | [cipi.yml](/guides/manage-apps-with-cipi-yml) |
 | Anonymized dumps | `php artisan cipi:anonymize`, `/cipi/db` | [Safe data for developers](/guides/anonymized-database-dumps) |
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Agent** | A Composer package inside your app that talks to the server it runs on |
+| **Service** | One feature of the agent (health, MCP, anonymizer…), each off by default |
+| **Token** | One secret per service, in the app's `.env` |
 
 ## 1. Install
 
@@ -60,3 +79,12 @@ The agent ships the same `cipi.yml` validator as the server, so a broken file fa
 ## Agent or API?
 
 The agent works **inside one app**, on its domain. The [Cipi API](/docs/api) runs on its own domain and manages the **whole server**. Install the [PHP SDK](/docs/php-sdk) next to the agent and the app's MCP gains server-side tools: rollback, database backup, job status.
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| `cipi:status` says not configured | The `.env` lacks the `CIPI_*` keys Cipi writes at creation: compare with a fresh app and add the missing ones |
+| An endpoint answers 404 | The service is disabled: `cipi:service <name> --enable` |
+| 403 with a valid-looking token | Token from another service: each has its own |
+| Package refuses to install | Laravel 12 or 13 and PHP 8.3+ are required |

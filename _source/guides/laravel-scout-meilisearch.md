@@ -15,10 +15,25 @@ faq:
   - Is Meilisearch exposed to the internet? | No. It listens on 127.0.0.1 only, and each app gets a key limited to its own indexes.
   - How much memory does it need? | Cipi refuses to install below 512 MB available and warns below 1 GB. Plan RAM for your index size.
   - Small catalogue? | Scout's `database` driver or PostgreSQL full-text search need no extra service.
+  - Does each app get its own Meilisearch? | Apps share one Meilisearch service, but each gets its own key restricted to its own index prefix, so one app can't read another's indexes.
+  - How much RAM does Meilisearch need? | It memory-maps the index: plan roughly the size of your indexed data plus headroom. Small catalogues fit in a few hundred MB.
+  - Do I re-import after every deploy? | No. Scout keeps indexes in sync on save. Re-import only after changing `toSearchableArray()` or index settings.
+docs:
+  - search
+  - environment
 ---
 Here you'll add instant, typo-tolerant product search to a Laravel shop with [Scout](https://laravel.com/docs/scout) and [Meilisearch](https://www.meilisearch.com), running on the same server. Each app gets a key that can only touch its own indexes.
 
 <cipi-term name="search"></cipi-term>
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Scout** | Laravel's search layer: `Product::search('shoes')->get()` |
+| **Meilisearch** | An open-source search engine, typo-tolerant and fast |
+| **Index** | Meilisearch's copy of the searchable fields of your models |
+| **Filterable / sortable attributes** | Fields you can filter or sort on; they must be declared |
 
 ## 1. Install Meilisearch on the server
 
@@ -98,3 +113,12 @@ deploy:
 | Rotate the app key | `sudo cipi search key rotate shop` (`.env` updated) |
 | Upgrade | `sudo cipi search upgrade` (old binary returns if the store is refused) |
 | Turn off for an app | `sudo cipi search disable shop --purge-indexes` |
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| No results | Not imported yet: `scout:import "App\Models\Product"` |
+| `Attribute is not filterable` | Declare it in `scout.meilisearch.index-settings`, then `scout:sync-index-settings` |
+| Changes don't show up | `SCOUT_QUEUE=true` and no worker running, or `searchable()` not called |
+| `invalid_api_key` | Key rotated: check `MEILISEARCH_KEY` in `.env`, `cipi search status --check` |

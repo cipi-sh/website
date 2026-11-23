@@ -15,6 +15,15 @@ faq:
   - Can the assistant drop my database? | The SQL guard blocks DDL (`DROP`, `ALTER`, `TRUNCATE`, `CREATE`), `GRANT`, file I/O and multi-statements, and dangerous Artisan commands (`db:wipe`, `migrate:fresh`, `tinker`…) are blocked. Set `CIPI_MCP_DB_WRITE=false` for read-only queries.
   - Does it see my secrets? | Output is redacted: env assignments, bearer tokens, DSNs, `APP_KEY` and provider keys are masked. `env_check` returns variable names, never values.
   - Which one should I install? | The agent MCP to debug and deploy one app; the server MCP to operate the whole server. Many teams use both.
+  - Which assistants work? | Any MCP client that speaks HTTP: Claude Code, Claude Desktop, Cursor, VS Code, Windsurf and others.
+  - Can I limit what the assistant does on the server MCP? | Yes. Give its API token only the abilities it needs, for example read-only `apps-view` plus `deploy`, instead of full access.
+  - Does the assistant run commands on my laptop or the server? | Only through the tools the MCP server exposes, over HTTPS, with your token. It can't open a shell.
+  - How do I revoke access? | Rotate the agent token (`php artisan cipi:generate-token mcp`) or delete the API token (`cipi api token revoke`). The old one stops working at once.
+docs:
+  - mcp
+  - agent-config
+  - api
+  - deploy-audit
 ---
 MCP (Model Context Protocol) lets an AI assistant call tools. Cipi ships two MCP servers, so you can ask *"is production healthy, what failed last night, deploy main"* and get answers from the real app, not guesses.
 
@@ -23,6 +32,22 @@ MCP (Model Context Protocol) lets an AI assistant call tools. Cipi ships two MCP
 | Endpoint | `https://shop.example.com/cipi/mcp` | `https://api.example.com/mcp` |
 | Scope | One app: health, logs, database, Artisan, deploy, `cipi.yml` | The server: apps, domains, SSL, databases, backups, PHP |
 | Installed with | `composer require cipi/agent` | `cipi api api.example.com` |
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **MCP** | Model Context Protocol: a standard way for an AI assistant to call tools |
+| **Tool** | One action the assistant can take: read logs, run a query, deploy |
+| **Token** | The secret your assistant sends with every call; scoped and revocable |
+| **Guard** | A rule that blocks dangerous calls whatever the assistant asks |
+
+```flow
+You ask | in Claude, Cursor, VS Code
+Assistant | picks a tool
+MCP server | checks token and guards
+App or server | runs it, output redacted
+```
 
 ## 1. Turn on the agent's MCP server
 
@@ -97,3 +122,13 @@ Destructive host operations (dropping databases, removing PHP versions, installi
 | Audit | Deploys record the actor in the [hash-chained ledger](/docs/deploy-audit) |
 
 > [!tip] For production, start with `CIPI_MCP_DB_WRITE=false`. Need realistic data for the assistant to experiment on? Give it an [anonymized dump](/guides/anonymized-database-dumps) instead of production.
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| 401 Unauthorized | Wrong or old token: generate a new one, update the client config |
+| 404 on `/cipi/mcp` | Service disabled: `php artisan cipi:service mcp --enable` |
+| Tool refused: blocked command | By design (DDL, `migrate:fresh`, `tinker`): run it yourself if you really need it |
+| Query returns 100 rows only | Reads are capped: ask for a narrower query or an aggregate |
+| Client can't connect | The client needs HTTP transport support; update it |

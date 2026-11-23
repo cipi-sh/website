@@ -83,6 +83,10 @@ HTTP/2 200
 
 Takes about a minute. Renewals reuse the same token automatically. If the records are **proxied** (orange cloud), set Cloudflare SSL/TLS to **Full (strict)**.
 
+Aliases and certificates are also visible in the [web panel](/web-panel):
+
+<cipi-clips name="domains"></cipi-clips>
+
 ## 5. Find the tenant in Laravel {#laravel}
 
 A middleware reads the subdomain and loads the tenant:

@@ -11,8 +11,25 @@ related:
   - laravel-security-checklist
   - php-nginx-cve-patching
   - cipi-gui-and-api
+docs:
+  - zero-trust
+  - firewall
+  - ssh-keys
+  - ssl
+faq:
+  - Do visitors notice? | No. Public apps stay public; only the routes you protect ask for a login (e-mail code, Google, GitHub, SSO).
+  - What if Cloudflare is down? | Traffic through the tunnel stops. Keep a break-glass path: the provider's web console, or reopen port 22 from the console.
+  - Do webhooks still work? | Add a bypass for `/cipi/webhook` (and API paths) on protected apps, or keep those apps public.
 ---
 With a Cloudflare Tunnel the server dials out to Cloudflare, and visitors reach it through Cloudflare's network. Once every app goes through the tunnel, you can close ports 80, 443 and even 22. Cipi does it in reversible steps; nothing closes until you ask.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Tunnel** | An outbound connection from your server to Cloudflare; traffic comes back through it |
+| **Access** | Cloudflare's login wall in front of an app or SSH |
+| **Closing ports** | Once everything goes through the tunnel, 80/443 (and 22) can be closed to the internet |
 
 ```flow
 Token & enable | tunnel; ports still open | #token
@@ -76,3 +93,12 @@ $ sudo cipi zt status
 > [!warning] Lock SSH only after SSH through the tunnel works from your machine, and keep your provider's web console handy. Deploys aren't affected: they run locally.
 
 Every step has its undo: `unlock http`, `ssh unlock`, `access disable`, `hostname remove`, `disable`.
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| 502 from Cloudflare | Tunnel down: `sudo cipi zt status` |
+| Locked out of SSH | Use the provider's console, `cipi zt` or reopen 22 temporarily |
+| Webhook deploys stopped | Add a bypass for `/cipi/webhook` |
+| Certificate renewals fail | Use DNS-01 (`--dns=cloudflare`) or an Origin CA: HTTP-01 can't reach a closed port 80 |

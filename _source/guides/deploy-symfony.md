@@ -11,6 +11,15 @@ related:
   - php-ecommerce-vps
   - deploy-wordpress-custom-app
   - backup-vps-s3
+docs:
+  - custom-apps
+  - databases
+  - git
+  - php
+faq:
+  - Are Symfony deploys zero-downtime? | Custom apps deploy from Git into `~/htdocs`. For atomic releases like Laravel's, use a deploy script that builds in a new folder and switches a symlink.
+  - Messenger workers? | Run `messenger:consume` from the app user's crontab with a time limit, or as a Supervisor program you add as root.
+  - Doctrine migrations? | Add `bin/console doctrine:migrations:migrate --no-interaction` to your deploy steps.
 ---
 Cipi is Laravel-first, but any PHP framework runs as a **custom app**: Nginx serves the document root you pick, PHP-FPM runs in the app's own pool, and Git deploys pull into `~/htdocs`. Here's a Symfony app end to end.
 
@@ -74,3 +83,11 @@ $ sudo cipi health set billing --url=https://billing.example.com/ --expect=200
 ```
 
 Everything else (firewall, PHP patches, monitoring) is server-wide and already on.
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| 500 with no details | Check `var/log/prod.log`; `APP_ENV=prod` hides errors on screen |
+| Database connection refused | Wrong `DATABASE_URL`; MariaDB on 3306 or PostgreSQL on 5432, both localhost |
+| Cache permission errors | `var/` must belong to the app user: `cipi app fix-permissions billing` |

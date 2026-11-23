@@ -15,10 +15,39 @@ faq:
   - Do I need Docker for FrankenPHP? | No. Cipi runs the FrankenPHP binary natively under Supervisor, behind Nginx, like any other process.
   - Can Octane and PHP-FPM apps share a server? | Yes. Each app picks its runtime; you can convert one back and forth with `cipi app convert`.
   - Will a deploy change my PHP version? | No. Each Octane app is pinned to a FrankenPHP build. PHP changes only when you run `cipi frankenphp upgrade` or switch the app's PHP version.
+  - Is Octane always faster? | For most apps, yes: requests skip the framework boot. Apps dominated by slow database queries or external APIs gain less; fix those first.
+  - What breaks under Octane? | Code that keeps per-request data in static properties, singletons resolved once with the request inside, or global state. Test with `php artisan octane:start --watch` locally.
+  - How much memory does it use? | Each Octane worker keeps the app in memory, often 60–150 MB. Workers × memory must fit alongside your database and queues.
+  - How do I reload Octane after changing .env? | Rebuild the config cache and restart: `cipi app artisan shop config:cache`, then `cipi worker restart shop`. A deploy does both.
+docs:
+  - octane
+  - php
+  - limits
+  - stack-upgrades
 ---
 [Laravel Octane](https://laravel.com/docs/octane) boots your app once and keeps it in memory, so each request skips the framework bootstrap. With FrankenPHP as the server, a typical app answers several times faster on the same hardware. Cipi runs it natively, without containers, next to your PHP-FPM apps.
 
 <cipi-term name="octane"></cipi-term>
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **PHP-FPM** | The classic way: PHP boots Laravel for **every** request |
+| **Octane** | Boots Laravel **once** and keeps it in memory; requests reuse it |
+| **FrankenPHP** | A modern PHP server (one binary with PHP inside) that Octane runs on |
+| **Octane worker** | One long-lived process handling requests in turn |
+| **State leak** | Data from one request still in memory during the next: the main thing to avoid |
+
+```flow
+PHP-FPM | boot, handle, forget: every request
+Octane | boot once, handle many
+```
+
+## Before you start {#before}
+
+- A Laravel app on Cipi ([first deploy](/guides/deploy-laravel-ubuntu-vps)) with a test suite.
+- About 150 MB of free RAM per Octane worker you plan to run.
 
 ## 1. Prepare the project
 
@@ -91,3 +120,23 @@ The runtime is chosen at creation or with `convert`; worker counts can live in t
 app:
   limits: { octane_workers: 4 }
 ```
+
+## Avoid state leaks {#state}
+
+| Risky | Safer |
+| --- | --- |
+| `static $cache = []` in a service | Laravel's cache, or reset it per request |
+| Injecting `Request` into a singleton's constructor | Resolve the request inside the method |
+| Singletons holding the logged-in user | Bind as `scoped()` instead of `singleton()` |
+| Growing arrays in long-lived objects | Octane recycles each worker after 500 requests by default, which limits the damage, not the cause |
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| 502 Bad Gateway | Octane isn't running: `sudo cipi worker list shop`, then `sudo cipi app logs shop --type=worker` |
+| One user sees another's data | A state leak: see the table above |
+| `.env` change ignored | `cipi app artisan shop config:cache`, then `cipi worker restart shop` |
+| Memory climbs until restart | A leak in a long-lived object: find it (static arrays, listeners added per request); lower the worker count meanwhile |
+| `cipi php upgrade` lists the app | Its FrankenPHP build is behind: `sudo cipi frankenphp upgrade shop` |
+| Uploads larger than a few MB fail | Raise `client_max_body_size` and `upload_max_filesize` with `cipi ini` |

@@ -15,10 +15,34 @@ faq:
   - Do I need a separate subdomain or port? | No. Reverb listens on localhost; Nginx proxies `/app` and `/apps` on the app's own domain and certificate.
   - How many clients can connect? | Cipi raises the open-file limit to 65,535 for Supervisor and Nginx, so thousands of clients can stay connected on a modest server.
   - My app already has routes under /app. | Those paths belong to the WebSocket protocol. Run Reverb for that app on a separate subdomain.
+  - Does Reverb need Redis? | Not for one server. To run Reverb on several servers behind a load balancer, enable Reverb's Redis scaling so they share messages.
+  - Why do events arrive late or never? | Broadcasting goes through the queue. If no worker runs, or jobs fail, nothing is sent. Check workers and failed jobs first.
+  - Can I use it with Livewire? | Yes. Livewire listens to Echo events with `#[On('echo-private:orders.{id},OrderShipped')]`.
+  - Private channels return 403. | The `/broadcasting/auth` route needs the user logged in and your `routes/channels.php` rule to return true for them.
+docs:
+  - reverb
+  - environment
+  - ssl
+  - workers
 ---
 [Laravel Reverb](https://reverb.laravel.com) is Laravel's own WebSocket server. Here you'll add live notifications to an app and run Reverb in production on the same domain and certificate as the app: no Pusher account, no extra port to open, no credentials to invent.
 
 <cipi-term name="reverb"></cipi-term>
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **WebSocket** | A connection the browser keeps open, so the server can push messages |
+| **Broadcasting** | Laravel sending an event to connected browsers |
+| **Channel** | A named stream: public, private (logged-in users) or presence (who's online) |
+| **Echo** | The JavaScript client that listens on channels |
+| **Reverb** | The WebSocket server, a long-running process on your server |
+
+## Before you start {#before}
+
+- A Laravel app on Cipi with a queue worker running (broadcasts are queued).
+- A domain with HTTPS, so browsers connect over `wss://`.
 
 ## 1. Add broadcasting to the project
 
@@ -79,7 +103,7 @@ Events are broadcast from queued jobs, so keep a [worker or Horizon](/guides/lar
 
 | Symptom | Fix |
 | --- | --- |
-| Clients use `ws://` after adding a certificate | `cipi app reverb enable shop` again, then deploy |
+| Clients use `ws://` after adding a certificate | Redeploy, so Vite rebuilds the bundle with `wss://` |
 | `Missing in .env` in status | Run `enable` again: it fills in missing keys, keeps port and credentials |
 | Domain changed | Redeploy so the bundle picks up the new host |
 
@@ -92,3 +116,13 @@ workers:
 ```
 
 A clone or staging copy gets its own port, credentials and host, never production's.
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| Console: WebSocket connection failed | Reverb not running: `sudo cipi app reverb status shop` |
+| Connects, but no events | No queue worker, or the event isn't `ShouldBroadcast`; check `queue:failed` |
+| 403 on `/broadcasting/auth` | User not logged in, or the channel rule in `routes/channels.php` returns false |
+| Mixed content blocked | Page on HTTPS, socket on `ws://`: install the certificate, redeploy |
+| Works locally, not on the server | `VITE_REVERB_*` baked in at build time: redeploy after changing them |

@@ -11,6 +11,13 @@ related:
   - cipi-agent-health-monitoring
   - backup-vps-s3
   - php-nginx-cve-patching
+docs:
+  - monitor
+  - notifications
+  - health-checks
+faq:
+  - What does Cipi watch? | Load, memory, disk, services (Nginx, PHP-FPM, databases, Valkey, Supervisor), failed deploys, backups, certificates, security updates and health checks.
+  - Will I get spammed? | Alerts fire on state changes (problem, then recovery), not every five minutes. Disable triggers you don't want.
 ---
 Cipi checks the server every five minutes with a cron job and a few state files: no agent, no metrics database, no external service. You choose where the alerts go.
 
@@ -60,3 +67,13 @@ $ sudo cipi health check shop
 ```
 
 The same check runs after every deploy and can [roll back automatically](/guides/laravel-zero-downtime-migrations). For a richer per-app status (database, cache, queue, storage, deploy), use the [agent's health endpoint](/guides/cipi-agent-health-monitoring) with an external uptime service.
+
+More channels and webhook signatures: [notifications and alerts](/guides/notifications-alerts).
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| No alerts at all | No channel configured: add one with `cipi notification add`, then `cipi notification test all` |
+| Telegram silent | Bot never received `/start`, or wrong chat id (groups are negative) |
+| Too many disk alerts | Clean logs and releases; lower `--keep-releases` |

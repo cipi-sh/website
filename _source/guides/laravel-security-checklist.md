@@ -10,6 +10,16 @@ related:
   - php-nginx-cve-patching
   - cloudflare-zero-trust-laravel
   - anonymized-database-dumps
+docs:
+  - security-model
+  - compliance
+  - firewall
+  - crowdsec
+  - malware-scan
+faq:
+  - Is this list enough for a security audit? | It covers the common ground. For ISO 27001 or SOC 2 evidence, `cipi compliance` collects the server side; your app's controls stay yours.
+  - How often should I review it? | At every major release and after adding a feature that handles money, uploads or personal data.
+  - What's the single most common mistake? | `APP_DEBUG=true` in production, which shows secrets in error pages.
 ---
 Security on your own server is a list of boring things done every time. Here's the list, split between what's yours (the app) and what the server should do for you.
 
@@ -66,3 +76,15 @@ Security on your own server is a list of boring things done every time. Here's t
 | Alerts where you look | Telegram, Slack, e-mail or webhooks ([guide](/guides/server-monitoring-alerts)) |
 | Health check with automatic rollback | `health.rollback_on_unhealthy: true` in `cipi.yml` |
 | Who deployed what | The [deploy audit](/docs/deploy-audit) |
+
+## Quick self-check {#self-check}
+
+```bash
+$ sudo cipi app env shop --get=APP_DEBUG       # false
+$ composer audit                               # no known CVEs
+$ sudo cipi php list                           # every version patched
+$ curl -sI https://shop.example.com | grep -i strict-transport
+$ sudo cipi status                             # firewall, fail2ban, updates
+```
+
+Related: [.env and secrets](/guides/laravel-env-secrets), [anonymized data](/guides/anonymized-database-dumps), [Zero Trust](/guides/cloudflare-zero-trust-laravel).

@@ -14,8 +14,31 @@ related:
 faq:
   - Webhook or pipeline? | Use the webhook when every push to a branch should deploy. Use a pipeline when deploys depend on tests, a backup or an approval; then turn the webhook off.
   - Can the CI key do anything else on the server? | The `cipi` user runs only `sudo cipi …` without a password. The CI key can deploy, not install software or read other users' files.
+  - Webhook or CI? | The webhook deploys every push, fast and simple. CI deploys only when tests pass. You can also keep the webhook on staging and use CI for production.
+  - Can I deploy without giving CI SSH access? | Yes: use `cipi-cli` with a scoped API token (`deploy` ability only), as shown in "Without SSH".
+  - How do I run migrations in CI? | You don't: the deploy runs them on the server, inside the new release, before it goes live.
+docs:
+  - ci-pipelines
+  - auto-deploy
+  - safe-deploy
+  - health-checks
+  - cli-client
 ---
 Push-to-deploy is great until a broken test reaches production. A pipeline adds the gate: test, optionally back up, deploy, and roll back if the deploy fails.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **CI** | Continuous integration: tests run on every push |
+| **CD** | Continuous delivery: a passing build deploys by itself |
+| **Pipeline / workflow** | The list of steps GitHub Actions or GitLab CI runs |
+| **Secret** | A value stored in the CI settings (a key, a token), never in the repository |
+
+## Before you start {#before}
+
+- A Laravel app deployed with Cipi, with tests (`php artisan test`).
+- Admin access to the repository settings to add secrets.
 
 ```flow
 Push | to main
@@ -106,3 +129,12 @@ $ cipi-cli prod deploy shop
 ```
 
 Next: a live URL for every branch with [preview environments](/guides/laravel-preview-environments).
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| `Permission denied (publickey)` in CI | The CI public key isn't on the server: `sudo cipi ssh add "…"` |
+| `Host key verification failed` | Add the server's host key to `known_hosts` in the workflow (`ssh-keyscan`) |
+| Deploys twice per push | The webhook is still on: remove it from the repository |
+| CI passes, site broken | Add a [health check](/docs/health-checks) with `--rollback-on-unhealthy` |

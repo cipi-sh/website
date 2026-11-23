@@ -67,6 +67,8 @@ $ sudo cipi php list
 $ sudo cipi php install 8.6
 ```
 
+<cipi-term name="php"></cipi-term>
+
 The install adds the version next to the others. Nothing changes for running apps.
 
 ## 3. Try it on a copy first {#copy}

@@ -15,8 +15,26 @@ faq:
   - Which storage works? | Any S3-compatible bucket: AWS S3, Hetzner Object Storage, DigitalOcean Spaces, Backblaze B2, Wasabi, Cloudflare R2, MinIO or [Johnny](https://johnny.web.ap.it/) on another VPS.
   - Are backups encrypted? | With `encrypt: true` (or `--encrypt`) archives are encrypted on the server before upload. Keep the key safe: `cipi backup key show`.
   - What isn't in a backup? | Certificates (re-issued in a minute) and the releases folder (rebuilt by a deploy). Code is in Git; backups hold databases and `shared/` (`.env`, uploads).
+  - Which bucket provider? | Any S3-compatible one: AWS S3, Hetzner, Backblaze B2, Wasabi, Cloudflare R2, Scaleway, DigitalOcean Spaces. Pick one in another region or provider than the server.
+  - Where is the encryption key? | `cipi backup key show` prints it. Store it in your password manager: without it, encrypted archives can't be opened.
+  - How long does a restore take? | Minutes for a typical app. Test it now so you know: `cipi backup fetch` into a scratch folder, then restore a database.
+docs:
+  - backups
+  - databases
+  - vault
+  - sync
 ---
 A backup you haven't restored is a hope. This guide sets up encrypted backups to S3-compatible storage, checks them automatically and walks through a restore.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Destination** | Where archives go: the server's disk, or an S3-compatible bucket |
+| **Profile** | What to back up, how often and how long to keep it |
+| **Retention** | How many runs or days are kept before old ones are deleted |
+| **Off-site** | In another place than the server, so one disaster can't take both |
+| **3-2-1** | Three copies, two kinds of storage, one off-site |
 
 ```flow
 Destination | S3-compatible bucket | #destination
@@ -25,6 +43,8 @@ In cipi.yml | the app declares its own | #in-cipi-yml
 Verify | archives readable | #verify
 Restore | one app or everything | #restore
 ```
+
+<cipi-term name="backup"></cipi-term>
 
 ## 1. Add a destination {#destination}
 Create a bucket and an access key limited to it, at any S3-compatible provider. Then:
@@ -84,3 +104,12 @@ For a whole server, restoring backups works, but moving with [`cipi sync`](/guid
 ## Before risky deploys
 
 A local snapshot before migrations is cheap: `sudo cipi app edit shop --predeploy-snapshot`. See [safe migrations](/guides/laravel-zero-downtime-migrations).
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| `destination test` fails | Key lacks bucket permissions, wrong region or endpoint |
+| Backups overdue | `cipi backup status` names the profile; check disk space and the log |
+| Can't open an archive | Wrong key: use the one from `cipi backup key show` at that time |
+| Restore refuses an empty dump | By design: an empty backup never wipes a database |

@@ -11,6 +11,16 @@ related:
   - cipi-mcp-ai-agents
   - cloudflare-zero-trust-laravel
   - server-monitoring-alerts
+docs:
+  - gui-overview
+  - gui-install
+  - api
+  - cli-client
+  - mcp
+faq:
+  - Do I need the panel? | No. Everything works from the CLI. The panel helps teams and people who prefer a browser.
+  - Is the panel safe to expose? | It's on its own subdomain with HTTPS, users with roles and optional SSO. Put it behind Zero Trust for an extra layer.
+  - Can the API delete servers or drop databases? | Destructive host operations stay CLI-only by design.
 ---
 Cipi is CLI-first, but not CLI-only. Two optional pieces, each on its own subdomain, open it up: the **API** (for automation, the panel, the CLI client and AI assistants) and the **web panel** (for people).
 
@@ -66,3 +76,13 @@ Or from PHP with the [SDK](/docs/php-sdk), from WHMCS with the [module](/docs/wh
 | Panel behind Cloudflare Access | `sudo cipi zt access enable --gui` ([guide](/guides/cloudflare-zero-trust-laravel)) |
 | Small tokens | One per client, only the abilities it needs, with an expiry |
 | Keep it current | `sudo cipi gui update`, `sudo cipi api update` (the API also updates nightly) |
+
+See [Web panel](/web-panel), [API](/api) and [MCP](/mcp) for the full picture.
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| API install fails on DNS | The API's hostname must point at the server first |
+| 403 from the API | Token lacks the ability: create one with the right `--abilities` |
+| Panel can't reach the API | Check `cipi api status`; tokens and URL in the panel settings |

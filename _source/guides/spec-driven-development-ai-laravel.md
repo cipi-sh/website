@@ -10,6 +10,14 @@ related:
   - cipi-mcp-ai-agents
   - anonymized-database-dumps
   - laravel-ci-cd-git-workflow
+docs:
+  - mcp
+  - preview-environments
+  - anonymizer
+faq:
+  - Do I need a special tool? | No. A spec is a Markdown file in the repository. Tools such as Larapilot help structure it, but the method works with any agent.
+  - How detailed should a spec be? | Enough that a reviewer can say yes or no to the result: the problem, acceptance criteria, constraints and what's out of scope.
+  - What data should the agent use? | Seeders or an anonymized dump. Never give an agent production credentials.
 ---
 AI coding agents are good at implementing a clear, testable specification and bad at guessing what you meant. The teams getting value write the spec first, keep the agent inside guardrails, and give it eyes on production through MCP.
 

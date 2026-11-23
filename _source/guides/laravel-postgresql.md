@@ -68,6 +68,8 @@ $ sudo cipi db engines
 
 Cipi installs `postgresql` and `postgresql-contrib`, makes it listen on `localhost` only, sets a random superuser password in the vault and pins the package so unattended upgrades never restart it. MariaDB keeps running next to it.
 
+<cipi-term name="db"></cipi-term>
+
 Want every new app on PostgreSQL by default?
 
 ```bash
@@ -143,6 +145,10 @@ $ sudo cipi db upgrade pgsql
 ```
 
 Minor releases (security and bug fixes) install with a brief restart. Plan it outside peak hours, or schedule it with [stack upgrades](/docs/stack-upgrades).
+
+The same databases, backups and password rotation in the [web panel](/web-panel):
+
+<cipi-clips name="databases"></cipi-clips>
 
 ## MySQL habits that change {#differences}
 

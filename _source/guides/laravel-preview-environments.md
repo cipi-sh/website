@@ -11,8 +11,26 @@ related:
   - cipi-yml-staging-production
   - laravel-ci-cd-git-workflow
   - anonymized-database-dumps
+docs:
+  - preview-environments
+  - wildcard-domains
+  - create-app
+  - api
+faq:
+  - Does each preview get its own database? | Yes. Each preview is a full Cipi app with its own user, database, worker and `.env`.
+  - What data do previews start with? | Empty, migrated and seeded by your seeders. For realistic data, restore an [anonymized dump](/guides/anonymized-database-dumps), never production.
+  - How many previews fit on a server? | Each idle app is light (a PHP pool, a worker, a small database). A 4 GB server comfortably runs a dozen small previews.
+  - How do I keep previews private? | Turn on basic auth for them (`cipi basicauth enable`) or put them behind Cloudflare Zero Trust.
 ---
 Reviewers click a link instead of pulling a branch. Each preview is a complete, isolated Cipi app at `feature-x-shop-3a1f9c2e.preview.example.com`, removed when the branch is deleted.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Preview environment** | A temporary copy of the app for one branch or pull request |
+| **Wildcard certificate** | One HTTPS certificate for every `*.preview.example.com` |
+| **Slug** | The branch name made safe for a domain and a Linux user: `feature/cart` → `pr-cart` |
 
 ```flow
 Push feature/x | any branch but main
@@ -58,3 +76,12 @@ The app name is a short hash of branch and repository, so it's stable for the br
 ## 4. Clean up
 
 The workflow's `delete` trigger removes the app. Check for leftovers now and then with `sudo cipi app list`.
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| App name refused | Names must be lowercase alphanumeric: sanitize the branch slug and keep it short |
+| Preview has no HTTPS | Wildcard certificate missing: see [wildcard domains](/docs/wildcard-domains) |
+| Leftover previews | `sudo cipi app list` and delete; check the workflow's delete trigger |
+| Previews send real e-mails | Set `MAIL_MAILER=log` (or a sandbox) for previews |

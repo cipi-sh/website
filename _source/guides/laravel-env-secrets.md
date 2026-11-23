@@ -71,6 +71,10 @@ Or simply deploy: the deploy rebuilds the cache and restarts workers.
 
 The same edit is available in the [web panel](/web-panel) (secrets masked, changes tracked), through the REST API (`PUT /api/apps/shop/env`) and through MCP.
 
+In the [web panel](/web-panel), secrets are masked and every change is tracked:
+
+<cipi-clips name="env"></cipi-clips>
+
 ## 2. Keep secrets out of Git {#git}
 
 ```text

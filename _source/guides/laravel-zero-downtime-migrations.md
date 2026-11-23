@@ -14,8 +14,25 @@ related:
 faq:
   - Does rollback undo migrations? | No. `--rollback` restores code. To undo data changes, restore the pre-deploy snapshot with `cipi db restore`.
   - What does "zero downtime" mean exactly? | The new release is built and migrated next to the live one, then a single symlink swap makes it live. Requests never hit a half-built release.
+  - Can I rename a column safely? | In two deploys: add the new column and write to both, backfill, switch reads, then drop the old one in a later deploy.
+  - What about long migrations on big tables? | Adding an index or a column with a default can lock a big table. On MariaDB use `ALGORITHM=INSTANT`/`INPLACE` where possible; on PostgreSQL create indexes `CONCURRENTLY` (outside a transaction).
+  - Should I use maintenance mode? | Rarely. With expand-then-contract migrations the old release keeps working during the deploy, so there's nothing to hide.
+docs:
+  - how-deploys-work
+  - safe-deploy
+  - health-checks
+  - deploy-audit
 ---
 Zero downtime is two problems: switching code without a gap, and changing the database without breaking the code that's still live. Cipi solves the first. This guide shows how to handle the second.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Atomic release** | The new code goes live in one instant switch |
+| **Expand / contract** | First add (columns, tables) so old and new code both work; remove later |
+| **Snapshot** | A database dump taken right before migrations |
+| **Auto-rollback** | Cipi restores the previous release if the health check fails |
 
 ## How a release goes live
 
@@ -80,3 +97,12 @@ Every deploy, from any trigger, is recorded in a hash-chained [audit trail](/doc
 $ sudo cipi deploy shop --audit
 $ sudo cipi deploy shop --history
 ```
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| Old release errors during deploy | A migration removed something it uses: split into expand and contract |
+| Deploy stuck on a migration | A table lock: check running queries, use online DDL |
+| Rolled back code, data still new | Expected: restore the snapshot if needed |
+| No snapshot was taken | `--snapshot` continues if the dump fails; use `--snapshot-required` |

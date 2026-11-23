@@ -11,8 +11,25 @@ related:
   - laravel-ci-cd-git-workflow
   - cipi-agent-laravel-mcp
   - laravel-zero-downtime-migrations
+docs:
+  - auto-deploy
+  - git
+  - deploy-audit
+  - agent-webhook
+faq:
+  - Does a push to another branch deploy? | No. Only pushes to the app's deploy branch (`CIPI_DEPLOY_BRANCH`) trigger a deploy; others are acknowledged and ignored.
+  - What if two pushes arrive at once? | Deploys are serialized per app: the second waits, then deploys the newest commit.
+  - Is the webhook safe on a public URL? | Yes. Every request must carry a valid signature or token; anything else is refused before any work starts.
 ---
 With a token, Cipi sets up the webhook on GitHub, GitLab, Bitbucket and Azure DevOps by itself. This guide shows what happens behind it, and how to wire Gitea or Forgejo by hand.
+
+## Key ideas, in plain words {#ideas}
+
+| Term | Meaning |
+| --- | --- |
+| **Webhook** | An HTTP call your Git provider makes on each push |
+| **Signature** | A hash of the request made with a shared secret, proving it came from your provider |
+| **Trigger** | A small file the webhook leaves; a cron starts the deploy from it |
 
 ```flow
 git push | to the deploy branch
@@ -64,3 +81,12 @@ $ sudo cipi app webhook recreate shop --rotate-secret
 ```
 
 Need tests before deploying? Turn the webhook off and use [a pipeline](/guides/laravel-ci-cd-git-workflow).
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| Provider shows 401/403 | Secret or token mismatch: copy it again from `cipi deploy shop --webhook` |
+| 200 but no deploy | Push to a branch that isn't the deploy branch |
+| Deploy starts a minute later | Normal: the cron picks the trigger up within a minute |
+| Nothing at all reaches the server | Webhook URL wrong, or the app is behind Zero Trust without a bypass rule for `/cipi/webhook` |

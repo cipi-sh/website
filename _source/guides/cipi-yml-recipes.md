@@ -10,8 +10,27 @@ related:
   - manage-apps-with-cipi-yml
   - cipi-yml-staging-production
   - laravel-octane-frankenphp
+docs:
+  - yml
+  - agent-yml
+faq:
+  - Can I mix recipes? | Yes. Sections are independent: take `workers` from one and `backup` from another.
+  - Will a recipe overwrite settings I made by hand? | Only for the sections it contains. Run `cipi yml plan` first: it lists every change.
+  - Where do I put the passwords these setups need? | In the server's `.env` (`cipi app env --set`). `env.required` only lists the names so a missing one blocks the plan.
 ---
 Start from the recipe closest to your app, run `php artisan cipi:yml validate`, commit, then `sudo cipi yml plan <app>` after the deploy. Every key is documented in the [reference](/docs/yml).
+
+## How to use a recipe {#how}
+
+```flow
+Copy | into cipi.yml at the repo root
+Adapt | names, domains, sizes
+Validate | php artisan cipi:yml validate
+Deploy | the release carries the file
+Plan, apply | cipi yml plan / apply
+```
+
+Names inside the file (databases, backup profiles) must start with the app's name, so replace `shop` with yours. New to the file? Start with [the cipi.yml guide](/guides/manage-apps-with-cipi-yml).
 
 ## SaaS: Horizon, Reverb, search, backups
 
@@ -107,3 +126,12 @@ workers:
   queues: [{ queue: default, processes: 1 }]
 deploy: { branch: develop, predeploy_snapshot: false }
 ```
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| `search: true` blocked | Meilisearch isn't installed on the server: `sudo cipi search install` |
+| Wildcard alias works, HTTPS doesn't | The wildcard certificate needs DNS-01: [wildcard guide](/guides/laravel-multi-tenant-wildcard) |
+| `horizon: true` and queues both set | Horizon replaces the queues: keep one |
+| Engine `pgsql` blocked | PostgreSQL isn't installed: `sudo cipi db install pgsql` ([guide](/guides/laravel-postgresql)) |

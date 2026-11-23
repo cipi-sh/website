@@ -10,6 +10,12 @@ related:
   - laravel-developer-stack-2026
   - laravel-octane-frankenphp
   - laravel-reverb-websockets
+docs:
+  - how-cipi-works
+  - services
+faq:
+  - Do I need all of these? | No. Most apps run fine with PHP-FPM, MariaDB, the database queue and the scheduler. Add pieces when a real need shows up.
+  - Which of these does Cipi set up? | Octane, Horizon, Reverb, Meilisearch, Valkey, PostgreSQL, the scheduler and workers are one command each. UI and testing tools live in your code.
 ---
 Laravel is a framework plus a family of first-party and community tools. Choosing them is easy; running them in production is where projects stall. This map groups them by job and says what each needs from the server.
 
@@ -29,7 +35,7 @@ Laravel is a framework plus a family of first-party and community tools. Choosin
 | Tool | Job | On Cipi |
 | --- | --- | --- |
 | MariaDB / MySQL | Default relational store | Default |
-| PostgreSQL | JSONB, extensions, analytics | `cipi db install pgsql` |
+| [PostgreSQL](/guides/laravel-postgresql) | JSONB, extensions, analytics | `cipi db install pgsql` |
 | Valkey (Redis) | Cache, sessions, queues for Horizon | Included |
 | [Scout + Meilisearch](/guides/laravel-scout-meilisearch) | Full-text search | `cipi search install` |
 
@@ -55,3 +61,12 @@ Laravel is a framework plus a family of first-party and community tools. Choosin
 ## Hosting choices
 
 You can rent all of this as a managed platform, rent a dashboard to manage your own VPS, or run it yourself for free. That trade-off is the subject of [our comparisons](/alternatives); the [developer stack guide](/guides/laravel-developer-stack-2026) does the cost math.
+
+## Where to go next {#next}
+
+| Need | Guide |
+| --- | --- |
+| Cache, sessions, queues on Valkey | [Valkey guide](/guides/laravel-valkey-cache-sessions) |
+| Scheduled tasks | [Scheduler and cron](/guides/laravel-scheduler-cron) |
+| Many customers on subdomains | [Multi-tenant SaaS](/guides/laravel-multi-tenant-wildcard) |
+| Secrets and `.env` | [.env and secrets](/guides/laravel-env-secrets) |

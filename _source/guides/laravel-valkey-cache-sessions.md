@@ -120,6 +120,8 @@ $ sudo cipi valkey restart shop
 
 If you keep queues and cache in the same instance, `volatile-lru` is the safe middle: cache keys have a TTL, queued jobs don't.
 
+<cipi-term name="valkey"></cipi-term>
+
 ## 4. Apps still on the shared instance {#isolate}
 
 Older servers started with one Valkey for everybody. Move each app to its own:

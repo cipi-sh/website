@@ -14,6 +14,14 @@ related:
 faq:
   - Can WordPress affect my Laravel apps? | Each app runs as its own Linux user with its own PHP pool and `open_basedir`, so a compromised plugin can't read another app's files.
   - Git or SFTP? | Both work. Git suits a theme or a site under version control; SFTP suits a classic WordPress where plugins update from the dashboard.
+  - Can WordPress update itself? | Yes, files in `~/htdocs` belong to the app user, so core, plugin and theme updates work from the dashboard.
+  - Does WordPress get isolation like Laravel apps? | Yes: own Linux user, PHP pool and database. A compromised plugin can't read other apps.
+  - Which caching? | A page cache plugin plus OPcache (on by default) is enough for most sites. Valkey object cache helps busy WooCommerce shops.
+docs:
+  - custom-apps
+  - databases
+  - ssl
+  - backups
 ---
 WordPress isn't Laravel, but it's PHP, and Cipi hosts it as a **custom app**: its own user, PHP pool, Nginx vhost and certificate, isolated from everything else on the server.
 
@@ -80,3 +88,12 @@ $ sudo cipi backup profile add blog-nightly --scope=all --cron='0 3 * * *' --kee
 ```
 
 `all` covers the database and the files. More in [backups to S3](/guides/backup-vps-s3). Running a shop? See [WooCommerce on a VPS](/guides/woocommerce-vps).
+
+## Troubleshooting {#troubleshooting}
+
+| Problem | Fix |
+| --- | --- |
+| "Error establishing a database connection" | Credentials in `wp-config.php` don't match `cipi db create` output |
+| Upload size limit | `sudo cipi ini set upload_max_filesize=64M --app=blog` and `post_max_size` |
+| Permalinks 404 | Cipi's vhost already routes to `index.php`; resave permalinks |
+| Mixed content after HTTPS | Update `siteurl`/`home` to `https://` |

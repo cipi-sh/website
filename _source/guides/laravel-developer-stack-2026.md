@@ -10,6 +10,12 @@ related:
   - laravel-ecosystem-2026
   - deploy-laravel-ubuntu-vps
   - backup-vps-s3
+docs:
+  - how-cipi-works
+  - design-decisions
+faq:
+  - Isn't self-hosting more work? | The work is mostly automated: installs, patches, certificates, backups and alerts run on their own. What's left is choosing a server and reading alerts.
+  - What if the server dies? | Encrypted off-site backups restore on any new server, and `cipi sync` moves whole apps. Keep a written restore checklist and test it.
 ---
 Every SaaS in a Laravel team's toolchain is reasonable on its own. Together they add up to a bill per developer, per server and per project, plus a pile of places where your data lives. Here's what's worth owning.
 
