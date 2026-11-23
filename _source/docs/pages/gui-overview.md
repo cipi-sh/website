@@ -35,6 +35,7 @@ cipi CLI | does the work, as on SSH
 | App tooling | `.env` editor with masked secrets, Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, last run; run now, verify, test destinations |
+| Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, SMTP, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |

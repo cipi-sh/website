@@ -20,7 +20,7 @@ Seven years, five major versions, one idea that never changed: **your server, yo
 | Deploy | Zero-downtime releases, Git push from six forges, preview environments, a hash-chained audit trail, health-checked rollbacks |
 | `cipi.yml` | The app's server settings versioned in its repository: PHP, workers, schedule, domains, databases, backups, per environment |
 | Runtime | Multiple PHP versions side by side, MariaDB and PostgreSQL, Valkey, Meilisearch, Horizon and Reverb |
-| Operations | Backup profiles to S3 with verification, server monitor, health checks, disk usage, alerts by e-mail, Slack, Telegram and webhooks |
+| Operations | Backup profiles to S3 with verification, server monitor, health checks, metrics and uptime history with a heartbeat, disk usage, alerts by e-mail, Slack, Telegram and webhooks |
 | Security | Per-app isolation, encrypted vault, firewall and CrowdSec, Cloudflare Zero Trust, malware scans, automatic PHP and Nginx security updates |
 | Interfaces | The CLI, an optional web panel with roles and SSO, a REST API, cipi-cli, a PHP SDK, WHMCS and MCP servers for AI assistants |
 

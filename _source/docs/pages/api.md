@@ -83,6 +83,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
 | Read-only insights | `search-view`, `search-manage`, `packages-view`, `monitor-view`, `zt-view`, `disk-view` |
+| Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | MCP | `mcp-access` (covers every MCP tool) |
 
 `php artisan cipi:token-abilities` (or the `cipi api token create` checklist) shows the canonical list.
@@ -173,9 +174,12 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/search`, `/api/apps/{name}/search/enable`, `/disable` | `search-view` / `search-manage` |
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
 | `GET` | `/api/packages`, `/api/monitor`, `/api/zt` | `packages-view`, `monitor-view`, `zt-view` |
+| `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics), 1.41+) | `metrics-view` |
+| `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
+| `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
 
 ## Examples {#cipi-api-curl}
 

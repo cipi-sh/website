@@ -281,6 +281,17 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
 
+[Metrics](/docs/metrics) (API 1.41+), with sparklines in the terminal:
+
+```bash
+$ cipi-cli metrics                               # server and apps now
+$ cipi-cli metrics show --app shop --range 7d
+$ cipi-cli metrics uptime --range 30d
+$ cipi-cli metrics events --source deploy
+$ cipi-cli metrics retention --raw 14 --rollup 90
+$ cipi-cli metrics heartbeat set https://hc-ping.com/<uuid>
+```
+
 @section cli-status
 
 ## `status` {#status}
@@ -288,8 +299,8 @@ Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packag
 ```bash
 $ cipi-cli status
  NAME      IP             CPU   RAM          HDD          APPS  SVC     CIPI
- prod*     203.0.113.10   12%   48% (3840M)  42G/80G 53%  3     8/8 ok  5.10.0
- staging   203.0.113.20    4%   31% (2048M)  18G/40G 45%  1     8/8 ok  5.10.0
+ prod*     203.0.113.10   12%   48% (3840M)  42G/80G 53%  3     8/8 ok  5.11.0
+ staging   203.0.113.20    4%   31% (2048M)  18G/40G 45%  1     8/8 ok  5.11.0
 
 $ cipi-cli status prod      # full detail for one server
 ```
