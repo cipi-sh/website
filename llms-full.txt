@@ -10263,6 +10263,131 @@ Locked out? Log in through your provider's web console as `cipi` and run the unl
 | Locked out completely | Provider web console → `sudo cipi zt ssh unlock` |
 
 
+## Block attackers automatically with CrowdSec on a Laravel server
+
+URL: https://cipi.sh/guides/crowdsec-laravel-server
+
+Every public server is probed all day: bots looking for `/wp-login.php`, `.env` files, old admin panels, known exploits. They rarely get in, but they fill your logs and waste resources, and the occasional one finds something. **CrowdSec** spots that behaviour in your logs and blocks the source at the firewall, helped by a blocklist shared by its whole community. On Cipi it's one command, with guards so it can't lock you out.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Engine** | The CrowdSec service that reads logs and decides |
+| **Scenario** | A pattern of bad behaviour, e.g. "many 404s on admin paths" |
+| **Decision** | A ban on an IP, for a duration |
+| **Bouncer** | The part that enforces decisions; here, the firewall |
+| **Community blocklist** | IPs reported as attacking by many CrowdSec users |
+| **Allowlist** | Addresses that must never be banned |
+
+```flow
+A bot probes your site | /.env, /wp-login.php, exploits
+> Requests hit Nginx like any visitor and are written to each app's access log (`/home/*/logs/nginx-*.log`).
+CrowdSec reads the logs | nginx, sshd, linux scenarios
+> The engine matches the behaviour against scenarios from the nginx, sshd and linux collections.
+A decision is made | ban the IP for a while
+> When a scenario triggers, CrowdSec creates a decision: this IP is banned for a period.
+The firewall bouncer drops it | before it reaches Nginx
+> The firewall bouncer drops traffic from that IP at the network level: your apps never see it again.
+The community learns | shared blocklist
+> Known attackers reported by others are blocked on your server too, often before they try.
+```
+
+## Before you start 
+
+- A Cipi server with at least **512 MB of free RAM**.
+- If the server is behind Cloudflare's proxy (orange cloud): run `sudo cipi zt enable` first. It configures the real visitor IP (and closes no ports). Without it, Cipi refuses to enable CrowdSec, to avoid banning Cloudflare.
+- Note your own public IP (`curl -s ifconfig.me` from your laptop) and any office or CI addresses.
+
+## 1. Enable it 
+
+```bash
+$ ssh cipi@YOUR_SERVER
+$ sudo cipi crowdsec enable
+$ sudo cipi crowdsec status
+```
+
+| What `enable` does | Why |
+| --- | --- |
+| Installs the engine and the firewall bouncer | Detection plus enforcement |
+| Allowlists your current SSH session's IP first | You can't ban yourself while enabling |
+| Allowlists Let's Encrypt, localhost, private ranges | Certificates keep renewing |
+| Allowlists GitHub, Bitbucket and GitLab webhook ranges (refreshed weekly) | Push-to-deploy keeps working |
+| Starts a small rescue listener | A way back in if you're ever banned (step 4) |
+| Installs the nginx, sshd and linux collections | The scenarios that matter on a web server |
+
+## 2. Allow the addresses you trust 
+
+```bash
+$ sudo cipi crowdsec allow 203.0.113.42      # office
+$ sudo cipi crowdsec allow 198.51.100.7      # CI runner, uptime monitor
+```
+
+Remove one with `sudo cipi crowdsec unallow `. Allowlist monitors and CI that hit the site often, or run security scans against it (for example [Hackly](https://cipi.sh/guides/hackly-security-scanning)'s scanner IP).
+
+## 3. See what it blocks 
+
+```bash
+$ sudo cipi crowdsec status        # engine, bouncer, rescue, active decisions
+$ sudo cipi ban list               # banned IPs, CrowdSec and Fail2ban together
+$ sudo cipi ban unban 192.0.2.10   # lift a ban everywhere at once
+```
+
+Within a day you'll usually see bans for scanners that probed paths your apps don't have.
+
+## 4. If you ban yourself: the rescue 
+
+Changed network and can't reach the server any more? Cipi prepared a way back:
+
+```bash
+# print it now, store it OFF the server (password manager)
+$ sudo cipi crowdsec rescue token
+```
+
+```flow
+You're banned | SSH and site unreachable
+> Your new IP triggered a ban (or a typo'd password did, in Fail2ban).
+Run the saved curl | from where you are
+> The command calls a small TLS listener on a high port that stays open even while you're banned.
+Your IP is allowlisted | bans lifted
+> It allowlists the IP the request comes from (never a header), and lifts its bans in CrowdSec and Fail2ban.
+A new token is mailed | old one dies
+> Each token works once. A fresh one is e-mailed to you, so print and store it again.
+```
+
+The rescue grants nothing except the ability to connect again; wrong tokens are throttled. `sudo cipi crowdsec rescue rotate` makes a new token at any time. The provider's web console is always the last resort.
+
+## 5. Remove it 
+
+```bash
+$ sudo cipi crowdsec disable
+```
+
+Firewall rules are flushed **before** the packages are removed, so nothing stays blocking.
+
+## Your defence layers 
+
+| Layer | Stops | On Cipi |
+| --- | --- | --- |
+| Firewall (UFW) | Everything except 22, 80, 443 | Always on |
+| Fail2ban | SSH password guessing | Always on |
+| CrowdSec | Scanners, probes, known attackers on the web | `cipi crowdsec enable` |
+| Cloudflare proxy / Zero Trust | Bad requests before they reach you; closed ports | [Zero Trust guide](https://cipi.sh/guides/cloudflare-zero-trust-laravel) |
+| Patching | Known vulnerabilities in PHP and Nginx | Nightly ([CVE case study](https://cipi.sh/guides/php-nginx-cve-patching)) |
+| Your code | App-level bugs | [Checkpoint](https://cipi.sh/guides/checkpoint-laravel-sast-ci), [Hackly](https://cipi.sh/guides/hackly-security-scanning) |
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| `enable` refused: proxy without real IP | `sudo cipi zt enable` first (it closes nothing) |
+| `enable` refused: not enough RAM | Free memory or keep Fail2ban only |
+| A colleague is banned | `sudo cipi ban unban `, then `sudo cipi crowdsec allow ` |
+| Uptime monitor shows outages | Allowlist the monitor's IPs |
+| Git pushes stopped deploying | Run `sudo cipi crowdsec refresh` to update webhook ranges; check `cipi ban list` |
+| You're locked out | Rescue curl (step 4), or the provider's web console |
+
+
 ## Security-test your Laravel apps with Hackly, self-hosted
 
 URL: https://cipi.sh/guides/hackly-security-scanning
@@ -11060,6 +11185,132 @@ Git webhooks hit `/cipi/webhook` on your domain: don't challenge that path.
 | Login loops, 419 errors | Laravel thinks it's on HTTP | `trustProxies`, `APP_URL=https://…`, `config:cache` |
 | Every visitor has the same IP | Real IP not configured | Step 6 |
 | Webhook deploys fail | Bot protection challenges `/cipi/webhook` | Skip rule for that path |
+
+
+## Free, privacy-friendly website analytics with IndieStats
+
+URL: https://cipi.sh/guides/indiestats-privacy-analytics
+
+Most websites send every visitor to Google Analytics, with cookies, a consent banner and data leaving the EU. [IndieStats](https://indiestats.web.ap.it) gives you the numbers that matter (visitors, pages, sources, campaigns, conversions) from **your own server**, without cookies or third parties. On Cipi it's one Laravel app.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Pageview** | One page opened by one visitor |
+| **Visitor ID** | A random identifier kept in the browser's `localStorage`, not a cookie |
+| **Snippet** | A one-line `` you paste in your site's layout |
+| **Event** | Something a visitor does that you want to count: `signup`, `purchase` |
+| **Goal** | An event you follow over time, to measure conversions |
+| **Retention** | How long raw data is kept before it's deleted |
+
+```flow
+Visitor opens a page | your website
+> The browser loads the IndieStats snippet from your stats domain, asynchronously, so your page doesn't wait.
+Snippet sends a pageview | to stats.example.com
+> Path, title, referrer, UTM tags, language, timezone and device type. A random visitor ID lives in `localStorage`; no cookies.
+IndieStats checks the origin | domain allowlist
+> Only domains you listed for that site are accepted, so nobody can pollute your numbers from elsewhere.
+Data stays on your server | until retention deletes it
+> Raw data is pruned after the retention window you choose. Nothing is sent to third parties.
+```
+
+## Before you start 
+
+- A server with Cipi (it can share a server with other apps, or live on the same one as your [Boogle](https://cipi.sh/guides/boogle-laravel-monitoring)).
+- A subdomain such as `stats.example.com` pointing at it.
+- A GitHub account to fork IndieStats.
+
+## 1. Create the app 
+
+Fork [github.com/andreapollastri/indiestats](https://github.com/andreapollastri/indiestats), then:
+
+```bash
+$ ssh cipi@YOUR_SERVER
+$ sudo cipi app create --user=stats --domain=stats.example.com \
+    --repository=git@github.com:YOU/indiestats.git --branch=main --php=8.5
+```
+
+Add the deploy key to your fork, then:
+
+```bash
+$ sudo cipi deploy stats
+$ sudo cipi ssl install stats
+$ sudo cipi app artisan stats db:seed --force
+```
+
+IndieStats needs PHP 8.4 or newer. Its built front-end assets are committed to the repository, so no Node build is needed on the server. The seeder creates `admin@users.test` / `password`: **log in and change it right away**.
+
+| IndieStats needs | On Cipi |
+| --- | --- |
+| The scheduler every minute (pruning, GeoIP updates) | Already on |
+| A queue worker (Excel exports) | Created with the app |
+| HTTPS | `cipi ssl install` (needed: an HTTP script on an HTTPS site is blocked) |
+
+## 2. Add your site 
+
+**Sites → New site**: name, and the **allowed domains** (`example.com, www.example.com`). IndieStats shows the snippet to copy:
+
+## 3. Paste the snippet 
+
+In a Laravel app, put it in your main layout, before ``, only in production:
+
+```blade
+@production
+
+@endproduction
+```
+
+WordPress: paste it in the theme's footer (or a "header and footer scripts" plugin). Static sites: the shared layout. Deploy, open a page, and the visit appears in **Real-time** within seconds.
+
+## 4. Track events and goals 
+
+```js
+indiestats.track('signup');
+indiestats.track('purchase', { plan: 'pro', price: 29.99, currency: 'EUR' });
+```
+
+Up to 20 properties per event. On the site's **Events** tab, add a goal to follow an event over time (for example `signup` per day).
+
+## 5. Make it as private as you can 
+
+```bash
+$ sudo cipi app env stats --set=ANALYTICS_RETENTION_DAYS=180
+$ sudo cipi app artisan stats config:cache
+```
+
+| Setting | Why |
+| --- | --- |
+| Shorter retention | Less personal data kept (IPs are deleted with their pageviews) |
+| Country only, or no GeoIP | The GeoIP and ASN databases are optional: skip them if you don't need location |
+| Domain allowlist on every site | Only your sites can send data |
+| Privacy policy | Say what you measure, why, and for how long |
+| Real visitor IPs behind Cloudflare | IndieStats reads `CF-Connecting-IP`; behind other proxies configure Laravel's trusted proxies |
+
+> [!note] This guide isn't legal advice. Cookieless, first-party, self-hosted analytics with short retention is the privacy-friendliest setup, but whether you need consent depends on your jurisdiction. Ask your DPO.
+
+## What you'll see 
+
+| Tab | Answers |
+| --- | --- |
+| Summary | How many visitors, pageviews, time on page |
+| Content | Which pages, which on-site searches |
+| Traffic | Where visitors come from |
+| UTM | Which campaigns work |
+| Technology | Devices, browsers, systems |
+| Geography | Countries and networks (optional databases) |
+| Events | Conversions and goals |
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| No visits arrive | The site's domain isn't in the allowlist, or the snippet isn't on the page |
+| Browser blocks the script | Mixed content: IndieStats must be on HTTPS (`cipi ssl install stats`) |
+| Every visitor from one country/network | Behind a proxy without real IP: see [Cloudflare guide](https://cipi.sh/guides/cloudflare-proxy-ssl-wildcard#real-ip) |
+| Excel export never finishes | Queue worker not running: `sudo cipi worker list stats` |
+| Old data not deleted | Scheduler off: `sudo cipi schedule status stats` |
+| Ad blockers hide some visits | Expected for any analytics; a first-party subdomain helps |
 
 
 ## Your own S3 storage for Laravel with Johnny

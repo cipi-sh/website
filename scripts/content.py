@@ -359,8 +359,7 @@ def build_guides() -> list[str]:
         groups.append(f'<section class="g-group" id="{key}"><div class="g-group-h"><h2>{esc(name)}</h2><p>{esc(blurb)}</p></div>{cards(items)}</section>')
     chips.append("</nav>")
     latest = sorted(guides, key=lambda x: x["updated"], reverse=True)[:3]
-    body = ("".join(chips) + '<section class="g-group g-latest"><div class="g-group-h"><h2>Latest</h2></div>' +
-            cards(latest) + "</section>" + "".join(groups))
+    body = "".join(chips) + "".join(groups)
     ld = [{"@context": "https://schema.org", "@type": "CollectionPage", "name": "Cipi guides", "url": SITE + "/guides/",
            "description": "Practical guides for Laravel and PHP on your own server.",
            "mainEntity": {"@type": "ItemList", "numberOfItems": len(guides), "itemListElement": [
