@@ -54,7 +54,6 @@ def jobs() -> list[tuple[str, str]]:
     out.append(("api", tpl("REST API", "Every server, scriptable", "Apps, deploys, SSL, databases and cipi.yml from CI, the SDK, cipi-cli or an AI assistant.", "cipi.sh/api")))
     out.append(("mcp", tpl("MCP for AI", "Ask production. Get real answers.", "Claude, Cursor and VS Code on your live Laravel apps, with guardrails.", "cipi.sh/mcp")))
     out.append(("cipi-yml", tpl("Configuration as code", "cipi.yml: server settings in your repository", "Planned, reviewed in pull requests, applied all or nothing.", "cipi.sh/cipi-yml")))
-    out.append(("postcards", tpl("Community", "Postcards from Cipi servers", "Which provider, which region, what runs on it. Running Cipi? Send yours.", "cipi.sh/postcards")))
     return out
 
 
