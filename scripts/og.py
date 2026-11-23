@@ -46,6 +46,7 @@ def jobs() -> list[tuple[str, str]]:
         for p in g["pages"]:
             out.append(("docs-" + p["slug"], tpl("Docs · " + g["title"], p["title"], short(p.get("desc", "")), f"cipi.sh/docs/{p['slug']}")))
         out.append(("docs-" + g["landing"], tpl("Docs", g["title"], short(g.get("desc", "") or "Cipi documentation"), f"cipi.sh/docs/{g['landing']}")))
+    out.append(("home", tpl("Free · open source · self-hosted", "Deploy Laravel to servers you own.", "Zero-downtime deploys, queues, SSL, backups, cipi.yml and MCP on any Ubuntu VPS. No subscription.", "cipi.sh")))
     out.append(("docs", tpl("Documentation", "Cipi documentation", "Install, deploy, domains, backups, security, the web panel, the API and MCP.", "cipi.sh/docs")))
     out.append(("guides", tpl("Guides", "Laravel and PHP on your own server", "Step-by-step guides: providers, Octane, Reverb, cipi.yml, MCP, security, WordPress and more.", "cipi.sh/guides")))
     out.append(("alternatives", tpl("Compare", "Cipi vs Forge, Ploi, Vito Deploy and more", "Honest comparisons: price, where it runs, and when the other tool wins.", "cipi.sh/alternatives")))

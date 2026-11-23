@@ -105,8 +105,8 @@ def nice_date(iso: str) -> str:
 # --------------------------------------------------------------------------- pieces
 
 def og_image(key: str) -> str:
-    p = os.path.join(ROOT, "img", "og", f"{key}.jpg")
-    return f"{SITE}/img/og/{key}.jpg" if os.path.exists(p) else f"{SITE}/og.png"
+    import build as _B
+    return _B.og_url(key)
 
 
 def share_bar(url: str, title: str) -> str:
