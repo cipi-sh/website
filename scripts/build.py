@@ -288,12 +288,50 @@ def pager_html(slug: str) -> str:
     return "".join(out)
 
 
+def guides_for_docs() -> dict[str, list[dict]]:
+    """slug of a docs page -> guides whose front matter lists it under `docs:`."""
+    out: dict[str, list[dict]] = {}
+    d = os.path.join(SRC, "guides")
+    if not os.path.isdir(d):
+        return out
+    for f in sorted(os.listdir(d)):
+        if not f.endswith(".md"):
+            continue
+        text = read(d, f)
+        if not text.startswith("---\n"):
+            continue
+        head = text[4:].split("\n---\n", 1)[0]
+        meta, key = {}, None
+        for ln in head.split("\n"):
+            m = re.match(r"^\s+-\s+(.*)$", ln)
+            if m and key:
+                meta.setdefault(key, [])
+                if isinstance(meta[key], list):
+                    meta[key].append(m.group(1).strip())
+                continue
+            k, _, v = ln.partition(":")
+            key = k.strip()
+            v = v.strip().strip('"')
+            meta[key] = v if v else []
+        for slug in meta.get("docs") or []:
+            out.setdefault(slug, []).append({"slug": f[:-3], "title": meta.get("title", ""), "description": meta.get("description", "")})
+    return out
+
+
+def guides_box(items: list[dict]) -> str:
+    if not items:
+        return ""
+    lis = "".join(f'<li><a href="/guides/{g["slug"]}"><b>{esc(g["title"])}</b><span>{esc(g["description"])}</span></a></li>' for g in items[:6])
+    return f'<aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul>{lis}</ul></aside>'
+
+
 def build_docs() -> list[dict]:
     search: list[dict] = []
     written = []
 
     # Old pages that are not group landings and not real pages any more
     legacy_only = {k: v for k, v in NAV.get("legacy", {}).items()}
+    gmap = guides_for_docs()
 
     for p in PAGES:
         md_path = os.path.join(SRC, "docs", "pages", f"{p['slug']}.md")
@@ -312,7 +350,7 @@ def build_docs() -> list[dict]:
                 f'<a href="{REPO_EDIT}{p["slug"]}{src_ext(p["slug"])}">Edit on GitHub</a></div>')
         out = page_shell(slug=p["slug"], title=p["title"], desc=p["desc"], body=body,
                          toc=toc_html(toc, p["slug"]), crumbs=crumbs, uses=uses,
-                         extra_body_attrs=attrs, pager=pager_html(p["slug"]), meta=meta)
+                         extra_body_attrs=attrs, pager=guides_box(gmap.get(p["slug"], [])) + pager_html(p["slug"]), meta=meta)
         write(os.path.join(ROOT, "docs", f"{p['slug']}.html"), out)
         written.append(p["slug"])
 

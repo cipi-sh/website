@@ -19,9 +19,11 @@ New apps keep cache, sessions and queues in their database. Switch whatever you 
 ```bash
 $ cipi app env myapp --set=CACHE_STORE=redis
 $ cipi app env myapp --set=SESSION_DRIVER=redis
-$ cipi app env myapp --set=QUEUE_CONNECTION=redis
-$ cipi worker restart myapp            # or enable Horizon
+$ cipi app artisan myapp config:cache
+$ cipi worker restart myapp
 ```
+
+Queues on Valkey run under Horizon: set `QUEUE_CONNECTION=redis` and `cipi worker horizon enable myapp` ([Horizon](/docs/workers#horizon)). Plain `queue:work` workers read the `database` connection.
 
 ## Manage instances {#manage}
 

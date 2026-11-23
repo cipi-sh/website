@@ -2,7 +2,7 @@
 title: Deploy Laravel on an Ubuntu VPS with zero downtime
 description: From a fresh Ubuntu 24.04 or 26.04 server to a Laravel app on HTTPS with queues, scheduler and push-to-deploy, in about fifteen minutes and for free.
 category: start
-order: 1
+order: 2
 published: 2026-03-10
 updated: 2026-11-23
 howto: yes

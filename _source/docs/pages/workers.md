@@ -17,7 +17,10 @@ $ cipi worker restart myapp
 | --- | --- | --- |
 | `--queue` | Queue to consume | `default` |
 | `--processes` | Parallel processes | 1 |
-| `--timeout` | Seconds before a job is killed | 60 |
+| `--tries` | Attempts before `failed_jobs` | 3 |
+| `--timeout` | Seconds a process lives before it's recycled (`--max-time`), and how long a stop waits for the running job | 3600 |
+
+Plain workers consume the `database` connection; Redis (Valkey) queues run under Horizon. A single job's time limit is its own `$timeout` property (Laravel's default is 60 seconds).
 
 ## Horizon {#horizon}
 

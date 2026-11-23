@@ -301,6 +301,11 @@ def build_guides() -> list[str]:
         cat = g.get("category", "start")
         path = f"/guides/{g['slug']}"
         url = SITE + path
+        if g.get("docs"):
+            nav = json.loads(B.read(B.SRC, "docs", "nav.json"))
+            titles = {pg["slug"]: pg["title"] for grp in nav["groups"] for pg in grp["pages"]}
+            body += ('<aside class="art-refs"><h2>Reference docs</h2><ul>' + "".join(
+                f'<li><a href="/docs/{d}">{esc(titles.get(d, d))}</a></li>' for d in g["docs"] if d in titles) + "</ul></aside>")
         faq_block, faq_ld = faq_html(g.get("faq") or [])
         body += faq_block
         if faq_block:

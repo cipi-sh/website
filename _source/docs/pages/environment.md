@@ -13,7 +13,7 @@ $ cipi app env myapp --unset=LEGACY_KEY
 $ cipi worker restart myapp                   # after changing queue or cache drivers
 ```
 
-New requests read the change immediately (Octane apps: reload on next deploy or `cipi worker restart`). Also via REST (`GET|PUT /api/apps/{name}/env`) and MCP. Custom apps have no `.env`.
+Deploys cache the config, so rebuild it after a change: `cipi app artisan myapp config:cache` (or deploy). Workers and Octane also need `cipi worker restart myapp`. Also via REST (`GET|PUT /api/apps/{name}/env`) and MCP. Custom apps have no `.env`.
 
 ## What Cipi writes {#variables}
 
