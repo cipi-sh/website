@@ -2,37 +2,52 @@
 (function () {
     'use strict';
 
-    // ---- Hero: terminal events light up the server diagram
+    // ---- Hero: the terminal drives a browser that watches the site go online
     var stage = document.querySelector('[data-hero-stage]');
     if (stage) {
-        var chips = stage.querySelectorAll('[data-stack] span');
-        var cells = {};
-        stage.querySelectorAll('[data-cell]').forEach(function (c) { cells[c.getAttribute('data-cell')] = c; });
-
-        function setCell(name, state) {
-            var c = cells[name];
-            if (!c) return;
-            var label = c.querySelector('.cell-state');
-            if (state === 'on') { c.classList.add('on'); c.setAttribute('data-state', 'created'); label.textContent = 'created'; }
-            if (state === 'deploying') {
-                c.setAttribute('data-state', 'deploying'); label.textContent = 'deploying';
-                var bar = c.querySelector('.cell-progress i');
-                bar.style.transition = 'none'; bar.style.width = '0';
-                bar.offsetWidth; bar.style.transition = ''; bar.style.width = '';
-            }
-            if (state === 'live') { c.setAttribute('data-state', 'live'); label.textContent = 'live'; }
-            if (state === 'secure') { c.classList.add('secure'); }
+        var bz = stage.querySelector('.bz');
+        var view = bz.querySelector('.bz-view');
+        var chips = bz.querySelectorAll('[data-stack] span');
+        var badge = bz.querySelector('[data-badge]');
+        var btabs = {};
+        bz.querySelectorAll('[data-tab]').forEach(function (t) { btabs[t.getAttribute('data-tab')] = t; });
+        var load = bz.querySelector('.bz-load');
+        var timers = [];
+        function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+        function setView(v) { view.setAttribute('data-view', v); }
+        function setBadge(text, kind) { badge.textContent = text; badge.className = 'bz-badge' + (kind ? ' is-' + kind : ''); }
+        function loading(ms) {
+            load.classList.remove('run'); void load.offsetWidth;
+            load.style.setProperty('--ms', ms + 'ms'); load.classList.add('run');
         }
-
         stage.addEventListener('term:event', function (e) {
             var n = e.detail.name;
             if (n === 'reset') {
-                chips.forEach(function (s) { s.classList.remove('on'); s.style.transitionDelay = ''; });
-                Object.keys(cells).forEach(function (k) { cells[k].classList.remove('on', 'secure'); cells[k].removeAttribute('data-state'); });
+                timers.forEach(clearTimeout); timers = [];
+                bz.className = 'bz'; setView('down'); setBadge('', '');
+                chips.forEach(function (c) { c.classList.remove('on'); c.style.transitionDelay = ''; });
+                Object.keys(btabs).forEach(function (k) { btabs[k].classList.remove('is-on', 'is-live'); });
+                btabs.shop.classList.add('is-on'); load.classList.remove('run');
             } else if (n === 'stack') {
-                chips.forEach(function (s, i) { s.style.transitionDelay = (i * 0.32) + 's'; s.classList.add('on'); });
-            } else if (n.indexOf('cell:') === 0) {
-                var p = n.split(':'); setCell(p[1], p[2]);
+                chips.forEach(function (c, i) { c.style.transitionDelay = (i * 0.3) + 's'; c.classList.add('on'); });
+                later(function () { setView('ready'); setBadge('server ready', ''); }, 1800);
+            } else if (n === 'cell:shop:on') {
+                setBadge('app created', '');
+            } else if (n === 'cell:shop:deploying') {
+                setView('skel'); loading(2300); setBadge('deploying', 'busy');
+            } else if (n === 'cell:shop:live') {
+                setView('site'); setBadge('live · release 1', 'ok'); btabs.shop.classList.add('is-live');
+            } else if (n === 'cell:shop:secure') {
+                bz.classList.add('is-https'); setBadge('HTTPS · Let\'s Encrypt', 'ok');
+            } else if (n === 'push') {
+                bz.classList.add('is-toast'); loading(2000); setBadge('deploying release 2', 'busy');
+                later(function () { bz.classList.remove('is-toast'); }, 2600);
+            } else if (n === 'release2') {
+                bz.classList.add('is-r2'); setBadge('release 2 · 0 errors', 'ok');
+            } else if (n.indexOf('tab:') === 0) {
+                var t = btabs[n.slice(4)]; if (t) t.classList.add('is-on');
+            } else if (/^cell:(api|docs):live$/.test(n)) {
+                btabs[n.split(':')[1]].classList.add('is-live');
             }
         });
     }
