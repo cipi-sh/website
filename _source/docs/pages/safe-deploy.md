@@ -9,9 +9,13 @@ A safe deploy has a restore point taken **before** new code and migrations touch
 
 ```flow
 Tests pass | CI
+> Your CI runs the tests. Only a green build goes on.
 Snapshot / backup | restore point
+> A database snapshot (`--snapshot`, or `predeploy_snapshot`) or a backup gives you a point to go back to if a migration goes wrong.
 Deploy | atomic swap
+> The release is built separately and switched in atomically.
 Health check | automatic rollback if broken
+> The health check verifies the live site; if it's broken, the previous release comes back automatically.
 ```
 
 @section predeploy-snapshot

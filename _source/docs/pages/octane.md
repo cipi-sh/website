@@ -20,9 +20,13 @@ $ cipi app limits myapp --octane-workers=4
 
 ```flow
 Nginx | static files, proxy to Octane
+> Nginx terminates HTTPS and serves files in `public/` directly (CSS, JS, images). Everything else goes to Octane.
 Octane on 127.0.0.1 | port 8100–8999
+> Octane listens on `127.0.0.1` on a port Cipi picks between 8100 and 8999. It's never reachable from the internet directly.
 FrankenPHP build | pinned per app
+> Each Octane app uses its own FrankenPHP binary, pinned so a deploy never changes the PHP version by surprise.
 Supervisor | keeps it running, reloads on deploy
+> Supervisor keeps Octane running, restarts it if it crashes, and reloads it on every deploy.
 ```
 
 | Piece | Setting |

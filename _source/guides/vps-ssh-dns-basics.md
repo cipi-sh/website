@@ -40,10 +40,15 @@ Deploying to your own server sounds harder than it is. You need three skills: **
 
 ```flow
 Your laptop | SSH key
+> You create an SSH key on your laptop. The private half never leaves it.
 VPS | Ubuntu, public IP
+> You rent a VPS with Ubuntu LTS and a public IP, giving the provider your public key.
 Cipi | installs the stack
+> One command installs Cipi and the whole stack.
 Domain | A record → IP
+> At your DNS provider, an `A` record points your domain at the server's IP.
 Visitors | https://shop.example.com
+> Visitors reach your app over HTTPS.
 ```
 
 ## 1. Choose a server {#vps}

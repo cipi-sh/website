@@ -4,10 +4,15 @@ Give every branch its own live URL: a complete app with database, workers and HT
 
 ```flow
 Push feature/x | to any non-main branch
+> A developer pushes a branch other than `main`. The CI workflow starts.
 CI computes a name | stable per branch
+> The workflow derives a stable app name from the branch (so every push to the same branch updates the same preview).
 Create or deploy | cipi app create / deploy
+> First push: `cipi app create` makes a full app (user, database, worker). Later pushes: `cipi deploy`.
 Live URL | feature-x-shop-3a1f9c2e.preview.example.com
+> The preview is live on its own subdomain of the wildcard domain, with HTTPS from the wildcard certificate.
 Branch deleted | app deleted
+> When the branch is deleted, the workflow deletes the app and its database.
 ```
 
 ## One-time setup {#setup}

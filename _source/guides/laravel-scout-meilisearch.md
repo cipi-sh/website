@@ -83,8 +83,11 @@ Cipi writes `SCOUT_DRIVER=meilisearch`, the host, a key scoped to `shop-*` index
 
 ```flow
 App shop | SCOUT_PREFIX=shop-
+> Cipi writes `SCOUT_PREFIX=shop-` to the app's `.env`, so its indexes are named `shop-products`, `shop-users`…
 Scoped key | shop-* indexes only
+> The app's key works only on `shop-*` indexes. Another app's indexes answer 403.
 Meilisearch | 127.0.0.1, no public port
+> Meilisearch listens on localhost only, never on a public port.
 ```
 
 ## 4. Search

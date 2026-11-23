@@ -22,10 +22,15 @@ Laravel 11+ serves `/up` when `health: '/up'` is set in `bootstrap/app.php`. The
 
 ```flow
 Release live | symlink swapped
+> The deploy swapped `current` to the new release: it's serving traffic now.
 Grace period | 3 s, 8 s for Octane
+> Cipi waits a moment (3 seconds, 8 for Octane, configurable with `--grace`) so caches and workers can warm up.
 Probe up to 5× | tolerant of warm-up
+> It calls your health URL up to five times, so one slow first request doesn't count as a failure.
 Verdict | in the deploy notice
+> The result goes into the deploy notification. A success message is only sent after a healthy verdict.
 Optional rollback | if unhealthy
+> With `--rollback-on-unhealthy` (or `rollback_on_unhealthy: true` in `cipi.yml`), an unhealthy release is replaced by the previous one within seconds.
 ```
 
 ```bash

@@ -14,9 +14,13 @@ $ cipi app reverb disable myapp
 
 ```flow
 Browser | wss://myapp.com/app/{key}
+> The browser opens a WebSocket to `wss://myapp.com/app/{key}`: same domain as the app, standard port 443.
 Nginx | same domain, same certificate
+> Nginx recognizes the WebSocket paths and proxies them, using the app's own certificate. No extra port to open.
 Reverb on 127.0.0.1 | port 9000–9099
+> Reverb runs on `127.0.0.1`, on a port Cipi picks between 9000 and 9099, not exposed to the internet.
 Supervisor | myapp-reverb, as the app user
+> Supervisor runs Reverb as the app's user and restarts it if needed.
 ```
 
 | Piece | Detail |

@@ -71,4 +71,13 @@
             try { localStorage.setItem('cipi-tg-chip', 'off'); } catch (e) {}
         });
     })();
+
+    // "Edit on GitHub": deploy previews point at the branch under review,
+    // where the page sources exist before they are merged into main.
+    (function () {
+        if (!/^deploy-preview-\d+--/.test(location.hostname)) return;
+        document.querySelectorAll('a[data-edit]').forEach(function (a) {
+            a.href = a.href.replace('/edit/main/', '/edit/redesign/new-site/');
+        });
+    })();
 })();

@@ -41,7 +41,9 @@ docs:
 
 ```flow
 PHP-FPM | boot, handle, forget: every request
+> Classic PHP: for every request, Laravel boots (config, providers, routes), handles the request, then everything is thrown away.
 Octane | boot once, handle many
+> Octane: Laravel boots once per worker and stays in memory; each request skips the boot. Faster, but data you leave in memory carries over to the next request.
 ```
 
 ## Before you start {#before}
@@ -77,9 +79,13 @@ $ sudo cipi app convert shop --to=fpm
 
 ```flow
 Nginx | static files, TLS
+> Nginx handles HTTPS and serves static files from `public/` itself.
 Octane on 127.0.0.1 | a port in 8100–8999
+> Other requests go to Octane on a local port (8100–8999), unreachable from outside.
 FrankenPHP build | pinned for this app
+> The app runs on its own pinned FrankenPHP build, so PHP never changes by surprise.
 Supervisor | restarts, reloads on deploy
+> Supervisor keeps Octane alive and reloads it on every deploy.
 ```
 
 | Piece | Setting |

@@ -34,10 +34,15 @@ Reviewers click a link instead of pulling a branch. Each preview is a complete, 
 
 ```flow
 Push feature/x | any branch but main
+> A developer pushes any branch except `main`.
 CI computes a name | stable per branch
+> The workflow turns the branch name into a safe, stable app name.
 Create or deploy | cipi app create / deploy
+> First push creates the app; next pushes deploy it.
 Live URL | on the wildcard domain
+> The preview gets its own subdomain with HTTPS from the wildcard certificate.
 Branch deleted | app deleted
+> Deleting the branch deletes the app and its database.
 ```
 
 ## 1. One-time setup

@@ -37,11 +37,11 @@ This guide moves one Laravel app from a Forge (or Ploi) server to a new server r
 | **Rollback plan** | How to go back: point DNS at the old server again |
 
 ```flow
-Prepare | lower TTL, new server
-Build | app, .env, workers
-Rehearse | copy data, test
-Cut-over | final dump, DNS
-Keep old | a week, then delete
+Prepare | lower TTL, new server | #before
+Build | app, .env, workers | #create
+Rehearse | copy data, test | #rehearse
+Cut-over | final dump, DNS | #cutover
+Keep old | a week, then delete | #rollback
 ```
 
 ## Forge and Ploi features, in Cipi {#map}
@@ -174,10 +174,15 @@ The certificate needs DNS pointing at the new server, so it comes right after th
 
 ```flow
 Old: artisan down | stop writes
+> On the Forge server, `php artisan down`: visitors see the maintenance page and nothing writes to the old database any more.
 Final dump | restore on new
+> Take the last dump, copy it, and restore it on Cipi with `sudo cipi db restore shop …`.
 DNS | A record → NEW_IP
+> Change the `A` record to the new server's IP. With a 300-second TTL, most visitors move within minutes.
 SSL | cipi ssl install
+> As soon as DNS answers with the new IP, `sudo cipi ssl install shop` issues the certificate.
 Check | old server stays down
+> Browse the site, place a test order. Leave the old server down, with its workers stopped, so nothing runs twice.
 ```
 
 ```bash

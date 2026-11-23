@@ -91,10 +91,15 @@ $ sudo cipi app edit shop --php=8.6
 
 ```flow
 New pool | PHP 8.6 for shop
+> A PHP-FPM pool for the app is created on the new version.
 Vhost | points to the new pool
+> The app's Nginx vhost is pointed at the new pool.
 Nginx reload | no dropped requests
+> Nginx reloads gracefully: requests in flight finish, new ones use the new PHP.
 Workers, cron | restarted on 8.6
+> Workers and cron lines switch to the new PHP binary and restart.
 Old pool | removed for this app
+> The app's pool on the old version is removed. The old version itself stays installed for other apps.
 ```
 
 Then deploy once, so Composer installs dependencies under the new version:

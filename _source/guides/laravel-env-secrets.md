@@ -105,10 +105,15 @@ Cipi changes the password in the database and in `.env` together. Rebuild the co
 
 ```flow
 Create new key | at the provider
+> At the provider (Stripe, AWS, Mailgun…) create a second key. Most providers allow two valid keys at once.
 Set it | cipi app env --set
+> Save it on the server: `sudo cipi app env shop --set=STRIPE_SECRET=…`, then `sudo cipi app artisan shop config:cache`.
 Restart workers | if jobs use it
+> If queued jobs use the key, `sudo cipi worker restart shop` so they reload it.
 Check | logs, a test payment
+> Check the logs and try the feature (a test payment, an e-mail) with the new key.
 Revoke old key | at the provider
+> Only then delete the old key at the provider. If something was missed, it fails now, while you're watching.
 ```
 
 Most providers (Stripe, Mailgun, AWS) let two keys be valid at once, so there's no gap.

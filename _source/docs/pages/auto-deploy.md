@@ -8,10 +8,15 @@ Push to your branch and the app is live a minute later. The Git provider calls a
 
 ```flow
 git push | to the deploy branch
+> You push commits to the app's deploy branch (`main` by default). Pushes to other branches are acknowledged and ignored.
 Provider → /cipi/webhook | signed request over HTTPS
+> GitHub, GitLab, Bitbucket, Gitea or Azure DevOps call the app's webhook URL over HTTPS, signed with the app's secret.
 Verify & queue | signature, branch; answers 200 at once
+> Cipi checks the signature and the branch. If both are right it leaves a small trigger and answers 200 immediately, so the provider never times out.
 Cron, within a minute | starts the deploy as the app user
+> A cron job checks for triggers every minute and starts the deploy as the app's own Linux user, never as root.
 Deploy | the normal zero-downtime pipeline
+> From here it's a normal deploy: new release, Composer, migrations, atomic swap, workers restarted. You get the usual notification.
 ```
 
 The webhook only drops a trigger file; it never runs the deploy itself. That keeps the HTTP answer instant (providers time out after ~10 s) and the deploy in the same safe context as `cipi deploy`.

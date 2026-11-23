@@ -4,10 +4,15 @@ Every deploy runs the same pipeline on the server. What changes is **who starts 
 
 ```flow
 Trigger | push, CI, CLI, panel, MCP
+> A deploy can start from a `git push` (webhook), a CI pipeline, `cipi deploy` on the server, the web panel, the API or an AI assistant through MCP. All take the same path.
 Build release | clone, composer, assets
+> A new release folder is built: clone, `composer install`, front-end assets if you set a build command. The live site isn't touched.
 Migrate | optional DB snapshot first
+> Migrations run against the live database. Optionally a database snapshot is taken just before, as a restore point.
 Swap symlink | atomic, zero downtime
+> The `current` symlink switches to the new release in one atomic operation: zero downtime.
 Verify | health check, auto rollback
+> Workers restart on the new code; the health check runs and can roll back automatically.
 ```
 
 ## Choose a trigger {#choose}

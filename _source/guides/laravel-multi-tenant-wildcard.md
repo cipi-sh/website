@@ -38,9 +38,13 @@ A multi-tenant app serves many customers from one codebase. A common shape gives
 
 ```flow
 acme.yourapp.com | browser
+> A customer opens `acme.yourapp.com`.
 DNS | * → 203.0.113.10
+> The `*` DNS record sends every subdomain to your server's IP.
 Nginx | alias *.yourapp.com → app saas
+> Nginx sees the wildcard alias and hands the request to your app.
 Laravel | Host header → tenant acme
+> Your middleware reads the host, finds the tenant `acme` and loads its data.
 ```
 
 ## Before you start {#before}
@@ -147,9 +151,13 @@ Automate whichever you pick from your app with the [Cipi API](/docs/api) when a 
 
 ```flow
 Shared app | one DB, tenant_id
+> All tenants in one database, separated by a `tenant_id` column. Cheapest and simplest; start here.
 Database per tenant | same app, many DBs
+> One database per tenant, same code. Stronger separation and per-tenant restores, more to manage.
 App per tenant | own user, PHP, DB, backups
+> One Cipi app per tenant: its own user, PHP, database and backups. Created through the API at signup.
 Server per tenant | enterprise contracts
+> A dedicated server for a tenant who pays for it (enterprise contracts, data residency).
 ```
 
 For the last two, create apps through the API from your signup flow (`POST /api/apps`), one per tenant, each with its own domain, database and backups.

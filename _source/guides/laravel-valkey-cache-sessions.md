@@ -133,10 +133,15 @@ $ sudo cipi valkey isolate shop              # or --all
 
 ```flow
 Maintenance on | app returns 503 for seconds
+> The app returns 503 for a few seconds so nothing writes during the move.
 Workers stop | nothing writes
+> Its workers stop.
 Copy keys | with their expiry
+> Every key is copied to the app's own instance, with its expiry.
 Switch .env | config cache rebuilt
+> `.env` points at the new instance and the config cache is rebuilt.
 Back online | on its own instance
+> The app is back online on its own instance. If anything failed, it stays where it was.
 ```
 
 If the copy fails, the app stays exactly where it was. Once nobody uses the shared instance, `sudo cipi valkey flush-shared` empties it and changes its password.

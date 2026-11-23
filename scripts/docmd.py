@@ -59,26 +59,43 @@ def code_block(lang: str, lines: list[str]) -> str:
 
 
 def flow(lines: list[str], kind: str = "flow") -> str:
-    items = []
-    parsed = []
+    """```flow / ```stack. A step is `Title | subtitle | #anchor`; lines starting
+    with `>` explain the step above them. Anchors make a sticky map of the
+    page; explanations make a clickable step-by-step explainer."""
+    parsed = []  # [title, sub, anchor, [explanation lines]]
     for ln in lines:
-        if not ln.strip():
+        st = ln.strip()
+        if not st:
             continue
-        parts = [x.strip() for x in ln.split("|")]
+        if st.startswith(">") and parsed:
+            parsed[-1][3].append(st[1:].strip())
+            continue
+        parts = [x.strip() for x in st.split("|")]
         anchor = parts[2] if len(parts) > 2 and parts[2].startswith("#") else ""
-        parsed.append((parts[0], parts[1] if len(parts) > 1 else "", anchor))
-    if kind == "flow" and any(a for _, _, a in parsed):
+        parsed.append([parts[0], parts[1] if len(parts) > 1 else "", anchor, []])
+    if kind == "flow" and any(p[2] for p in parsed):
         lis = []
-        for title, sub, anchor in parsed:
+        for title, sub, anchor, _ in parsed:
             inner = f'<b>{inline(title)}</b>' + (f'<span>{inline(sub)}</span>' if sub else "")
             lis.append(f'<li><a href="{anchor}">{inner}</a></li>' if anchor else f'<li><div>{inner}</div></li>')
         return '<nav class="flow-nav" aria-label="Steps on this page"><ol>' + "".join(lis) + "</ol></nav>"
-    for ln in lines:
-        if not ln.strip():
-            continue
-        title, _, sub = ln.partition("|")
-        sub = sub.split("|")[0]
-        items.append(f'<li><b>{inline(title.strip())}</b>' + (f'<span>{inline(sub.strip())}</span>' if sub.strip() else "") + "</li>")
+    if any(p[3] for p in parsed):
+        n = len(parsed)
+        tabs, panes = [], []
+        for i, (title, sub, _, ex) in enumerate(parsed):
+            sel = "true" if i == 0 else "false"
+            tabs.append(f'<li><button type="button" role="tab" aria-selected="{sel}" data-i="{i}">'
+                        f'<b>{inline(title)}</b>' + (f'<span>{inline(sub)}</span>' if sub else "") + '</button></li>')
+            body = "".join(f"<p>{inline(x)}</p>" for x in ex) or f"<p>{inline(sub)}</p>"
+            hidden = "" if i == 0 else " hidden"
+            panes.append(f'<div class="fx-pane" role="tabpanel" data-i="{i}"{hidden}>'
+                         f'<div class="fx-head"><span class="fx-n">Step {i + 1} of {n}</span><b>{inline(title)}</b></div>{body}</div>')
+        cls = "flow fx-steps" if kind == "flow" else "flow stack fx-steps"
+        return (f'<div class="fx" data-fx><ol class="{cls}" role="tablist">' + "".join(tabs) + "</ol>"
+                '<div class="fx-panel">' + "".join(panes) +
+                '<div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button>'
+                '<button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>')
+    items = [f'<li><b>{inline(t)}</b>' + (f'<span>{inline(s_)}</span>' if s_ else "") + "</li>" for t, s_, _, _ in parsed]
     cls = "flow" if kind == "flow" else "flow stack"
     tag = "ol" if kind == "flow" else "ul"
     return f'<{tag} class="{cls}">' + "".join(items) + f"</{tag}>"

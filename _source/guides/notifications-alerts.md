@@ -31,10 +31,15 @@ A server that fails quietly is the worst kind. Cipi can tell you when something 
 
 ```flow
 Something happens | deploy, backup, monitor, login…
+> An event happens on the server: a deploy finishes, a backup fails, disk fills up, someone logs in.
 Trigger | is this event enabled?
+> Cipi checks whether that event type (trigger) is enabled. You can turn each one off.
 Event log | always written, kept a year
+> Every event is written to the event log anyway, kept for a year, even if no alert goes out.
 Channels | every enabled channel, in parallel
+> The alert is sent to every enabled channel at once: e-mail, Telegram, Slack, webhooks…
 You | e-mail, chat or phone
+> You get it where you are. A broken channel never blocks the others or the deploy.
 ```
 
 | Term | Meaning |
@@ -69,9 +74,13 @@ Use a transactional provider (Postmark, Mailgun, Brevo, SES): mail sent directly
 
 ```flow
 @BotFather | /newbot → bot token
+> In Telegram, open @BotFather, send `/newbot`, choose a name. It answers with the bot token.
 Your chat | send /start to the bot
+> Open a chat with your new bot (or add it to a group) and send `/start`. Bots can't write to you first.
 getUpdates | read the chat id
+> Open `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser and copy `chat.id`. Group ids are negative.
 cipi notification add | token + chat id
+> On the server: `sudo cipi notification add telegram oncall --token=<token> --chat-id=<id>`, then `sudo cipi notification test oncall`.
 ```
 
 1. In Telegram, open **@BotFather**, send `/newbot`, pick a name. Copy the **token**.

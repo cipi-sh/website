@@ -8,12 +8,19 @@ A deploy builds the new release next to the live one and switches traffic with a
 
 ```flow
 Stop workers | no old code on new data
+> Queue workers stop first (each finishes its current job), so no job runs old code against a database the new release is about to migrate.
 Clone | into releases/N
+> The repository is cloned into a new folder, `releases/<timestamp>`. The live release is untouched and keeps serving visitors.
 Composer | --no-dev, app's PHP
+> `composer install --no-dev` runs with **the app's** PHP version, inside the new folder.
 Link shared | .env, storage
+> `.env` and `storage/` live in `shared/` and are linked into the release, so they survive every deploy and rollback.
 Migrate & optimize | migrate --force, optimize
+> `php artisan migrate --force` and `optimize` run in the new release. If something fails here, the deploy stops and the old release is still live.
 Swap | current → releases/N
+> The `current` link switches to the new folder in one atomic step. Requests before the switch got the old code; requests after get the new one. None fail.
 Restart & verify | workers, health check
+> Workers start again on the new code. With a health check set, Cipi probes the site and can roll back automatically.
 ```
 
 Deployer and Composer always use **the app's PHP version**, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a [front-end build](/docs/manage-apps#edit) run it before the swap.

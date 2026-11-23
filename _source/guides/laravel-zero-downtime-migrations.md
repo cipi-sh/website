@@ -38,10 +38,15 @@ Zero downtime is two problems: switching code without a gap, and changing the da
 
 ```flow
 Clone | new folder in releases/
+> The code is cloned into a brand new folder under `releases/`. Visitors still use the old one.
 Build | composer, npm, link .env and storage
+> Dependencies and assets are built there; `.env` and `storage` are linked from `shared/`.
 Migrate | against the live database
+> Migrations run against the **live** database while the **old** code is still serving. That's why migrations must not break the old code.
 Swap | one atomic symlink
+> `current` switches to the new folder in one atomic step.
 Restart | workers, Octane, FPM reload
+> Workers and Octane restart, PHP-FPM reloads: everything runs the new code.
 ```
 
 The old release keeps serving until the swap. The previous five releases stay on disk for an instant `sudo cipi deploy shop --rollback`.

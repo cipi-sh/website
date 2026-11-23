@@ -22,10 +22,15 @@ One app answering on every `<tenant>.myapp.com`, with one certificate for all of
 
 ```flow
 DNS records | A @ and A * → server
+> In Cloudflare, create `A @` and `A *` records pointing at the server's IP. The `*` record sends every subdomain to the server.
 API token | Zone → DNS → Edit
+> Create a Cloudflare API token with only **Zone → DNS → Edit** on that zone and save it with `cipi ssl dns set --token=…`.
 Wildcard alias | routes subdomains
+> `cipi alias add myapp '*.myapp.com'` (with quotes) tells Nginx to send every subdomain to this app.
 Certificate | DNS-01, ~1 minute
+> `cipi ssl install myapp --dns=cloudflare` proves ownership with a temporary DNS record and gets the wildcard certificate in about a minute.
 Full (strict) | if proxied
+> If the records are proxied (orange cloud), set SSL/TLS to **Full (strict)** in Cloudflare, or you'll get redirect loops.
 ```
 
 ```bash

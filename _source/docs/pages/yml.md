@@ -6,9 +6,13 @@
 
 ```flow
 Commit cipi.yml | next to your code
+> Put `cipi.yml` at the root of the repository, next to `composer.json`, and commit it like code.
 Deploy | the file ships with the release
+> Deploy as usual: the file arrives on the server inside the release.
 Plan | see exactly what would change
+> `cipi yml plan myapp` lists every change it would make and every blocker. Nothing changes yet.
 Apply | all or nothing, never half
+> `cipi yml apply myapp` makes all the changes, or none if any fails. With `cipi yml auto myapp on`, this happens after every deploy.
 ```
 
 ## Commands {#commands}

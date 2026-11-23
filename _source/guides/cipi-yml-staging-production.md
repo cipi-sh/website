@@ -178,9 +178,13 @@ Each app has its own webhook and only deploys its own branch:
 
 ```flow
 git push develop | GitHub webhook
+> You push to `develop`. GitHub calls the webhook of the staging app.
 shop-stg | deploys develop
+> The staging app `shop-stg` deploys `develop` and reads `cipi-staging.yml`.
 git push main | GitHub webhook
+> You push (or merge) to `main`. GitHub calls the production app's webhook.
 shop | deploys main
+> The production app `shop` deploys `main` and reads `cipi.yml`. One repository, two apps, never mixed.
 ```
 
 Get each app's webhook URL and secret with `sudo cipi deploy shop-stg --webhook` and add it to the repository ([auto-deploy](/docs/auto-deploy)). Pushes to other branches answer `skipped`.
@@ -202,9 +206,13 @@ Step by step: [GDPR-safe production data](/guides/anonymized-database-dumps).
 
 ```flow
 Branch | feature/x from develop
+> Create a feature branch from `develop` and work there.
 Merge to develop | staging deploys
+> Merge it into `develop`: staging deploys it automatically.
 Test on staging | behind the password
+> Test on the staging URL, behind its password, with anonymized data.
 Merge to main | production deploys
+> When it's good, merge `develop` into `main`: production deploys.
 ```
 
 ## Troubleshooting {#troubleshooting}

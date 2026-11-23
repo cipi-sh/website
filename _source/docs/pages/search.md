@@ -20,8 +20,11 @@ Step-by-step with a real model: [Laravel Scout with Meilisearch on Cipi](/guides
 
 ```flow
 App myapp | SCOUT_PREFIX=myapp-
+> Cipi gives each app an index prefix based on its name (`myapp-`), written to `.env` as `SCOUT_PREFIX`. You can't choose one that collides with another app.
 Scoped key | indexes myapp-* only
+> The app's Meilisearch key can only act on indexes starting with its prefix. Another app's index answers 403.
 Meilisearch | 127.0.0.1, no public port
+> Meilisearch itself listens on `127.0.0.1` only: nobody can query it from the internet.
 ```
 
 | Guard | Effect |

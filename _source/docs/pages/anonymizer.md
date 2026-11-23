@@ -6,10 +6,16 @@ It lives inside your Laravel app (`cipi/agent`), runs as a queued job, and is sa
 
 ```flow
 Request | POST /cipi/db, cipi-cli or Artisan
+> You ask for a dump in one of three ways: `cipi-cli prod db anonymize myapp --email you@example.com` from your laptop, a `POST /cipi/db` with the anonymizer token, or `php artisan cipi:anonymize` on the server.
+> The HTTP request returns `{"status":"queued"}` at once: the work happens in the background.
 Queue | AnonymizeDatabaseJob
+> `AnonymizeDatabaseJob` goes on the app's queue and a worker runs it. No worker running means nothing happens: check with `cipi worker list myapp`.
 Dump | mysqldump / pg_dump
+> The job reads the database with the engine's own tool (`mysqldump` for MariaDB/MySQL, `pg_dump` for PostgreSQL). It only reads: production is never changed.
 Rewrite | only configured columns
+> Each column listed in `anonymization.json` is replaced while the dump streams; tables in `truncate` are emptied; everything else is copied as is. The raw dump is deleted right away.
 Email | signed link, 15 minutes
+> A signed download link is e-mailed to the address in the request, valid for 15 minutes (`CIPI_ANONYMIZER_TTL`). The API never returns it, so the e-mail is the only way to the file.
 ```
 
 | Use case | Why it fits |

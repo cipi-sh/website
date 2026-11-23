@@ -6,11 +6,17 @@ Backups that run on their own, go where you want, are encrypted before they leav
 
 ```flow
 Profile runs | on its schedule
+> Each backup profile has its own schedule (`--every=30m`, `--cron='0 2 * * *'`…). When it's due, the run starts on its own.
 Dump + archive | per database, per app
+> Each database is dumped and each app's files are archived separately, so you can restore one app without touching the others.
 Integrity check | before upload
+> Every archive is opened and checked before upload. A broken archive is reported, not shipped as if it were fine.
 Encrypt | AES-256, on the server
+> With `--encrypt`, archives are encrypted with AES-256 on the server before leaving it. The bucket only ever sees encrypted files. Keep the key from `cipi backup key show`.
 Upload | local, S3, other buckets
+> The archive goes to each destination of the profile: the server's disk, an S3 bucket, or several buckets.
 Prune & watch | retention, staleness alert
+> Old runs beyond `--keep`/`--keep-days` are deleted. If a profile stops producing backups, you get a staleness alert.
 ```
 
 ## 1. Destinations {#destinations}

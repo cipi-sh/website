@@ -42,10 +42,15 @@ Push-to-deploy is great until a broken test reaches production. A pipeline adds 
 
 ```flow
 Push | to main
+> You push to `main`. The webhook is off, so only the pipeline can deploy.
 Test | php artisan test
+> The pipeline runs `php artisan test`. Red tests stop it here.
 Backup | optional
+> Optional: take a backup on the server first.
 Deploy | ssh → cipi deploy
+> The pipeline connects with the CI key and runs `sudo cipi deploy shop`.
 Roll back | on failure
+> If the deploy fails, the pipeline rolls back with `--rollback` and fails visibly.
 ```
 
 ## 1. A dedicated key for CI

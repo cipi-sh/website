@@ -35,10 +35,15 @@ $ cipi self-update
 
 ```flow
 Download | from GitHub
+> `cipi self-update` downloads the new version of Cipi from GitHub.
 Back up | /opt/cipi.bak.<timestamp>
+> The current installation is copied to `/opt/cipi.bak.<timestamp>`, so you can go back.
 Replace CLI | scripts and libraries
+> The CLI's scripts and libraries are replaced.
 Migrations | in order, each idempotent
+> Migrations bring older servers up to date, in order. Each is safe to run twice.
 Done | apps untouched
+> Your apps keep running throughout: no deploy, no restart of your code.
 ```
 
 Updates never deploy your apps or touch their code and data. Migrations bring existing servers in line with new defaults (a security setting, a new hook); each one is written to be safe to re-run and to degrade to a warning instead of breaking the update. A nightly job (03:50) applies updates automatically; run it yourself first if you'd rather watch. What changed in each release: [What's new](/whats-new) and the [changelog on GitHub](https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md).

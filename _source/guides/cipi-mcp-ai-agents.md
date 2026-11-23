@@ -44,9 +44,13 @@ MCP (Model Context Protocol) lets an AI assistant call tools. Cipi ships two MCP
 
 ```flow
 You ask | in Claude, Cursor, VS Code
+> You type a question in plain words in Claude Code, Claude Desktop, Cursor or VS Code: "is production healthy?"
 Assistant | picks a tool
+> The assistant chooses which tool to call (`health`, `logs`, `deploy`…) and with which arguments.
 MCP server | checks token and guards
+> The MCP server checks the token, then the guards: blocked SQL, blocked Artisan commands, read-only mode.
 App or server | runs it, output redacted
+> The tool runs against the real app or server. Secrets are masked in the output before the assistant sees it.
 ```
 
 ## 1. Turn on the agent's MCP server

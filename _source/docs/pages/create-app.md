@@ -59,10 +59,15 @@ The summary shows the server IP for DNS, the deploy key, the database credential
 
 ```flow
 Save the summary | shown once
+> The summary shows the database password, the deploy key, the webhook URL and token. **It is shown once**: copy it to your password manager now.
 Deploy key on Git | automatic with a token
+> The deploy key must be added to the repository as a read-only deploy key. With a Git provider token saved (`cipi git github-token …`), Cipi did it already.
 Point DNS | A record → server IP
+> Create an `A` record for the domain pointing at the server's IP. Check with `dig +short myapp.com`.
 cipi deploy | first release
+> `cipi deploy myapp` builds the first release: clone, Composer, migrations, swap. Then open `http://myapp.com`.
 cipi ssl install | HTTPS
+> Once DNS points at the server, `cipi ssl install myapp` issues the certificate and switches `APP_URL` to `https://`.
 ```
 
 > [!tip] With a Git provider token configured, the deploy key and the push webhook are added to the repository automatically. See [Git providers & deploy keys](/docs/git).

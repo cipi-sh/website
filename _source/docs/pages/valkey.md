@@ -38,10 +38,15 @@ $ cipi valkey flush-shared                     # once no app uses it: empty + ne
 
 ```flow
 Maintenance on | app returns 503
+> The app briefly returns 503 (a few seconds) so nothing writes during the move.
 Workers stop | nothing writes
+> Its workers stop too.
 Copy keys | with their expiry
+> Every key is copied from the shared instance to the app's own, with its expiry time.
 Switch .env | config cache rebuilt
+> The app's `REDIS_*` variables are switched to its own instance and the config cache is rebuilt.
 Back online | seconds later
+> The app comes back online. If the copy failed, it stays on the shared instance, unchanged.
 ```
 
 If the copy fails, the app stays exactly where it was. Apps whose Redis points elsewhere are left alone. Clones and synced apps get their own instance. `cipi pending` lists apps still on the shared instance.

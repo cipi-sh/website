@@ -85,9 +85,13 @@ $ sudo cipi app create --user=shop --domain=shop.example.com \
 
 ```flow
 Linux user | shop
+> Cipi creates a Linux user named after the app. Files and processes belong to it.
 Database | shop, owned by user shop
+> A PostgreSQL database with the same name, owned by a database user of the same name, with its own password.
 .env | DB_CONNECTION=pgsql, port 5432
+> The app's `.env` gets `DB_CONNECTION=pgsql`, port 5432 and the credentials.
 First deploy | php artisan migrate --force
+> The first deploy runs your migrations and builds the schema.
 ```
 
 Cipi creates the database with `UTF8` encoding and gives the app user ownership of it and of the `public` schema, so migrations can create, alter and drop anything inside it, and nothing outside it.
@@ -169,10 +173,15 @@ There's no in-place switch. You create a PostgreSQL app and move the data once:
 
 ```flow
 Test locally | run the suite on pgsql
+> Run your test suite against PostgreSQL on your machine and fix raw SQL that only worked on MySQL.
 New app | --engine=pgsql, same repo
+> Create a second app with `--engine=pgsql` from the same repository and deploy it: migrations build the schema.
 Copy data | pgloader or an export job
+> Copy the data with pgloader (data only) into the tables your migrations created.
 Check | counts, a few pages
+> Compare row counts and click through the important pages.
 Switch DNS | or swap the domain
+> Move the domain to the new app (or switch DNS). Keep the old app until you're sure.
 ```
 
 1. Run your test suite against PostgreSQL locally (`DB_CONNECTION=pgsql` in `.env.testing`) and fix raw queries.

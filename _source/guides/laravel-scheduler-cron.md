@@ -38,9 +38,13 @@ Most apps need things to happen on their own: send a daily report, clear old rec
 
 ```flow
 cron, every minute | as user shop
+> Linux's cron starts one command every minute, as the app's user.
 schedule:run | reads routes/console.php
+> That command is `php artisan schedule:run`, which reads the tasks you defined in `routes/console.php`.
 Due tasks | run or dispatch to the queue
+> Tasks that are due right now run (or dispatch a job to the queue).
 Exit | until the next minute
+> `schedule:run` exits. A minute later cron calls it again.
 ```
 
 ## Before you start {#before}
@@ -96,8 +100,11 @@ $ sudo cipi app artisan shop schedule:list
 
 ```flow
 Scheduler | small, fast commands
+> Keep scheduled commands short: they run one after another in the same minute.
 Queue | heavy work, retries, timeouts
+> Put heavy work in a job: the queue retries it and enforces timeouts.
 Worker | Supervisor, restarted on deploy
+> A worker under Supervisor runs it, and restarts on every deploy.
 ```
 
 Schedule a job instead of the work itself, and give long queues their own worker ([queues guide](/guides/laravel-horizon-queues)):
@@ -151,9 +158,13 @@ $ sudo cipi schedule on shop
 
 ```flow
 Is it listed? | schedule:list
+> `cipi app artisan shop schedule:list` shows every task and when it's next due. Missing? It isn't in the deployed code.
 Is cron calling? | grep CRON syslog
+> `grep CRON /var/log/syslog | grep shop` shows whether cron is calling `schedule:run` every minute.
 Did it fail? | laravel.log
+> `cipi app logs shop --type=laravel` shows the exception if the task crashed.
 Run it by hand | artisan command
+> Run the command by hand with `cipi app artisan shop <command>` to see the error directly.
 ```
 
 ```bash

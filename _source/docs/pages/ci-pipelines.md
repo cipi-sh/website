@@ -4,10 +4,15 @@ Use a pipeline when a deploy must be **conditional**: only after tests pass, aft
 
 ```flow
 Push | to main
+> You push to `main` (or open a merge). The webhook is off for this app, so only the pipeline deploys.
 Test | php artisan test
+> The pipeline installs dependencies and runs `php artisan test`. A failing test stops everything here: nothing reaches the server.
 Backup | optional
+> Optional: run a backup profile on the server first (`cipi backup run --profile=…`) so you have a restore point.
 Deploy | ssh → cipi deploy
+> The pipeline connects over SSH with a dedicated CI key and runs `sudo cipi deploy shop` (or uses `cipi-cli` with an API token).
 Notify / roll back | on failure
+> If the deploy fails, the pipeline runs `cipi deploy shop --rollback` and fails, so you see it in red.
 ```
 
 ## A key for CI {#ssh-key}

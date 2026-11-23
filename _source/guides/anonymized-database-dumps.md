@@ -32,11 +32,20 @@ Debugging with seed data misses the bugs real data causes. Copying production to
 
 ```flow
 You ask | cipi-cli, HTTP or Artisan
+> You (or a script, or your AI assistant) ask for a dump. The most comfortable way is `cipi-cli prod db anonymize shop --email you@example.com` from your laptop: no SSH, no token typed by hand.
+> The request only *asks*: it returns at once with `{"status":"queued"}`. Nothing heavy happens inside a web request.
 Queue job | in your Laravel app
+> The agent puts a job on the app's queue. A queue worker (Cipi creates one with every Laravel app) picks it up within seconds.
+> No worker running? Then nothing happens: check with `sudo cipi worker list shop`.
 Dump | mysqldump / pg_dump
+> The job reads the production database with the standard tool for your engine. It only **reads**: production is never modified.
 Rewrite | only the columns you listed
+> While the dump streams, every column listed in `anonymization.json` is replaced (fake name, fake e-mail, masked phone…). Tables in `truncate` are emptied. Everything else (ids, prices, dates) is kept, so relations still work.
+> The raw dump is deleted as soon as the anonymized file is written.
 Signed link | by e-mail, valid 15 minutes
+> You receive an e-mail with a download link. It works for 15 minutes and only through that signed URL: the API never returns it, so a stolen token alone can't download data.
 Your laptop | import into a local DB
+> Download with `cipi-cli db anonymize download "<url>" -o shop.sql` and import it into a local database (step 5). Then grep for a real e-mail to be sure it's gone (step 6).
 ```
 
 | Term | Meaning |

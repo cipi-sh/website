@@ -24,10 +24,15 @@ Start from the recipe closest to your app, run `php artisan cipi:yml validate`, 
 
 ```flow
 Copy | into cipi.yml at the repo root
+> Pick the recipe closest to your app and paste it into `cipi.yml` at the root of the repository.
 Adapt | names, domains, sizes
+> Replace `shop` with your app's name everywhere, and adjust domains, process counts and schedules.
 Validate | php artisan cipi:yml validate
+> Run `php artisan cipi:yml validate` (Cipi Agent) locally or in CI. It uses the same rules as the server.
 Deploy | the release carries the file
+> Commit and deploy. The file travels inside the release.
 Plan, apply | cipi yml plan / apply
+> On the server, `cipi yml plan shop` shows the changes; `cipi yml apply shop` makes them, all or nothing.
 ```
 
 Names inside the file (databases, backup profiles) must start with the app's name, so replace `shop` with yours. New to the file? Start with [the cipi.yml guide](/guides/manage-apps-with-cipi-yml).

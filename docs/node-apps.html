@@ -191,7 +191,7 @@
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/apps">Apps</a></li><li aria-current="page">Node apps</li></ol>
 <h1>Node apps</h1>
 <p class="docs-lead">SPA, static and SSR frontends built on every deploy.</p>
-<div class="docs-meta"><span>Apps</span><a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/node-apps.md">Edit on GitHub</a></div>
+<div class="docs-meta"><span>Apps</span></div>
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-app-node">
@@ -212,7 +212,7 @@
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Meaning</th></tr></thead><tbody><tr><td><code>--framework</code></td><td>Preset: <code>vite</code> (spa), <code>next</code>, <code>nuxt</code>, <code>sveltekit</code>, <code>astro</code>, <code>remix</code> (ssr). Explicit flags win</td></tr><tr><td><code>--node-version</code></td><td>LTS major: <code>22</code> or <code>24</code> (default: the <a href="/docs/nodejs">server default</a>)</td></tr><tr><td><code>--build</code></td><td>Build command (default <code>npm run build</code>)</td></tr><tr><td><code>--start</code></td><td>SSR start command, a Node runner plus arguments, e.g. <code>node build</code></td></tr><tr><td><code>--output</code></td><td>Build folder for spa/static; the deploy fails if it has no <code>index.html</code></td></tr><tr><td><code>--health-path</code></td><td>SSR path that must answer below 500 before a release takes traffic (default <code>/</code>)</td></tr></tbody></table></div>
 <p>The build installs from your lockfile (<code>npm ci</code>, <code>pnpm install --frozen-lockfile</code>, <code>yarn install --immutable</code>, <code>bun install --frozen-lockfile</code>) with <code>NODE_ENV=production</code>. <code>shared/.env</code> is read at build time and by SSR servers at runtime; edit it with <a href="/docs/environment">cipi app env</a>.</p>
 <h2 id="blue-green">Zero-downtime SSR: blue/green<a class="anchor" href="#blue-green" aria-label="Link to this section">#</a></h2>
-<ol class="flow"><li><b>Start new release</b><span>on the idle slot</span></li><li><b>Health check</b><span>must answer &lt; 500 in 60 s</span></li><li><b>Switch upstream</b><span>nginx -t, reload</span></li><li><b>Drain old slot</b><span>then stop it</span></li></ol>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Start new release</b><span>on the idle slot</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Health check</b><span>must answer &lt; 500 in 60 s</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Switch upstream</b><span>nginx -t, reload</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Drain old slot</b><span>then stop it</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Start new release</b></div><p>Each Node app has two slots (blue and green). The new release starts on the slot that isn't serving traffic.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Health check</b></div><p>It must answer with a status below 500 within 60 seconds. If it crashes or never answers, it's stopped and the deploy fails: visitors never see it.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Switch upstream</b></div><p>Nginx is pointed at the new slot, tested with <code>nginx -t</code>, and reloaded gracefully.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Drain old slot</b></div><p>The old slot finishes its open requests, then stops. Rollback switches back the same way.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
 <p>Two Supervisor programs (<code>shop-node-blue</code>, <code>shop-node-green</code>) each own a local port. If the new release crashes or never answers, it is stopped, the old slot keeps serving and the deploy fails before anything goes live. Rollback and <code>cipi node restart</code> switch the same way.</p>
 <div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>The switch runs as root through a narrow rule: ports, start command, Node version and health path come from a root-owned file, not from the app. <code>.env</code> is read as data, never executed; <code>HOST</code> is forced to <code>127.0.0.1</code> and the start command runs without a shell.</p></div></div>
 <h2 id="manage">Manage<a class="anchor" href="#manage" aria-label="Link to this section">#</a></h2>
@@ -236,8 +236,8 @@
 <li><a class="l2" href="#manage">Manage</a></li>
 </ol>
 <div class="toc-tools">
-<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/node-apps.md">Edit this page on GitHub</a>
-<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/node-apps.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>
 <a href="#main">Back to top</a></div></nav>
 </div>
 </div>

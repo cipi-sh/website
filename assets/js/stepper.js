@@ -35,3 +35,39 @@
     window.addEventListener('resize', update);
     update();
 })();
+
+/* Step-by-step explainers: ```flow blocks whose steps carry an explanation. */
+(function () {
+    'use strict';
+    document.querySelectorAll('[data-fx]').forEach(function (fx) {
+        var tabs = Array.prototype.slice.call(fx.querySelectorAll('[role="tab"]'));
+        var panes = Array.prototype.slice.call(fx.querySelectorAll('.fx-pane'));
+        var prev = fx.querySelector('[data-fx-prev]'), next = fx.querySelector('[data-fx-next]');
+        var cur = 0;
+        function show(i, focus) {
+            cur = Math.max(0, Math.min(tabs.length - 1, i));
+            tabs.forEach(function (t, k) {
+                t.setAttribute('aria-selected', k === cur ? 'true' : 'false');
+                t.tabIndex = k === cur ? 0 : -1;
+                t.parentNode.classList.toggle('is-done', k < cur);
+                t.parentNode.classList.toggle('is-active', k === cur);
+            });
+            panes.forEach(function (p, k) { p.hidden = k !== cur; });
+            prev.disabled = cur === 0;
+            next.textContent = cur === tabs.length - 1 ? 'Back to step 1' : 'Next step';
+            var li = tabs[cur].parentNode, ol = li.parentNode;
+            if (ol.scrollWidth > ol.clientWidth) ol.scrollLeft = Math.max(0, li.getBoundingClientRect().left - ol.getBoundingClientRect().left + ol.scrollLeft - 16);
+            if (focus) tabs[cur].focus();
+        }
+        tabs.forEach(function (t, k) {
+            t.addEventListener('click', function () { show(k); });
+            t.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); show(cur + 1, true); }
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); show(cur - 1, true); }
+            });
+        });
+        prev.addEventListener('click', function () { show(cur - 1); });
+        next.addEventListener('click', function () { show(cur === tabs.length - 1 ? 0 : cur + 1); });
+        show(0);
+    });
+})();

@@ -163,9 +163,13 @@ $ sudo cipi backup verify
 
 ```flow
 Every 30 min | database dump, kept 24 h
+> A database-only backup every 30 minutes, kept for 24 hours: orders placed in the last half hour are the most you can lose.
 Every night | files + database, encrypted
+> Every night, files and database together, encrypted.
 Off-site | S3-compatible bucket
+> Archives go to an S3-compatible bucket at another provider or region.
 Verify | archives checked automatically
+> Cipi checks the archives can be opened and alerts you if a profile stops producing backups.
 ```
 
 At worst you lose 30 minutes of orders. Full guide: [backups to S3](/guides/backup-vps-s3).

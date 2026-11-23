@@ -46,8 +46,11 @@ A Horizon you disabled stays disabled. `cipi pending` lists apps with Horizon in
 
 ```flow
 Stop workers | before the symlink swap
+> Before the new release goes live, workers stop. Each finishes the job it's running (up to its `--timeout`).
 Swap release | atomic
+> The release switches in one atomic step.
 Restart workers | on the new code
+> Workers start again and only ever see the new code with the new database schema.
 ```
 
 Workers never run old code against a new database. Supervisor restarts a worker only after an unexpected exit. Workers can also be declared in [cipi.yml](/docs/yml).

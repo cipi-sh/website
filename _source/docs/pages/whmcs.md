@@ -4,9 +4,13 @@ Sell Laravel and PHP hosting on your own servers. The official **WHMCS provision
 
 ```flow
 Order paid | WHMCS Create Account
+> A customer pays an order in WHMCS and the product's module runs Create Account.
 POST /api/apps | isolated app on Cipi
+> The module calls the Cipi API (`POST /api/apps`), which creates an isolated app: user, database, PHP pool, vhost.
 Auto-SSL | Let's Encrypt (optional)
+> Optionally a Let's Encrypt certificate is issued once DNS points at the server.
 Lifecycle | suspend, change package, terminate
+> Suspend, unsuspend, change package and terminate in WHMCS call the matching Cipi API actions.
 ```
 
 ## Requirements {#requirements}

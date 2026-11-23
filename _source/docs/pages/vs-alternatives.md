@@ -89,7 +89,11 @@ You don't touch a server; you pay for resources and accept the platform's limits
 
 ```flow
 Own a VPS? | no → managed PaaS
+> If you don't want to manage a server at all, not even with a tool, a managed PaaS (Laravel Cloud, Render…) is the simpler choice.
 Laravel or PHP apps? | many stacks → Docker PaaS
+> If you run many stacks (Go, Python, Rails) with Docker, a Docker PaaS (Coolify, Dokku…) fits better. Cipi is for Laravel, PHP and Node.
 Want to pay per server? | yes → Forge or Ploi
+> If you prefer a hosted dashboard and pay per month, Forge or Ploi do that well.
 Otherwise | Cipi
+> If you own a server, deploy Laravel/PHP apps and want it free, open source and scriptable: Cipi.
 ```

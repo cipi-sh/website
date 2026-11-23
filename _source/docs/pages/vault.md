@@ -11,9 +11,13 @@ Every configuration file holding a secret (database passwords, API tokens, Git t
 
 ```flow
 Export (sync) | decrypt with this server's key
+> When you export apps with `cipi sync`, their secrets are decrypted with this server's vault key.
 Archive | encrypted with your passphrase
+> The archive is encrypted with a passphrase you choose, so it's safe in transit and at rest.
 Import | decrypt with the passphrase
+> On the new server, the passphrase decrypts the archive.
 Store | re-encrypted with the new server's key
+> The secrets are encrypted again with the new server's own vault key. Keys never travel inside the data they protect.
 ```
 
 Backups use their own key (`cipi backup key show`); sync archives use your passphrase. Keys never travel inside the data they protect.

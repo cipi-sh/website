@@ -38,10 +38,15 @@ Most panels keep an app's server settings in a database you can't review. Cipi l
 
 ```flow
 Edit cipi.yml | in a branch
+> Change the file in a branch, like any code change.
 Review | pull request
+> Open a pull request: teammates see exactly which server setting changes.
 Merge, deploy | the file ships with the release
+> Merge and deploy. The file arrives with the release.
 Plan | what would change
+> `cipi yml plan shop` lists what would change. Nothing happens yet.
 Apply | all or nothing
+> `cipi yml apply shop` (or the automatic mode) applies everything, or nothing if one change fails.
 ```
 
 ## Before you start {#before}

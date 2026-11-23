@@ -4,10 +4,15 @@ Put your server behind Cloudflare: visitors reach apps through a Cloudflare Tunn
 
 ```flow
 Token | Tunnel, Access, DNS
+> Create a Cloudflare API token with Tunnel, Access and DNS permissions and save it with `cipi zt token set`.
 Enable | tunnel + real IP; ports still open
+> `cipi zt enable` creates the tunnel and makes apps see visitors' real IPs. Ports stay open for now, so nothing can break yet.
 Route | hostnames, Access, SSH
+> Route each hostname through the tunnel, add Access rules where you want a login wall, and SSH through Access.
 Test | from your laptop
+> From your laptop, check every site and SSH through the tunnel. Don't skip this.
 Lock | 80/443 and 22 closed
+> `cipi zt lock` closes 80, 443 and 22 to the internet. Only the tunnel reaches the server now.
 ```
 
 ```bash

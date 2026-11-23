@@ -41,10 +41,15 @@ A **queue** lets your app answer the visitor immediately and do slow work (e-mai
 
 ```flow
 Request | dispatch job, reply fast
+> The controller calls `SendInvoice::dispatch($order)` and answers the visitor straight away.
 Queue | database or Valkey
+> The job is stored in the queue: the database by default, or Valkey with Horizon.
 Worker | Supervisor keeps it alive
+> A worker kept alive by Supervisor takes the next job.
 Job runs | retries on failure
+> The job runs. If it throws, it's retried according to `$tries` and `$backoff`.
 failed_jobs | after the last try
+> After the last failed attempt it lands in `failed_jobs`, where you can inspect and retry it.
 ```
 
 ## Before you start {#before}
@@ -169,8 +174,11 @@ For extra safety, [basic auth](/docs/basic-auth) or [Zero Trust](/guides/cloudfl
 
 ```flow
 Stop workers | before the swap
+> During a deploy, workers stop first and finish their current job.
 Swap release | atomic
+> The new release goes live in one atomic switch.
 Restart workers | on the new code
+> Workers start again on the new code.
 ```
 
 Workers stop gracefully: the running job finishes first, up to the worker's `--timeout`. Jobs dispatched by the old code must still work with the new code, so don't rename a job class or change its constructor in the same deploy that removes the old one.

@@ -29,9 +29,13 @@ $ cipi autoupdate on nginx        # or nightly, automatically
 
 ```flow
 apt upgrade nginx | your nginx.conf kept
+> Nginx is upgraded with apt; your `nginx.conf` and every vhost are kept.
 nginx -t | must pass
+> `nginx -t` must pass with the new binary before anything reloads. If it fails, the old Nginx keeps running.
 Reload | graceful
+> A graceful reload: new workers start, old ones finish their requests. No connection is dropped.
 Check binary | restart if old workers linger
+> Cipi checks that the running binary is the new one, and restarts if old workers linger, so the fix is really active.
 ```
 
 If a long-lived connection (a WebSocket) keeps an old worker on the replaced binary, Cipi restarts Nginx instead of reloading (well under a second of interruption). A server found on Ubuntu's archive Nginx is moved to nginx.org mainline in one simulated-first transaction: if anything can't be done, nothing changes.

@@ -184,8 +184,8 @@ def toc_html(toc: list[tuple[int, str, str]], edit_slug: str | None) -> str:
         out.append("</ol>")
     out.append('<div class="toc-tools">')
     if edit_slug:
-        out.append(f'<a href="{REPO_EDIT}{edit_slug}{src_ext(edit_slug)}">Edit this page on GitHub</a>')
-    out.append('<a href="https://github.com/cipi-sh/cipi/issues/new">Report a problem</a>')
+        out.append(f'<a href="{REPO_EDIT}{edit_slug}{src_ext(edit_slug)}" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>')
+    out.append('<a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>')
     out.append('<a href="#main">Back to top</a></div></nav>')
     return "\n".join(out)
 
@@ -346,8 +346,7 @@ def build_docs() -> list[dict]:
         attrs = ""
         if p["slug"] in ANCHORS:  # cli-client / php-sdk keep their old URL
             attrs = f' data-legacy-page="{p["slug"]}"'
-        meta = (f'<div class="docs-meta"><span>{esc(g["title"])}</span>'
-                f'<a href="{REPO_EDIT}{p["slug"]}{src_ext(p["slug"])}">Edit on GitHub</a></div>')
+        meta = f'<div class="docs-meta"><span>{esc(g["title"])}</span></div>'
         out = page_shell(slug=p["slug"], title=p["title"], desc=p["desc"], body=body,
                          toc=toc_html(toc, p["slug"]), crumbs=crumbs, uses=uses,
                          extra_body_attrs=attrs, pager=guides_box(gmap.get(p["slug"], [])) + pager_html(p["slug"]), meta=meta)

@@ -33,10 +33,15 @@ With a token, Cipi sets up the webhook on GitHub, GitLab, Bitbucket and Azure De
 
 ```flow
 git push | to the deploy branch
+> You push to the app's deploy branch. Other branches are ignored.
 Webhook | POST /cipi/webhook, signed
+> Your Git provider sends a signed `POST` to the app's webhook URL.
 Verify | signature, branch
+> Cipi checks the signature (only someone with the secret can trigger a deploy) and the branch.
 Trigger file | instant HTTP answer
+> It writes a small trigger file and answers immediately, so the provider never sees a timeout, however long the build.
 Deploy | within a minute, as the app user
+> Within a minute a cron job picks up the trigger and deploys as the app's own user, with zero downtime.
 ```
 
 The request never runs the deploy itself: it verifies the push and drops a trigger. A cron picks it up and deploys with zero downtime. A slow build can't time out a webhook, and a forged request can't start anything.

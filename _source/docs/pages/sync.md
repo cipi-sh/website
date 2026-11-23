@@ -6,9 +6,13 @@ Move, copy or replicate whole apps between Cipi servers: configuration, deploy k
 
 ```flow
 Export | encrypted archive
+> On the old server, the apps (settings, keys, workers, optionally database and storage) are packed into an archive encrypted with your passphrase.
 Transfer | rsync over SSH
+> The archive is copied to the new server with rsync over SSH, between servers that trust each other.
 Import | apps created or updated
+> On the new server, the apps are created (or updated if they exist), with the same users, PHP versions and workers.
 DNS + SSL | switch when ready
+> When you're ready, point DNS at the new server and issue certificates there.
 ```
 
 ## Commands {#commands}

@@ -28,9 +28,13 @@ $ cipi gui panel.example.com
 
 ```flow
 DNS check | domain must point here
+> The panel's domain (e.g. `panel.example.com`) must already point at this server, or the certificate can't be issued. The installer checks it first.
 Provision | FPM pool, vhost, cron
+> Cipi creates the panel's own PHP-FPM pool, Nginx vhost and cron, isolated from your apps.
 First admin | e-mail + password
+> You choose the first administrator's e-mail and password. More users and roles come later, from the panel.
 Certificate | Let's Encrypt, HTTPS on
+> A Let's Encrypt certificate is issued and HTTPS is enforced. Open the URL and log in.
 ```
 
 The app is bundled at `/opt/cipi/gui`; settings go to `/etc/cipi/gui.json`. The admin password needs **12+ characters** with upper and lower case, a digit and a symbol, and no more than 4 identical characters in a row.

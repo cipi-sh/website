@@ -83,9 +83,13 @@ $ sudo cipi deploy shop             # Vite bakes VITE_REVERB_* into the bundle
 
 ```flow
 Browser | wss://shop.example.com/app/{key}
+> The browser connects to `wss://shop.example.com/app/{key}`, on the app's own domain.
 Nginx | same domain, same certificate
+> Nginx proxies only the WebSocket paths, with the app's certificate.
 Reverb on 127.0.0.1 | a port in 9000–9099
+> Reverb listens locally, on a port between 9000 and 9099.
 Supervisor | shop-reverb, as the app user
+> Supervisor runs it as the app's user and restarts it when needed.
 ```
 
 Cipi generates the `REVERB_*` credentials once, writes the `VITE_REVERB_*` copies for the front end, and proxies only the WebSocket paths. The stock `echo.js` reads exactly those variables.

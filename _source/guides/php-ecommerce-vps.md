@@ -53,8 +53,11 @@ PHP runs a large share of the world's online shops. There's no single "right" pl
 
 ```flow
 Laravel-based? | yes → Laravel app, full automation
+> Bagisto, Lunar, Aimeos: create them as Laravel apps and get workers, scheduler, atomic deploys and `cipi.yml`.
 Symfony or other PHP? | custom app + cipi.yml post-deploy steps
+> Sylius, PrestaShop or other PHP: create a custom app; add the build steps in `deploy.post` of `cipi.yml`.
 Needs OpenSearch/Varnish? | host those services separately
+> Platforms that require OpenSearch or Varnish (e.g. Magento) need those services elsewhere: Cipi doesn't install them.
 ```
 
 ## Example 1: Bagisto, a Laravel shop {#bagisto}

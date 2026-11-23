@@ -41,9 +41,13 @@ The build installs from your lockfile (`npm ci`, `pnpm install --frozen-lockfile
 
 ```flow
 Start new release | on the idle slot
+> Each Node app has two slots (blue and green). The new release starts on the slot that isn't serving traffic.
 Health check | must answer < 500 in 60 s
+> It must answer with a status below 500 within 60 seconds. If it crashes or never answers, it's stopped and the deploy fails: visitors never see it.
 Switch upstream | nginx -t, reload
+> Nginx is pointed at the new slot, tested with `nginx -t`, and reloaded gracefully.
 Drain old slot | then stop it
+> The old slot finishes its open requests, then stops. Rollback switches back the same way.
 ```
 
 Two Supervisor programs (`shop-node-blue`, `shop-node-green`) each own a local port. If the new release crashes or never answers, it is stopped, the old slot keeps serving and the deploy fails before anything goes live. Rollback and `cipi node restart` switch the same way.
