@@ -71,3 +71,24 @@
         show(0);
     });
 })();
+
+/* Recipe finder: filters .recipe blocks by their text and tags. */
+(function () {
+    'use strict';
+    var box = document.querySelector('[data-recipe-search]');
+    if (!box) return;
+    var input = box.querySelector('input'), count = box.querySelector('.rc-count');
+    var recipes = Array.prototype.slice.call(document.querySelectorAll('.recipe'));
+    var norm = function (s) { return s.toLowerCase().replace(/\s+/g, ' '); };
+    var hay = recipes.map(function (r) { return norm((r.getAttribute('data-tags') || '') + ' ' + r.textContent); });
+    function run() {
+        var words = norm(input.value).trim().split(' ').filter(Boolean), shown = 0;
+        recipes.forEach(function (r, i) {
+            var ok = words.every(function (w) { return hay[i].indexOf(w) !== -1; });
+            r.hidden = !ok; if (ok) shown++;
+        });
+        count.textContent = words.length ? (shown ? shown + ' of ' + recipes.length + ' recipes' : 'No recipe matches. Try a shorter word, or see the reference.') : recipes.length + ' recipes';
+    }
+    input.addEventListener('input', run);
+    run();
+})();

@@ -2,6 +2,8 @@
 
 Every deploy runs the same pipeline on the server. What changes is **who starts it**: a push to Git, your CI, you, the panel or an AI agent.
 
+## The pipeline {#pipeline}
+
 ```flow
 Trigger | push, CI, CLI, panel, MCP
 > A deploy can start from a `git push` (webhook), a CI pipeline, `cipi deploy` on the server, the web panel, the API or an AI assistant through MCP. All take the same path.
@@ -34,3 +36,11 @@ Verify | health check, auto rollback
 | Slack/Telegram on every deploy | Either | [Deploy notifications](/docs/deploy-notifications) |
 
 > [!warning] **One trigger per app.** A webhook and a pipeline deploying the same push will collide on the deploy lock.
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| What if two deploys start at once? | A lock lets one run; the other waits or reports the lock. `cipi deploy myapp --status` shows it. |
+| Can I see who deployed? | `cipi deploy myapp --audit` shows the [audit ledger](/docs/deploy-audit). |
+| How do I go back? | `cipi deploy myapp --rollback` switches to the previous release instantly. |

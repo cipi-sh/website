@@ -2,6 +2,8 @@
 
 The panel is a standard **Laravel** application distributed as the `cipi/gui` package ([cipi-sh/gui](https://github.com/cipi-sh/gui)). It holds **no state about your infrastructure**: it authenticates to each server's API, submits jobs and polls them. Tear it down and rebuild it elsewhere without touching a managed server.
 
+## Components {#components}
+
 | Aspect | Detail |
 | --- | --- |
 | Framework | Laravel 12 or 13, Livewire 3.6+ or 4, no asset build step |

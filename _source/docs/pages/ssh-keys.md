@@ -2,6 +2,8 @@
 
 The `cipi` user is the admin entry point: **key-only**, no passwords, no root login. Manage its keys from the CLI, with guards against locking yourself out.
 
+## Admin keys {#keys}
+
 ```bash
 $ cipi ssh list                         # keys, fingerprints, current-session marker
 $ cipi ssh add "ssh-ed25519 AAAA… john@laptop"

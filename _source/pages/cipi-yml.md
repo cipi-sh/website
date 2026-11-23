@@ -13,8 +13,81 @@ faq:
   - Is it like Docker Compose or Terraform? | Smaller and safer. It configures one app on a Cipi server (runtime, workers, domains, backups), can't create or delete apps, and refuses anything outside the app's own namespace.
   - What happens with an invalid file? | Nothing is applied. The plan reports the error; with auto-apply on you get a `yml_fail` notification and the deploy itself still succeeds.
   - Can I start using it on an existing app? | Yes. `cipi yml generate <app> --save` writes the current setup as a file; commit it and the next plan shows nothing to change.
+  - Do I have to describe everything? | No. Write only the sections you want to manage from the repository. Anything you leave out stays as it is on the server, and you can keep using the CLI or the panel for it.
+  - Who can change the server once auto-apply is on? | Anyone who can merge to the deploy branch. Protect the branch and require reviews, as you do for code. Without `cipi yml auto <app> on`, changes apply only when someone runs `cipi yml apply`.
+  - How do I undo a change? | Revert the commit and deploy: the plan shows the way back. Or roll back the release and apply.
+  - Where can I see every option? | In the [cipi.yml reference](/docs/yml), with ready-made setups in the [recipes](/guides/cipi-yml-recipes).
+  - Does it work for Node and custom apps? | Yes, with the sections that apply to them (domains, routes, deploy steps, backups). Workers, scheduler and search are Laravel-only.
   - Do secrets end up in Git? | No. `env.required` lists names only; credentials Cipi creates go to `shared/`, and basic-auth users are names or hashes.
 ---
+## What it is, in one minute {#intro}
+
+Without `cipi.yml`, an app's server settings (PHP version, queue workers, domains, backups…) live only on the server: you change them with commands, and nobody else sees what changed or why. With `cipi.yml`, they live in a file **at the root of your repository**, next to `composer.json`. You change the file, a teammate reviews it, you deploy, and Cipi makes the server match it.
+
+| Without cipi.yml | With cipi.yml |
+| --- | --- |
+| Settings scattered across commands you ran months ago | One readable file that describes the whole app |
+| "Who added that worker?" | Git history and pull requests answer it |
+| A new server means retyping everything | Deploy the same repository: the file recreates the setup |
+| Staging and production drift apart | `cipi.yml` and `cipi-staging.yml`, side by side |
+| A typo can half-change a server | Every change is planned first and applied all or nothing |
+
+> [!tip] You don't have to adopt it all at once. A file with only `workers:` is valid: everything you don't write stays as it is on the server.
+
+## Create your first cipi.yml {#create}
+
+### From an app you already have (recommended)
+
+Cipi writes the file from the app's current setup, so the first plan changes nothing:
+
+```bash
+$ ssh cipi@your-server
+$ sudo cipi yml generate shop > cipi.yml        # or --save to keep a copy on the server
+```
+
+Copy the output into `cipi.yml` at the root of your repository, commit, push, deploy. Then `sudo cipi yml plan shop` should say **Nothing to do**: the file and the server agree. From now on, change the file instead of running commands.
+
+### From zero
+
+Start from a commented template that already validates:
+
+```bash
+$ sudo cipi yml example shop
+```
+
+Or write the smallest useful file by hand:
+
+```yaml
+version: 1
+
+workers:
+  queues:
+    - { queue: default, processes: 2 }
+
+schedule: true
+```
+
+Validate it before committing, with the same rules as the server (needs [Cipi Agent](/docs/agent-yml)):
+
+```bash
+$ composer require cipi/agent
+$ php artisan cipi:yml validate
+```
+
+### Where it goes
+
+```tree
+your-repository/
+  app/
+  composer.json
+  cipi.yml              ← production (and any app without its own file)
+  cipi-staging.yml      ← optional: apps created with --env=staging
+```
+
+## The workflow, step by step {#workflow}
+
+Click a step to jump to it. The map stays at the top while you read.
+
 ```flow
 Edit cipi.yml | in a branch | #file
 Review | in the pull request | #validate

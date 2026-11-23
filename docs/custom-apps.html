@@ -196,21 +196,32 @@
 <div class="prose">
 <section class="doc-section" id="cli-app-custom">
 <p>Custom apps host anything that isn't Laravel or a Node build: WordPress and other CMSs, plain PHP, static files. Code lives in <code>~/htdocs</code>, deployed from Git or uploaded over SFTP.</p>
+<h2 id="compare">Custom or Laravel?<a class="anchor" href="#compare" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>Laravel app</th><th>Custom app</th></tr></thead><tbody><tr><td>Deploy</td><td>Zero-downtime releases</td><td>Pull into <code>htdocs</code></td></tr><tr><td>Database, <code>.env</code></td><td>Created</td><td>Add one with <code>cipi db create</code> if needed</td></tr><tr><td>Workers, scheduler</td><td>Yes</td><td>No</td></tr><tr><td>Git</td><td>Required</td><td>Optional (SFTP-only works)</td></tr></tbody></table></div>
+<h2 id="create">Create one<a class="anchor" href="#create" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># From Git, serving the dist/ folder</span>
 <span class="p"></span>cipi app create --custom --user=mysite --domain=mysite.com \
     --repository=git@github.com:you/mysite.git --docroot=dist
 <span class="c"># SFTP only: no repository</span>
 <span class="p"></span>cipi app create --custom --user=blog --domain=blog.example.com
 <span class="p"></span>cipi db create --name=blog<span class="c">              # e.g. for WordPress</span></pre></div>
+<h2 id="settings">Settings<a class="anchor" href="#settings" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody><tr><td>Document root</td><td><code>htdocs/</code> or a subfolder (<code>--docroot=public</code>, <code>dist</code>, <code>www</code>)</td></tr><tr><td>Nginx</td><td><code>index index.html index.php</code>, <code>try_files $uri $uri/ /index.php?$args</code>, <code>404.html</code></td></tr><tr><td>SFTP-only</td><td>Placeholder <code>index.html</code>; upload to <code>~/htdocs</code> as the app user (SFTP, SCP, rsync)</td></tr><tr><td>With Git</td><td><code>cipi deploy mysite</code> pulls the branch into <code>htdocs</code></td></tr></tbody></table></div>
 <div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Every vhost refuses <code>/cipi.yml</code> and <code>/cipi-*.yml</code>, so a config file committed to the web root is never served.</p></div></div>
+<h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Are custom deploys zero-downtime?</td><td>No: <code>cipi deploy</code> pulls into <code>htdocs</code> in place. Keep changes backward compatible, or use a Laravel app if you need atomic releases.</td></tr><tr><td>How do I run build steps after a pull?</td><td>List them in <code>deploy.post</code> of <a href="/docs/yml">cipi.yml</a>.</td></tr><tr><td>Can a custom app have cron jobs?</td><td>Yes, in the app user's crontab (<code>su - mysite</code>, <code>crontab -e</code>).</td></tr><tr><td>Step-by-step examples?</td><td><a href="/guides/deploy-wordpress-custom-app">WordPress</a>, <a href="/guides/deploy-symfony">Symfony</a>, <a href="/guides/woocommerce-vps">WooCommerce</a>.</td></tr></tbody></table></div>
 </section>
 
 </div>
 <aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul><li><a href="/guides/deploy-symfony"><b>Deploy a Symfony app on an Ubuntu VPS with Cipi</b><span>Host Symfony as a custom app with the public/ document root, Composer and cache warm-up after each deploy, a database, Messenger workers via cron, HTTPS and backups.</span></a></li><li><a href="/guides/deploy-wordpress-custom-app"><b>Host WordPress on your own VPS next to Laravel apps</b><span>Run WordPress as an isolated custom app with its own PHP pool, database, HTTPS, backups and Git or SFTP deploys, on the same server as your Laravel apps.</span></a></li><li><a href="/guides/php-ecommerce-vps"><b>Self-host PHP e-commerce on a VPS: Bagisto, Lunar, Sylius, PrestaShop and more</b><span>A practical map of open-source PHP shop platforms and how to run each on your own server with Cipi, explained for beginners, with full setups for a Laravel-based shop (Bagisto) and a Symfony-based one (Sylius), plus what every shop needs.</span></a></li><li><a href="/guides/woocommerce-vps"><b>WooCommerce on your own VPS, step by step</b><span>Host a WooCommerce shop on an Ubuntu VPS from zero, explained for beginners: an isolated app, the database, HTTPS, PHP limits for a shop, real cron for Action Scheduler, caching, frequent backups, a staging copy and security.</span></a></li></ul></aside><nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/node-apps" rel="prev"><small>Previous</small><b>Node apps</b></a><a class="next" href="/docs/manage-apps" rel="next"><small>Next</small><b>Manage apps</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#compare">Custom or Laravel?</a></li>
+<li><a class="l2" href="#create">Create one</a></li>
+<li><a class="l2" href="#settings">Settings</a></li>
+<li><a class="l2" href="#questions">Questions</a></li>
+</ol>
 <div class="toc-tools">
 <a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/custom-apps.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>

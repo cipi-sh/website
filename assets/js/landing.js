@@ -25,3 +25,30 @@
         }, { threshold: 0.3 }).observe(chat);
     });
 })();
+
+/* MCP prompt examples: server switch + situation list */
+(function () {
+    'use strict';
+    document.querySelectorAll('[data-prompts]').forEach(function (root) {
+        var sets = root.querySelectorAll('.pr-set');
+        root.querySelectorAll('[data-pr-set]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                root.querySelectorAll('[data-pr-set]').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+                sets.forEach(function (s) { s.hidden = s.getAttribute('data-set') !== b.getAttribute('data-pr-set'); });
+            });
+        });
+        sets.forEach(function (set) {
+            var btns = set.querySelectorAll('[data-pr]'), chats = set.querySelectorAll('[data-pr-i]');
+            btns.forEach(function (b) {
+                b.addEventListener('click', function () {
+                    btns.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+                    chats.forEach(function (c) {
+                        var on = c.getAttribute('data-pr-i') === b.getAttribute('data-pr');
+                        c.hidden = !on;
+                        if (on) { c.classList.remove('pr-in'); void c.offsetWidth; c.classList.add('pr-in'); }
+                    });
+                });
+            });
+        });
+    });
+})();

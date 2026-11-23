@@ -2,6 +2,8 @@
 
 Official Node.js builds for [Node apps](/docs/node-apps) and for Laravel asset builds. Every download is verified against nodejs.org's `SHASUMS256.txt`; only even (LTS) majors are offered.
 
+## Commands {#commands}
+
 ```bash
 $ cipi node install 24            # x64 or arm64, checksum-verified
 $ cipi node list                  # majors, default, apps on each
@@ -10,6 +12,8 @@ $ cipi node default 22            # server-wide Node for builds, app run, deploy
 $ cipi node default system        # back to the distribution package
 $ cipi node remove 20             # refused while in use
 ```
+
+## Which Node is used {#layers}
 
 | Layer | Picks the Node used by |
 | --- | --- |

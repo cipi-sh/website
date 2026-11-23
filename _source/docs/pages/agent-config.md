@@ -2,6 +2,8 @@
 
 Each feature of the agent has **its own token** and can be switched off independently. A disabled route answers 404: hidden, not just forbidden.
 
+## Tokens and endpoints {#tokens}
+
 | Feature | Token | Endpoint |
 | --- | --- | --- |
 | Webhook deploy | `CIPI_WEBHOOK_TOKEN` | `POST /cipi/webhook` |
@@ -9,6 +11,8 @@ Each feature of the agent has **its own token** and can be switched off independ
 | MCP | `CIPI_MCP_TOKEN` | `POST /cipi/mcp` |
 | Anonymizer | `CIPI_ANONYMIZER_TOKEN` | `POST /cipi/db`, `/cipi/db/user` |
 | Panel tools | `CIPI_TOKEN` (server API token) | outbound, via `cipi/sdk` |
+
+## Protections {#protections}
 
 | Area | Protection |
 | --- | --- |
@@ -47,3 +51,12 @@ Written by `cipi app create`; toggle features with `php artisan cipi:service <ty
 | `CIPI_BASE_URL`, `CIPI_TOKEN` | Server API URL and token for `cipi/sdk` | none |
 
 > [!tip] For production, set `CIPI_MCP_DB_WRITE=false` unless you really want your assistant to write data.
+
+## Questions {#questions}
+
+| Question | Answer |
+| --- | --- |
+| Where do I see a token? | In the app's `.env` (`cipi app env myapp --get=CIPI_MCP_TOKEN`). Generate a new one with `php artisan cipi:generate-token mcp`. |
+| A feature answers 404. Is it broken? | It's disabled, on purpose: `php artisan cipi:service <feature> --enable`. |
+| After changing a variable nothing happens. | Rebuild the config cache: `cipi app artisan myapp config:cache`. |
+| Is the agent required? | No. It's optional and adds features inside the app. See [Install the agent](/docs/agent-install). |

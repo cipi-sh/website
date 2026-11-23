@@ -2,6 +2,8 @@
 
 Tools some Laravel packages need on the host, from Ubuntu's own repositories, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask.
 
+## Commands {#commands}
+
 ```bash
 $ cipi package list
 $ cipi package install image-optimizers
@@ -9,6 +11,8 @@ $ cipi package install ffmpeg
 $ cipi package install webp            # one binary from a group
 $ cipi package remove ffmpeg
 ```
+
+## Available packages {#available}
 
 | Package | Installs | For |
 | --- | --- | --- |

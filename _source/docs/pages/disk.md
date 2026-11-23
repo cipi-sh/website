@@ -2,11 +2,15 @@
 
 The [monitor](/docs/monitor) tells you the disk is filling up; `cipi disk` tells you **who** is filling it.
 
+## Commands {#commands}
+
 ```bash
 $ cipi disk              # filesystems, then every app, largest first
 $ cipi disk db           # every database of every engine
 $ cipi disk --json       # for scripts (also: cipi disk db --json)
 ```
+
+## Reading the report {#report}
 
 ```text
  Server disk
@@ -32,3 +36,12 @@ $ cipi disk --json       # for scripts (also: cipi disk db --json)
 `cipi disk db` lists MariaDB and PostgreSQL databases, Valkey key counts and memory, and Meilisearch indexes with document counts, each engine with its total on disk. From your laptop: `cipi-cli disk`; in the panel: Server → Disk.
 
 > [!note] Limits are soft by design: they alert, they never take a site down. Hard quotas couldn't cover the database and would break the app at the worst moment.
+
+## Free up space {#free}
+
+| Usually | Do |
+| --- | --- |
+| Old releases | Keep fewer: `cipi app deploy-config myapp --keep-releases=3` |
+| Local backups | Send them off-site and lower `--keep` ([backups](/docs/backups)) |
+| Logs | Rotated automatically ([log retention](/docs/log-retention)); check `storage/logs` for apps writing huge logs |
+| Databases | `cipi disk db`: prune old rows (Telescope, activity logs) |

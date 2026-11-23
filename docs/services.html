@@ -196,6 +196,7 @@
 <div class="prose">
 <section class="doc-section" id="cli-services">
 <p>See and control every service Cipi runs. Nginx always reloads gracefully, so restarting it never drops a request.</p>
+<h2 id="commands">Commands<a class="anchor" href="#commands" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi service list [nginx] [--json]
 <span class="p"></span>cipi service restart<span class="c">              # everything</span>
 <span class="p"></span>cipi service restart nginx<span class="c">        # graceful reload</span>
@@ -204,14 +205,26 @@
 <span class="p"></span>cipi service stop supervisor<span class="c">      # asks first</span>
 <span class="p"></span>cipi service upgrade<span class="c">              # installed vs available versions</span>
 <span class="p"></span>cipi service upgrade valkey [--yes]</pre></div>
+<h2 id="names">Service names<a class="anchor" href="#names" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Name</th><th>Service</th></tr></thead><tbody><tr><td><code>nginx</code></td><td>Web server</td></tr><tr><td><code>php</code> or <code>php8.6-fpm</code></td><td>All PHP-FPM versions, or one</td></tr><tr><td><code>mariadb</code>, <code>postgresql</code> (<code>pgsql</code>)</td><td>Databases</td></tr><tr><td><code>valkey-server</code> (<code>redis</code>, <code>valkey</code>)</td><td>Shared Valkey</td></tr><tr><td><code>supervisor</code></td><td>Workers, Octane, Horizon, Reverb</td></tr><tr><td><code>fail2ban</code></td><td>Brute-force protection</td></tr><tr><td><code>meilisearch</code> (<code>search</code>), <code>cloudflared</code></td><td>Only when installed</td></tr></tbody></table></div>
 <p><code>upgrade all</code> is refused on purpose: patch one service at a time and watch it come back. REST: <code>GET /api/services</code>, <code>POST /api/services/{name}/restart</code>.</p>
+<h2 id="when">When to restart what<a class="anchor" href="#when" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Symptom</th><th>Restart</th><th>Effect on visitors</th></tr></thead><tbody><tr><td>Changed an Nginx setting by hand</td><td><code>cipi service restart nginx</code></td><td>None: graceful reload</td></tr><tr><td>Changed <code>php.ini</code> by hand</td><td><code>cipi service restart php8.6-fpm</code></td><td>A short pause for apps on that version</td></tr><tr><td>Workers ignore new code</td><td><code>cipi worker restart myapp</code> (one app)</td><td>None</td></tr><tr><td>Database unresponsive</td><td><code>cipi service restart mariadb</code></td><td>Seconds of errors: last resort</td></tr></tbody></table></div>
+<p>Prefer the narrowest restart: one app's workers before Supervisor, one PHP version before all of them.</p>
+<h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Does <code>restart nginx</code> drop connections?</td><td>No. Cipi reloads Nginx gracefully: open requests finish on the old workers.</td></tr><tr><td>Why is <code>upgrade all</code> refused?</td><td>One service at a time lets you see which one misbehaves after an upgrade. Nightly patches are covered by <a href="/docs/stack-upgrades">stack upgrades</a>.</td></tr><tr><td>Can the panel restart services?</td><td>Yes, through the <a href="/docs/api">API</a> (<code>POST /api/services/{name}/restart</code>). Stopping services stays on the CLI.</td></tr></tbody></table></div>
 </section>
 
 </div>
 <aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul><li><a href="/guides/laravel-ecosystem-2026"><b>The Laravel ecosystem in 2026, mapped to production</b><span>Octane, Horizon, Reverb, Scout, Pulse, Livewire, Filament, Inertia, Pest and the rest, grouped by the job they do, with what each one needs from your server.</span></a></li></ul></aside><nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/search" rel="prev"><small>Previous</small><b>Search (Meilisearch)</b></a><a class="next" href="/docs/packages" rel="next"><small>Next</small><b>Packages</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#commands">Commands</a></li>
+<li><a class="l2" href="#names">Service names</a></li>
+<li><a class="l2" href="#when">When to restart what</a></li>
+<li><a class="l2" href="#questions">Questions</a></li>
+</ol>
 <div class="toc-tools">
 <a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/services.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>
 <a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>
