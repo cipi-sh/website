@@ -154,7 +154,7 @@ Server managers see the settings card at the bottom of the server tab: how big t
 | --- | --- |
 | [REST API](/docs/api) 1.41 | `GET /api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `GET\|PUT /api/metrics/settings`, `PUT\|DELETE /api/metrics/heartbeat` — abilities `metrics-view`, `metrics-manage` |
 | [MCP](/docs/mcp) | `MetricsOverview`, `MetricsSeries`, `MetricsUptime`, `MetricsEvents`, `MetricsSettingsShow`, `MetricsSettingsUpdate` — ask an assistant "when did the 5xx on shop start?" |
-| [PHP SDK](/docs/php-sdk) 1.6 | `$cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d')` |
+| [PHP SDK](/docs/php-sdk) 1.8 | `$cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d')` |
 | [cipi-cli](/docs/cli-client) | `cipi-cli metrics`, `metrics show --app shop`, `metrics uptime`, `metrics heartbeat set …` |
 
 ## Turning it off {#off}
