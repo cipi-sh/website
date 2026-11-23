@@ -540,6 +540,121 @@ def build_pages() -> list[str]:
     return written
 
 
+# --------------------------------------------------------------------------- postcards
+
+PC_FAQ = [
+    "Who can send a postcard? | Anyone who runs Cipi somewhere: a production server, a side project, a homelab box. One server is enough.",
+    "Why isn't my postcard on the wall yet? | Every postcard is read by a person before it goes up, so it can take a few days. If it isn't there after a week, it was probably caught by the spam filter: send it again or say hi on [Telegram](https://t.me/cipicloud).",
+    "What gets published? | Only what you see on a card: your name (or Anonymous), your city if you give one, the provider, the region, the number of apps and the message. Nothing else is collected.",
+    "Can I add a link to my project? | No. Links and addresses are removed by design, which keeps spam off the wall. Mention the project by name instead.",
+    "Can I change or remove my postcard? | Yes. Open an issue on [GitHub](https://github.com/cipi-sh/website/issues/new) or write on [Telegram](https://t.me/cipicloud) and it will be changed or removed.",
+    "Where is the data stored? | Submissions are stored by Netlify, which hosts this site. Approved postcards are added to a public file in the [website repository](https://github.com/cipi-sh/website). Submissions that are not published are deleted.",
+    "My provider isn't in the list. | Pick **Other** and write the provider in your message. If several people use it, it will be added to the list.",
+]
+
+
+def pc_card(c: dict) -> str:
+    sig = esc(c.get("name") or "Anonymous") + (f", {esc(c['city'])}" if c.get("city") else "")
+    apps = int(c.get("apps") or 0)
+    when = nice_date(c["date"]) if c.get("date") else ""
+    region = esc(c.get("region") or "")
+    return (f'<article class="pc" data-provider="{esc(c["provider"])}">'
+            f'<div class="pc-msg"><p>{esc(c["message"])}</p><p class="pc-sig">{sig}</p></div>'
+            f'<div class="pc-side">'
+            f'<div class="pc-stamp"><span class="pc-stamp-p">{esc(c["provider"])}</span>'
+            f'<span class="pc-stamp-n">{apps if apps else "♥"}{" app" + ("s" if apps != 1 else "") if apps else ""}</span></div>'
+            f'<div class="pc-mark"><span>{region or "On the map"}</span><span>{esc(when)}</span></div>'
+            f'<div class="pc-to"><span>To: Cipi</span><span>Somewhere in the cloud</span></div>'
+            f'</div></article>')
+
+
+PC_EMPTY = ('<article class="pc pc--empty"><div class="pc-msg"><p>The wall is brand new. Your postcard could be the first one on it.</p>'
+            '<p class="pc-sig"><a class="btn btn-lime" href="#send">Send the first postcard</a></p></div>'
+            '<div class="pc-side"><div class="pc-stamp"><span class="pc-stamp-p">Your provider</span><span class="pc-stamp-n">?</span></div>'
+            '<div class="pc-mark"><span>Your region</span><span>Today</span></div>'
+            '<div class="pc-to"><span>To: Cipi</span><span>Somewhere in the cloud</span></div></div></article>')
+
+
+def pc_form(providers: dict) -> str:
+    opts = "".join(f'<option value="{esc(p)}">{esc(p)}</option>' for p in providers)
+    short = "[\\p{L}\\p{N} .,'\\(\\)\\/&\\-]*"
+    return f"""<form class="pc-form" name="postcard" method="POST" action="/postcard-sent" data-netlify="true" netlify-honeypot="bot-field" data-pc-form data-regions="{esc(json.dumps(providers, ensure_ascii=False))}">
+<input type="hidden" name="form-name" value="postcard">
+<p class="pc-hp" aria-hidden="true"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+<div class="pc-row">
+<label class="pc-f"><span>Provider <em>required</em></span>
+<select name="provider" required data-pc-provider><option value="" disabled selected>Choose…</option>{opts}</select></label>
+<label class="pc-f"><span>Region <em>required</em></span>
+<input name="region" maxlength="40" required list="pc-regions" placeholder="e.g. Falkenstein" pattern="{short}" data-pc-region autocomplete="off">
+<datalist id="pc-regions"></datalist></label>
+</div>
+<div class="pc-row">
+<label class="pc-f"><span>Your name <em>optional</em></span><input name="name" maxlength="40" placeholder="Anonymous" pattern="{short}" autocomplete="given-name"></label>
+<label class="pc-f"><span>Your city <em>optional</em></span><input name="city" maxlength="40" placeholder="e.g. Turin" pattern="{short}" autocomplete="address-level2"></label>
+<label class="pc-f pc-f--s"><span>Apps <em>optional</em></span><input name="apps" type="number" min="1" max="999" inputmode="numeric" placeholder="3"></label>
+</div>
+<label class="pc-f"><span>Your message <em>required, 10–280 characters, no links</em></span>
+<textarea name="message" rows="4" minlength="10" maxlength="280" required placeholder="What do you run on it? How is it going?" data-pc-message></textarea>
+<small class="pc-count" data-pc-count>0 / 280</small></label>
+<label class="pc-check"><input type="checkbox" name="consent" value="yes" required> <span>Publish my postcard on cipi.sh after review. Only the fields above are shown; no email is collected.</span></label>
+<p class="pc-err" data-pc-err role="alert" hidden></p>
+<div class="pc-actions"><button class="btn btn-primary" type="submit">Send postcard</button><span>Read by a person before it goes on the wall.</span></div>
+</form>"""
+
+
+def build_postcards() -> list[str]:
+    providers = json.load(open(os.path.join(ROOT, "netlify", "functions", "postcard-providers.json"), encoding="utf-8"))
+    cards = json.load(open(os.path.join(ROOT, "data", "postcards.json"), encoding="utf-8"))
+    n, provs = len(cards), len({c["provider"] for c in cards})
+    regs = len({(c["provider"], c.get("region")) for c in cards if c.get("region")})
+    stats = (f'<p class="pc-stats" data-pc-stats><strong>{n}</strong> postcard{"s" if n != 1 else ""} · <strong>{provs}</strong> provider{"s" if provs != 1 else ""} · '
+             f'<strong>{regs}</strong> region{"s" if regs != 1 else ""}</p>') if n else '<p class="pc-stats" data-pc-stats hidden></p>'
+    grid = "".join(pc_card(c) for c in cards) or PC_EMPTY
+    faq_block, faq_ld = faq_html(PC_FAQ)
+    body = f"""<section class="pc-wall" aria-label="Postcards">
+{stats}
+<div class="pc-filter" data-pc-filter hidden></div>
+<div class="pc-grid" data-pc-grid data-count="{n}">{grid}</div>
+</section>
+<h2 id="send">Send yours</h2>
+<p>Running Cipi on a server? Tell us where and what it does. Pick the provider and region, write a few lines, and your postcard joins the wall once it has been read.</p>
+{pc_form(providers)}
+<h2 id="how">How it works</h2>
+<ol>
+<li><strong>You send the form.</strong> Netlify, which hosts this site, filters spam before anything else happens.</li>
+<li><strong>A person reads it.</strong> Each postcard becomes a pull request in the <a href="https://github.com/cipi-sh/website/pulls">website repository</a>. Nothing is published automatically.</li>
+<li><strong>It goes on the wall.</strong> Once approved, it shows up here within a few minutes.</li>
+</ol>
+<p>Links, HTML and addresses are refused, and nothing you didn't type is published. Want to know more about Cipi first? Start from the <a href="/guides/deploy-laravel-ubuntu-vps">15-minute guide</a>.</p>
+{faq_block}
+<script src="/assets/js/postcards.js" defer></script>"""
+    path = "/postcards"
+    url = SITE + path
+    title = "Postcards from Cipi servers"
+    desc = "Messages from people running Cipi: which provider, which region, and what they host on it. Running Cipi? Send yours."
+    ld = [{"@context": "https://schema.org", "@type": "CollectionPage", "name": title, "description": desc, "url": url, "inLanguage": "en",
+           "publisher": PUBLISHER}]
+    if faq_ld:
+        ld.append(faq_ld)
+    head = '<link rel="stylesheet" href="/assets/css/postcards.css">\n'
+    page = shell(path=path, title=title, full_title="Postcards from Cipi servers | Cipi", desc=desc, eyebrow=("Community", "/docs/community"),
+                 lead="Where Cipi runs, in the words of the people who run it. Every card is a real server, sent through the form below and read before it goes up.",
+                 meta_line="", body=body, toc=[], ld=ld, after=CTA, uses=set(), og_key="postcards",
+                 crumbs=[("Home", "/"), ("Postcards", path)], body_class="article pc-page", extra_head=head,
+                 hero_extra='<p class="pc-hero-cta"><a class="btn btn-lime" href="#send">Send a postcard</a></p>')
+    B.write(out_path(path), page)
+    thanks = shell(path="/postcard-sent", title="Postcard received", full_title="Postcard received | Cipi",
+                   desc="Thanks for your postcard. It will appear on the wall once it has been read.",
+                   eyebrow=("Postcards", "/postcards"), lead="Thank you. Your postcard will appear on the wall once a person has read it, usually within a few days.",
+                   meta_line="", body='<p>While you wait: <a href="/postcards">see the wall</a>, follow releases on <a href="https://t.me/cipicloud">Telegram</a>, or leave a star on <a href="https://github.com/cipi-sh/cipi">GitHub</a> so more people find Cipi.</p>',
+                   toc=[], ld=[], after="", uses=set(), og_key="postcards", crumbs=[("Home", "/"), ("Postcards", path), ("Thanks", "/postcard-sent")],
+                   extra_head='    <meta name="robots" content="noindex">\n')
+    thanks = thanks.replace('<meta name="robots" content="index, follow, max-image-preview:large">\n', "")
+    B.write(out_path("/postcard-sent"), thanks)
+    print(f"postcards: {n} cards")
+    return [path]
+
+
 if __name__ == "__main__":
     what = sys.argv[1:] or ["guides", "compare", "pages"]
     if "guides" in what:
@@ -548,3 +663,4 @@ if __name__ == "__main__":
         build_compare()
     if "pages" in what:
         build_pages()
+        build_postcards()
