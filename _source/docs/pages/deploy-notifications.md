@@ -6,7 +6,7 @@ Know about every deploy, success or failure, without watching logs. The simplest
 
 ```bash
 $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
-$ cipi notification add telegram team --token=<bot-token> --chat=<chat-id>
+$ cipi notification add telegram team --token=<bot-token> --chat-id=<chat-id>
 $ cipi notification test
 ```
 

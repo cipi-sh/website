@@ -1,245 +1,46 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
-
+<html lang="en" data-theme="light" data-follow-system>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CI/CD for Laravel — Git Workflow & Zero-Downtime Deploys (2026)</title>
-    <meta name="description" content="A pragmatic CI/CD guide for Laravel teams: a Git workflow that scales down, a copy-paste GitHub Actions pipeline (Pint, Larastan, Pest, composer audit), zero-downtime deployment options and safe migration strategies.">
-    <meta name="keywords" content="laravel ci/cd, laravel github actions, zero downtime deployment laravel, git workflow laravel, laravel deployment pipeline, laravel continuous integration">
+    <title>CI/CD for Laravel with GitHub Actions or GitLab CI — Cipi guides</title>
+    <meta name="description" content="Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.">
+    <meta name="keywords" content="laravel github actions deploy, laravel gitlab ci deploy, laravel ci cd vps, laravel deploy pipeline">
+    <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="author" content="Andrea Pollastri">
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
     <link rel="canonical" href="https://cipi.sh/guides/laravel-ci-cd-git-workflow">
-    <link rel="sitemap" type="application/xml" href="/sitemap.xml">
-
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
     <meta property="og:url" content="https://cipi.sh/guides/laravel-ci-cd-git-workflow">
-    <meta property="og:title" content="CI/CD for Laravel — Git Workflow & Zero-Downtime Deploys (2026)">
-    <meta property="og:description" content="A pragmatic CI/CD guide for Laravel teams: a Git workflow that scales down, a copy-paste GitHub Actions pipeline (Pint, Larastan, Pest, composer audit), zero-downtime deployment options and safe migration strategies.">
+    <meta property="og:title" content="CI/CD for Laravel with GitHub Actions or GitLab CI">
+    <meta property="og:description" content="Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.">
     <meta property="og:image" content="https://cipi.sh/og.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="CI/CD for Laravel — Git Workflow & Zero-Downtime Deploys (2026)">
-            <meta property="og:locale" content="en_US">
-    <meta property="article:published_time" content="2026-08-04T08:00:00+02:00">
-    <meta property="article:modified_time" content="2026-08-04T08:00:00+02:00">
-    <meta property="article:author" content="https://web.ap.it">
-    <meta property="article:section" content="Guides">
-
+    <meta property="og:image:alt" content="CI/CD for Laravel with GitHub Actions or GitLab CI">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="CI/CD for Laravel — Git Workflow & Zero-Downtime Deploys (2026)">
-    <meta name="twitter:description" content="A pragmatic CI/CD guide for Laravel teams: a Git workflow that scales down, a copy-paste GitHub Actions pipeline (Pint, Larastan, Pest, composer audit), zero-downtime deployment options and safe migration strategies.">
+    <meta name="twitter:title" content="CI/CD for Laravel with GitHub Actions or GitLab CI">
+    <meta name="twitter:description" content="Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.">
     <meta name="twitter:image" content="https://cipi.sh/og.png">
-
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "TechArticle",
-  "headline": "CI/CD for Laravel — Git Workflow & Zero-Downtime Deploys (2026)",
-  "name": "CI/CD for Laravel — Git Workflow & Zero-Downtime Deploys (2026)",
-  "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow",
-  "description": "A pragmatic CI/CD guide for Laravel teams: a Git workflow that scales down, a copy-paste GitHub Actions pipeline (Pint, Larastan, Pest, composer audit), zero-downtime deployment options and safe migration strategies.",
-  "inLanguage": "en",
-  "image": "https://cipi.sh/og.png",
-  "datePublished": "2026-08-04",
-  "dateModified": "2026-08-04",
-  "author": {
-    "@type": "Person",
-    "name": "Andrea Pollastri",
-    "url": "https://web.ap.it",
-    "sameAs": [
-      "https://github.com/andreapollastri",
-      "https://www.linkedin.com/in/andrea-pollastri"
-    ]
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "Cipi",
-    "url": "https://cipi.sh/",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://cipi.sh/favicon-light-192.png"
-    }
-  },
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": "https://cipi.sh/guides/laravel-ci-cd-git-workflow"
-  },
-  "about": {
-    "@type": "SoftwareApplication",
-    "name": "Cipi",
-    "url": "https://cipi.sh/",
-    "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "Ubuntu"
-  },
-  "isPartOf": {
-    "@type": "WebSite",
-    "name": "Cipi",
-    "url": "https://cipi.sh/"
-  }
-}
-    </script>
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "https://cipi.sh/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "Guides",
-      "item": "https://cipi.sh/guides/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "CI/CD for Laravel",
-      "item": "https://cipi.sh/guides/laravel-ci-cd-git-workflow"
-    }
-  ]
-}
-    </script>
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Do I need CI/CD as a solo Laravel developer?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes — arguably more than a team does, because nobody reviews your work. A pipeline that runs Pint, Larastan, Pest and composer audit on every push is a tireless second pair of eyes, and webhook-based deploys mean shipping stops being a manual ritual."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I get zero-downtime deployments for Laravel?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Use the releases pattern: build the new version in its own directory, run migrations and caches, then atomically swap a symlink and restart queue workers. Tools like Cipi configure this automatically for GitHub and GitLab pushes, so you get zero-downtime deploys without writing deployment scripts."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How long should a Laravel CI pipeline take?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Under five minutes for the common case, or developers start bypassing it. Run Pest in parallel, cache Composer dependencies, and move slow browser tests to a nightly job instead of blocking every PR."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Are database migrations safe with zero-downtime deploys?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, with the expand/contract pattern: make additive changes first, deploy code that works with both schemas, and remove old columns in a later release. Keep destructive changes in their own deploy, and take a pre-deploy snapshot (automatic in Cipi 5) so mistakes are reversible."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is it safe to deploy on Fridays?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "With small diffs, a green pipeline, health checks and one-command rollback — yes. The Friday fear is a symptom of big-batch, manual deployments; fix the process and the day of the week stops mattering."
-      }
-    }
-  ]
-}
-    </script>
-
-    <link rel="icon" id="favicon" type="image/png" sizes="48x48" href="/favicon-light.png">
-    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-light-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"></noscript>
-    <link rel="stylesheet" href="/docs/style.css">
-    <style>
-        .cmp { max-width: 880px; margin: 0 auto; padding: calc(var(--nav-height) + 3rem) 1.5rem 4rem; }
-        .cmp-breadcrumb { display:inline-flex; align-items:center; flex-wrap:wrap; gap:.15rem; font-size:.82rem; margin-bottom:1.6rem; padding:.35rem .6rem; border:1px solid var(--border); border-radius:0; background:var(--bg-card); box-shadow:var(--shadow-sm); }
-        .cmp-breadcrumb a { display:inline-flex; align-items:center; color:var(--text-secondary); text-decoration:none; padding:.2rem .55rem; transition:color .15s, background .15s; }
-        .cmp-breadcrumb a:hover { color:var(--accent); background:var(--tag-bg); }
-        .cmp-breadcrumb .sep { color:var(--text-muted); opacity:.5; font-size:1rem; line-height:1; }
-        .cmp-breadcrumb .current { color:var(--text); font-weight:600; padding:.2rem .55rem; }
-        .cmp-breadcrumb .home-ico { width:13px; height:13px; margin-right:.35rem; }
-        .cmp-eyebrow { display:inline-block; font-family:var(--font-mono); font-size:.78rem; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); background:var(--tag-bg); padding:.3rem .7rem; margin-bottom:1.1rem; }
-        .cmp h1 { font-family:var(--font-display); font-size:clamp(1.9rem, 4.6vw, 2.9rem); line-height:1.1; letter-spacing:-.02em; margin-bottom:1rem; }
-        .cmp h1 em { color:var(--accent); font-style:normal; }
-        .cmp-updated { font-family:var(--font-mono); font-size:.78rem; color:var(--text-muted); margin:0 0 1.2rem; }
-        .cmp-updated a { color:var(--text-muted); }
-        .cmp .lead { font-size:1.15rem; color:var(--text-secondary); max-width:46rem; margin-bottom:1.2rem; }
-        .cmp h2 { font-family:var(--font-display); font-size:1.65rem; margin:3rem 0 1rem; letter-spacing:-.01em; }
-        .cmp h3 { font-family:var(--font-display); font-size:1.18rem; margin:2rem 0 .6rem; }
-        .cmp p { color:var(--text-secondary); margin-bottom:1rem; line-height:1.75; }
-        .cmp ul, .cmp ol { margin:0 0 1.2rem 1.35rem; color:var(--text-secondary); line-height:1.7; }
-        .cmp li { margin-bottom:.5rem; padding-left:.25rem; }
-        .cmp li strong, .cmp p strong { color:var(--text); }
-        .cmp a.inline { color:var(--accent); text-decoration:none; }
-        .cmp a.inline:hover { text-decoration:underline; }
-        .cmp code { font-family:var(--font-mono); font-size:.85em; background:var(--tag-bg); padding:.1rem .35rem; }
-        .code-pre { background:var(--code-bg); color:var(--code-text); padding:1.1rem 1.3rem; overflow-x:auto; font-family:var(--font-mono); font-size:.84rem; line-height:1.65; margin:1rem 0 1.4rem; white-space:pre; }
-        .code-pre code { background:none; padding:0; font-size:1em; color:inherit; }
-        .install-box { background:var(--code-bg); color:var(--code-text); padding:1.1rem 1.4rem; font-family:var(--font-mono); font-size:.9rem; overflow-x:auto; margin:1rem 0; }
-        .install-box .c, .code-pre .c { color:var(--code-comment); font-style:italic; }
-        .cmp-table-wrap { overflow-x:auto; margin:1.4rem 0; }
-        .cmp-table { width:100%; border-collapse:collapse; font-size:.92rem; border:1px solid var(--border); min-width:560px; }
-        .cmp-table th, .cmp-table td { padding:.7rem .9rem; text-align:left; border-bottom:1px solid var(--border); }
-        .cmp-table thead th { background:var(--bg-warm); font-family:var(--font-display); font-weight:600; }
-        .cmp-table tr:last-child td { border-bottom:none; }
-        .note { border-left:3px solid var(--accent); padding:.9rem 1.1rem; background:var(--tag-bg); margin:1.5rem 0; }
-        .note p { margin:0; }
-        .toc { border:1px solid var(--border); background:var(--bg-card); padding:1.1rem 1.3rem; margin:1.6rem 0 2rem; box-shadow:var(--shadow-sm); }
-        .toc strong { font-family:var(--font-display); display:block; margin-bottom:.5rem; }
-        .toc ol { margin:0 0 0 1.3rem; }
-        .toc li { margin-bottom:.3rem; }
-        .toc a { color:var(--text-secondary); text-decoration:none; }
-        .toc a:hover { color:var(--accent); }
-        .cta-box { border:1px solid var(--accent); background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--bg-card)), var(--bg-card)); padding:1.6rem 1.7rem; margin:2.6rem 0; }
-        .cta-box h2 { margin:0 0 .6rem; font-size:1.3rem; }
-        .cta-box p { margin-bottom:.9rem; }
-        .cta-actions { display:flex; flex-wrap:wrap; gap:.7rem; margin-top:1rem; }
-        .btn-primary { display:inline-flex; align-items:center; gap:.5rem; background:var(--accent); color:#0A0A0A; font-weight:600; padding:.7rem 1.3rem; border-radius:var(--radius-sm); text-decoration:none; font-family:var(--font-display); transition:transform .15s, box-shadow .15s; }
-        .btn-primary:hover { transform:translateY(-1px); box-shadow:var(--shadow-md); }
-        .btn-ghost { display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--border); color:var(--text); padding:.7rem 1.3rem; border-radius:var(--radius-sm); text-decoration:none; font-weight:500; transition:border-color .15s,color .15s; }
-        .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
-        .faq-item { border-bottom:1px solid var(--border); padding:1.2rem 0; }
-        .faq-item:last-child { border-bottom:none; }
-        .faq-item h3 { font-family:var(--font-display); font-size:1.08rem; margin:0 0 .45rem; }
-        .faq-item p { margin:0; }
-        .related { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
-        .related a { font-size:.9rem; border:1px solid var(--border); padding:.4rem .9rem; text-decoration:none; color:var(--text-secondary); }
-        .related a:hover { border-color:var(--accent); color:var(--accent); }
-        .guide-grid { display:grid; gap:1rem; grid-template-columns:1fr; margin:1.6rem 0; }
-        @media(min-width:680px){ .guide-grid{ grid-template-columns:1fr 1fr; } }
-        .guide-card { display:block; border:1px solid var(--border); padding:1.4rem 1.5rem; background:var(--bg-card); box-shadow:var(--shadow-sm); text-decoration:none; transition:transform .15s, border-color .15s, box-shadow .15s; }
-        .guide-card:hover { transform:translateY(-2px); border-color:var(--accent); box-shadow:var(--shadow-md); }
-        .guide-card h2 { font-family:var(--font-display); font-size:1.15rem; margin:0 0 .4rem; }
-        .guide-card h2 span { color:var(--accent); }
-        .guide-card p { font-size:.92rem; margin:0 0 .7rem; color:var(--text-secondary); }
-        .guide-card .go { font-size:.85rem; font-weight:600; color:var(--accent); font-family:var(--font-display); }
-        .guide-tag { display:inline-block; font-size:.72rem; font-family:var(--font-mono); color:var(--text-muted); border:1px solid var(--border); padding:.15rem .55rem; margin-bottom:.8rem; }
-    </style>
-    <meta name="theme-color" content="#65A30D" id="themeColor">
-    <link rel="stylesheet" href="/assets/css/base.css">
-    <link rel="stylesheet" href="/assets/css/legacy.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "CI/CD for Laravel with GitHub Actions or GitLab CI", "description": "Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.", "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow", "mainEntityOfPage": "https://cipi.sh/guides/laravel-ci-cd-git-workflow", "datePublished": "2026-03-24", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/og.png", "articleSection": "Laravel", "timeRequired": "PT2M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "laravel github actions deploy, laravel gitlab ci deploy, laravel ci cd vps, laravel deploy pipeline"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "CI/CD for Laravel with GitHub Actions or GitLab CI", "description": "Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.", "totalTime": "PT12M", "step": [{"@type": "HowToStep", "position": 1, "name": "1. A dedicated key for CI", "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow#1-a-dedicated-key-for-ci"}, {"@type": "HowToStep", "position": 2, "name": "2. Turn the webhook off", "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow#2-turn-the-webhook-off"}, {"@type": "HowToStep", "position": 3, "name": "3. GitHub Actions", "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow#3-github-actions"}, {"@type": "HowToStep", "position": 4, "name": "4. GitLab CI", "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow#4-gitlab-ci"}, {"@type": "HowToStep", "position": 5, "name": "5. Add a safety net", "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow#5-add-a-safety-net"}, {"@type": "HowToStep", "position": 6, "name": "Without SSH", "url": "https://cipi.sh/guides/laravel-ci-cd-git-workflow#without-ssh"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Webhook or pipeline?", "acceptedAnswer": {"@type": "Answer", "text": "Use the webhook when every push to a branch should deploy. Use a pipeline when deploys depend on tests, a backup or an approval; then turn the webhook off."}}, {"@type": "Question", "name": "Can the CI key do anything else on the server?", "acceptedAnswer": {"@type": "Answer", "text": "The cipi user runs only sudo cipi … without a password. The CI key can deploy, not install software or read other users' files."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "CI/CD for Laravel with GitHub Actions or GitLab CI", "item": "https://cipi.sh/guides/laravel-ci-cd-git-workflow"}]}</script>
 </head>
-
-<body>
-    <div class="atmosphere" aria-hidden="true"></div>
-
+<body class="article">
 <!-- site:nav -->
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-nav">
@@ -285,193 +86,82 @@
     <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
 </div>
 <!-- /site:nav -->
-
-    <!-- Mobile menu overlay (outside nav to avoid backdrop-filter stacking context) -->
-
-
-    <main id="main" class="cmp">
-        <nav class="cmp-breadcrumb" aria-label="Breadcrumb">
-            <a href="/"><svg class="home-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Home</a>
-            <span class="sep">&rsaquo;</span>
-            <a href="/guides/">Guides</a>
-            <span class="sep">&rsaquo;</span>
-            <span class="current">CI/CD for Laravel</span>
-        </nav>
-
-        <span class="cmp-eyebrow">CI/CD · Git workflow</span>
-        <h1>CI/CD for Laravel: <em>Git workflow</em> &amp; zero-downtime deploys</h1>
-        <p class="cmp-updated">By <a href="https://web.ap.it" target="_blank" rel="author">Andrea Pollastri</a> · Last updated: <time datetime="2026-08-04">August 4, 2026</time> · free to read, no paywall</p>
-        <p class="lead">The gap between "it works on my machine" and "it deploys itself safely" is smaller than ever. This guide gives you a Git workflow that scales down to a team of one, a copy-paste CI pipeline, and the zero-downtime deployment patterns that make Friday releases boring.</p>
-
-        <div class="toc">
-            <strong>In this guide</strong>
-            <ol>
-                <li><a href="#why">Why pipelines pay off (even solo)</a></li>
-                    <li><a href="#git">A Git workflow that scales down</a></li>
-                    <li><a href="#ci">The CI pipeline, copy-paste ready</a></li>
-                    <li><a href="#cd">Zero-downtime deployment options</a></li>
-                    <li><a href="#post">After the deploy</a></li>
-                    <li><a href="#rollback">Migrations & rollback strategy</a></li>
-                    <li><a href="#faq">FAQ</a></li>
-            </ol>
-        </div>
-
-        <h2 id="why">Why pipelines pay off (even solo)</h2>
-        <p>CI/CD isn't enterprise ceremony — it's the cheapest insurance a codebase can buy:</p>
-        <ul>
-            <li><strong>Repeatability:</strong> the pipeline runs the same checks every time; humans don't.</li>
-                    <li><strong>Deploy anxiety goes to zero.</strong> When deploys are one push and rollbacks are one symlink,
-                you ship small changes often instead of scary batches rarely.</li>
-                    <li><strong>Review quality rises</strong> because CI has already caught the mechanical problems before a
-                human looks.</li>
-                    <li><strong>AI-generated code makes this non-optional:</strong> if agents write more of your code, the
-                pipeline is the referee that keeps standards objective (more in the
-                <a class="inline" href="/guides/spec-driven-development-ai-laravel">spec-driven development
-                guide</a>).</li>
-        </ul>
-
-        <h2 id="git">A Git workflow that scales down</h2>
-        <p>Skip git-flow unless you ship boxed releases. For web apps, trunk-based with short-lived branches wins:</p>
-        <ul>
-            <li><strong><code>main</code> is always deployable.</strong> Protect it: no direct pushes, PRs must pass
-                CI.</li>
-                    <li><strong>Branches live days, not weeks.</strong> <code>feature/checkout-vat</code>,
-                <code>fix/queue-timeout</code> — merge or delete.</li>
-                    <li><strong>Conventional commits</strong> (<code>feat:</code>, <code>fix:</code>, <code>chore:</code>)
-                make history scannable and changelogs automatable.</li>
-                    <li><strong>Tag releases</strong> (<code>v2026.08.04</code> or semver) so you can always answer "what was
-                live on Tuesday?".</li>
-                    <li><strong>PRs are the audit trail.</strong> Even solo: a two-minute self-review with CI green catches a
-                surprising amount.</li>
-        </ul>
-
-        <h2 id="ci">The CI pipeline, copy-paste ready</h2>
-        <p>Four stages, each failing fast: style, static analysis, tests, security audit. Here's a complete GitHub
-            Actions workflow for a Laravel app (drop it in <code>.github/workflows/ci.yml</code>):</p>
-        <pre class="code-pre"><code>name: CI
-
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">CI/CD for Laravel with GitHub Actions or GitLab CI</li></ol>
+<a class="art-eyebrow" href="/guides/#laravel">Laravel</a>
+<h1>CI/CD for Laravel with GitHub Actions or GitLab CI</h1>
+<p class="art-lead">Test on every push and deploy only when tests pass, with automatic rollback, a restricted CI key, an optional backup step and zero-downtime releases.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>2 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI&url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow&title=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow&t=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow&text=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI%20https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/laravel-ci-cd-git-workflow" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Push-to-deploy is great until a broken test reaches production. A pipeline adds the gate: test, optionally back up, deploy, and roll back if the deploy fails.</p>
+<ol class="flow"><li><b>Push</b><span>to main</span></li><li><b>Test</b><span>php artisan test</span></li><li><b>Backup</b><span>optional</span></li><li><b>Deploy</b><span>ssh → cipi deploy</span></li><li><b>Roll back</b><span>on failure</span></li></ol>
+<h2 id="1-a-dedicated-key-for-ci">1. A dedicated key for CI<a class="anchor" href="#1-a-dedicated-key-for-ci" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh-keygen -t ed25519 -C "ci-deploy" -f ~/.ssh/ci_deploy -N ""
+<span class="p"></span>cat ~/.ssh/ci_deploy.pub<span class="c">     # on the server: sudo cipi ssh add "&lt;this line&gt;"</span>
+<span class="p"></span>cat ~/.ssh/ci_deploy<span class="c">         # → CI secret SERVER_SSH_KEY</span></pre></div>
+<p>Save <code>SERVER_SSH_KEY</code> and <code>SERVER_HOST</code> as repository secrets. Never reuse a personal key or the app's deploy key.</p>
+<h2 id="2-turn-the-webhook-off">2. Turn the webhook off<a class="anchor" href="#2-turn-the-webhook-off" aria-label="Link to this section">#</a></h2>
+<p>So only the pipeline deploys. Remove the webhook from the repository settings, or recreate the app's webhook only when you need it again with <code>sudo cipi app webhook recreate shop</code>.</p>
+<h2 id="3-github-actions">3. GitHub Actions<a class="anchor" href="#3-github-actions" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># .github/workflows/deploy.yml</span>
+name: Deploy
 on:
-  pull_request:
   push:
     branches: [main]
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: shivammathur/setup-php@v2
+        with: { php-version: "8.6" }
+      - run: composer install --no-interaction &amp;&amp; cp .env.example .env &amp;&amp; php artisan key:generate
+      - run: php artisan test
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
         with:
-          php-version: '8.4'
-          extensions: mbstring, xml, curl, zip, intl, pdo_sqlite
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
-      - name: Code style (Pint)
-        run: vendor/bin/pint --test
-
-      - name: Static analysis (Larastan)
-        run: vendor/bin/phpstan analyse --memory-limit=1G
-
-      - name: Tests (Pest)
-        run: php artisan test --parallel
-
-      - name: Security audit
-        run: composer audit</code></pre>
-        <p>Notes worth stealing:</p>
-        <ul>
-            <li><strong>Pint, Larastan, Pest, audit — in that order:</strong> cheapest checks first, so failures are
-                fast.</li>
-                    <li><strong><code>--parallel</code> on Pest</strong> typically halves suite time for free.</li>
-                    <li><strong><code>composer audit</code> fails the build</strong> when a dependency has a known CVE — your
-                supply-chain tripwire (see the <a class="inline" href="/guides/laravel-security-checklist">security
-                checklist</a> for the full dependency hygiene section, including Laravel-specific scanning with
-                <a class="inline" href="https://checkpoint.web.ap.it" target="_blank">Checkpoint</a>).</li>
-                    <li>Add <code>npm ci &amp;&amp; npm run build</code> as a separate job if your assets build is
-                nontrivial.</li>
-        </ul>
-
-        <h2 id="cd">Zero-downtime deployment options</h2>
-        <p>Zero-downtime means: build the new release next to the old one, swap atomically, restart workers. Three
-            ways to get it:</p>
-        <h3>1. Webhook push-to-deploy (recommended default)</h3>
-        <p>Your Git host calls a webhook on push; the server builds a new release in <code>releases/</code>, runs
-            <code>composer install</code>, <code>migrate --force</code> and caches, swaps the <code>current</code>
-            symlink and restarts queue workers. This is exactly what <a class="inline" href="/">Cipi</a> configures
-            automatically when you connect a Git provider to an app — GitHub, GitLab, Bitbucket Cloud or Azure DevOps
-            since 5.2.3 — deploy keys, webhook, releases and symlink
-            swap included, plus Node asset builds on deploy and pre-deploy database snapshots in Cipi 5. Setup cost:
-            one <code>cipi app create</code>.</p>
-        <h3>2. CI-driven deploy (SSH from Actions)</h3>
-        <p>The pipeline builds artifacts and pushes them over SSH (Deployer or rsync + script). More control, more
-            YAML to own — worth it when you need build artifacts identical across environments.</p>
-        <h3>3. The hybrid</h3>
-        <p>CI runs tests; on green, it hits the deploy webhook. You get gated deploys without moving the deployment
-            logic into CI. With Cipi, that's a one-line <code>curl</code> at the end of the workflow.</p>
-
-        <h2 id="post">After the deploy</h2>
-        <ul>
-            <li><strong>Health checks:</strong> verify the app answers before you celebrate — Cipi 5 ships app health
-                checks you can point monitors at.</li>
-                    <li><strong>Smoke test the critical path:</strong> one <code>curl</code> to the login page and one to an
-                authenticated endpoint catch most "deployed but broken" states.</li>
-                    <li><strong>Watch exceptions for 15 minutes.</strong> A self-hosted tracker like
-                <a class="inline" href="https://boogle.web.ap.it" target="_blank">Boogle</a> makes the post-deploy
-                error spike visible immediately.</li>
-                    <li><strong>Notify the team:</strong> deploy notifications to Slack or Telegram close the loop (Cipi's
-                docs include ready-made CI notification examples).</li>
-        </ul>
-
-        <h2 id="rollback">Migrations &amp; rollback strategy</h2>
-        <ul>
-            <li><strong>Expand/contract:</strong> add the new column and code that writes both first; remove the old
-                one releases later. Never rename in place.</li>
-                    <li><strong>Destructive migrations get their own release</strong> — after the code that stopped using the
-                data is verified in production.</li>
-                    <li><strong>Code rollback is the symlink</strong> back to the previous release; that's why the releases
-                pattern matters.</li>
-                    <li><strong>Data rollback is a snapshot.</strong> Cipi 5 takes a pre-deploy database snapshot
-                automatically, so the worst migration mistake has an undo button.</li>
-        </ul>
-
-        <div class="cta-box">
-            <h2>Put this into practice with Cipi</h2>
-            <p>Cipi is the free, open-source deploy CLI referenced throughout this guide: one command turns a fresh
-                Ubuntu VPS into a hardened production server for Laravel — Nginx, PHP-FPM or Octane, MariaDB or
-                PostgreSQL, queues, scheduler, SSL and zero-downtime Git deploys included.</p>
-            <div class="install-box">wget -O - https://cipi.sh/setup.sh | bash</div>
-            <div class="cta-actions">
-                <a href="/docs/getting-started" class="btn-primary">Get started free</a>
-                <a href="https://github.com/cipi-sh/cipi" target="_blank" class="btn-ghost">Star on GitHub</a>
-                <a href="/alternatives" class="btn-ghost">Compare with other tools</a>
-            </div>
-        </div>
-
-        <h2 id="faq">Frequently asked questions</h2>
-        <div class="faq-item"><h3>Do I need CI/CD as a solo Laravel developer?</h3><p>Yes — arguably more than a team does, because nobody reviews your work. A pipeline that runs Pint, Larastan, Pest and composer audit on every push is a tireless second pair of eyes, and webhook-based deploys mean shipping stops being a manual ritual.</p></div>
-        <div class="faq-item"><h3>How do I get zero-downtime deployments for Laravel?</h3><p>Use the releases pattern: build the new version in its own directory, run migrations and caches, then atomically swap a symlink and restart queue workers. Tools like Cipi configure this automatically for GitHub and GitLab pushes, so you get zero-downtime deploys without writing deployment scripts.</p></div>
-        <div class="faq-item"><h3>How long should a Laravel CI pipeline take?</h3><p>Under five minutes for the common case, or developers start bypassing it. Run Pest in parallel, cache Composer dependencies, and move slow browser tests to a nightly job instead of blocking every PR.</p></div>
-        <div class="faq-item"><h3>Are database migrations safe with zero-downtime deploys?</h3><p>Yes, with the expand/contract pattern: make additive changes first, deploy code that works with both schemas, and remove old columns in a later release. Keep destructive changes in their own deploy, and take a pre-deploy snapshot (automatic in Cipi 5) so mistakes are reversible.</p></div>
-        <div class="faq-item"><h3>Is it safe to deploy on Fridays?</h3><p>With small diffs, a green pipeline, health checks and one-command rollback — yes. The Friday fear is a symptom of big-batch, manual deployments; fix the process and the day of the week stops mattering.</p></div>
-
-        <h2>Keep reading</h2>
-        <div class="related">
-            <a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on Ubuntu</a>
-            <a href="/guides/laravel-security-checklist">Laravel security checklist</a>
-            <a href="/guides/spec-driven-development-ai-laravel">Spec-driven development with AI</a>
-            <a href="/docs/deploy">Cipi docs: deploy & CI/CD</a>
-        </div>
-
-    </main>
-
+          host: ${{ secrets.SERVER_HOST }}
+          username: cipi
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: sudo cipi deploy shop || (sudo cipi deploy shop --rollback &amp;&amp; exit 1)</pre></div>
+<h2 id="4-gitlab-ci">4. GitLab CI<a class="anchor" href="#4-gitlab-ci" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># .gitlab-ci.yml</span>
+stages: [test, deploy]
+test:
+  stage: test
+  image: php:8.6-cli
+  script: [composer install, php artisan test]
+deploy:
+  stage: deploy
+  only: [main]
+  before_script:
+    - eval $(ssh-agent -s) &amp;&amp; echo "$SERVER_SSH_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh &amp;&amp; ssh-keyscan -H $SERVER_HOST &gt;&gt; ~/.ssh/known_hosts
+  script:
+    - ssh cipi@$SERVER_HOST "sudo cipi deploy shop || (sudo cipi deploy shop --rollback &amp;&amp; exit 1)"</pre></div>
+<h2 id="5-add-a-safety-net">5. Add a safety net<a class="anchor" href="#5-add-a-safety-net" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Add</th><th>How</th></tr></thead><tbody><tr><td>Database snapshot before migrations</td><td><code>sudo cipi app edit shop --predeploy-snapshot</code> (every deploy)</td></tr><tr><td>Off-site backup step</td><td><code>sudo cipi backup run --profile=shop-nightly</code> in a job before deploy</td></tr><tr><td>Validate <code>cipi.yml</code></td><td><code>php artisan cipi:yml validate --json</code> in the test job (<a href="/docs/agent-yml">agent</a>)</td></tr><tr><td>Automatic rollback when the app is down</td><td>A <a href="/docs/health-checks">health check</a> with <code>rollback_on_unhealthy: true</code></td></tr><tr><td>Alerts</td><td><code>sudo cipi notification add slack …</code> (<a href="/guides/server-monitoring-alerts">guide</a>)</td></tr></tbody></table></div>
+<h2 id="without-ssh">Without SSH<a class="anchor" href="#without-ssh" aria-label="Link to this section">#</a></h2>
+<p>Prefer HTTPS to SSH from CI? Use <a href="/docs/cli-client">cipi-cli</a> with an API token that only has <code>deploy-manage</code>:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli prod deploy shop</pre></div>
+<p>Next: a live URL for every branch with <a href="/guides/laravel-preview-environments">preview environments</a>.</p>
+<section class="art-faq"><h2 id="faq">Questions</h2><details><summary>Webhook or pipeline?</summary><p>Use the webhook when every push to a branch should deploy. Use a pipeline when deploys depend on tests, a backup or an approval; then turn the webhook off.</p></details><details><summary>Can the CI key do anything else on the server?</summary><p>The <code>cipi</code> user runs only <code>sudo cipi …</code> without a password. The CI key can deploy, not install software or read other users' files.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#1-a-dedicated-key-for-ci">1. A dedicated key for CI</a></li><li><a class="l2" href="#2-turn-the-webhook-off">2. Turn the webhook off</a></li><li><a class="l2" href="#3-github-actions">3. GitHub Actions</a></li><li><a class="l2" href="#4-gitlab-ci">4. GitLab CI</a></li><li><a class="l2" href="#5-add-a-safety-net">5. Add a safety net</a></li><li><a class="l2" href="#without-ssh">Without SSH</a></li><li><a class="l2" href="#faq">Questions</a></li></ol><div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI&url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow&title=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow&t=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow&text=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=CI%2FCD%20for%20Laravel%20with%20GitHub%20Actions%20or%20GitLab%20CI%20https%3A%2F%2Fcipi.sh%2Fguides%2Flaravel-ci-cd-git-workflow" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/laravel-ci-cd-git-workflow" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/laravel-preview-environments"><span class="g-cat">Laravel</span><b>Preview environments for every Laravel branch</b><span class="g-desc">Give every branch its own live URL with a database, workers and HTTPS, created on the first push and deleted with the branch, using GitHub Actions and a wildcard certificate.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/laravel-zero-downtime-migrations"><span class="g-cat">Laravel</span><b>Zero-downtime Laravel deploys with safe migrations</b><span class="g-desc">How atomic releases work, how to write migrations that never break the live release, and how to take a database snapshot and roll back automatically when something goes wrong.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/deploy-laravel-ubuntu-vps"><span class="g-cat">Get started</span><b>Deploy Laravel on an Ubuntu VPS with zero downtime</b><span class="g-desc">From a fresh Ubuntu 24.04 or 26.04 server to a Laravel app on HTTPS with queues, scheduler and push-to-deploy, in about fifteen minutes and for free.</span><span class="g-meta">3 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
 <!-- site:footer -->
 <footer class="site-footer">
     <div class="page-w">
@@ -537,33 +227,6 @@ jobs:
     </div>
 </footer>
 <!-- /site:footer -->
-
-    <script>
-        function updateFavicon(theme) {
-            const variant = theme === 'dark' ? 'dark' : 'light';
-            document.getElementById('favicon').href = `/favicon-${variant}.png`;
-        }
-        function toggleTheme() {
-            const html = document.documentElement;
-            const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-            html.setAttribute('data-theme', next);
-            var tc=document.getElementById('themeColor'); if(tc) tc.content=(html.getAttribute('data-theme')==='dark')?'#A3E635':'#65A30D';
-            localStorage.setItem('cipi-theme', next);
-            updateFavicon(next);
-        }
-        (function () {
-            const saved = localStorage.getItem('cipi-theme');
-            if (saved) { document.documentElement.setAttribute('data-theme', saved); updateFavicon(saved); }
-            else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                document.documentElement.setAttribute('data-theme', 'dark'); updateFavicon('dark');
-            }
-        })();
-    </script>
-
-    <script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
-    <noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/" width="1" height="1" /></noscript>
-    <script defer src="/assets/js/site.js"></script>
-    <script defer src="/assets/js/search.js"></script>
 <div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
     <div class="search-backdrop" data-search-close></div>
     <div class="search-panel">
@@ -576,6 +239,11 @@ jobs:
         <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
     </div>
 </div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/guides/laravel-ci-cd-git-workflow" width="1" height="1" alt=""></noscript>
 </body>
-
 </html>

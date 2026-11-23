@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway — Cipi guides</title>
+    <meta name="description" content="The settings that matter on four more providers (image, IP, firewall, rDNS) to install Cipi and host Laravel and PHP apps.">
+    <meta name="keywords" content="laravel vultr, laravel linode, laravel ovhcloud vps, laravel scaleway, install cipi">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/cipi-vultr-linode-ovhcloud">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/cipi-vultr-linode-ovhcloud">
+    <meta property="og:title" content="Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway">
+    <meta property="og:description" content="The settings that matter on four more providers (image, IP, firewall, rDNS) to install Cipi and host Laravel and PHP apps.">
+    <meta property="og:image" content="https://cipi.sh/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway">
+    <meta name="twitter:description" content="The settings that matter on four more providers (image, IP, firewall, rDNS) to install Cipi and host Laravel and PHP apps.">
+    <meta name="twitter:image" content="https://cipi.sh/og.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway", "description": "The settings that matter on four more providers (image, IP, firewall, rDNS) to install Cipi and host Laravel and PHP apps.", "url": "https://cipi.sh/guides/cipi-vultr-linode-ovhcloud", "mainEntityOfPage": "https://cipi.sh/guides/cipi-vultr-linode-ovhcloud", "datePublished": "2026-11-23", "dateModified": "2026-11-23", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/og.png", "articleSection": "Cloud providers", "timeRequired": "PT2M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "laravel vultr, laravel linode, laravel ovhcloud vps, laravel scaleway, install cipi"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway", "description": "The settings that matter on four more providers (image, IP, firewall, rDNS) to install Cipi and host Laravel and PHP apps.", "totalTime": "PT12M", "step": [{"@type": "HowToStep", "position": 1, "name": "Install", "url": "https://cipi.sh/guides/cipi-vultr-linode-ovhcloud#install"}, {"@type": "HowToStep", "position": 2, "name": "Checklist for any provider", "url": "https://cipi.sh/guides/cipi-vultr-linode-ovhcloud#checklist-for-any-provider"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway", "item": "https://cipi.sh/guides/cipi-vultr-linode-ovhcloud"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/docs/gui">Web panel</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/docs/gui">Web panel</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway</li></ol>
+<a class="art-eyebrow" href="/guides/#providers">Cloud providers</a>
+<h1>Cipi on Vultr, Akamai Linode, OVHcloud and Scaleway</h1>
+<p class="art-lead">The settings that matter on four more providers (image, IP, firewall, rDNS) to install Cipi and host Laravel and PHP apps.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-23">November 23, 2026</time></span><span>2 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud&title=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud&t=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud&text=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway%20https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/cipi-vultr-linode-ovhcloud" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Any provider works as long as you get a <strong>full virtual machine</strong> (KVM or similar) with <strong>Ubuntu 24.04 or 26.04</strong>, a <strong>public IPv4</strong> and ports <strong>22, 80 and 443</strong> reachable. The installer checks the environment and stops with an explanation inside containers (LXC, OpenVZ).</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Provider</th><th>Create</th><th>Image</th><th>Firewall</th><th>Notes</th></tr></thead><tbody><tr><td><strong>Vultr</strong></td><td>Deploy → Cloud Compute</td><td>Ubuntu 24.04 LTS x64</td><td>Network → Firewall group (22, 80, 443)</td><td>Object Storage is S3-compatible for backups</td></tr><tr><td><strong>Akamai Linode</strong></td><td>Create → Linode</td><td>Ubuntu 24.04 LTS</td><td>Cloud Firewalls (22, 80, 443)</td><td>Object Storage is S3-compatible</td></tr><tr><td><strong>OVHcloud</strong></td><td>VPS or Public Cloud instance</td><td>Ubuntu 24.04</td><td>Edge firewall / security groups</td><td>VPS images may log you in as <code>ubuntu</code>: run the installer with <code>sudo -i</code></td></tr><tr><td><strong>Scaleway</strong></td><td>Instances → Create</td><td>Ubuntu 24.04 (Noble)</td><td>Security groups (22, 80, 443)</td><td>Object Storage is S3-compatible</td></tr></tbody></table></div>
+<h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ssh root@203.0.113.10<span class="c">            # or ubuntu@… then: sudo -i</span>
+<span class="p"></span>wget -O - https://cipi.sh/setup.sh | bash</pre></div>
+<p>Then log in as <code>cipi</code> and follow <a href="/guides/deploy-laravel-ubuntu-vps">the main guide</a> from step 4.</p>
+<h2 id="checklist-for-any-provider">Checklist for any provider<a class="anchor" href="#checklist-for-any-provider" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Check</th><th>Why</th></tr></thead><tbody><tr><td>Not a container product</td><td>Cipi manages the kernel firewall, swap and services</td></tr><tr><td>Public IPv4, not NAT-only</td><td>Let's Encrypt and visitors must reach the server</td></tr><tr><td>Reverse DNS set to your hostname</td><td>Helps deliverability of notification e-mail</td></tr><tr><td>Outbound 25 often blocked</td><td>Send mail through an SMTP provider on 587</td></tr><tr><td>A second region or provider for backups</td><td>Point <code>cipi backup</code> at an S3-compatible bucket elsewhere</td></tr></tbody></table></div>
+
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#install">Install</a></li><li><a class="l2" href="#checklist-for-any-provider">Checklist for any provider</a></li></ol><div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud&title=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud&t=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud&text=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=Cipi%20on%20Vultr%2C%20Akamai%20Linode%2C%20OVHcloud%20and%20Scaleway%20https%3A%2F%2Fcipi.sh%2Fguides%2Fcipi-vultr-linode-ovhcloud" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/cipi-vultr-linode-ovhcloud" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/cipi-hetzner"><span class="g-cat">Cloud providers</span><b>Install Cipi on Hetzner Cloud</b><span class="g-desc">Create a Hetzner Cloud server with Ubuntu 24.04, an SSH key and a firewall, then install Cipi to host Laravel and PHP apps in Germany, Finland, the US or Singapore.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/cipi-digitalocean"><span class="g-cat">Cloud providers</span><b>Install Cipi on a DigitalOcean Droplet</b><span class="g-desc">Create an Ubuntu Droplet with your SSH key, add a Cloud Firewall, reserve an IP and install Cipi to run Laravel and PHP apps on DigitalOcean.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/deploy-laravel-ubuntu-vps"><span class="g-cat">Get started</span><b>Deploy Laravel on an Ubuntu VPS with zero downtime</b><span class="g-desc">From a fresh Ubuntu 24.04 or 26.04 server to a Laravel app on HTTPS with queues, scheduler and push-to-deploy, in about fifteen minutes and for free.</span><span class="g-meta">3 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/docs/gui">Web panel</a></li>
+                    <li><a href="/docs/api">REST API</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                    <li><a href="/docs/agent">Cipi Agent &amp; MCP</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Ploi</a></li>
+                    <li><a href="/alternative-to-vito-deploy">Vito Deploy</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Coolify</a></li>
+                    <li><a href="/alternatives">All alternatives</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Deploy Laravel on a VPS</a></li>
+                    <li><a href="/guides/laravel-ci-cd-git-workflow">CI/CD and Git workflow</a></li>
+                    <li><a href="/guides/backup-vps-s3">Back up a VPS to S3</a></li>
+                    <li><a href="/guides/laravel-security-checklist">Laravel security checklist</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/discovery">Discovery</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script async src="https://stats.misterdev.it/i/12f27ee0-8603-466d-8b1a-f719f7ecc6d7.js"></script>
+<noscript><img src="https://stats.misterdev.it/collect/pixel.gif?k=12f27ee0-8603-466d-8b1a-f719f7ecc6d7&p=/guides/cipi-vultr-linode-ovhcloud" width="1" height="1" alt=""></noscript>
+</body>
+</html>
