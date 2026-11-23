@@ -193,7 +193,7 @@ def shell(*, path: str, title: str, full_title: str, desc: str, eyebrow: tuple[s
         items = [t for t in toc if t[0] == 2] if len(toc) > 16 else toc
         toc_block = ('<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol>' +
                      "".join(f'<li><a class="l{l}" href="#{h}">{esc(t)}</a></li>' for l, h, t in items) +
-                     "</ol>" + share_bar(url, title) + "</nav>")
+                     "</ol></nav>")
     eyebrow_html = f'<a class="art-eyebrow" href="{eyebrow[1]}">{esc(eyebrow[0])}</a>' if eyebrow else ""
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="light" data-follow-system>
