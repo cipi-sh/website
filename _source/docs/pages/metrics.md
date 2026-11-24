@@ -12,7 +12,7 @@ $ cipi metrics events --source=deploy      # what changed, when
 $ cipi metrics status                      # collector, size, retention
 ```
 
-Every command takes `--json`. Requires Cipi 5.11.0.
+Every command takes `--json`. Requires Cipi 5.11.0. What each number means and how to read them together to find a cause: [Cipi metrics explained](/guides/cipi-metrics-server-app-uptime).
 
 ## What is recorded {#collected}
 

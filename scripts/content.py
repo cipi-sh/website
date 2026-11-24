@@ -34,6 +34,7 @@ PUBLISHER = {"@type": "Organization", "name": "Cipi", "url": SITE + "/",
 
 GUIDE_CATS = [
     ("start", "Get started", "From a fresh server to a live app."),
+    ("strategy", "Choosing Cipi", "Self-hosted or managed, open source licences, enterprise use and hosting providers."),
     ("providers", "Cloud providers", "Cipi on AWS, DigitalOcean, Hetzner and more."),
     ("laravel", "Laravel", "Octane, Reverb, queues, search and deploys, step by step."),
     ("cipi-yml", "cipi.yml", "Server settings that live in your repository."),
@@ -352,7 +353,8 @@ def build_guides() -> list[str]:
     groups = []
     chips = ['<nav class="g-chips" aria-label="Guide topics">']
     for key, name, blurb in GUIDE_CATS:
-        items = sorted([x for x in guides if x.get("category") == key], key=lambda x: (x.get("order", "9"), x["title"]))
+        items = sorted([x for x in guides if x.get("category") == key],
+                       key=lambda x: (int(x["order"]) if str(x.get("order", "")).isdigit() else 99, x["title"]))
         if not items:
             continue
         chips.append(f'<a href="#{key}">{esc(name)} <span>{len(items)}</span></a>')
