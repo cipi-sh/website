@@ -182,8 +182,8 @@ The Metrics tab of a server and of each app: charts from 1 hour to 30 days with 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-metrics-light.webp" width="1360" height="1200" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-metrics.webp" width="1360" height="1200" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-metrics-light.webp" width="1440" height="1880" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-metrics.webp" width="1440" height="1880" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Server metrics, with every app's health, requests and uptime below the charts.</figcaption>
 </figure>
@@ -191,8 +191,8 @@ The Metrics tab of a server and of each app: charts from 1 hour to 30 days with 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/app-metrics-light.webp" width="1360" height="1180" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/app-metrics.webp" width="1360" height="1180" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/app-metrics-light.webp" width="1440" height="1631" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/app-metrics.webp" width="1440" height="1631" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>App metrics: requests and 5xx, response time, PHP-FPM against max_children, queue workers.</figcaption>
 </figure>
@@ -213,8 +213,8 @@ Every channel of the server and which events reach it. Secrets never come back t
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/notifications-light.webp" width="1360" height="1257" alt="Notifications tab with five channels and the triggers by category" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/notifications.webp" width="1360" height="1257" alt="Notifications tab with five channels and the triggers by category" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-light.webp" width="1440" height="1257" alt="Notifications tab with five channels and the triggers by category" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications.webp" width="1440" height="1257" alt="Notifications tab with five channels and the triggers by category" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Channels with the last test result; triggers switched by category and saved together.</figcaption>
 </figure>
@@ -222,8 +222,8 @@ Every channel of the server and which events reach it. Secrets never come back t
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/notifications-add-light.webp" width="1360" height="900" alt="Add channel dialog with the type picker" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/notifications-add.webp" width="1360" height="900" alt="Add channel dialog with the type picker" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-add-light.webp" width="1440" height="900" alt="Add channel dialog with the type picker" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-add.webp" width="1440" height="900" alt="Add channel dialog with the type picker" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Adding a channel shows only the fields of its type.</figcaption>
 </figure>
