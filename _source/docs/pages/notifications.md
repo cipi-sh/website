@@ -70,11 +70,13 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 
 The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.42+) manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
 
+<cipi-clips name="notifications"></cipi-clips>
+
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/notifications-light.webp" width="1360" height="1257" alt="Notifications tab: channels SMTP, Slack, Telegram, ntfy and webhook with a test result each, and the triggers by category with switches" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/notifications.webp" width="1360" height="1257" alt="Notifications tab: channels SMTP, Slack, Telegram, ntfy and webhook with a test result each, and the triggers by category with switches" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-light.webp" width="1440" height="1257" alt="Notifications tab: channels SMTP, Slack, Telegram, ntfy and webhook with a test result each, and the triggers by category with switches" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications.webp" width="1440" height="1257" alt="Notifications tab: channels SMTP, Slack, Telegram, ntfy and webhook with a test result each, and the triggers by category with switches" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Channels with where they send and the last test; triggers by category, saved together.</figcaption>
 </figure>
@@ -82,8 +84,8 @@ The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.4
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/notifications-add-light.webp" width="1360" height="900" alt="Add a notification channel: type picker with eleven channel types and the Telegram fields" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/notifications-add.webp" width="1360" height="900" alt="Add a notification channel: type picker with eleven channel types and the Telegram fields" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-add-light.webp" width="1440" height="900" alt="Add a notification channel: type picker with eleven channel types and the Telegram fields" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/notifications-add.webp" width="1440" height="900" alt="Add a notification channel: type picker with eleven channel types and the Telegram fields" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Adding a channel: the fields of the type, a suggested id, a test after saving.</figcaption>
 </figure>

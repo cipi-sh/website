@@ -18,7 +18,10 @@
         'app-deploy-light': 2628 / 2880, 'job-deploy': 1800 / 2880, 'app-env': 2040 / 2880,
         'team': 1800 / 2880, 'team-invite': 2956 / 2880, 'databases': 1934 / 2880,
         'dashboard-light': 1810 / 2880, 'server-overview-light': 2042 / 2880, 'app-domains': 1814 / 2880,
-        'app-routing': 2012 / 2880, 'app-logs': 1996 / 2880, 'server-monitor': 1800 / 2880
+        'app-routing': 2012 / 2880, 'app-logs': 1996 / 2880, 'server-monitor': 1800 / 2880,
+        'server-metrics-light': 3760 / 2880, 'clip-metrics-24h-light': 3760 / 2880, 'clip-metrics-hover-light': 3760 / 2880,
+        'clip-app-hover-light': 3262 / 2880, 'notifications-light': 2514 / 2880, 'clip-notifications-dirty-light': 2514 / 2880,
+        'notifications-add-light': 1800 / 2880
     };
 
     // shot: { img, cam:[scale, fx, fy], cur:[x,y] | null, click:true, cap, ms }
@@ -72,12 +75,37 @@
             ]
         },
         server: {
-            title: 'Server health', sub: 'Fleet dashboard, services, disk',
+            title: 'Server health', sub: 'Fleet dashboard, services, metrics',
             shots: [
                 { img: 'dashboard-light', cam: [1, .5, 0], cur: [.5, .5], cap: 'Every server at a glance: CPU, memory, disk, services.', ms: 2000 },
                 { img: 'dashboard-light', cam: [1.6, .75, .38], cur: [.9, .59], click: true, cap: 'Open one.', ms: 1600 },
                 { img: 'server-overview-light', cam: [1.3, .55, .35], cur: [.594, .374], cap: 'Resources, alerts from the monitor and health checks.', ms: 2400 },
-                { img: 'server-overview-light', cam: [1.5, .45, .62], cur: [.681, .619], click: true, cap: 'Services with restart, PHP-FPM pools, and tabs for disk, PHP, Node, backups.', ms: 2600 }
+                { img: 'server-overview-light', cam: [1.5, .45, .62], cur: [.681, .619], click: true, cap: 'Services with restart, PHP-FPM pools, and tabs for disk, PHP, Node, backups.', ms: 2600 },
+                { img: 'server-metrics-light', cam: [1.15, .5, .2], cur: [.6, .25], cap: 'And the Metrics tab: 30 days of history, refreshed live.', ms: 2400 }
+            ]
+        },
+        metrics: {
+            title: 'Metrics & uptime', sub: '30 days of history, live charts',
+            shots: [
+                { img: 'clip-metrics-24h-light', cam: [1, .5, 0], cur: [.55, .3], cap: 'Every minute: CPU, memory, load, network. Kept on the server.', ms: 2200 },
+                { img: 'clip-metrics-24h-light', cam: [1.7, .8, .06], cur: [.818, .059], click: true, cap: 'From the last hour to 30 days.', ms: 1900 },
+                { img: 'server-metrics-light', cam: [1.3, .4, .25], cur: [.6, .243], cap: 'Deploys and incidents marked on every chart.', ms: 2400 },
+                { img: 'clip-metrics-hover-light', cam: [1.7, .36, .24], cur: [.327, .243], cap: 'Hover: the time, the average and the peak.', ms: 2300 },
+                { img: 'clip-app-hover-light', cam: [1.4, .66, .3], cur: [.682, .28], cap: 'Per app: requests and 5xx, response time, PHP-FPM, queue workers.', ms: 2600 },
+                { img: 'server-metrics-light', cam: [1.25, .5, .73], cur: [.24, .72], cap: '30 days of uptime per app, every event in one timeline.', ms: 2600 },
+                { img: 'server-metrics-light', cam: [1.3, .5, .9], cur: [.5, .91], cap: 'Retention, probe and heartbeat, from here or the CLI.', ms: 2200 }
+            ]
+        },
+        notifications: {
+            title: 'Notifications', sub: 'Email, Slack, Telegram, webhooks…',
+            shots: [
+                { img: 'notifications-light', cam: [1, .5, 0], cur: [.5, .3], cap: 'Every channel of the server, and where it sends.', ms: 2000 },
+                { img: 'notifications-light', cam: [1.6, .7, .3], cur: [.811, .355], click: true, cap: 'Test it. A refused test says why.', ms: 2200 },
+                { img: 'notifications-light', cam: [1.6, .82, .1], cur: [.887, .098], click: true, cap: 'Add a channel.', ms: 1500 },
+                { img: 'notifications-add-light', cam: [1.25, .5, .35], cur: [.674, .332], click: true, cap: 'Pick the type: only its fields are asked.', ms: 2200 },
+                { img: 'notifications-add-light', cam: [1.35, .5, .85], cur: [.681, .949], click: true, cap: 'Secrets go to the server and never come back.', ms: 2200 },
+                { img: 'clip-notifications-dirty-light', cam: [1.5, .3, .62], cur: [.094, .551], click: true, cap: 'Choose which events notify, by category.', ms: 2200 },
+                { img: 'clip-notifications-dirty-light', cam: [1.6, .8, .47], cur: [.902, .473], click: true, cap: 'One save for every change.', ms: 1900 }
             ]
         },
         team: {
@@ -90,7 +118,7 @@
             ]
         }
     };
-    var ORDER = ['create', 'deploy', 'env', 'domains', 'databases', 'server', 'team'];
+    var ORDER = ['create', 'deploy', 'env', 'domains', 'databases', 'server', 'metrics', 'notifications', 'team'];
 
     var CURSOR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 8-6.2 1.6L9.8 19 5 3z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>';
 

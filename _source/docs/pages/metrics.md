@@ -78,11 +78,13 @@ Names carry their unit: `cipi_host_cpu_percent`, `cipi_app_requests_per_minute{a
 
 The **Metrics** tab of each server and of each app (panel 4.3.0+): charts over 1 hour to 30 days with every deploy and incident marked on them, a tooltip on hover, 30-day uptime bars per app, the events timeline, and — for server managers — retention, probe and heartbeat. While the tab is open it refreshes every 30 seconds.
 
+<cipi-clips name="metrics"></cipi-clips>
+
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-metrics-light.webp" width="1360" height="1200" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-metrics.webp" width="1360" height="1200" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-metrics-light.webp" width="1440" height="1880" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-metrics.webp" width="1440" height="1880" alt="Server metrics: tiles, CPU, memory, load and network charts with deploy and incident markers" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>The server's Metrics tab: blue markers are releases, red an incident, green the recovery.</figcaption>
 </figure>
@@ -90,8 +92,8 @@ The **Metrics** tab of each server and of each app (panel 4.3.0+): charts over 1
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/app-metrics-light.webp" width="1360" height="1180" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/app-metrics.webp" width="1360" height="1180" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/app-metrics-light.webp" width="1440" height="1631" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/app-metrics.webp" width="1440" height="1631" alt="App metrics: uptime, response time, requests and 5xx, CPU, memory, PHP-FPM and workers" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>An app's Metrics tab: PHP-FPM children against pm.max_children, and the minutes the pool hit it.</figcaption>
 </figure>
