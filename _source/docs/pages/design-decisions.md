@@ -94,6 +94,8 @@ The same `cipi db` workflow covers both engines: create, list, backup, restore, 
 | Native on Ubuntu | `valkey-server` from the Universe repository, no third-party PPAs |
 | Automatic migration | Servers moved from Redis to Valkey on `cipi self-update`, same password and data |
 
+The licence of every component Cipi installs, and why it matters on a server: [Open source licences, explained](/guides/open-source-licences).
+
 @section why-laravel
 
 ## Why Laravel first? {#laravel}

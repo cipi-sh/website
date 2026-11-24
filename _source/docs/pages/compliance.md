@@ -37,4 +37,6 @@ $ cipi compliance controls            # mapping to ISO 27001:2022 Annex A and SO
 
 Root-only. Record the printed archive checksum **outside the server** to prove later that the bundle is unaltered. No secrets are included: token and password hashes, 2FA secrets and backup credentials are never selected; SSH keys appear as fingerprints.
 
+For the wider picture (SSO, roles, scoped tokens, the audit trail and what to add around Cipi in a larger organisation), see [Cipi in the enterprise](/guides/cipi-enterprise).
+
 > [!note] The report is candid about limits (for example, encryption without a MAC, restore tests not recorded) so the auditor hears it from you first. Cipi's deliberate choices, like patching Nginx and databases on its own schedule, appear as notes, not failures.

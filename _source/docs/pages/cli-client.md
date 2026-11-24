@@ -236,7 +236,7 @@ $ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
 $ cipi-cli backup profile edit nightly --exclude-paths ""     # take everything again
 ```
 
-Destinations are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](/docs/backups).
+Destinations are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](/docs/backups), and [Exclude files and folders from backups](/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
 
 ## `php` {#php}
 

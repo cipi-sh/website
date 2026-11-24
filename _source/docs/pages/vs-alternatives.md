@@ -55,7 +55,7 @@ Free and polished, for PHP, Node, Python and static sites. A generic multi-stack
 
 ## Managed PaaS {#paas}
 
-You don't touch a server; you pay for resources and accept the platform's limits.
+You don't touch a server; you pay for resources and accept the platform's limits. To put numbers on the choice (what a variable bill must buy you to beat a fixed one, and when Kubernetes pays off), see [VPS, Kubernetes or a managed platform](/guides/vps-vs-kubernetes-vs-managed-paas).
 
 | Platform | Strength | Choose Cipi when |
 | --- | --- | --- |
@@ -77,7 +77,7 @@ You don't touch a server; you pay for resources and accept the platform's limits
 
 ## Hosting panels {#hosting-panels}
 
-[cPanel](/alternative-to-cpanel), [Plesk](/alternative-to-plesk) and [DirectAdmin](/alternative-to-directadmin) are built for selling shared hosting: e-mail, FTP, DNS and many customer sites, under a licence. Right for hosting resellers, heavy for a team deploying its own apps.
+[cPanel](/alternative-to-cpanel), [Plesk](/alternative-to-plesk) and [DirectAdmin](/alternative-to-directadmin) are built for selling shared hosting: e-mail, FTP, DNS and many customer sites, under a licence. Right for hosting resellers, heavy for a team deploying its own apps. Hosting companies that want to add Laravel-native products next to them: [Cipi and WHMCS for hosting providers](/guides/hosting-providers-laravel-whmcs).
 
 <p id="vs-hestiacp"><strong>HestiaCP</strong> (the maintained fork of the abandoned VestaCP) is a free, lighter alternative for e-mail, DNS and many websites, with no Laravel tooling. <span id="vs-aapanel"></span><strong>aaPanel</strong> is a free, plugin-based multi-stack panel popular in Asia-Pacific, GUI-centric, also without Laravel automation.</p>
 

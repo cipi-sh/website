@@ -89,7 +89,7 @@ $ cipi backup profile edit nightly --exclude-paths=    # everything again
 | Refused | Absolute paths (they would match nothing) and the whole app (`*`, `shared`, `htdocs`) |
 | Recorded | Each archive's `meta.json` lists `excluded_paths`, so a restore knows what comes back from elsewhere |
 
-Also as `exclude_paths` in a profile of [cipi.yml](/docs/yml), in the [web panel](/docs/gui) and over the [API](/docs/api#endpoints-databases).
+Also as `exclude_paths` in a profile of [cipi.yml](/docs/yml), in the [web panel](/docs/gui) and over the [API](/docs/api#endpoints-databases). Which folders to leave out, `cipi.yml` examples for Laravel and WordPress, and how to keep excluded folders safe: [Exclude files and folders from backups](/guides/exclude-files-from-backups).
 
 ## 3. Encryption {#encryption}
 

@@ -78,4 +78,6 @@ $client->createDatabase('myapp_extra');
 $client->backupDatabase('myapp');
 ```
 
+Designing the products (Laravel-ready VPS, managed app, instance per customer), plan limits from a WHMCS hook and pricing: [Cipi and WHMCS for hosting providers](/guides/hosting-providers-laravel-whmcs).
+
 > [!note] The module adds no client-area tab. One-time secrets Cipi generates (SSH and database passwords, deploy key, webhook) aren't pushed to WHMCS: deliver them with a hook or your support workflow. For richer tooling use the [PHP SDK](/docs/php-sdk).

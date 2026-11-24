@@ -192,10 +192,10 @@ On AWS, log in as `ubuntu` and run `sudo -s` first. The installer then:
 
 ### Unattended install 
 
-Pass the key in `SSH_PUBKEY` (several keys: one per line). Without a terminal the installer asks nothing.
+Pass the key in `SSH_PUBKEY` (several keys: one per line). Without a terminal the installer asks nothing. Set the variable on `bash`, the side of the pipe that runs the installer (or `export` it first): placed before `wget`, only `wget` would see it.
 
 ```bash
-$ SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash
+$ wget -O - https://cipi.sh/setup.sh | SSH_PUBKEY="ssh-ed25519 AAAA..." bash
 ```
 
 ## What the installer secures 
@@ -4173,6 +4173,8 @@ $ cipi db switch mariadb          # back, on the same terms
 | What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
 | Not in the panel or API | Replacing a database server is an operator decision; the [panel](https://cipi.sh/docs/gui) shows *MySQL* where it runs. A `db_switch` [notification](https://cipi.sh/docs/notifications) is sent |
 
+Step by step, with what to check in your code first: [Run Laravel on MySQL instead of MariaDB](https://cipi.sh/guides/laravel-mysql-instead-of-mariadb).
+
 **A server already in use** moves the way an app moves anywhere: a new server, `cipi db switch mysql` there before its first app, then [`cipi sync`](https://cipi.sh/docs/sync). The old server stays as it was, which is your way back. Dumps cross between the two: restoring into MySQL drops MariaDB's sandbox line and maps its UCA 14 collations to MySQL's `0900` ones (and back into MariaDB); rows are never touched.
 
 ## Databases 
@@ -4707,7 +4709,7 @@ $ cipi backup profile edit nightly --exclude-paths=    # everything again
 | Refused | Absolute paths (they would match nothing) and the whole app (`*`, `shared`, `htdocs`) |
 | Recorded | Each archive's `meta.json` lists `excluded_paths`, so a restore knows what comes back from elsewhere |
 
-Also as `exclude_paths` in a profile of [cipi.yml](https://cipi.sh/docs/yml), in the [web panel](https://cipi.sh/docs/gui) and over the [API](https://cipi.sh/docs/api#endpoints-databases).
+Also as `exclude_paths` in a profile of [cipi.yml](https://cipi.sh/docs/yml), in the [web panel](https://cipi.sh/docs/gui) and over the [API](https://cipi.sh/docs/api#endpoints-databases). Which folders to leave out, `cipi.yml` examples for Laravel and WordPress, and how to keep excluded folders safe: [Exclude files and folders from backups](https://cipi.sh/guides/exclude-files-from-backups).
 
 ## 3. Encryption 
 
@@ -4993,7 +4995,7 @@ $ cipi metrics events --source=deploy      # what changed, when
 $ cipi metrics status                      # collector, size, retention
 ```
 
-Every command takes `--json`. Requires Cipi 5.11.0.
+Every command takes `--json`. Requires Cipi 5.11.0. What each number means and how to read them together to find a cause: [Cipi metrics explained](https://cipi.sh/guides/cipi-metrics-server-app-uptime).
 
 ## What is recorded 
 
@@ -5652,6 +5654,8 @@ $ cipi compliance controls            # mapping to ISO 27001:2022 Annex A and SO
 ```
 
 Root-only. Record the printed archive checksum **outside the server** to prove later that the bundle is unaltered. No secrets are included: token and password hashes, 2FA secrets and backup credentials are never selected; SSH keys appear as fingerprints.
+
+For the wider picture (SSO, roles, scoped tokens, the audit trail and what to add around Cipi in a larger organisation), see [Cipi in the enterprise](https://cipi.sh/guides/cipi-enterprise).
 
 > [!note] The report is candid about limits (for example, encryption without a MAC, restore tests not recorded) so the auditor hears it from you first. Cipi's deliberate choices, like patching Nginx and databases on its own schedule, appear as notes, not failures.
 
@@ -7020,7 +7024,7 @@ $ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
 $ cipi-cli backup profile edit nightly --exclude-paths ""     # take everything again
 ```
 
-Destinations are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](https://cipi.sh/docs/backups).
+Destinations are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](https://cipi.sh/docs/backups), and [Exclude files and folders from backups](https://cipi.sh/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
 
 ## `php` 
 
@@ -7488,6 +7492,8 @@ $client->createDatabase('myapp_extra');
 $client->backupDatabase('myapp');
 ```
 
+Designing the products (Laravel-ready VPS, managed app, instance per customer), plan limits from a WHMCS hook and pricing: [Cipi and WHMCS for hosting providers](https://cipi.sh/guides/hosting-providers-laravel-whmcs).
+
 > [!note] The module adds no client-area tab. One-time secrets Cipi generates (SSH and database passwords, deploy key, webhook) aren't pushed to WHMCS: deliver them with a hook or your support workflow. For richer tooling use the [PHP SDK](https://cipi.sh/docs/php-sdk).
 
 
@@ -7550,7 +7556,7 @@ Free and polished, for PHP, Node, Python and static sites. A generic multi-stack
 
 ## Managed PaaS 
 
-You don't touch a server; you pay for resources and accept the platform's limits.
+You don't touch a server; you pay for resources and accept the platform's limits. To put numbers on the choice (what a variable bill must buy you to beat a fixed one, and when Kubernetes pays off), see [VPS, Kubernetes or a managed platform](https://cipi.sh/guides/vps-vs-kubernetes-vs-managed-paas).
 
 | Platform | Strength | Choose Cipi when |
 | --- | --- | --- |
@@ -7570,7 +7576,7 @@ You don't touch a server; you pay for resources and accept the platform's limits
 
 ## Hosting panels 
 
-[cPanel](https://cipi.sh/alternative-to-cpanel), [Plesk](https://cipi.sh/alternative-to-plesk) and [DirectAdmin](https://cipi.sh/alternative-to-directadmin) are built for selling shared hosting: e-mail, FTP, DNS and many customer sites, under a licence. Right for hosting resellers, heavy for a team deploying its own apps.
+[cPanel](https://cipi.sh/alternative-to-cpanel), [Plesk](https://cipi.sh/alternative-to-plesk) and [DirectAdmin](https://cipi.sh/alternative-to-directadmin) are built for selling shared hosting: e-mail, FTP, DNS and many customer sites, under a licence. Right for hosting resellers, heavy for a team deploying its own apps. Hosting companies that want to add Laravel-native products next to them: [Cipi and WHMCS for hosting providers](https://cipi.sh/guides/hosting-providers-laravel-whmcs).
 
 HestiaCP (the maintained fork of the abandoned VestaCP) is a free, lighter alternative for e-mail, DNS and many websites, with no Laravel tooling. aaPanel is a free, plugin-based multi-stack panel popular in Asia-Pacific, GUI-centric, also without Laravel automation.
 
@@ -7681,6 +7687,8 @@ The same `cipi db` workflow covers both engines: create, list, backup, restore, 
 | Truly open source | BSD-licensed, stewarded by the Linux Foundation after Redis moved to source-available licences |
 | Native on Ubuntu | `valkey-server` from the Universe repository, no third-party PPAs |
 | Automatic migration | Servers moved from Redis to Valkey on `cipi self-update`, same password and data |
+
+The licence of every component Cipi installs, and why it matters on a server: [Open source licences, explained](https://cipi.sh/guides/open-source-licences).
 
 ## Why Laravel first? 
 
@@ -8241,6 +8249,739 @@ Next: [deploy your first Laravel app](https://cipi.sh/guides/deploy-laravel-ubun
 | `REMOTE HOST IDENTIFICATION HAS CHANGED` | You rebuilt the server: `ssh-keygen -R 203.0.113.10` |
 | `dig` shows nothing or an old IP | Record not saved or still cached: wait the TTL, check the name |
 | Browser shows the provider's parking page | DNS still points at the registrar: change the A record |
+
+
+## Cipi in the enterprise: where it fits, what it gives, what to add
+
+URL: https://cipi.sh/guides/cipi-enterprise
+
+Enterprises usually meet Laravel through the side door: a Filament back-office here, a customer portal there, an agency delivering a project that now has to be hosted somewhere approved. Each lands on whatever the team found first. Cipi offers a **standard way** to host all of them, on infrastructure the organisation chooses, with the controls an auditor asks about built in.
+
+## In 30 seconds 
+
+| Cipi fits when | Look elsewhere when |
+| --- | --- |
+| You host Laravel and PHP apps on VMs you control (cloud, local provider, your own data centre) | You need autoscaling and multi-zone failover as a managed service |
+| Data must stay in a given country, provider or network | Your standard is containers on Kubernetes for everything |
+| You want one fixed infrastructure cost and no per-seat or per-server licence | You need a vendor contract with an SLA and a support desk |
+| Auditors ask for evidence on access, changes, patching and backups | SAML-only identity, or an OS other than Ubuntu LTS, is a hard requirement |
+
+```flow
+Why | sovereignty, cost | #why
+Fit | use cases | #fit
+Controls | for auditors | #controls
+Gaps | what to add | #gaps
+Vendor Q&A | procurement | #questionnaire
+Roll-out | pilot to fleet | #rollout
+Cost | what you pay | #cost
+```
+
+## Why enterprises look at self-hosting again 
+
+| Driver | What it means for hosting |
+| --- | --- |
+| **Data sovereignty** | Privacy law, sector rules (finance, health, public sector) and customer contracts increasingly specify *where* data lives and *who* can reach it. A server you choose, in a region you choose, with no third-party control plane, is the simplest answer |
+| **Regulation of ICT risk** | Frameworks such as NIS2 and, for financial entities, DORA ask organisations to manage risks from their ICT suppliers. Every SaaS in the deploy path is one more supplier to assess |
+| **Cost control** | Per-seat and usage-based tools grow with headcount and traffic. A fixed VPS price and a free tool don't ([the numbers](https://cipi.sh/guides/vps-vs-kubernetes-vs-managed-paas#tests)) |
+| **Vendor risk** | Price changes, licence changes, acquisitions and outages at a vendor become your problem. An open source tool with no service behind it removes that dependency ([licences](https://cipi.sh/guides/open-source-licences)) |
+| **Shadow IT** | Teams that can't get hosting quickly will find it themselves. A standard, approved path is the cure |
+
+## Where Cipi fits 
+
+| Use case | How Cipi is used |
+| --- | --- |
+| **Internal tools and back-offices** | Many Laravel/Filament apps on a few servers, each isolated, behind SSO or [Cloudflare Access](https://cipi.sh/guides/cloudflare-zero-trust-laravel) |
+| **Customer portals and APIs** | Production on dedicated servers, staging on shared ones, deploys from CI through scoped tokens |
+| **Agency and supplier projects** | The supplier pushes to Git; the organisation owns the server, the data and the deploy history |
+| **Regulated data** | Servers in the required country or provider; backups encrypted on the server before they leave, to a bucket you choose |
+| **Business units with their own budgets** | One server (or more) per unit, all visible in one panel with roles |
+| **Legacy PHP next to Laravel** | WordPress, Symfony and other PHP as isolated [custom apps](https://cipi.sh/docs/custom-apps), patched like the rest |
+
+## The controls auditors ask about 
+
+What Cipi does out of the box, grouped the way security questionnaires and ISO 27001 / SOC 2 audits group it:
+
+| Area | What Cipi provides |
+| --- | --- |
+| **Identity and access** | Key-only SSH for the admin user, root login off, alerts on logins and `sudo`. Panel with [SSO over OpenID Connect](https://cipi.sh/docs/gui-sso) (Entra ID, Okta, Google Workspace, Keycloak…), two-factor, roles per server (View, Manage) and per app (View, Deploy, Edit, Environment, Logs, Commands, Delete), single-use invite links |
+| **Least privilege for automation** | [API tokens](https://cipi.sh/docs/api#tokens) with listed abilities (`deploy-manage` alone deploys) and expiry dates, behind an [IP allowlist](https://cipi.sh/docs/api#cipi-api-ip-whitelist). The API calls an allowlist of `cipi` commands through sudo; destructive host operations stay on the CLI |
+| **Segregation** | Each app is its own Linux user (home `750`), PHP-FPM pool with `open_basedir`, database user and Valkey instance. A compromised app can't read the others |
+| **Change management** | Server settings in [`cipi.yml`](https://cipi.sh/cipi-yml), reviewed in pull requests, planned and applied all or nothing. A repository can't raise its own disk limit or touch another app's backups |
+| **Audit trail** | A [hash-chained deploy ledger](https://cipi.sh/docs/deploy-audit): every deploy, rollback and failure, with origin (CLI, panel, webhook, CI, AI agent, SSH), operator, IP and commit, verified by root and copied to syslog |
+| **Vulnerability management** | Ubuntu security updates daily; PHP, Nginx, databases and Valkey patched nightly, one service at a time; optional ClamAV scans and CrowdSec; [Hackly](https://cipi.sh/guides/hackly-security-scanning) and [Checkpoint](https://cipi.sh/guides/checkpoint-laravel-sast-ci) for the code |
+| **Network** | UFW allowing 22, 80 and 443 only, Fail2ban, optional [Cloudflare Zero Trust](https://cipi.sh/docs/zero-trust) that closes the origin's ports entirely |
+| **Secrets** | Configuration, tokens and passwords encrypted at rest (AES-256), readable by root only; backups and sync archives encrypted before they leave |
+| **Backup and recovery** | [Backup profiles](https://cipi.sh/docs/backups) to any S3-compatible storage, encrypted, verified, with staleness alerts; warm standby servers with [`cipi sync`](https://cipi.sh/docs/sync) |
+| **Monitoring** | Server monitor and health checks with alerts to e-mail, Slack, Discord, Google Chat, Telegram, signed webhooks and more; [metrics](https://cipi.sh/guides/cipi-metrics-server-app-uptime) kept by the minute; OpenMetrics for your Prometheus |
+| **Privacy** | Fixed [log retention](https://cipi.sh/docs/log-retention): logs with IP addresses 90 days, application and security logs 12 months; [anonymized database dumps](https://cipi.sh/docs/anonymizer) for developers |
+| **Evidence** | [`cipi compliance report`](https://cipi.sh/docs/compliance): 17 controls checked read-only and mapped to ISO 27001:2022 Annex A and SOC 2, with raw evidence and checksums |
+
+```bash
+$ sudo cipi compliance                    # pass / warn / fail per control
+$ sudo cipi compliance report --days=365  # bundle for the auditor
+$ sudo cipi compliance controls           # mapping to ISO 27001 and SOC 2
+$ sudo cipi deploy shop --audit --days=365 --json
+```
+
+> [!tip] Record the checksum of each compliance bundle **outside** the server (a ticket, the GRC tool). It proves later that the bundle wasn't altered.
+
+## What to add around it 
+
+Being honest about the gaps is what makes a rollout succeed:
+
+| Gap | How enterprises fill it |
+| --- | --- |
+| **No vendor support or SLA** | Name an internal platform owner (two, for holidays) and keep a runbook; or contract a local partner who knows Linux and Laravel. The stack is standard, so any experienced Linux administrator can work on it |
+| **No autoscaling or clustering** | Size servers for peak; split heavy apps onto their own servers; keep a warm standby with `cipi sync`; put critical data on a managed database if you need automatic failover |
+| **Logs stay on the server** | Forward syslog to the SIEM (Splunk, Elastic, Microsoft Sentinel) with your usual agent; the compliance report checks that forwarding is configured |
+| **OIDC, not SAML** | Most identity providers offer OIDC next to SAML for the same users (Entra ID, Okta, Google Workspace) |
+| **Ubuntu LTS only** | Treat it as an appliance OS: Ubuntu 24.04 or 26.04 on full VMs, nothing else installed by hand |
+| **Public IPv4 needed** | Required for certificates and webhooks; after setup, [`cipi zt lock`](https://cipi.sh/docs/zero-trust) closes 22, 80 and 443 to the internet and traffic arrives through a Cloudflare Tunnel |
+| **Certifications for the tool itself** | Your controls are audited, not the tool. Use a certified infrastructure provider for the VMs and `cipi compliance` for the evidence on top |
+
+## Answers for the vendor questionnaire 
+
+Procurement and security teams ask the same questions of every supplier. For Cipi:
+
+| Question | Answer |
+| --- | --- |
+| Does the software send data to the vendor? | No. No telemetry, no account, no control plane. Alerts and backups go only to destinations you configure |
+| Where is data stored? | On your servers, and in the backup buckets you choose. Backups are encrypted on the server before upload |
+| Who can access the servers? | Your accounts only: SSH keys you add, panel users you invite, tokens you create |
+| Licence and cost? | MIT for every component; no licence fee, no per-seat or per-server pricing |
+| Is the source available? | Yes, all of it, on [GitHub](https://github.com/cipi-sh). What runs as root is readable on the server |
+| How are vulnerabilities reported and fixed? | Private reports through GitHub's vulnerability reporting ([security.txt](https://cipi.sh/.well-known/security.txt)); fixes ship in the latest release, installed with `cipi self-update` |
+| How are changes documented? | A detailed [changelog](https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md) per release, with the tests each release adds |
+| What if the project is discontinued? | Servers keep working without it; the code can be forked; the server is standard Ubuntu |
+| Can we exit? | Yes: apps are ordinary Laravel apps, data is in standard MariaDB, MySQL or PostgreSQL, files in standard directories |
+
+## Roll it out in five steps 
+
+```flow
+Pilot | one real, non-critical app
+> Pick an internal tool with real users but limited impact. Install Cipi on a fresh VM, deploy it, run it for a month. Measure deploy time, incidents and hours spent.
+Baseline | the golden server
+> Write down the standard: Ubuntu version, VM size, Cipi version, backup destination and profiles, notification channels, CrowdSec on or off, Zero Trust on or off. Script it: `wget -O - https://cipi.sh/setup.sh | SSH_PUBKEY="…" bash`, then the same `cipi` commands every time.
+Guardrails | access and change rules
+> Panel with SSO and roles; API tokens per pipeline with only the abilities they need and an expiry date; branch protection on repositories with `cipi.yml`; `cipi yml auto` only where pushing to main is already controlled.
+Evidence | from day one
+> Schedule `cipi compliance --json` (exit 1 on any failure) and a monthly `cipi compliance report`; forward syslog; keep the bundles' checksums in your GRC tool.
+Scale | the fleet
+> Add servers per business unit or per environment, all in one panel. Use cipi-cli profiles and the PHP SDK for automation, and `cipi sync` to rebalance or move providers.
+```
+
+## What it costs 
+
+| Line | Cost |
+| --- | --- |
+| Cipi, panel, API, CLI, SDK, WHMCS module | €0, MIT |
+| Servers | Your VM or VPS prices, fixed |
+| Backup storage | Your S3-compatible bucket |
+| People | The platform owner's time: routine work (patching, renewals, backups, alerts) is automated; incidents, upgrades you schedule and onboarding remain |
+
+The comparison that matters is not "free versus paid", but **fixed infrastructure plus some owned time** against **subscriptions, usage and supplier risk**. The [VPS, Kubernetes or managed platform](https://cipi.sh/guides/vps-vs-kubernetes-vs-managed-paas) guide shows how to put numbers on it.
+
+
+## For hosting providers: Laravel-ready hosting with Cipi and WHMCS
+
+URL: https://cipi.sh/guides/hosting-providers-laravel-whmcs
+
+Ask a Laravel developer where they host, and the answer is rarely "my hosting provider". It's a VPS plus Forge or Ploi, or a managed platform. The reason isn't price: standard hosting plans don't run what a Laravel app needs. Cipi turns any Ubuntu server into Laravel-native hosting, and its WHMCS module automates the products. This guide is for the hosting company that wants that business.
+
+```flow
+The gap | what's missing | #gap
+Products | three to sell | #products
+WHMCS | module, servers | #whmcs
+Limits | per plan | #limits
+Customers | SSH, Git, panel | #access
+Operate | the fleet | #operate
+Price | margins | #pricing
+```
+
+## The gap: what Laravel needs and standard hosting misses 
+
+| A Laravel app needs | Typical shared or cPanel hosting | On a Cipi server |
+| --- | --- | --- |
+| Long-running queue workers, Horizon | Often not allowed, or killed | Supervisor programs per app, restarted on deploy |
+| The scheduler every minute | Cron with limits on frequency | One cron per app, on by default |
+| Git deploys without downtime | FTP uploads, or `git pull` in place | Releases with an atomic symlink swap, rollback in one command, webhooks from six Git forges |
+| Composer and Node builds | Limited SSH, old tool versions | Composer 2 and Node on the server, build steps in the deploy |
+| A choice of PHP version per app | One or a few versions | PHP 8.3 to 8.6 side by side, per app |
+| Redis-compatible cache and queues | Rare on shared plans | A Valkey instance per app |
+| WebSockets (Reverb), Octane | Not available | `cipi app reverb enable`, `cipi app create --octane` |
+| Document root on `public/` | Workarounds with `.htaccess` | Nginx configured for Laravel |
+| Isolation from other customers | Shared users or containers of varying quality | A Linux user, PHP-FPM pool, database user and Valkey instance per app |
+
+Few providers offer this out of the box. That's the opportunity: a Laravel-friendly product is a reason to choose you, not just a cheaper VPS.
+
+## Three products you can build 
+
+| Product | Customer gets | You run | WHMCS automation |
+| --- | --- | --- | --- |
+| **Laravel-ready VPS** | A whole VPS with Cipi installed, and root | The VPS only | Your existing VPS module, plus Cipi installed at first boot |
+| **Managed Laravel app** | One isolated app on your servers: SSH/SFTP as its own user, Git deploys, database, SSL | The servers, patching, backups, monitoring | The Cipi module: order → app, unpaid → suspended, cancelled → removed |
+| **App instance per customer** | A ready instance of a Laravel product (yours, or a client's SaaS) on its own domain | Same as above | The Cipi module with the product's Git repository in the product settings: every order deploys the same codebase |
+
+### Laravel-ready VPS: install Cipi at first boot 
+
+Pass the customer's key and run the installer from cloud-init (or your virtualisation panel's post-install script). Without a terminal, the installer asks nothing:
+
+```yaml
+#cloud-config
+runcmd:
+  - [bash, -c, 'wget -O - https://cipi.sh/setup.sh | SSH_PUBKEY="ssh-ed25519 AAAA… customer@laptop" bash > /var/log/cipi-install.log 2>&1']
+```
+
+The VM must be full virtualisation (KVM, VMware, Hyper-V, Xen HVM) with Ubuntu 24.04 or 26.04; the installer stops on LXC or OpenVZ.
+
+## Architecture 
+
+```stack
+WHMCS | orders, invoices, suspensions
+Cipi module | modules/servers/cipi
+Cipi API | one per server, HTTPS + token
+cipi CLI | the same code as over SSH
+Isolated apps | user, PHP pool, database, Valkey
+```
+
+Each Cipi server runs its own [API](https://cipi.sh/docs/api), on its own hostname, with a token for WHMCS. WHMCS sees each server as a *server* in a *server group*; the module calls the API to create, suspend, unsuspend, change and terminate apps. Your staff can see the whole fleet in the optional [web panel](https://cipi.sh/docs/gui).
+
+## 1. Prepare each server 
+
+```bash
+$ wget -O - https://cipi.sh/setup.sh | bash             # fresh Ubuntu 26.04
+$ sudo cipi api api.node1.host.example                   # DNS check, install, certificate
+$ sudo cipi api token create --name=whmcs \
+    --abilities=apps-view,apps-create,apps-edit,apps-suspend,apps-delete,deploy-manage,ssl-manage,aliases-view,aliases-create,aliases-delete \
+    --expires=2027-12-31
+```
+
+| Ability | Used by |
+| --- | --- |
+| `apps-view` | Test Connection, App Info |
+| `apps-create` | Create Account |
+| `apps-edit` | Change Package, and the [limits hook](#limits) |
+| `apps-suspend` | Suspend, Unsuspend |
+| `apps-delete` | Terminate |
+| `deploy-manage` | Deploy, Rollback, Unlock buttons |
+| `ssl-manage` | Install SSL, Auto SSL |
+| `aliases-view`, `aliases-create`, `aliases-delete` | List, Add and Remove Alias buttons |
+
+Then let only your own machines reach the API: `sudo cipi api ip-whitelist add ` (and the address of your panel, if you run one). Set up off-site [backups](https://cipi.sh/guides/backup-vps-s3) and [notifications](https://cipi.sh/guides/server-monitoring-alerts) before the first customer arrives.
+
+## 2. Install the module and add the servers 
+
+```tree
+your-whmcs/
+└── modules/servers/cipi/
+    ├── cipi.php
+    └── lib/CipiApiClient.php
+```
+
+```flow
+Copy the module | into WHMCS
+> Download it from [github.com/cipi-sh/whmcs](https://github.com/cipi-sh/whmcs) and copy `modules/servers/cipi/` into your WHMCS root. No Composer, no dependencies.
+Add the server | System Settings → Servers
+> Module *Cipi (Laravel hosting)*; hostname = the API's base URL without a trailing slash; password = the token; tick *Secure* so certificates are verified. Set *Maximum No. of Accounts* to cap apps per server. Use *Test Connection*.
+Group the servers | fill method
+> Create a server group per region or tier and choose *Add to the least full server*, so new orders spread across nodes.
+Create the product | Module Settings
+> A hosting product on that group, module *Cipi (Laravel hosting)*: PHP version, app type (`laravel` or `custom`), Git repository and branch (for `laravel`), Auto SSL. Ask for a domain on order.
+Automate the lifecycle | Automation Settings
+> Turn on suspension and termination for overdue invoices. A suspended app serves a static 503 page and keeps all its data; unsuspending brings it back as it was.
+```
+
+| Module setting | `laravel` app | `custom` app |
+| --- | --- | --- |
+| What's created | A Laravel app with releases, workers, scheduler and its database | A PHP site in `htdocs/`: WordPress, static, any PHP |
+| Git repository | Required (the product's repository) | Optional: empty means SFTP-only hosting |
+| Good for | *App instance per customer*, or customers who connect their own repository after creation | Classic PHP and WordPress hosting with real isolation |
+
+| WHMCS action | What happens on the server |
+| --- | --- |
+| Create Account | App created (user from the WHMCS username, primary domain from the order), job awaited, optional Let's Encrypt certificate |
+| Suspend / Unsuspend | 503 maintenance page / normal vhost back; nothing deleted, certificates keep renewing |
+| Change Package | PHP version, repository and branch from the new product |
+| Terminate | App removed |
+| Admin buttons | Install SSL, Deploy, Rollback Deploy, Unlock Deploy, List/Add/Remove Alias, App Info |
+
+Every call is written to WHMCS's module log (Utilities → Logs → Module Log). If Auto SSL fails because DNS doesn't point at the server yet, the app is still created and the failure is logged: run *Install SSL* later.
+
+> [!note] The module's PHP dropdown is a list in `cipi_ConfigOptions()`. Keep it aligned with the versions installed on your servers (`sudo cipi php list`), and install a version on every server of the group before selling it.
+
+## 3. Plans and limits 
+
+Limits stop one customer from starving the others. Set them per app with `cipi app limits`, or through the API (`PUT /api/apps/{name}/limits`) from a WHMCS hook, so each product applies its plan automatically:
+
+| Plan (example) | PHP-FPM children | `memory_limit` | Queue workers | Soft disk limit |
+| --- | --- | --- | --- | --- |
+| Starter | 5 | 256M | 1 | 5 GB |
+| Pro | 10 | 512M | 2 | 20 GB |
+| Business | 20 | 1G | 4 | 50 GB |
+
+```php
+ limits (the fields of PUT /api/apps/{name}/limits)
+    $plans = [
+        11 => ['fpm_max_children' => 5,  'memory_limit' => '256M', 'worker_procs' => 1, 'disk_limit_gb' => 5],
+        12 => ['fpm_max_children' => 10, 'memory_limit' => '512M', 'worker_procs' => 2, 'disk_limit_gb' => 20],
+        13 => ['fpm_max_children' => 20, 'memory_limit' => '1G',   'worker_procs' => 4, 'disk_limit_gb' => 50],
+    ];
+    $limits = $plans[(int) ($p['pid'] ?? 0)] ?? null;
+    if ($limits === null) {
+        return;
+    }
+
+    // The app name the module derives from the WHMCS username
+    $app = substr(preg_replace('/[^a-z0-9]/', '', strtolower((string) $p['username'])), 0, 32);
+    $base = rtrim((string) $p['serverhostname'], '/');
+    if (!preg_match('#^https?://#i', $base)) {
+        $base = 'https://' . $base;
+    }
+
+    $ch = curl_init($base . '/api/apps/' . rawurlencode($app) . '/limits');
+    curl_setopt_array($ch, [
+        CURLOPT_CUSTOMREQUEST => 'PUT',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $p['serverpassword'],
+        ],
+        CURLOPT_POSTFIELDS => json_encode($limits),
+    ]);
+    $raw = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // 202 = queued as a job on the server
+    logModuleCall('cipi', 'ApplyLimits', ['app' => $app] + $limits, $raw, "HTTP {$code}", [$p['serverpassword']]);
+});
+```
+
+| Limit | Controls | Note |
+| --- | --- | --- |
+| `fpm_max_children` | Concurrent PHP requests | The app's [metrics](https://cipi.sh/guides/cipi-metrics-server-app-uptime) count how often it hits the cap: a ready-made upsell signal |
+| `memory_limit` | PHP's per-request memory | |
+| `worker_procs` | Queue worker processes | |
+| `octane_workers` | Octane workers, for Octane apps | |
+| `disk_limit_gb` | Soft limit for files + database | Alerts at 90% and over the limit; never blocks the site. A repository's `cipi.yml` can't raise it |
+
+For one-off changes, staff can use the CLI (`sudo cipi app limits shop --disk=20`), the panel, or the [PHP SDK](https://cipi.sh/docs/php-sdk): `$cipi->limits()->update('shop', ['fpm_max_children' => 10])`.
+
+## 4. How customers work 
+
+| Customer needs | How |
+| --- | --- |
+| Shell, Composer, Artisan, SFTP | [`ssh shop@node1.host.example`](https://cipi.sh/docs/app-ssh): the app's own user, kept out of other apps' files by permissions, with SFTP for their IDE |
+| Deploys from Git | The app's deploy key added to their repository, then `git push` with the webhook ([auto-deploy](https://cipi.sh/docs/auto-deploy)) |
+| Database access | TablePlus or DBeaver over SSH with the `mariadb+ssh://` URL; no database port is ever open |
+| Server settings | A [`cipi.yml`](https://cipi.sh/cipi-yml) in their repository: workers, schedule, PHP settings, backups. You decide whether it's applied automatically |
+| A dashboard | Invite them to the [web panel](https://cipi.sh/docs/gui-overview) with access to **their app only** (view, deploy, logs, environment…): a client area without building one |
+| Help | Your support, with the same commands you use |
+
+Deliver one-time secrets (passwords, deploy key, webhook URL) through your onboarding: the module deliberately doesn't store them in WHMCS.
+
+## 5. Operate the fleet 
+
+| Task | With Cipi |
+| --- | --- |
+| Patching | Ubuntu security updates daily, PHP nightly, Nginx, databases and Valkey through [autoupdate](https://cipi.sh/docs/stack-upgrades), one service at a time. Reboots when you schedule them |
+| Monitoring | The [monitor](https://cipi.sh/docs/monitor) alerts your ops channel on disk, services, workers, certificates, 5xx and load; [metrics](https://cipi.sh/docs/metrics) show which app is the noisy neighbour |
+| Backups | A server-wide nightly profile to off-site storage, plus frequent database profiles; `cipi backup status` lists any app nothing covers |
+| Security | Per-app isolation, CrowdSec, optional malware scans, Cloudflare Zero Trust for the admin side |
+| Rebalancing | Move an app or a whole node with [`cipi sync`](https://cipi.sh/guides/migrate-server-cipi-sync) |
+| B2B customers' audits | [`cipi compliance report`](https://cipi.sh/docs/compliance): evidence mapped to ISO 27001 and SOC 2 |
+
+## 6. Price it 
+
+Cipi adds no licence cost per server, per account or per site, so the margin is the difference between your price and your infrastructure and support.
+
+```text
+monthly margin per server = apps on the server × price per app − server cost − support time
+```
+
+An example with round numbers, to adapt to your own costs and capacity tests: a node that costs you €60 a month, hosting 20 small Laravel apps sold at €12, brings €240 of revenue and €180 before support. The customer gets a Laravel-native product without a server to manage or a panel to subscribe to; you get a margin no per-account licence eats into.
+
+| Lever | Effect |
+| --- | --- |
+| Measure real capacity | Load-test your node type with a typical Laravel app before fixing apps-per-server |
+| Sell what Laravel developers value | Queues, Horizon, Reverb, scheduler, zero-downtime deploys, PHP 8.6: put them on the product page |
+| Upsell on signals | Pool saturation, disk at 90%, sustained CPU: offer the next plan before the customer notices |
+| Keep plans simple | Three tiers, the same limits on every node |
+
+## What Cipi is not, for a host 
+
+| Not included | Do instead |
+| --- | --- |
+| E-mail hosting, DNS servers, reseller accounts | Keep your existing products, or partner for them |
+| A client-area tab in WHMCS | Panel invites per app, or your own hook with the [API](https://cipi.sh/docs/api) |
+| Hard quotas | Soft limits with alerts, by design |
+| Containers (LXC, OpenVZ) or operating systems other than Ubuntu LTS | Full VMs with Ubuntu 24.04 or 26.04 |
+
+
+## Open source licences, explained: what they allow, and why Cipi's stack is built on them
+
+URL: https://cipi.sh/guides/open-source-licences
+
+Your hosting stack is the last place you want a surprise. A licence is the contract that says what you may do with each piece of it, what you must do in return, and how much its owner can change your situation later. This guide explains the families in plain words, looks at the licence changes that caught teams out, and shows how Cipi's choices are made to keep you out of that story.
+
+> [!info] This is an engineer's overview, not legal advice. For a specific contract or product, ask a lawyer who knows software licensing.
+
+```flow
+Families | MIT to SSPL | #families
+Definition | the guarantees | #definition
+Changes | what happened | #changes
+Cipi | all MIT | #cipi
+Stack | by component | #stack
+Trust | read, patch, fork | #transparency
+Your app | its deps | #your-app
+```
+
+## The licence families, in plain words 
+
+| Family | Examples | You may | You must | Watch out for |
+| --- | --- | --- | --- | --- |
+| **Permissive** | MIT, BSD-2/3-Clause, Apache-2.0, PostgreSQL, PHP License | Use, modify, sell, embed in closed products | Keep the copyright and licence notice (Apache-2.0: also state changes, keep NOTICE) | Almost nothing. Apache-2.0 adds an explicit patent licence |
+| **Weak copyleft** | LGPL, MPL-2.0 | Use in closed products | Share changes to *those* files or that library | Mixing code at file level (MPL) or static linking (LGPL) |
+| **Strong copyleft** | GPL-2.0, GPL-3.0 | Use, modify, run anywhere | If you **distribute** the program or a derivative, do it under the GPL with source | Shipping GPL code inside a product you sell as a binary |
+| **Network copyleft** | AGPL-3.0 | Use, modify | If you modify it and users reach it **over a network**, offer them your source | Patched AGPL servers offered as a service |
+| **Source-available** | BSL/BUSL, SSPL, Elastic License, RSAL | Read the code, use it within the licence's limits | Respect the restrictions (often: no competing hosted service) | Not open source; terms set by one company and changeable for future versions |
+
+Two things are worth knowing about copyleft. It is triggered by **distribution** (or, for AGPL, network use of a modified version), not by running software: a server running GPL databases doesn't make your Laravel app GPL. And it protects *users' freedoms* rather than restricting them: it stops anyone from taking the code closed.
+
+## What "open source" actually guarantees 
+
+"Open source" has a definition, maintained by the Open Source Initiative. Among its criteria: free redistribution, source code available, derived works allowed, and **no discrimination against persons, groups or fields of use**. That last one is why source-available licences don't qualify: forbidding "offering the software as a service" discriminates a field of use.
+
+For infrastructure, the definition turns into four practical guarantees:
+
+| Guarantee | Why it matters on a server |
+| --- | --- |
+| You can read it | You (or an auditor) can check what runs as root |
+| You can change it | A fix doesn't have to wait for the vendor |
+| You can share it | A community can maintain it if the original owner stops |
+| Nobody can forbid your use case | Hosting clients, competing with someone, selling services: all allowed |
+
+## When licences change 
+
+Single-company projects can release **future versions** under a different licence. It has happened to some of the best-known infrastructure software:
+
+| Year | Project | Change | What the community did |
+| --- | --- | --- | --- |
+| 2018 | MongoDB | AGPL-3.0 → SSPL | Distributions dropped it from their archives |
+| 2021 | Elasticsearch, Kibana | Apache-2.0 → SSPL / Elastic License | AWS and others forked **OpenSearch** (Elastic later added the AGPL as an option, in 2024) |
+| 2023 | Terraform, Vault (HashiCorp) | MPL-2.0 → BSL 1.1 | **OpenTofu** and **OpenBao** forks, under the Linux Foundation |
+| 2024 | Redis | BSD-3-Clause → RSALv2 / SSPLv1 | **Valkey** fork, BSD-3-Clause, under the Linux Foundation (Redis later added the AGPL as an option) |
+
+The lessons are the same each time. Versions already released keep their licence, so a fork can always start from the last open one. The cost falls on users who must re-evaluate, migrate or freeze versions, usually in a hurry. And the risk is highest where **one company owns all the rights** and earns from a hosted version of the same software.
+
+## Cipi's own licences 
+
+Every part of Cipi is released under the **MIT licence**, the most permissive common open source licence:
+
+| Repository | What it is | Licence |
+| --- | --- | --- |
+| [cipi-sh/cipi](https://github.com/cipi-sh/cipi) | The server CLI and installer | MIT |
+| [cipi-sh/agent](https://github.com/cipi-sh/agent) | Laravel package: webhook deploys, health, MCP, anonymized dumps | MIT |
+| [cipi-sh/api](https://github.com/cipi-sh/api) | REST API and MCP server for the server | MIT |
+| [cipi-sh/gui](https://github.com/cipi-sh/gui) | Optional web panel | MIT |
+| [cipi-sh/cli](https://github.com/cipi-sh/cli) | `cipi-cli` for your laptop | MIT |
+| [cipi-sh/sdk](https://github.com/cipi-sh/sdk) | PHP SDK | MIT |
+| [cipi-sh/whmcs](https://github.com/cipi-sh/whmcs) | WHMCS provisioning module | MIT |
+
+What MIT means for you, concretely: no fee, no account, no per-server or per-site limit, commercial use allowed (agencies, hosting companies, SaaS), modifications allowed, private forks allowed. The only obligation is to keep the copyright and licence notice in copies of the code. What it doesn't give you is a warranty: the licence disclaims it, as every open source licence does. Support comes from the docs, GitHub and the community, and [the enterprise guide](https://cipi.sh/guides/cipi-enterprise) covers what to put around it in a larger organisation.
+
+## The stack, component by component 
+
+Cipi installs well-known open source components from their official packages, and chooses them with licences in mind:
+
+| Component | Role | Licence | Installed |
+| --- | --- | --- | --- |
+| Ubuntu LTS | Operating system | Mostly GPL and other OSI licences | Base |
+| Nginx (nginx.org packages) | Web server | BSD-2-Clause | Always |
+| PHP (packages.sury.org) | Runtime | PHP License (BSD-style, permissive) | Always |
+| MariaDB Server | Database on port 3306 | GPL-2.0 | Default |
+| MySQL Community | Alternative on port 3306 | GPL-2.0 | Only with `cipi db switch mysql` |
+| PostgreSQL | Database on port 5432 | PostgreSQL License (permissive) | Optional |
+| Valkey | Cache, sessions, queues | BSD-3-Clause | Always |
+| Supervisor | Queue workers, Horizon, Reverb, Octane | BSD-style | Always |
+| Deployer | Zero-downtime releases | MIT | Always |
+| Composer, Node.js | Builds | MIT | Always |
+| Certbot | Let's Encrypt certificates | Apache-2.0 | Always |
+| UFW, Fail2ban | Firewall, bans | GPL-3.0, GPL-2.0 | Always |
+| CrowdSec | Shared threat intelligence | MIT | Optional |
+| ClamAV | Malware scan | GPL-2.0 | Optional |
+| Meilisearch | Search for Laravel Scout | MIT (Community Edition) | Optional |
+| FrankenPHP | Octane runtime | MIT | Optional |
+
+Three choices worth noting:
+
+| Choice | Reason |
+| --- | --- |
+| **Valkey instead of Redis** | Same protocol, same `phpredis`, same `REDIS_*` keys, but BSD-licensed and stewarded by the Linux Foundation. Servers moved automatically on `cipi self-update` ([why](https://cipi.sh/docs/design-decisions#valkey)) |
+| **MariaDB by default** | A GPL community server with no enterprise edition gating features and no dual licensing to navigate; MySQL stays available as an explicit choice ([guide](https://cipi.sh/guides/laravel-mysql-instead-of-mariadb)) |
+| **No source-available component** | Nothing Cipi installs carries a "no competing service" clause, so you can host clients, sell hosting or build a platform on it |
+
+None of these components is AGPL. Cipi installs them from their official packages and configures them, it doesn't ship modified copies, so running them creates no licence obligation for you as the operator of the server.
+
+## Transparency: you can read what runs as root 
+
+| What you can check | Where |
+| --- | --- |
+| Every command Cipi runs | Bash and PHP in `/opt/cipi/lib` on your server, the same code as on GitHub |
+| Every change between versions | The [changelog](https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md), written to explain *why*, with the tests each release adds |
+| What leaves the server | Nothing by default: no telemetry, no account, no control plane. Alerts and backups go only where you configure them |
+| What the panel and API may do | A sudo allowlist of `cipi` commands (`/etc/sudoers.d/cipi-api`), readable on the server |
+| Who deployed what | A hash-chained [deploy ledger](https://cipi.sh/docs/deploy-audit), copied to syslog |
+| How the server measures up | [`cipi compliance`](https://cipi.sh/docs/compliance), which says plainly what it can't prove |
+
+A closed SaaS panel asks you to trust a dashboard. An open source tool on your own server lets you verify instead.
+
+## Security: why openness helps 
+
+Open source doesn't make software secure by itself. It makes security **checkable**, and it changes who you depend on:
+
+| Property | What it gives you |
+| --- | --- |
+| Auditable | You, your security team or an external auditor can review the code that has root on your servers |
+| Patched upstream | Components come from their official repositories (Ubuntu, nginx.org, packages.sury.org, MariaDB.org), so fixes arrive with the vendor's own release; Cipi applies PHP and stack patches nightly |
+| No vendor in the path | No external control plane to breach, and no outage at a vendor that takes your deploys down |
+| Responsible disclosure | Private vulnerability reports on GitHub, with a [security.txt](https://cipi.sh/.well-known/security.txt) on this site |
+| Reproducible | The same standard packages on every server: what's secure on one is secure on all |
+| No surprise relicensing at the core | MIT for Cipi, permissive or copyleft OSI licences for the stack, no single-vendor source-available component |
+
+## Continuity: if the project stops tomorrow 
+
+| If… | Then |
+| --- | --- |
+| cipi.sh went offline | Your servers keep running: nothing on them calls home. Deploys, backups, renewals and alerts work as before |
+| Development stopped | The last version keeps working; MIT lets anyone fork and maintain it |
+| You want to leave Cipi | The server is standard Ubuntu with standard packages, configs in their usual places. Any sysadmin can take it over |
+
+That's the practical value of a licence nobody can take away, on software that doesn't depend on a service.
+
+## Check your own app 
+
+The same reasoning applies to your Laravel app's dependencies:
+
+```bash
+$ composer licenses                        # every PHP package and its licence
+$ composer licenses --format=json > licences.json
+$ composer require --dev cyclonedx/cyclonedx-php-composer
+$ composer CycloneDX:make-sbom             # a software bill of materials
+```
+
+| Look for | Why |
+| --- | --- |
+| AGPL packages in a SaaS you modify | The network clause may apply to your changes |
+| Source-available packages | Check their restrictions against your business model |
+| "proprietary" or unknown licences | Ask the vendor, or replace them |
+| Abandoned packages | A licence doesn't patch vulnerabilities: combine with [security scanning](https://cipi.sh/guides/laravel-security-checklist) |
+
+
+## Cipi on a VPS, Kubernetes or a managed platform: how to choose
+
+URL: https://cipi.sh/guides/vps-vs-kubernetes-vs-managed-paas
+
+There are four common ways to run a Laravel app in production. They differ less in what the app can do than in **who runs the servers** and **how the bill is built**. This guide compares them, then gives you three tests to decide, with your own numbers, whether a variable bill is worth its premium.
+
+## In 30 seconds 
+
+| If… | Choose |
+| --- | --- |
+| Traffic is fairly steady, you want a fixed bill, root access and no lock-in | **Cipi on a VPS** |
+| Nobody on the team will own a Linux server, or peaks are many times the average, or you need managed failover | **A managed platform** (Laravel Cloud, Ploi Cloud, Sevalla, Render, fortrabbit) |
+| Many services and teams share one platform, and a platform team already runs it | **Kubernetes** |
+| You want a SaaS panel driving your VPS and don't mind a subscription | Forge or Ploi ([comparisons](https://cipi.sh/alternatives)) |
+
+```flow
+Models | who runs what | #models
+Who does what | self vs managed | #responsibilities
+Bills | fixed vs variable | #bills
+Fixed wins | hidden costs | #predictable
+Three tests | your numbers | #tests
+K8s | when it pays | #kubernetes
+Choose | signals, mixes | #choose
+```
+
+## The four models 
+
+| | Cipi on a VPS | SaaS panel + VPS | Managed platform (PaaS) | Kubernetes |
+| --- | --- | --- | --- | --- |
+| **Who runs the servers** | You, with Cipi automating the routine | You, driven by the vendor's panel | The vendor | You (or your platform team), the cloud runs the control plane |
+| **How you pay** | VPS price, fixed. Cipi is free (MIT) | VPS price + subscription | Plan + usage (compute, database, bandwidth, builds…) | Control plane + nodes + load balancers + traffic |
+| **Root access** | Yes | Yes | No | On nodes, if not serverless |
+| **Scaling** | Resize the server, or spread apps over servers | Same | Automatic, sometimes to zero | Automatic, if you configure it |
+| **Laravel specifics** | Built in: releases, queues, Horizon, scheduler, Reverb, Octane | Built in | Built in (Laravel-focused platforms) | You build them: images, workers, CronJobs, migrations |
+| **Lock-in** | None: standard Ubuntu stack, any provider | Low: servers are yours, the panel isn't | Databases, queues and storage are platform resources | Low on the app, high on the platform's YAML and add-ons |
+| **Typical team** | Developers, agencies, small and mid-size companies, internal IT | Same, preferring a hosted UI | Teams that never want to see a server | Organisations with a platform team |
+
+Many managed platforms are Kubernetes underneath (Ploi Cloud, for example, deploys to managed Kubernetes clusters): with a PaaS you pay someone to run that layer for you.
+
+## Self-hosted vs managed: who does what 
+
+"Managed" doesn't mean "nothing to do", and "self-hosted" doesn't mean "do it all by hand". This is the honest split:
+
+| Task | Cipi on a VPS | Managed platform | Kubernetes |
+| --- | --- | --- | --- |
+| OS and security patches | Automatic (unattended-upgrades), reboots when you choose | Vendor | Node images: you or the cloud |
+| PHP, Nginx, database patches | Automatic, nightly, one service at a time | Vendor | You rebuild images |
+| TLS certificates | Automatic (Let's Encrypt) | Vendor | cert-manager, which you install |
+| Backups | Built in: encrypted, verified, off-site | Vendor (check retention and restore options) | You choose and run a tool |
+| Monitoring and alerts | Built in: monitor, health checks, metrics, heartbeat | Vendor dashboards | You install a stack |
+| Scaling | You resize or add servers | Automatic | Automatic, after you tune it |
+| Failover across zones | You plan it (warm standby with `cipi sync`) | Vendor, on higher plans | You design it |
+| Incident at 3 a.m. on the infrastructure | **You** | Vendor (and you, waiting) | **You** |
+| Bugs, slow queries, bad deploys | You | You | You |
+| Security of your code | You | You | You |
+| Cost control | One number | You, through limits and alerts | You, through FinOps |
+
+The rows that stay yours in every column (code, queries, deploys) are where most incidents come from. Managed platforms take away the infrastructure rows; Cipi automates most of the same rows, and leaves the decisions and the pager with you.
+
+## How the bills are built 
+
+A **fixed** bill has one line: the server. Bigger traffic makes the server busier, not the invoice longer.
+
+A **variable** bill multiplies prices by usage. A typical one has a base plan plus: compute per second per replica, database compute and storage, cache, bandwidth per GB, build minutes, log retention, sometimes per-seat fees. Published prices in November 2026, as examples (check the vendors' pages before deciding):
+
+| Platform | How it charges |
+| --- | --- |
+| [Laravel Cloud](https://laravel.com/cloud/pricing) | Starter $5, Growth $20, Business $200 a month, **plus usage**; $5 of usage credit included; scale-to-zero; spending limits per organisation |
+| [Sevalla](https://sevalla.com/pricing/) | Usage-based, from $5 a month; application bandwidth $0.10 per GB |
+| [Ploi Cloud](https://ploi.cloud/pricing) | Usage-based, on managed Kubernetes; managed MySQL/PostgreSQL from €14 a month; object storage €10 per 250 GB |
+| [Amazon EKS](https://aws.amazon.com/eks/pricing/) | $0.10 per cluster per hour (about $73 a month) for the control plane, $0.60 (about $438) on an outdated Kubernetes version; nodes, load balancers and traffic on top |
+| [DigitalOcean Kubernetes](https://docs.digitalocean.com/products/kubernetes/details/pricing) | Control plane free, high availability $40 a month; nodes on top |
+| AWS traffic to the internet | First 100 GB a month free, then $0.09 per GB |
+| **Cipi on a VPS** | The VPS price. Most VPS plans include a terabyte or more of traffic |
+
+Fixed isn't frozen either: [Hetzner raised its cloud prices](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/) twice in 2026. But a VPS price is one number, announced in advance, easy to compare across providers, and Cipi is the same on all of them.
+
+## Why a predictable bill is worth more than it looks 
+
+**You can quote it.** An agency that bills clients a fixed hosting fee turns every variable line into margin risk. A company budget wants one number per year, not a range.
+
+**It grows with you, not with accidents.** A variable bill grows with things you don't choose: an aggressive crawler, a bot pulling your images, a queue job stuck in a retry loop, an autoscaler that reaches its maximum during an attack. On a VPS these make the server slower and fire an alert; on usage billing they also make an invoice. Two terabytes of unexpected traffic at $0.09–0.10 per GB is about $180–200, in one month.
+
+**Spending limits cap the bill, not the cause.** When the cap is reached, the app degrades or stops: the same thing a VPS does when it's full. The difference is that, up to the cap, you paid more per unit of capacity.
+
+**Every decision stops being a pricing decision.** Add a queue worker, keep logs longer, cache more, run a nightly report: on a fixed bill you decide on technical grounds. On a variable bill each choice is also a cost forecast.
+
+**Leaving stays cheap.** A Cipi server is standard Ubuntu with standard packages; another provider is one [`cipi sync`](https://cipi.sh/guides/migrate-server-cipi-sync) away. Once an app depends on a platform's serverless database, managed queues and storage, leaving costs engineering time, and that cost belongs in the comparison.
+
+## Three tests: what must a variable bill buy you? 
+
+Call **F** the fixed monthly cost of the Cipi setup (the VPS sized for your peak, backup storage, maybe a standby server) and **V** your realistic monthly bill on the managed platform, from its own calculator. The **premium** is **P = V − F**. Here's what P has to pay for.
+
+### Test 1 — Time: is it buying hours? 
+
+```text
+break-even hours per month = P ÷ your hourly cost
+```
+
+| Premium P | Hourly cost €60 | Hourly cost €90 |
+| --- | --- | --- |
+| €50 / month | 0.8 h | 0.6 h |
+| €200 / month | 3.3 h | 2.2 h |
+| €500 / month | 8.3 h | 5.6 h |
+
+The managed platform must save you **at least that many hours every month**. Count honestly: on a Cipi server patching, certificate renewals, backups, verification and alerting run by themselves. What's left is reading alerts, the upgrades you decide to do, and incidents. If that's below the break-even, the premium isn't buying time; it's buying comfort, which is fine, as long as you know it.
+
+### Test 2 — Elasticity: do your peaks pay for it? 
+
+You size a VPS for your **peak**; a usage bill charges your **average**. Call **m** the platform's markup: the monthly price of an always-on instance on the platform divided by the price of a VPS with the same vCPU and RAM.
+
+```text
+usage billing is cheaper only when  peak ÷ average  >  m
+```
+
+| Your traffic | Peak ÷ average | Usually cheaper |
+| --- | --- | --- |
+| Business app, office hours | 2–3× | VPS |
+| E-commerce, normal weeks | 2–4× | VPS |
+| Ticket sales, launches, TV spots | 10–50× during the event | Usage billing, or a VPS resized for the event |
+| Side project, idle most of the day | very high (average near zero) | Scale-to-zero, unless it shares a VPS with other apps |
+| Staging and previews | very high | On Cipi they share an existing server at no extra cost |
+
+These are typical shapes; measure yours. `sudo cipi metrics show --app=shop --range=30d` gives the minimum, average and peak of an app's CPU and requests per minute over the last month.
+
+Two corrections make the test fairer. A Cipi server hosts many apps for one price, so compare **per server, not per app**: ten small sites on one VPS have a marginal cost close to zero. And a VPS can be **resized for a known event** and back, which turns a predictable peak into a predictable one-off cost.
+
+### Test 3 — Risk: is it buying availability? 
+
+```text
+justified if  12 × P  ≤  (cost of one hour down) × (hours of downtime it avoids per year)
+```
+
+With P = €200 (€2,400 a year) and an hour of downtime costing you €300, the platform must avoid **8 hours of downtime a year** that you would otherwise have. Compare like with like: single-server commitments from VPS providers commonly sit between 99.5% and 99.99% (Hetzner's is 99.9%, about 8.8 hours a year), so check what the managed platform commits to on the plan you'd actually buy. What changes the number more is your **recovery time**: on Cipi, health checks with automatic rollback undo a bad release in seconds, the [monitor](https://cipi.sh/docs/monitor) and the [heartbeat](https://cipi.sh/docs/metrics#heartbeat) tell you the server is in trouble, and a warm standby fed by `cipi sync` every few hours is a DNS change away.
+
+If your downtime costs thousands per hour and you need multi-zone failover without designing it yourself, test 3 says "managed", and you should listen.
+
+### The verdict 
+
+| A variable bill earns its premium when | Measured as |
+| --- | --- |
+| It saves more hours than it costs | Test 1: hours saved × hourly cost > P |
+| Your peaks are much higher than your average | Test 2: peak ÷ average > m |
+| It avoids downtime you can't avoid otherwise | Test 3: downtime avoided × cost per hour > 12 × P |
+| Nobody can own a server, and you won't hire or contract someone who can | A team decision, not a number |
+
+If none of these holds, the fixed bill wins, usually by a wide margin, and keeps winning as you grow, because a busier server costs the same.
+
+## Kubernetes: when it pays off 
+
+Kubernetes is an excellent platform for running **many services, owned by many teams**, on a shared pool of machines. For a Laravel monolith with queues and a scheduler, most of its value goes unused and most of its cost remains.
+
+| Kubernetes makes sense when | It's overhead when |
+| --- | --- |
+| Dozens of services in several languages | One or a few Laravel or PHP apps |
+| A platform team already runs clusters for the company | The developers would also become the platform team |
+| You need bin-packing and self-healing across many nodes | One or two servers carry the load |
+| Images are built once in CI and promoted unchanged through environments | `git push` and a release folder are enough |
+| A company standard requires it | Nobody asked for it |
+
+What you build yourself for Laravel on Kubernetes: images per release, web and worker Deployments, the scheduler (a CronJob or one replica of `schedule:work`), migrations as a Job before the rollout, sessions and cache in Valkey or Redis, uploads on object storage, Horizon and Reverb processes, ingress and certificates. And what you pay: the control plane where it's billed, at least two or three nodes for availability, load balancers, NAT gateways and traffic on the big clouds, plus regular cluster upgrades to stay on supported versions (Kubernetes ships about three minor versions a year; on EKS a version leaves standard support after 14 months and the cluster fee rises sixfold).
+
+Cipi deliberately doesn't use containers on the server ([why](https://cipi.sh/docs/design-decisions#docker)). If containers are your standard, a self-hosted Docker platform such as [Coolify](https://cipi.sh/alternative-to-coolify) or [Dokku](https://cipi.sh/alternative-to-dokku) is a lighter step than Kubernetes.
+
+## Choose: signals and sensible mixes 
+
+| Signal | Points to |
+| --- | --- |
+| "We need to know the hosting cost for next year" | Cipi on a VPS |
+| "Our customers' data must stay in this country, with this provider" | Cipi on a VPS there |
+| "We run 30 client sites and bill a fixed hosting fee" | Cipi on a few VPSs ([for agencies and hosts](https://cipi.sh/guides/hosting-providers-laravel-whmcs)) |
+| "Nobody here will ever SSH into a server" | Managed platform |
+| "Two days a year we get 40× the traffic" | Managed platform, or Cipi with a planned resize |
+| "We have a platform team and 50 microservices" | Kubernetes, with Laravel apps on it or next to it |
+| "We need a SOC 2 report from our hosting vendor" | Managed platform, or a certified provider for the VPS plus [`cipi compliance`](https://cipi.sh/docs/compliance) evidence for your own controls |
+
+Mixes that work well:
+
+| Mix | Why |
+| --- | --- |
+| Cipi for the app, a managed database for the data | Fixed bill for compute, managed failover and point-in-time restore where it matters most. Point the app's `DB_*` settings at it; its backups are then the database provider's |
+| Cipi for Laravel apps, Kubernetes for the rest of the company | Each tool where it's simplest |
+| Production on Cipi, a second Cipi server as warm standby | Recovery in minutes for the price of one more VPS |
+| Cloudflare in front of Cipi | CDN, cache and DDoS filtering at the edge; with [Zero Trust](https://cipi.sh/guides/cloudflare-zero-trust-laravel) the origin can close its ports |
+
+## What you get with Cipi 
+
+| Advantage | What it means |
+| --- | --- |
+| **Free and open source** | MIT licence, no subscription, no per-server, per-site or per-seat fees ([licences](https://cipi.sh/guides/open-source-licences)) |
+| **A fixed, predictable bill** | One VPS price, whatever the traffic does |
+| **Nothing between you and your server** | No external control plane: nothing stops working if a vendor changes plans or goes down |
+| **Laravel built in** | Zero-downtime releases, rollback, queues, Horizon, scheduler, Reverb, Octane, Meilisearch, health checks with auto-rollback |
+| **Isolation by default** | Each app has its own Linux user, PHP pool, database user and Valkey instance |
+| **Configuration as code** | [`cipi.yml`](https://cipi.sh/cipi-yml) keeps workers, cron, domains and backups in the repository, planned and applied all or nothing |
+| **Security on autopilot** | Nightly PHP and stack patches, firewall, Fail2ban, optional CrowdSec and malware scans, encrypted secrets |
+| **Operations included** | Encrypted, verified backups; monitor, health checks and [metrics](https://cipi.sh/guides/cipi-metrics-server-app-uptime); alerts on Slack, Telegram, e-mail and more |
+| **Evidence for audits** | A hash-chained deploy ledger and [`cipi compliance`](https://cipi.sh/docs/compliance) mapped to ISO 27001 and SOC 2 |
+| **Portable** | Any provider, any region; move with `cipi sync` |
+| **Automation and AI** | CLI, REST API, PHP SDK, cipi-cli and MCP servers with guardrails |
+
+And what you give up, so the comparison stays fair: no autoscaling, no vendor to call at 3 a.m., Ubuntu LTS only, and the server is yours to own.
 
 
 ## Install Cipi on AWS EC2
@@ -10079,6 +10820,224 @@ For the last two, create apps through the API from your signup flow (`POST /api/
 | `a.b.yourapp.com` fails | One-level wildcard only: keep tenants one label deep |
 | Every subdomain shows the same tenant | Middleware reads the wrong part of the host; log `$request->getHost()` |
 | Unknown subdomain shows another site | It can't: unknown hosts are closed by Cipi's default server |
+
+
+## Run Laravel on MySQL instead of MariaDB
+
+URL: https://cipi.sh/guides/laravel-mysql-instead-of-mariadb
+
+MariaDB is Cipi's default and fits most Laravel apps without friction. Some teams need **MySQL itself**: a vendor that only certifies MySQL, parity with a managed MySQL in another environment, or a team standard. Since Cipi 5.13 one command puts MySQL on port 3306 instead, on a server that has no databases yet.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **Port 3306** | Where Laravel's `mysql` driver connects. On a Cipi server it runs MariaDB *or* MySQL, never both |
+| **Engine `mariadb`** | Cipi's name for "the server on port 3306". It keeps that name after a switch, so `--engine=mariadb`, `cipi.yml`, backups and the API don't change |
+| **Switch** | MariaDB's packages removed, MySQL installed with the same root password and Cipi's tuning |
+| **Empty server** | No database, no app and nothing in Cipi's registry on port 3306. The only place a switch runs |
+| **Move** | A server already in use moves its apps to a new, switched server with `cipi sync` |
+
+```flow
+Decide | MySQL, MariaDB or PostgreSQL | #decide
+New server | Ubuntu 26.04, Cipi 5.13.1+ | #server
+Switch | before the first app | #switch
+Check | engines, client, tuning | #check
+Create apps | as usual | #apps
+Existing server | new box + cipi sync | #existing
+Way back | while it's empty | #back
+```
+
+## 1. Decide: MySQL, MariaDB or PostgreSQL 
+
+The two servers grew from the same code and speak the same protocol, so most Laravel apps can't tell them apart. The differences show up in edge features and in operations.
+
+| Stay on MariaDB if | Switch to MySQL if | Look at PostgreSQL if |
+| --- | --- | --- |
+| You have no specific reason to change: it's the default, tuned and tested on every Cipi server | A vendor, an auditor or a contract asks for MySQL by name | You need JSONB, rich indexes (GIN, GiST, partial), `pgvector` or PostGIS |
+| Your app uses `RETURNING`, sequences, or the native `uuid` / `inet6` column types | Another environment runs managed MySQL (RDS, Aurora MySQL, Laravel MySQL) and you want the same engine everywhere | You want one engine for the app, analytics and BI tools |
+| You want features such as the thread pool in the free community server (MySQL keeps its thread pool for the Enterprise edition) | Your team runs MySQL tooling (MySQL Shell, Percona Toolkit) and knows its behaviour | You're starting a new product and can choose freely ([guide](https://cipi.sh/guides/laravel-postgresql)) |
+
+### Differences that matter for a Laravel app 
+
+| Topic | MariaDB | MySQL 8.4 | What to do |
+| --- | --- | --- | --- |
+| `json` columns | An alias of `LONGTEXT` with a `json_valid()` check | A binary JSON type | Nothing for casts and `where('meta->key', …)`: both work. See [moving data](#json) |
+| UUID and IP types | Native `uuid` and `inet6` types | Not available | Laravel's `uuid()` on the `mysql` driver is `char(36)` on both. Only raw SQL or the `mariadb` driver uses the native types |
+| `INSERT … RETURNING`, sequences | Supported | Not supported | Search the code for raw `RETURNING` and `NEXTVAL` before moving |
+| Default `utf8mb4` collation | UCA 14 (`utf8mb4_uca1400_ai_ci`) | `utf8mb4_0900_ai_ci` | Laravel's `config/database.php` sets `utf8mb4_unicode_ci`, which both have. Cipi maps the server defaults on restore |
+| Default authentication | `mysql_native_password` | `caching_sha2_password` | Nothing: PHP's `mysqlnd` supports both |
+| Queue `SKIP LOCKED` | Yes | Yes | The database queue driver works on both |
+
+## 2. Start from a new server 
+
+A switch never converts data, so it belongs at the very beginning of a server's life.
+
+| Choose | Because |
+| --- | --- |
+| **Ubuntu 26.04** | Its archive ships **MySQL 8.4 LTS**. On 24.04 you get 8.0, which Oracle stopped supporting on April 30, 2026; Ubuntu still publishes security updates for it, but a new server should start on the current LTS line |
+| **Cipi 5.13.1 or later** | 5.13.0 could stop silently right after "Checking the MySQL packages…" (nothing was changed). `sudo cipi self-update` if in doubt |
+| **A fresh VPS** | Same sizing as for MariaDB: 2 GB of RAM is comfortable for a few apps. Cipi sizes MySQL's buffer pool from the RAM |
+
+Install Cipi as usual ([VPS, SSH and DNS basics](https://cipi.sh/guides/vps-ssh-dns-basics)):
+
+```bash
+$ wget -O - https://cipi.sh/setup.sh | bash
+```
+
+## 3. Switch before the first app 
+
+Log in as the `cipi` user and look at what runs on port 3306:
+
+```bash
+$ sudo cipi db engines
+$ sudo cipi db switch mysql
+```
+
+The command asks before it touches anything, then goes through these steps:
+
+```flow
+Checks | nothing changes if one fails
+> Cipi verifies that the server has no databases on port 3306, that apt offers a `mysql-server` package, and — with a simulation — that removing MariaDB would remove nothing but its own packages and client libraries (a Perl driver or a monitoring agent that depends on them stops the switch). It also waits if a dump, such as a backup, is running.
+Stop MariaDB | data kept aside
+> MariaDB is stopped and its data directory is moved to `/var/lib/mysql.mariadb-`, not deleted. Its configuration is renamed, not removed.
+Remove MariaDB | packages purged
+> MariaDB's packages are purged (`libmariadb3` stays for anything that links it) and the MariaDB.org apt repository is removed, so it can't offer its own `mysql-common` next to MySQL.
+Install MySQL | same root password
+> MySQL is installed from the Ubuntu archive with the same root password, `caching_sha2_password`, and Cipi's tuning in `/etc/mysql/mysql.conf.d/99-cipi.cnf` (buffer pool sized by RAM, redo log capacity, X protocol on localhost only). Like MariaDB, it is kept out of unattended upgrades.
+Rollback on failure | MariaDB comes back
+> If the removal or the install fails, Cipi puts MariaDB back with its data directory and tells you what failed.
+Record + notify | db_switch
+> The choice is recorded, the action logged, and a `db_switch` notification goes to your channels.
+```
+
+In a provisioning script there is no terminal to confirm on, so the switch refuses to run without `--yes`:
+
+```bash
+$ wget -O - https://cipi.sh/setup.sh | SSH_PUBKEY="ssh-ed25519 AAAA… ops" bash
+$ cipi db switch mysql --yes
+```
+
+> [!warning] The switch is refused, on purpose, on a server that already has a database, an app or a registry entry on port 3306. The message lists what it found. Don't delete apps to get past it: use [step 6](#existing).
+
+## 4. Check the result 
+
+```bash
+$ sudo cipi db engines           # "Port 3306 runs MySQL (engine id: mariadb)"
+$ sudo cipi db engines --json    # "server": "mysql" for the engine "mariadb"
+$ mysql --version
+$ sudo cat /etc/mysql/mysql.conf.d/99-cipi.cnf
+```
+
+| Where | You should see |
+| --- | --- |
+| `cipi db engines` | `mariadb  installed  3306  *`, then *Port 3306 runs MySQL* |
+| `cipi service list` | The MySQL unit, watched by the [monitor](https://cipi.sh/docs/monitor) |
+| Web panel | *MySQL* on the server's databases tab |
+| `/var/lib/mysql.mariadb-` | The old (empty) MariaDB data directory. Remove it once you're happy: `sudo rm -rf /var/lib/mysql.mariadb-*` |
+
+## 5. Create apps as usual 
+
+Nothing in the app workflow changes. The default engine is still `mariadb`, which now means MySQL:
+
+```bash
+$ sudo cipi app create --user=shop --domain=shop.example.com \
+    --repository=git@github.com:acme/shop.git --branch=main --php=8.5
+```
+
+| Thing | Value on a MySQL server |
+| --- | --- |
+| `.env` | `DB_CONNECTION=mysql`, `DB_HOST=127.0.0.1`, `DB_PORT=3306`, its own user and password |
+| TablePlus / DBeaver URL | `mysql+ssh://…` (printed at creation and by `cipi credentials`) |
+| `cipi.yml` databases | `engine: mariadb`, or leave it out |
+| Backups, `cipi db backup/restore`, `cipi db password` | Same commands; the MySQL client does the work |
+| Patching | `cipi db upgrade` and the nightly [autoupdate](https://cipi.sh/docs/stack-upgrades) follow MySQL's packages |
+| Port | Localhost only. Connect over SSH; never open 3306 to the internet |
+
+Run the test suite against MySQL in CI too, so you find engine differences before production does:
+
+```yaml
+# .github/workflows/tests.yml (excerpt)
+services:
+  mysql:
+    image: mysql:8.4
+    env: { MYSQL_DATABASE: testing, MYSQL_ROOT_PASSWORD: secret }
+    ports: ["3306:3306"]
+    options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+# then run the tests with DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_DATABASE=testing DB_USERNAME=root DB_PASSWORD=secret
+```
+
+## 6. Move a server that already runs apps 
+
+The data is never converted in place: a dump can't carry everything (MariaDB's `uuid`/`inet6` types, sequences, SQL only one server understands), and what it drops would surface later, in your apps. So a server in use moves the way any app moves on Cipi: to a new server.
+
+```flow
+Test in CI | your app on MySQL 8.4
+> Run the test suite against MySQL (the workflow above) and fix what fails. Search for raw `RETURNING`, `NEXTVAL`, `uuid`/`inet6` columns and MariaDB-only functions.
+New server | 26.04, switched first
+> Create a new VPS with Ubuntu 26.04, install Cipi, run `sudo cipi db switch mysql` and install the PHP versions your apps use (`sudo cipi php install 8.4`).
+Trust | old → new
+> On the new server: `sudo cipi sync trust`, pasting the key printed by `sudo cipi sync pubkey` on the old one.
+Push | apps, data, storage
+> On the old server: `sudo cipi sync push --host=NEW_IP --with-db --with-storage --import`. Dumps are adapted on the way in (see below).
+Test | with your hosts file
+> Point your domain at the new IP in `/etc/hosts` on your laptop only, and test logins, orders, queues and e-mails.
+Cut over | DNS, then SSL
+> Final sync, switch DNS, then `sudo cipi ssl install ` for each app. Keep the old server stopped but intact for a week: it's your way back.
+```
+
+```bash
+# new server
+$ sudo cipi db switch mysql
+$ sudo cipi php install 8.4
+$ sudo cipi sync trust                    # paste the key from the old server
+# old server
+$ sudo cipi sync pubkey
+$ sudo cipi sync push --host=203.0.113.20 --with-db --with-storage --import
+# new server, after DNS points to it
+$ sudo cipi ssl install shop
+```
+
+### What happens to the dumps on the way in 
+
+| In the dump | Restored into MySQL as |
+| --- | --- |
+| MariaDB's sandbox line (`/*M!999999\- enable the sandbox mode */`), which the MySQL client refuses | Dropped |
+| UCA 14 collations (`utf8mb4_uca1400_*`) | The matching MySQL `0900` collations |
+| Rows of data | Untouched |
+
+The same filter works in the other direction: a MySQL dump restored into MariaDB gets its `0900` collations mapped to UCA 14. It applies to `cipi db restore`, `cipi sync` and restores from [backups](https://cipi.sh/guides/backup-vps-s3).
+
+### JSON columns after the move 
+
+A column created as `json` on MariaDB is a `LONGTEXT` with a check, and a dump carries it that way: on MySQL it stays a text column. Laravel's `json`/`array` casts and JSON `where` clauses keep working. If you want MySQL's binary JSON type, convert the column in a migration after the move, on a quiet moment and with a fresh backup:
+
+```php
+Schema::table('orders', function (Blueprint $table) {
+    $table->json('meta')->nullable()->change();
+});
+```
+
+## 7. The way back 
+
+| Situation | How |
+| --- | --- |
+| Switched, no database created yet | `sudo cipi db switch mariadb`: same checks, same steps, the other way round |
+| Apps already on MySQL | Move them to a MariaDB server with `cipi sync`, as in step 6 |
+| Moved from an old server last week | Point DNS back at the old server you kept. Data written since the move has to be copied back |
+
+## Troubleshooting 
+
+| Message | Fix |
+| --- | --- |
+| *MariaDB → MySQL runs only on a server with no databases on port 3306* | The server is in use. Move the apps to a new, switched server ([step 6](#existing)) |
+| *Replacing the database server is never implicit* | No terminal to confirm on: add `--yes` |
+| *No mysql-server package available from apt* | Run `sudo apt-get update` and check `apt-cache policy mysql-server`: a source list is missing or broken. Nothing was changed |
+| *Removing MariaDB would also remove: …* | Another package depends on MariaDB's client libraries. Remove it first, or stay on MariaDB. Nothing was changed |
+| *A database dump is running* | A backup is in progress. Try again when `sudo cipi backup status` shows it finished |
+| Stops after "Checking the MySQL packages…" with no message | Cipi 5.13.0: `sudo cipi self-update` to 5.13.1 or later and run it again |
+| `cipi db install mysql` doesn't switch | By design: `install` never replaces a server. Use `cipi db switch mysql` |
+| App says `Access denied` after a move | `sudo cipi db password ` sets a new password in the database and `.env` together |
 
 
 ## Laravel Octane with FrankenPHP on your own server
@@ -13665,6 +14624,205 @@ See [Web panel](https://cipi.sh/web-panel), [API](https://cipi.sh/api) and [MCP]
 | Panel can't reach the API | Check `cipi api status`; tokens and URL in the panel settings |
 
 
+## Cipi metrics explained: server, application and uptime
+
+URL: https://cipi.sh/guides/cipi-metrics-server-app-uptime
+
+Cipi watches a server at three levels. The **server**: is the machine healthy? Each **application**: is this app healthy, and is it the one causing trouble? **Uptime**: can its URL be reached, and how fast does it answer? On top sits a timeline of **events**: deploys, incidents, alerts. This article explains what each number means, how it's measured, and how to use them together.
+
+## Three layers, one timeline 
+
+| Layer | Question | Recorded |
+| --- | --- | --- |
+| **Server** | Is the machine healthy? | CPU, load, memory, swap, disk, network |
+| **Application** | Is this app healthy, and is it the noisy neighbour? | CPU and memory of its processes, PHP-FPM pool usage, requests, 5xx, queue workers |
+| **Uptime** | Can it be reached, and how fast? | Status code and response time of its health URL, every minute |
+| **Events** | What changed, and when? | Releases with their health verdict, monitor alerts and recoveries, incidents, heartbeat failures |
+
+```flow
+How | one cron | #how
+Server | the machine | #server
+Apps | each app | #app
+Uptime | every minute | #uptime
+Events | what changed | #events
+Playbook | read together | #playbook
+Outside | Prometheus, API | #outside
+```
+
+Metrics and alerts are separate on purpose. The [monitor](https://cipi.sh/docs/monitor) and the [health checks](https://cipi.sh/docs/health-checks) decide when to wake you up; metrics only record. Every state change of a monitor check is also written as an event, so the history explains the alert.
+
+## How it's collected 
+
+```stack
+Cron, every minute | /etc/cron.d/cipi-metrics
+Read | /proc, one ps, new access-log lines, supervisorctl
+Probe | each app's health URL
+Write | one SQLite transaction
+Store | /var/lib/cipi-metrics/metrics.db (root, 0600)
+```
+
+About 0.2 seconds of CPU per minute. Nothing listens on a port, nothing leaves the server. Compared with a Prometheus server and exporters on every VPS, that's hundreds of megabytes of RAM saved on the small machines most Cipi servers are; if you already run Prometheus, [scrape Cipi](#prometheus) instead.
+
+```bash
+$ sudo cipi metrics status        # collector, database size, retention
+$ sudo cipi metrics               # now, last hour, uptime per app
+```
+
+## Server metrics 
+
+| Metric | What it means | Worry when |
+| --- | --- | --- |
+| **CPU %** | Share of all cores busy | Sustained near 100%: requests queue behind each other |
+| **Load (1 min)** | Processes running or waiting for CPU or disk | Above the number of cores for long; the monitor alerts at 4× the cores for two runs in a row |
+| **Memory % and MB** | RAM in use, without cache | High *and* swap rising |
+| **Swap %** | Memory pushed to disk | Any steady growth on a PHP server: too many FPM children or workers for the RAM |
+| **Disk % of `/`** | The root filesystem | The monitor warns at 80% and goes critical at 90%; `cipi disk` says who uses it |
+| **Network in / out** | Bytes per second | Sudden outbound spikes: a crawler, a big export, or something that shouldn't be there |
+
+Load and CPU together tell a story: high load with low CPU usually means processes are **waiting for disk**, not computing. On a database-heavy app, look at the slow queries before buying a bigger server.
+
+## Application metrics 
+
+| Metric | How it's measured | Read it as |
+| --- | --- | --- |
+| **CPU** | CPU time of the app user's processes between two minutes, as % of **one core** | 100% = one core fully busy. FPM masters run as root and aren't counted; Octane and Node processes are |
+| **Memory** | Sum of the resident memory of its processes | An upper bound: pages PHP-FPM children share are counted once per child. Watch the trend |
+| **PHP-FPM children** / `pm.max_children` | Workers of the app's pool, against its cap | Close to the cap at peak is fine; at the cap is not |
+| **Hit `max_children`** | How many times the pool reached its cap in the minute | **The most useful number for "the site is slow"**: requests waited for a free worker |
+| **Requests / min** | New lines in the app's Nginx access log | Traffic, per minute |
+| **5xx / min** | Responses 500–599 in the same lines | Errors your users saw |
+| **Queue workers** | Programs running, against programs configured | Running  [!info] The probe runs **on the server**. It sees a broken release, a dead database or an expired certificate, but not a DNS mistake or a network outage between your users and the server. For that, the [heartbeat](#heartbeat) and an external monitor complete the picture.
+
+## Events 
+
+| Event | Source |
+| --- | --- |
+| Release live, with its post-deploy health verdict | Every deploy, from the CLI, the panel, a webhook or CI |
+| Monitor state change | `ok → warn/critical`, escalations, recoveries |
+| Healthcheck incident | Opened and closed |
+| Heartbeat failure | A call to your heartbeat URL that didn't go through |
+
+```bash
+$ sudo cipi metrics events --range=7d
+$ sudo cipi metrics events --source=deploy
+```
+
+In the panel, events are the dotted vertical lines on every chart: blue for releases, red for incidents, green for recoveries. Most investigations start by asking "what was the last marker before the line went up?".
+
+## Read them together: a playbook 
+
+| Symptom | Look at | Likely cause | Next step |
+| --- | --- | --- | --- |
+| 5xx jump right after a release marker | App 5xx, events | The release | `sudo cipi deploy shop --rollback`, then read `cipi app logs shop --type=laravel` |
+| Site slow, app CPU high, pool at the cap | App CPU, `max_children` hits | CPU-bound code or a traffic spike | Compare requests/min with last week; profile; resize if it's real traffic |
+| Site slow, app CPU low, pool at the cap | `max_children` hits, server load | Workers waiting on the database or an API | Slow query log, timeouts on outgoing calls |
+| Memory climbs for days, swap grows | App memory, server swap | Too many workers for the RAM, or a leaking worker | Fewer workers (`cipi app limits --worker-procs`); let leaking workers restart (`maxJobs` / `maxTime` in Horizon, `--max-jobs` / `--max-time` on `queue:work`) |
+| Queue workers below configured | Queue workers | A worker crashing on start | `cipi app logs shop --type=worker` |
+| Uptime red, server and app metrics normal | Healthcheck status code | A dependency the health URL checks, or the certificate | Open the URL; `cipi health check shop` |
+| One app's CPU high, others slow | Every app's CPU on the server tab | A noisy neighbour | Limits: `cipi app limits` ([docs](https://cipi.sh/docs/limits)), or move it with `cipi sync` |
+| Gap in every chart | Nothing recorded | The server was down or rebooting | Check the heartbeat service's history and `uptime` |
+| Disk % climbing steadily | Server disk | Logs, local backups, uploads | `sudo cipi disk`, then [exclude big folders](https://cipi.sh/guides/exclude-files-from-backups) from local backups |
+
+## Retention and size 
+
+| Data | Default | Range |
+| --- | --- | --- |
+| Every minute | 7 days | `--raw=1d` … `90d` |
+| Average and peak per 15 minutes | 30 days | `--rollup=` up to `400d` (never shorter than raw), `--resolution=5m` … `60m` |
+| Events | 90 days | `--events=7d` … `730d` |
+
+```bash
+$ sudo cipi metrics retention
+$ sudo cipi metrics retention --raw=14d --rollup=180d --resolution=30m
+```
+
+About 2 MB per app per week of minutes, and a third of that per month of rollups: 20–30 MB for ten apps on the defaults. Charts always ask for about 240 points, whatever the range: minutes inside the raw window, rollups beyond it. That's why a 30-day chart shows averages **and** peaks: a one-minute spike stays visible.
+
+## Outside the server 
+
+### Heartbeat: for the day the server goes quiet 
+
+A server that's down can't send an alert. The heartbeat calls a URL of yours every N minutes; when the calls stop, the service on the other end alerts you.
+
+```bash
+$ sudo cipi metrics heartbeat set https://hc-ping.com/ --every=1
+$ sudo cipi metrics heartbeat test
+```
+
+Works with Healthchecks.io, Uptime Kuma (push monitor), Better Stack heartbeats, Cronitor or your own endpoint. Set the receiver's period to the interval plus a few minutes of grace.
+
+### Prometheus and Grafana 
+
+If you already run Prometheus, turn on OpenMetrics: the latest values on their own port, behind an IP allowlist and a bearer token.
+
+```bash
+$ sudo cipi metrics openmetrics on --allow=203.0.113.50 --port=9273
+$ sudo cipi metrics openmetrics token --show
+```
+
+```yaml
+# prometheus.yml
+- job_name: cipi-production
+  scrape_interval: 60s
+  authorization: { credentials:  }
+  static_configs: [{ targets: ['203.0.113.10:9273'] }]
+```
+
+| Server | Each app (`{app="shop"}`) |
+| --- | --- |
+| `cipi_host_cpu_percent`, `cipi_host_load1` | `cipi_app_cpu_percent`, `cipi_app_memory_rss_megabytes`, `cipi_app_processes` |
+| `cipi_host_memory_percent`, `cipi_host_memory_used_megabytes`, `cipi_host_swap_percent` | `cipi_app_fpm_children`, `cipi_app_fpm_max_children`, `cipi_app_fpm_max_children_reached` |
+| `cipi_host_disk_percent` | `cipi_app_requests_per_minute`, `cipi_app_http_5xx_per_minute` |
+| `cipi_host_network_receive_bytes_per_second`, `cipi_host_network_transmit_bytes_per_second` | `cipi_app_healthcheck_up`, `cipi_app_healthcheck_status_code`, `cipi_app_healthcheck_duration_milliseconds` |
+| `cipi_metrics_collected_timestamp_seconds` | `cipi_app_workers_up`, `cipi_app_workers_total` |
+
+Example alert rules built on them:
+
+```yaml
+groups:
+  - name: cipi
+    rules:
+      - alert: AppDown
+        expr: cipi_app_healthcheck_up == 0
+        for: 3m
+      - alert: PoolSaturated
+        expr: cipi_app_fpm_max_children_reached > 0
+        for: 10m
+      - alert: Many5xx
+        expr: cipi_app_http_5xx_per_minute > 20
+        for: 5m
+      - alert: WorkerMissing
+        expr: cipi_app_workers_up  300
+```
+
+> [!warning] The endpoint is plain HTTP: keep it on a private network or a tunnel (WireGuard, Tailscale). `0.0.0.0/0` is refused, and the panel API can't turn it on, because it opens a port.
+
+### The panel, the API, the SDK and AI assistants 
+
+| Interface | What |
+| --- | --- |
+| [Web panel](https://cipi.sh/docs/gui-overview) 4.3+ | A Metrics tab per server and per app: charts from 1 hour to 30 days with markers, hover details, 30-day uptime bars, the events timeline, retention and heartbeat settings. Refreshes every 30 seconds while open |
+| [REST API](https://cipi.sh/docs/api) | `GET /api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`; abilities `metrics-view`, `metrics-manage` |
+| [PHP SDK](https://cipi.sh/docs/php-sdk) | `$cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d')` |
+| [cipi-cli](https://cipi.sh/docs/cli-client) | `cipi-cli metrics`, `metrics show --app shop`, `metrics uptime` |
+| [MCP](https://cipi.sh/docs/mcp) | Ask your assistant *"when did the 5xx on shop start, and what was deployed just before?"* |
+
+## What metrics don't do 
+
+| Need | Use |
+| --- | --- |
+| Alerts | The [monitor](https://cipi.sh/docs/monitor), [health checks](https://cipi.sh/docs/health-checks) and [notifications](https://cipi.sh/guides/server-monitoring-alerts) |
+| Slow routes, queries and jobs inside the app | Laravel Pulse or Telescope |
+| Exceptions with stack traces | An error tracker such as [Boogle](https://cipi.sh/guides/boogle-laravel-monitoring) |
+| Uptime seen from the internet | An external monitor, plus the heartbeat |
+| Long-term history across a fleet | Prometheus or Grafana, scraping OpenMetrics |
+
+```bash
+$ sudo cipi metrics probe off     # stop the per-minute probe (the 5-minute check stays)
+$ sudo cipi metrics disable       # stop collecting, keep the history
+```
+
+
 ## Cloudflare in front of Laravel, explained: DNS, proxy, SSL modes and wildcards
 
 URL: https://cipi.sh/guides/cloudflare-proxy-ssl-wildcard
@@ -13826,6 +14984,273 @@ Git webhooks hit `/cipi/webhook` on your domain: don't challenge that path.
 | Login loops, 419 errors | Laravel thinks it's on HTTP | `trustProxies`, `APP_URL=https://…`, `config:cache` |
 | Every visitor has the same IP | Real IP not configured | Step 6 |
 | Webhook deploys fail | Bot protection challenges `/cipi/webhook` | Skip rule for that path |
+
+
+## Exclude files and folders from backups
+
+URL: https://cipi.sh/guides/exclude-files-from-backups
+
+A nightly backup should take minutes, not hours. When one app keeps hundreds of gigabytes of uploads or videos, archiving them every night makes runs slow, buckets expensive and restores painful. Since Cipi 5.13 a backup profile can **leave paths out** of the app archives, from the CLI, from `cipi.yml`, from your laptop or from the panel.
+
+## Key ideas, in plain words 
+
+| Term | Meaning |
+| --- | --- |
+| **App archive** | `files.tar.gz` per app per run. A Laravel app's `shared/` folder (`.env`, `storage/`, uploads); a custom app's `htdocs/` |
+| **Profile** | What to back up, how often, where and for how long. Exclusions belong to a profile |
+| **Exclude pattern** | A path relative to the app, or a wildcard: `storage/app/uploads`, `*.mp4` |
+| **Per-app pattern** | `shop:storage/app/uploads`: only for the apps named (or matched by a glob) before the colon |
+| **`meta.json`** | Travels with each archive and lists `excluded_paths`, so a restore knows what is missing |
+
+```flow
+Find | what's heavy | #find
+Patterns | what matches | #choose
+CLI | --exclude-paths | #cli
+Dry run | see it first | #dry-run
+cipi.yml | per app | #in-cipi-yml
+Keep safe | rsync, S3 | #keep-safe
+Restore | and check | #restore
+```
+
+## 1. Find what makes the archives heavy 
+
+```bash
+$ sudo cipi disk                                   # apps, largest first
+$ sudo du -sh /home/shop/shared/storage/app/* | sort -h | tail
+$ sudo cipi backup list --profile=nightly          # the runs a profile has kept
+```
+
+`cipi disk` shows files and database per app; `du` tells you which folder inside `shared/` is the big one. Usual suspects:
+
+| Folder | Typical content | Exclude? |
+| --- | --- | --- |
+| `storage/app/uploads`, `storage/app/public` | User uploads, media library | Yes, **if** they're copied elsewhere ([step 7](#keep-safe)) |
+| `*.mp4`, `*.mov`, `*.zip` | Videos, exports, archives | Yes, if they're kept elsewhere or can be produced again |
+| `storage/framework/cache` | File cache | Yes: rebuilt on demand |
+| `storage/logs` | `laravel.log` | Usually yes: logs are rotated on the server and better shipped to a log service |
+| `storage/app/livewire-tmp` | Livewire temporary uploads | Yes |
+| `storage/debugbar`, `storage/clockwork` | Debug data | Yes |
+| `wp-content/cache`, `wp-content/ai1wm-backups`, `wp-content/updraft` | WordPress caches and *plugins' own* backups | Yes |
+| `.env` | Configuration and `APP_KEY` | **Never** |
+
+## 2. Write patterns that match what you mean 
+
+Patterns are matched against the names **inside the archive**, which start with `shared/` (Laravel and Node apps) or `htdocs/` (custom apps). You write them relative to the app; Cipi takes care of the rest.
+
+| Rule | Example | Leaves out |
+| --- | --- | --- |
+| Relative to the app | `storage/app/uploads` | `shared/storage/app/uploads` and everything in it |
+| Custom apps too | `wp-content/uploads` | `htdocs/wp-content/uploads` |
+| Matched after any `/` | `storage/logs` | Any `…/storage/logs`, at any depth |
+| Wildcards cross `/` | `*.mp4` | Every `.mp4`, in every folder |
+| Wildcards inside a path | `storage/app/*/cache` | `storage/app/tenant1/cache`, `storage/app/tenant2/cache`… |
+| Some apps only (CLI) | `shop:storage/app/uploads`, `api-*:*.csv` | Only in `shop`; only in apps whose name starts with `api-` |
+| Refused | `/home/shop/shared/…`, `*`, `shared`, `htdocs` | Absolute paths match nothing; the last three would leave the whole app out |
+
+> [!warning] Short, generic names catch more than you think. `cache` leaves out **every** folder called `cache`, including one your users upload into. Prefer the full path: `storage/framework/cache`. Patterns are case-sensitive.
+
+Allowed characters: letters, digits, `.`, `_`, `-`, `/`, `@`, `+`, spaces, `*`, `?` and `[ ]`. At most 255 characters per pattern.
+
+## 3. Exclude in a server-wide profile 
+
+Server profiles are yours, the operator's. Set exclusions when you create a profile or edit it later:
+
+```bash
+$ sudo cipi backup profile add nightly --scope=all --cron='0 2 * * *' --keep-days=14 \
+    --dest=s3 --encrypt --exclude-paths='storage/framework/cache,storage/logs'
+$ sudo cipi backup profile edit nightly \
+    --exclude-paths='storage/framework/cache,storage/logs,shop:storage/app/uploads,*.mp4'
+$ sudo cipi backup profile show nightly
+```
+
+> [!tip] `--exclude-paths` **replaces** the list. To add one pattern, pass the old ones again; to take everything again, empty it: `--exclude-paths=`.
+
+A common layout keeps databases frequent and complete, and files lighter:
+
+```bash
+# every 30 minutes, databases only: nothing to exclude
+$ sudo cipi backup profile add db-30m --scope=db --every=30m --keep=48 --dest=local,s3 --encrypt \
+    --exclude-tables='*.jobs,*.failed_jobs,*.telescope_*'
+# nightly files, without the heavy media kept elsewhere
+$ sudo cipi backup profile add files-nightly --scope=files --cron='30 2 * * *' --keep-days=30 \
+    --dest=s3 --encrypt --exclude-paths='storage/app/uploads,storage/framework/cache,storage/logs,*.mp4'
+# weekly full copy, uploads included, kept longer
+$ sudo cipi backup profile add weekly-full --scope=all --cron='0 4 * * 0' --keep-weeks=8 --dest=offsite --encrypt
+```
+
+The weekly full copy is the safety net: even if your uploads sync breaks silently, there is a recent archive with everything.
+
+## 4. Check with a dry run 
+
+Before the next scheduled run, ask the profile what it would do:
+
+```bash
+$ sudo cipi backup run --profile=nightly --dry-run
+```
+
+```text
+Backup profile 'nightly' (all, 2026-11-24_101500)
+  Would archive files for 3 app(s):
+    shop (shared; leaving out storage/framework/cache,storage/logs,storage/app/uploads,*.mp4)
+    blog (htdocs; leaving out storage/framework/cache,storage/logs,*.mp4)
+    api (shared; leaving out storage/framework/cache,storage/logs,*.mp4)
+  Would dump 3 database(s):
+    shop (mariadb)
+    blog (mariadb)
+    api (pgsql)
+  Destinations: s3 (encrypted)
+```
+
+The real run prints the same "leaving out" list for each app, in the terminal and in the backup log. Then confirm that nothing is left unprotected:
+
+```bash
+$ sudo cipi backup run --profile=nightly
+$ sudo cipi backup status        # also flags apps and databases no profile covers
+$ sudo cipi backup verify --deep
+```
+
+## 5. Let the app declare its exclusions in cipi.yml 
+
+An app can own its backup profiles in [`cipi.yml`](https://cipi.sh/cipi-yml), next to its workers and schedule. `exclude_paths` is a list:
+
+```yaml
+# cipi.yml (app "shop")
+backup:
+  profiles:
+    # frequent, cheap: databases only
+    - name: shop-db
+      scope: db
+      every: 30m
+      keep: 48
+      exclude_tables: ["*.jobs", "*.failed_jobs", "*.telescope_*"]
+      destinations: [local, s3]
+      encrypt: true
+
+    # nightly: .env and storage, without what is kept elsewhere
+    - name: shop-nightly
+      scope: all
+      cron: "0 2 * * *"
+      keep_days: 14
+      exclude_paths: ["storage/app/uploads", "storage/framework/cache", "storage/logs", "*.mp4"]
+      destinations: [s3]
+      encrypt: true
+```
+
+A WordPress site deployed as a custom app writes paths relative to `htdocs/`:
+
+```yaml
+# cipi.yml (custom app "blog")
+backup:
+  profiles:
+    - name: blog-nightly
+      scope: all
+      cron: "15 2 * * *"
+      keep_days: 30
+      exclude_paths: ["wp-content/cache", "wp-content/ai1wm-backups", "wp-content/updraft", "*.log"]
+      destinations: [s3]
+      encrypt: true
+```
+
+Per environment, a staging copy rarely needs the uploads at all ([staging and production](https://cipi.sh/guides/cipi-yml-staging-production)):
+
+```yaml
+# cipi-staging.yml (app "shop-stg"; this file doesn't inherit from cipi.yml)
+backup:
+  profiles:
+    - name: shop-stg-nightly
+      scope: all
+      every: 1d
+      keep: 3
+      exclude_paths: ["storage/app", "storage/logs"]
+      destinations: [local]
+```
+
+Then plan and apply, as with any `cipi.yml` change:
+
+```bash
+$ sudo cipi yml validate shop   # parse and check, change nothing
+$ sudo cipi yml plan shop       # what would change
+$ sudo cipi yml apply shop
+$ sudo cipi yml generate shop   # the app's current setup as a file, exclude_paths included
+```
+
+| cipi.yml rule | Why |
+| --- | --- |
+| Profile names are `` or `-*` | A repository can't change another app's backups |
+| No `app:` prefix in patterns | The file already belongs to one app |
+| `*`, `shared`, `htdocs` and absolute paths refused | *"would leave the whole app out of its backup"* / *"invalid pattern"*: the plan stops before applying |
+| At most 10 profiles per app | Keeps the schedule readable |
+
+## 6. From your laptop, the API or the panel 
+
+Same field, same validation, wherever you edit it:
+
+```bash
+$ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
+$ cipi-cli backup profile edit nightly --exclude-paths ""     # take everything again
+$ cipi-cli backup status
+```
+
+| Interface | Where |
+| --- | --- |
+| [cipi-cli](https://cipi.sh/docs/cli-client#backup) | `backup profile add|edit --exclude-paths` |
+| [REST API](https://cipi.sh/docs/api) | Backup profile fields, ability `backups-manage` |
+| [Web panel](https://cipi.sh/docs/gui) | Server → Backups → profile form (cipi/gui 4.5+) |
+
+S3 secrets are never set this way: destinations are added on the server.
+
+## 7. Keep the excluded folders safe 
+
+Excluding a folder from the archive is not the same as not protecting it. Pick one of these for every excluded folder that holds data you can't recreate:
+
+| Option | Good for | How |
+| --- | --- | --- |
+| **Object storage from the start** | New apps, media libraries | Store uploads on an S3 disk (`FILESYSTEM_DISK=s3`) with bucket versioning; the server keeps no copy. Your own bucket: [Johnny](https://cipi.sh/guides/johnny-s3-storage) |
+| **rsync to another server** | Large folders that change a little every day | Only changes travel; see below |
+| **rclone to a bucket** | Off-site copies without a second server | `rclone sync` to any S3-compatible bucket with versioning on |
+| **The weekly full profile** | A safety net for all of the above | [Step 3](#cli) |
+
+An hourly `rsync` of the uploads folder to a backup host, as root on the Cipi server:
+
+```bash
+# /etc/cron.d/shop-uploads
+15 * * * * root rsync -aH --partial -e "ssh -i /root/.ssh/uploads_backup" \
+  /home/shop/shared/storage/app/uploads/ backup@203.0.113.30:shop/uploads/ >> /var/log/shop-uploads-rsync.log 2>&1
+```
+
+Leave `--delete` out unless the target keeps snapshots: without it, a file deleted by mistake on the server survives on the backup host. With `rclone`, turn on versioning on the bucket and use `rclone sync … --backup-dir` for the same reason.
+
+> [!info] Whatever you choose, test it: download one file from the copy and open it. A copy that has stopped working looks exactly like one that works until the day you need it.
+
+## 8. Restore, knowing what is missing 
+
+```bash
+$ sudo cipi backup list --profile=nightly
+$ sudo cipi backup fetch nightly 2026-11-24_020000 --dest=/root/restore
+$ jq .excluded_paths /root/restore/apps/shop/meta.json
+[
+  "storage/app/uploads",
+  "storage/framework/cache",
+  "storage/logs",
+  "*.mp4"
+]
+$ sudo cipi db restore shop /root/restore/databases/mariadb/shop.sql.gz
+$ tar -xzf /root/restore/apps/shop/files.tar.gz -C /tmp/restore-files
+```
+
+Then bring the excluded folders back from where you keep them (`rsync` from the backup host, `rclone copy` from the bucket) and fix ownership with `sudo cipi app fix-permissions shop`. Caches and logs need nothing: they are written again as the app runs.
+
+## Troubleshooting 
+
+| Problem | Fix |
+| --- | --- |
+| *Invalid --exclude-paths entry* | An absolute path, a character outside the allowed set, or a pattern that would leave the whole app out. Write it relative to the app |
+| Nothing is left out | The pattern doesn't match a name in the archive. Check case and spelling, then `--dry-run` |
+| Too much is left out | A short name (`cache`, `tmp`) matched folders you wanted. Use the full path |
+| I added a pattern and lost the others | `--exclude-paths` replaces the list: pass all of them |
+| `cipi.yml` plan refuses `shop:…` | The prefix is CLI-only; in `cipi.yml` write the bare pattern |
+| `cipi yml plan` says the profile name is invalid | It must be the app's name or start with it: `shop`, `shop-nightly` |
+| Archives are still big | Check the database side too: `--exclude-tables` for logs, jobs and Telescope tables |
 
 
 ## Free, privacy-friendly website analytics with IndieStats

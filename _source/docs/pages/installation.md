@@ -57,10 +57,10 @@ On AWS, log in as `ubuntu` and run `sudo -s` first. The installer then:
 
 ### Unattended install {#unattended}
 
-Pass the key in `SSH_PUBKEY` (several keys: one per line). Without a terminal the installer asks nothing.
+Pass the key in `SSH_PUBKEY` (several keys: one per line). Without a terminal the installer asks nothing. Set the variable on `bash`, the side of the pipe that runs the installer (or `export` it first): placed before `wget`, only `wget` would see it.
 
 ```bash
-$ SSH_PUBKEY="ssh-ed25519 AAAA..." wget -O - https://cipi.sh/setup.sh | bash
+$ wget -O - https://cipi.sh/setup.sh | SSH_PUBKEY="ssh-ed25519 AAAA..." bash
 ```
 
 ## What the installer secures {#hardening}
