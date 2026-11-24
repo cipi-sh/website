@@ -1,10 +1,10 @@
 ---
 title: Laravel queues and Horizon in production
-description: Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never run old code, failed jobs, alerts and cipi.yml.
+description: Queues explained from zero, then everything for production on your own server: what a worker is, adding and scaling queues under Supervisor, timeouts and retries, switching to Horizon on Valkey, protecting the dashboard, deploys that never wait for a long job, failed jobs, alerts and cipi.yml.
 category: laravel
 order: 5
 published: 2026-04-15
-updated: 2026-11-23
+updated: 2026-11-24
 howto: yes
 keywords: laravel horizon production, laravel queue worker supervisor, laravel queue vps, laravel horizon nginx, queue:work timeout retry_after, laravel failed jobs production
 docs:
@@ -19,7 +19,7 @@ related:
   - notifications-alerts
 faq:
   - Workers or Horizon? | Plain workers are enough for a few queues. Horizon adds a dashboard, metrics, auto-balancing between queues and tagged job search, and needs the queues on Redis (Valkey). One or the other per app, not both.
-  - Do workers run old code after a deploy? | No. Cipi stops them before the release swap and restarts them on the new code, so no job runs old code against a migrated database.
+  - Do workers run old code after a deploy? | Only the job they already had in hand. Since Cipi 5.13.0 workers keep running during the deploy; after the release swap each one finishes its job and restarts on the new code. Keep migrations backward compatible for one release.
   - My job takes 20 minutes and gets killed. | Laravel kills a job after 60 seconds unless the job says otherwise: set `public $timeout = 1500;` on it, give its worker a `--timeout` at least as long, and set `retry_after` in `config/queue.php` higher, or it may be picked up twice.
   - Where do failed jobs go? | The `failed_jobs` table. List them with `cipi app artisan shop queue:failed`, retry with `queue:retry all`. Horizon shows them in the dashboard.
   - How many processes should I run? | Start with 1–2 per queue and watch the wait time. Each process uses about the memory of one request (often 50–150 MB). Horizon can scale between a min and max for you.
@@ -173,15 +173,15 @@ For extra safety, [basic auth](/docs/basic-auth) or [Zero Trust](/guides/cloudfl
 ## 6. Deploys don't break jobs {#deploys}
 
 ```flow
-Stop workers | before the swap
-> During a deploy, workers stop first and finish their current job.
+Build & migrate | workers keep running
+> While the new release is built and migrated, workers keep processing jobs on the live code. The deploy never waits for a long job.
 Swap release | atomic
 > The new release goes live in one atomic switch.
-Restart workers | on the new code
-> Workers start again on the new code.
+Restart workers | after the job in hand
+> Each worker (and Horizon) gets SIGTERM, finishes the job it is running and exits; Supervisor starts it again on the new code.
 ```
 
-Workers stop gracefully: the running job finishes first, up to the worker's `--timeout`. Jobs dispatched by the old code must still work with the new code, so don't rename a job class or change its constructor in the same deploy that removes the old one.
+A job that was running when the deploy started finishes on the old code, after the migrations have run: keep migrations backward compatible for one release (add a column, deploy, use it in the next release). Jobs dispatched by the old code must still work with the new code, so don't rename a job class or change its constructor in the same deploy that removes the old one. Before Cipi 5.13.0 workers were stopped before the swap, and a long job could make the deploy fail after 300 seconds ([#536](https://github.com/cipi-sh/cipi/issues/536)).
 
 ## 7. Get alerted {#alerts}
 

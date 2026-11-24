@@ -57,6 +57,7 @@ $ cipi backup profile add nightly --scope=all --cron='0 2 * * *' --keep-days=14 
 | `--scope=all\|files\|db` | What to take |
 | `--apps`, `--databases`, `--exclude-databases` | Glob patterns; tenant databases created at runtime are found too |
 | `--exclude-tables` | Skip noisy tables (`*.jobs`, `*.telescope_*`) |
+| `--exclude-paths` | Leave folders or files out of the app archives (`storage/app/uploads`, `*.mp4`) — [below](#exclude-paths) |
 | `--every=30m\|6h\|1d` or `--cron='…'` | Schedule |
 | `--dest=local,s3,<name>` | Where to send it |
 | `--keep=N`, `--keep-days=N`, `--keep-weeks=N` | Retention |
@@ -69,6 +70,26 @@ $ cipi backup profile remove hourly-db [--purge]   # --purge also deletes its ru
 ```
 
 Apps can declare their own profiles in [cipi.yml](/docs/yml) (named `<app>` or `<app>-*`); server-wide profiles stay yours.
+
+### Leave big folders out {#exclude-paths}
+
+A terabyte of uploads is better kept with `rsync` (or on object storage) than archived every night. Since 5.13.0 a profile can leave paths out of the app archives:
+
+```bash
+$ cipi backup profile edit nightly --exclude-paths='storage/app/uploads,*.mp4'
+$ cipi backup run --profile=nightly --dry-run    # what each app leaves out
+$ cipi backup profile edit nightly --exclude-paths=    # everything again
+```
+
+| Rule | Detail |
+| --- | --- |
+| Relative to the app | `storage/app/uploads` leaves out `shared/storage/app/uploads`; `wp-content/uploads` a custom app's `htdocs/wp-content/uploads` |
+| Patterns | tar wildcards, which also match across `/`: `*.mp4` is every video, `storage/app/*/cache` any such folder |
+| Some apps only | `<apps>:<pattern>`, with an app name or a glob: `shop:…`, `api-*:…` |
+| Refused | Absolute paths (they would match nothing) and the whole app (`*`, `shared`, `htdocs`) |
+| Recorded | Each archive's `meta.json` lists `excluded_paths`, so a restore knows what comes back from elsewhere |
+
+Also as `exclude_paths` in a profile of [cipi.yml](/docs/yml), in the [web panel](/docs/gui) and over the [API](/docs/api#endpoints-databases).
 
 ## 3. Encryption {#encryption}
 
@@ -104,7 +125,7 @@ $ tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files
 ```tree
 <destination>/cipi/<profile>/<YYYY-MM-DD_HHMMSS>/
 ├── manifest.json
-├── apps/myapp/files.tar.gz        # + meta.json
+├── apps/myapp/files.tar.gz        # + meta.json (excluded_paths, if any)
 └── databases/mariadb/myapp.sql.gz
 ```
 
@@ -117,6 +138,7 @@ Files and databases are stored separately, so a database restores without unpack
 | `destination test` fails | Wrong endpoint, region or key permissions on the bucket |
 | Profile overdue | `cipi backup status` names it; check disk space and the run log |
 | Can't open an encrypted archive | You need the backup key from `cipi backup key show` (store it off-server) |
+| Archives too big, runs too slow | Leave large uploads or media out with [`--exclude-paths`](#exclude-paths) and sync them with `rsync` |
 
 ## Questions {#questions}
 

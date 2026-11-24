@@ -4,7 +4,7 @@ description: How Cipi's two deploy modes work, side by side, with an honest verd
 category: laravel
 order: 17
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-24
 howto: no
 keywords: laravel push to deploy vs ci, laravel deploy webhook or github actions, laravel auto deploy vs pipeline, cipi agent webhook, laravel continuous deployment self-hosted
 related:
@@ -192,5 +192,5 @@ Then remove the deploy job from your pipeline (keep the tests: they still protec
 | Push doesn't deploy (agent mode) | Wrong branch, or no webhook: `cipi git status`, then `cipi app webhook recreate shop` |
 | 404 on `/cipi/webhook` | The agent isn't deployed yet: `sudo cipi deploy shop` once after adding it |
 | Two deploys per push | Turn the webhook off for the app that uses a pipeline |
-| "Deploy locked" in CI | Limit your CI to one deploy at a time; if nothing runs, `sudo cipi deploy shop --unlock` |
+| *A deploy of 'shop' is running* in CI | Limit your CI to one deploy at a time and keep one trigger per app; a stale lock is removed by the next deploy (Cipi 5.13.0+) |
 | Pipeline green, site broken | Add the health check step from the [recipes](/docs/ci-pipelines#recipes) |

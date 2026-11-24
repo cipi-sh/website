@@ -60,7 +60,7 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Apps & domains | `app_create`, `app_edit`, `app_delete`, `app_suspend`, `alias_*`, `www_*`, `redirect_change`, `proxy_change`, `basicauth_*` |
 | Updates | `self_update`, `php_upgrade`, `nginx_upgrade`, `mariadb_upgrade`, `pgsql_upgrade`, `valkey_upgrade`, `node_upgrade`, `composer_upgrade`, `frankenphp_upgrade`, `pending_report` |
 | Config | `ini_set`, `app_jit`, `yml_apply`, `yml_fail`, `yml_post_fail`, `node_default` |
-| Other | SSL, PHP, database, workers, services, search, packages, sync, API and password-reset events |
+| Other | SSL, PHP, database (`db_switch` when [MariaDB and MySQL](/docs/databases#mysql) are swapped), workers, services, search, packages, sync, API and password-reset events |
 
 `cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. Since 5.12.0, `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
 

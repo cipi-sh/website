@@ -773,10 +773,28 @@ $ cipi app env myapp --show [--json]
 $ cipi app env myapp --get=APP_URL
 $ cipi app env myapp --set=APP_DEBUG=false
 $ cipi app env myapp --unset=LEGACY_KEY
+$ cipi app env myapp --order=APP_NAME,APP_ENV,…   # every key once (5.13.0+)
 $ cipi worker restart myapp                   # after changing queue or cache drivers
 ```
 
 Deploys cache the config, so rebuild it after a change: `cipi app artisan myapp config:cache` (or deploy). Workers and Octane also need `cipi worker restart myapp`. Also via REST (`GET|PUT /api/apps/{name}/env`) and MCP. Custom apps have no `.env`.
+
+## Reorder 
+
+`--order` puts the keys in the order you list (Cipi 5.13.0+). The list names **every key once**; anything else is refused and the file is left as it was. It runs after `--set`/`--unset` in the same call, so a new key can go straight where it belongs:
+
+```bash
+$ cipi app env myapp --set=SENTRY_DSN=… --order=APP_NAME,…,LOG_CHANNEL,SENTRY_DSN,…
+```
+
+| What moves with a key | |
+| --- | --- |
+| Its line(s), untouched | Value, quotes, `export` |
+| Comments right above it | They describe the key, so they follow it |
+| A blank line that started a group | Stays in front of the key that started it |
+| The file's header and tail | Stay first and last |
+
+The [web panel](#in-the-panel) does the same by dragging rows, the [CLI client](https://cipi.sh/docs/cli-client) with `cipi-cli apps env order myapp DB_HOST DB_PORT --after APP_URL`, the [PHP SDK](https://cipi.sh/docs/php-sdk) with `env()->reorder()`, the API with `order` on `PUT /api/apps/{name}/env`.
 
 ## What Cipi writes 
 
@@ -785,7 +803,7 @@ Deploys cache the config, so rebuild it after a change: `cipi app artisan myapp 
 | `APP_KEY` | Generated once at creation |
 | `APP_URL` | The domain; switched to `https://` by `cipi ssl install` |
 | `APP_ENV`, `CIPI_ENV` | The environment label (`production` by default) |
-| `DB_CONNECTION` | `mysql` (MariaDB) or `pgsql` |
+| `DB_CONNECTION` | `mysql` (MariaDB or [MySQL](https://cipi.sh/docs/databases#mysql)) or `pgsql` |
 | `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | The app's own database credentials |
 | `CACHE_STORE`, `SESSION_DRIVER`, `QUEUE_CONNECTION` | `database`: isolated per app |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | The app's own Valkey instance, ready when you switch drivers |
@@ -801,7 +819,7 @@ Your own keys (Stripe, mail, APIs) go anywhere in the file and are never overwri
 
 ## In the web panel 
 
-Edit the `.env` with secrets masked and changes tracked. The [web panel](https://cipi.sh/docs/gui) is optional; everything here also works from the CLI.
+Edit the `.env` with secrets masked and changes tracked, and drag rows by their handle (or use ↑/↓ on it) to reorder them: the new order is saved with your other changes (panel 4.5+, Cipi 5.13.0+). The [web panel](https://cipi.sh/docs/gui) is optional; everything here also works from the CLI.
 
 ## Common problems 
 
@@ -867,15 +885,15 @@ A Horizon you disabled stays disabled. `cipi pending` lists apps with Horizon in
 ## During deploys 
 
 ```flow
-Stop workers | before the symlink swap
-> Before the new release goes live, workers stop. Each finishes the job it's running (up to its `--timeout`).
+Build & migrate | workers keep running
+> While the new release is built and migrated, Horizon and the workers keep processing jobs on the live release. A deploy never waits for a long job.
 Swap release | atomic
 > The release switches in one atomic step.
-Restart workers | on the new code
-> Workers start again and only ever see the new code with the new database schema.
+Restart workers | after the job in hand
+> Horizon and the queue workers get SIGTERM: each finishes the job it is running and exits, and Supervisor starts it again on the new release. Octane and Reverb are restarted; a program that was not running is started.
 ```
 
-Workers never run old code against a new database. Supervisor restarts a worker only after an unexpected exit. Workers can also be declared in [cipi.yml](https://cipi.sh/docs/yml).
+Since 5.13.0 nothing stops before the swap: before, a deploy waited for every running job and could fail after 300 seconds with Horizon left in `STOPPING` ([#536](https://github.com/cipi-sh/cipi/issues/536)). The flip side is that jobs taken before the swap run on the previous release, also after the migrations: keep migrations backward compatible for one release (add a column, deploy, then use it). Supervisor restarts a worker after any exit. Workers can also be declared in [cipi.yml](https://cipi.sh/docs/yml).
 
 ## As the app user 
 
@@ -892,7 +910,8 @@ $ sudo cipi-worker restart myapp
 | --- | --- |
 | Jobs never run | No worker on that queue, or `QUEUE_CONNECTION=redis` without Horizon |
 | Job killed after 60 s | Set `public $timeout` on the job and raise `retry_after` |
-| Workers run old code | `cipi worker restart myapp` (deploys do it automatically) |
+| Workers run old code | A long job started before the deploy finishes on the old release; the worker then restarts on the new one. Otherwise `cipi worker restart myapp` |
+| Horizon stuck in `STOPPING` after a deploy | Cipi before 5.13.0: `sudo cipi self-update`; deploys no longer wait for running jobs |
 
 ## Questions 
 
@@ -1125,7 +1144,7 @@ Put any app behind a username and password at the Nginx level: staging sites, in
 ```bash
 $ cipi basicauth enable myapp                          # generates credentials, shown once
 $ cipi basicauth enable myapp --user=client --password='…'
-$ cipi basicauth status myapp
+$ cipi basicauth status myapp [--json]       # --json: enabled, users, agent (5.13.0+)
 $ cipi basicauth disable myapp
 $ cipi basicauth agent myapp protected     # keep cipi/agent behind it too (default: public)
 ```
@@ -1163,6 +1182,7 @@ Not to be confused with `cipi auth`, which manages Composer credentials for priv
 | Does the health check pass behind basic auth? | No: the healthcheck URL gets 401 like any visitor. Point it at a public URL, or remove it while the site is protected. |
 | Can I keep it in the repository? | Yes, in [cipi.yml](https://cipi.sh/docs/yml) under `app.basic_auth`, with names or bcrypt hashes, never plain passwords. |
 | Where do I see the generated password? | It's shown once by `enable`. Run `enable` again with `--user` and `--password` to set new ones. |
+| The panel's Access tab shows `[1mBasic auth — app[0m ━━━ Status …` | Cipi 5.11–5.12 exited with an error after printing the status of an app without cipi/agent, and the API passed the raw output on. Fixed in Cipi 5.13.0 (`sudo cipi self-update`); panel 4.5 also reads it right from an older server. |
 
 
 ## Artisan, commands & logs
@@ -1280,7 +1300,7 @@ Both modes end in the same place: the same pipeline, the same lock, the same [au
 Trigger | push, CI, CLI, panel, API, MCP
 > Something asks for a deploy: a `git push` through the webhook, a CI job, `cipi deploy` on the server, the web panel, the REST API or an AI assistant through MCP. From here on, all of them take exactly the same path.
 Lock | one deploy at a time
-> Cipi takes the app's deploy lock. If another deploy is already running, the new one waits or stops with a clear "locked" message: two deploys never write the same release.
+> Cipi takes the app's deploy lock. If another deploy is already running, a push waits in the queue and deploys right after it, while a deploy asked by hand stops at once with a clear message: two deploys never write the same release.
 Build release | clone, Composer, assets
 > A new folder under `releases/` gets the code of the deploy branch, its Composer packages and, if you set a build command, its front-end assets. The live site is not touched yet: if anything fails here, **nothing is published** and the previous release keeps serving.
 Migrate | optional DB snapshot first
@@ -1353,14 +1373,15 @@ Recipes for every popular CI are in [CI/CD pipelines](https://cipi.sh/docs/ci-pi
 | A live URL per branch | Pipeline mode | [Preview environments](https://cipi.sh/docs/preview-environments) |
 | Fast staging, careful production | Agent mode on staging, pipeline on production | [Guide: agent vs pipeline](https://cipi.sh/guides/agent-vs-pipeline-deploys) |
 
-> [!warning] **One trigger per app.** If the webhook and a pipeline both react to the same push, the second deploy hits the lock and fails. When you move an app to pipeline mode, turn its webhook off in the Git provider (GitHub: **Settings → Webhooks**, untick **Active**).
+> [!warning] **One trigger per app.** If the webhook and a pipeline both react to the same push, you get two deploys of it — or a red pipeline, when it asks while the webhook's deploy is running. When you move an app to pipeline mode, turn its webhook off in the Git provider (GitHub: **Settings → Webhooks**, untick **Active**).
 
 ## Common problems 
 
 | Problem | Cause | Fix |
 | --- | --- | --- |
 | Two deploys for one push | Webhook and pipeline both active | Turn the webhook off for that app |
-| "Deploy locked" | A deploy is already running, or one was interrupted | `cipi deploy shop --status`; if nothing runs, `cipi deploy shop --unlock` |
+| *A deploy of 'shop' is running* | Another deploy is in flight | `cipi deploy shop --status`; retry when it ends (pushes wait in the queue by themselves) |
+| A push did not deploy | The same commit failed before and is [paused](https://cipi.sh/docs/deploying#paused) | Push a fix, or `cipi deploy shop` |
 | CI green, old code live | The pipeline queued a deploy through the webhook and didn't wait | Use SSH or the API when CI must know the result |
 | Webhook was removed and came back | `cipi git refresh` re-creates webhooks | Turn it off again after a refresh |
 
@@ -1370,7 +1391,8 @@ Recipes for every popular CI are in [CI/CD pipelines](https://cipi.sh/docs/ci-pi
 | --- | --- |
 | Does CI upload my code to the server? | No. The server always pulls from Git with its own read-only deploy key. CI only says when. |
 | Can I deploy a specific commit or tag? | Cipi deploys the tip of the app's branch. To ship a tag, point a release branch at it and deploy that branch. |
-| What if two deploys start at once? | The lock lets one run; the other waits or stops with a message. `cipi deploy shop --status` shows what is running. |
+| What if two deploys start at once? | The lock lets one run. A push that arrives meanwhile is queued and deploys after it; a deploy asked by hand stops with a message. `cipi deploy shop --status` shows what is running. |
+| Does a failed deploy block the next push? | No. The failed commit is [paused](https://cipi.sh/docs/deploying#paused) so a retry doesn't build it again, but any new commit deploys. |
 | Can I see who deployed? | `cipi deploy shop --audit` lists every deploy with its origin (webhook, CLI, panel, API), the operator and the IP. See [Deploy audit](https://cipi.sh/docs/deploy-audit). |
 | How do I go back? | `cipi deploy shop --rollback` switches to the previous release in a second. Migrations are not undone. |
 | Do I need the agent for pipeline mode? | No. The agent is needed only for push to deploy in Laravel apps (and for its health, MCP and anonymizer endpoints). |
@@ -1385,8 +1407,6 @@ A deploy builds the new release next to the live one and switches traffic with a
 ## The pipeline 
 
 ```flow
-Stop workers | no old code on new data
-> Queue workers stop first (each finishes its current job), so no job runs old code against a database the new release is about to migrate.
 Clone | into releases/N
 > The repository is cloned into a new folder, `releases/`. The live release is untouched and keeps serving visitors.
 Composer | --no-dev, app's PHP
@@ -1398,10 +1418,12 @@ Migrate & optimize | migrate --force, optimize
 Swap | current → releases/N
 > The `current` link switches to the new folder in one atomic step. Requests before the switch got the old code; requests after get the new one. None fail.
 Restart & verify | workers, health check
-> Workers start again on the new code. With a health check set, Cipi probes the site and can roll back automatically.
+> Horizon and the queue workers finish the job in hand and start again on the new code; Octane and Reverb reload. With a health check set, Cipi probes the site and can roll back automatically.
 ```
 
 Deployer and Composer always use **the app's PHP version**, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a [front-end build](https://cipi.sh/docs/manage-apps#edit) run it before the swap.
+
+Workers are not stopped before the swap (since 5.13.0): the deploy never waits for a long job, and jobs keep running on the previous release until it is live. Write migrations the previous release can live with for a minute — add columns before using them, drop them a release later — as you would for any zero-downtime deploy. See [workers during deploys](https://cipi.sh/docs/workers#deploys).
 
 ## Commands 
 
@@ -1418,7 +1440,7 @@ Deployer and Composer always use **the app's PHP version**, whatever started the
 | `cipi deploy myapp --snapshot` | Dump the database first ([safe deploy](https://cipi.sh/docs/safe-deploy)) |
 | `cipi deploy myapp --rollback-on-unhealthy` | Undo the release if the [health check](https://cipi.sh/docs/health-checks) fails |
 | `cipi deploy myapp --key` / `--webhook` | Show the deploy key / webhook URL and token |
-| `cipi deploy myapp --unlock` | Clear the lock of an interrupted deploy |
+| `cipi deploy myapp --unlock` | Clear the lock of an interrupted deploy now, and resume a [paused commit](#paused) |
 | `cipi deploy myapp --trust-host=git.example.com:2222` | Trust a self-hosted Git server |
 
 ## Know whether it worked 
@@ -1438,10 +1460,29 @@ The success notice is sent only **after** the post-deploy health check, so it ne
 | --- | --- |
 | `running` | Building (`deploy`) or verifying (`post-deploy`); shows trigger, branch and elapsed time |
 | `queued` | A push arrived; the deploy starts within a minute |
-| `interrupted` | The process died (reboot, kill); clear with `--unlock` |
+| `interrupted` | The process died (reboot, kill); the next deploy removes the lock it left |
 | `idle` | Nothing running; shows how the last run ended |
 
-A failed deploy releases its own lock; only an interrupted one needs `--unlock`.
+`--status` also shows **Paused** when a commit's automatic deploy failed ([below](#paused)); `--status --json` has it as `paused_commit`.
+
+A failed deploy releases its own lock, and since 5.13.0 the lock of an interrupted one is removed by the next deploy, automatic or by hand, when no deploy of the app is alive (the deploy log says so). `--unlock` is only for clearing it right away.
+
+## Pushes during a deploy 
+
+A push that arrives while the app is deploying is **queued, not lost**: it deploys as soon as the running deploy is over, post-deploy steps and health check included. Several pushes in the meantime make one deploy, of the branch as it is then. `cipi deploy myapp` by hand while a deploy runs stops at once with *A deploy of 'myapp' is running* (exit 1), before touching anything.
+
+## A commit that fails is paused 
+
+When an automatic deploy (webhook, agent retry) fails with the code in hand — Composer, a migration, the build — Cipi pauses **that commit**: a redelivered webhook or a retry does not build it again (`===== deploy skipped … commit= …` in the deploy log). Everything else keeps moving:
+
+| What happens next | Result |
+| --- | --- |
+| You push a fix (a new commit) | Deploys as usual and clears the pause |
+| `cipi deploy myapp` or the panel's **Deploy now**, and it succeeds | Clears the pause |
+| `cipi deploy myapp --unlock` | Clears the pause: the next push or webhook may build the same commit again |
+| The failure happened before the code was fetched (SSH, disk, Deployer) | Nothing is paused: it is not the commit's fault |
+
+The failure alert names the paused commit; `cipi deploy myapp --status` shows it as **Paused**, and the [web panel](https://cipi.sh/docs/gui) shows it above the app's tabs with *Deploy now* and *Resume automatic deploys*.
 
 ## In the web panel 
 
@@ -1452,7 +1493,8 @@ Deploy, follow the release and read the audit from the browser. The [web panel](
 | Problem | Fix |
 | --- | --- |
 | `Permission denied (publickey)` | Deploy key missing on the repository: `cipi deploy myapp --key` |
-| Deploy locked | A previous deploy was interrupted: `cipi deploy myapp --status`, then `--unlock` |
+| *A deploy of 'myapp' is running* | One is in flight: `cipi deploy myapp --status`. A push waits in the queue by itself |
+| A push did not deploy | The same commit failed before and is [paused](#paused): push a fix, or `--unlock` to let it build again |
 | Composer fails on PHP version | Align `--php` with what `composer.lock` needs |
 | Migration fails | The old release keeps serving; fix the migration and deploy again |
 
@@ -1461,6 +1503,7 @@ Deploy, follow the release and read the audit from the browser. The [web panel](
 | Question | Answer |
 | --- | --- |
 | Does a failed deploy take the site down? | No. The new release goes live only after every step succeeded. |
+| Do I have to unlock after a failure? | No. A failed deploy releases its lock, an interrupted one is cleared by the next deploy, and a new push deploys even after a failed commit. |
 | How do I go back? | `cipi deploy myapp --rollback`, instant. |
 | Are migrations rolled back too? | No: rollback restores code. Use a [pre-deploy snapshot](https://cipi.sh/docs/safe-deploy) for data. |
 
@@ -1587,7 +1630,7 @@ Verify & queue | signature, branch; answers 200 at once
 Cron, within a minute | starts the deploy as the app user
 > A cron job checks for triggers every minute and starts the deploy as the app's own Linux user, never as root.
 Deploy | the normal zero-downtime pipeline
-> From here it's a normal deploy: new release, Composer, migrations, atomic swap, workers restarted. You get the usual notification.
+> From here it's a normal deploy: new release, Composer, migrations, atomic swap, workers restarted. You get the usual notification. A push that arrives during a deploy waits for it; a commit whose deploy failed is not retried by itself.
 ```
 
 The webhook only drops a trigger file; it never runs the deploy itself. That keeps the HTTP answer instant (providers time out after ~10 s) and the deploy in the same safe context as `cipi deploy`.
@@ -1644,7 +1687,8 @@ It queues the deploy and answers at once; it doesn't wait for the result. When a
 | 404 | Agent not deployed yet | `cipi deploy myapp` after adding `cipi/agent` |
 | 403, invalid signature | Secret mismatch | Copy the token from `cipi deploy myapp --webhook` again |
 | 200 but no deploy | Another branch was pushed | Check `CIPI_DEPLOY_BRANCH` |
-| Lock error | An interrupted deploy | `cipi deploy myapp --unlock` |
+| Push queued, deploys later | A deploy was running | Nothing: it deploys when that one ends (`cipi deploy myapp --status` says *queued*) |
+| 200 but the same commit doesn't deploy again | It failed before and is [paused](https://cipi.sh/docs/deploying#paused) | Push a fix, or `cipi deploy myapp` |
 | Two deploys per push | Webhook and pipeline both active | Keep [one trigger](https://cipi.sh/docs/how-deploys-work) |
 
 ## Common problems 
@@ -2156,7 +2200,7 @@ cipi-cli eu deploy shop && cipi-cli us deploy shop
 | `Host key verification failed` | `SERVER_KNOWN_HOSTS` is empty or from another server | Save it again with `ssh-keyscan` and compare the fingerprint |
 | `sudo: a terminal is required` | The SSH user isn't `cipi` | Connect as `cipi@…`, the user allowed to run `sudo cipi` without a password |
 | Every push deploys twice | The webhook is still active | [Turn it off](#webhook-off) |
-| "Deploy locked" | Two pipelines at once, or an interrupted deploy | Add a concurrency limit; if nothing is running, `sudo cipi deploy shop --unlock` |
+| *A deploy of 'shop' is running* | Two pipelines at once, or a webhook deploy in flight | Add a concurrency limit and keep one trigger per app; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
 | `401` or `403` from the API | Token expired, wrong ability, or IP not allowed | `cipi api token list`; ability `deploy-manage`; `cipi api ip-whitelist show` |
 | cipi-cli "timed out after polling" | The build takes more than about nine minutes | The deploy continues on the server: `cipi-cli prod deploy status shop` |
 | Azure task fails on a good deploy | `failOnStdErr` is on | Set `failOnStdErr: false` |
@@ -2364,7 +2408,7 @@ A rollback switches code only: database migrations stay as they are. See [Deploy
 | `Permission denied (publickey)` | The CI key isn't authorized on the server | `sudo cipi ssh add ""` |
 | Deploy stage skipped | Not a Multibranch job, so `branch 'main'` never matches | Use a Multibranch Pipeline, or remove the `when` line |
 | Two deploys per push | The Cipi webhook is still active | [Turn it off](#webhook-off) |
-| "Deploy locked" | Two builds at once or an interrupted deploy | Keep `disableConcurrentBuilds()`; if nothing runs, `sudo cipi deploy shop --unlock` |
+| *A deploy of 'shop' is running* | Two builds at once, or a webhook deploy in flight | Keep `disableConcurrentBuilds()`; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
 
 ## Questions 
 
@@ -2634,6 +2678,7 @@ backup:
   profiles:                        # names: myapp or myapp-*
     - { name: myapp-db, scope: db, every: 30m, keep: 48, destinations: [local] }
     - { name: myapp-nightly, scope: all, cron: "0 2 * * *", keep_days: 14, destinations: [s3], encrypt: true }
+    - { name: myapp-files, scope: files, every: 6h, keep: 8, destinations: [s3], exclude_paths: [storage/app/uploads] }  # 5.13.0+
 ```
 
 | Section | Same as | Notes |
@@ -2649,7 +2694,7 @@ backup:
 | `ssl.force_https` | `cipi ssl force` | Can only be turned on from the file |
 | `env.required` | | A missing variable blocks the plan |
 | `crons` | | Allowlisted runners only; your other cron lines are untouched |
-| `backup.profiles` | [cipi backup](https://cipi.sh/docs/backups) | The file owns the profiles it created |
+| `backup.profiles` | [cipi backup](https://cipi.sh/docs/backups) | The file owns the profiles it created; `exclude_paths` ([5.13.0+](https://cipi.sh/docs/backups#exclude-paths)) is validated like `--exclude-paths` |
 
 ## Routes: www, basic auth, redirects, proxies 
 
@@ -4091,14 +4136,14 @@ Runtimes live in `/opt/cipi/node/` behind an atomic symlink per major, so `cipi 
 
 URL: https://cipi.sh/docs/databases
 
-Each Laravel app gets its own database and user, so no app can read another's data. MariaDB is the default; PostgreSQL can be added and chosen per app or per database.
+Each Laravel app gets its own database and user, so no app can read another's data. MariaDB is the default; PostgreSQL can be added and chosen per app or per database, and port 3306 can run [MySQL instead of MariaDB](#mysql).
 
 ## Engines 
 
 ```bash
 $ cipi db install pgsql             # add PostgreSQL next to MariaDB
 $ cipi db default mariadb|pgsql     # default when --engine is omitted
-$ cipi db engines
+$ cipi db engines [--json]          # which server runs on 3306, too
 $ cipi db uninstall pgsql           # destroys its data: asks first
 ```
 
@@ -4108,6 +4153,27 @@ $ cipi db uninstall pgsql           # destroys its data: asks first
 | Installed | Always | `cipi db install pgsql` |
 | Laravel `DB_CONNECTION` | `mysql` | `pgsql` |
 | Why choose it | [Design decisions](https://cipi.sh/docs/design-decisions#why-mariadb) | [Design decisions](https://cipi.sh/docs/design-decisions#why-postgresql) |
+
+## MySQL instead of MariaDB 
+
+MariaDB stays the default. Since 5.13.0, a server can run **MySQL** on port 3306 instead — only as an explicit choice, from the command line, and **only on a server with no databases on 3306 yet**:
+
+```bash
+$ cipi db switch mysql            # asks first (--yes in scripts)
+$ cipi db engines                 # mariadb  running  3306  MySQL
+$ cipi db switch mariadb          # back, on the same terms
+```
+
+| | |
+| --- | --- |
+| When | No database, no app and nothing in the registry on 3306. The data is never converted: no in-place upgrade exists between the two, and what a dump can't carry (MariaDB's `uuid`/`inet6` types, sequences, SQL only one of them understands) would surface later, in your apps |
+| Which MySQL | From the Ubuntu archive: 8.0 on 24.04 (security fixes backported by Ubuntu), 8.4 LTS on 26.04. No extra repository or key |
+| Checked first | A `mysql-server` package is available, and removing MariaDB would remove nothing but its own packages and client libraries. Otherwise nothing changes |
+| What it does | Stops MariaDB, keeps its data directory aside (`/var/lib/mysql.mariadb-`), purges it, installs MySQL with the same root password (`caching_sha2_password`) and Cipi's tuning (`/etc/mysql/mysql.conf.d/99-cipi.cnf`). If the install fails, MariaDB comes back with its data |
+| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
+| Not in the panel or API | Replacing a database server is an operator decision; the [panel](https://cipi.sh/docs/gui) shows *MySQL* where it runs. A `db_switch` [notification](https://cipi.sh/docs/notifications) is sent |
+
+**A server already in use** moves the way an app moves anywhere: a new server, `cipi db switch mysql` there before its first app, then [`cipi sync`](https://cipi.sh/docs/sync). The old server stays as it was, which is your way back. Dumps cross between the two: restoring into MySQL drops MariaDB's sandbox line and maps its UCA 14 collations to MySQL's `0900` ones (and back into MariaDB); rows are never touched.
 
 ## Databases 
 
@@ -4122,7 +4188,7 @@ $ cipi db password myapp                      # new password, .env updated
 $ cipi db delete analytics
 ```
 
-Each database has its own user and password. Linking is a label: a linked database is listed with its app (in the CLI and the panel) and is **kept** when the app is deleted; only a Laravel app's own database goes with it. Connect from TablePlus or DBeaver with the `mariadb+ssh://` URL shown at creation: no database port is ever exposed.
+Each database has its own user and password. Linking is a label: a linked database is listed with its app (in the CLI and the panel) and is **kept** when the app is deleted; only a Laravel app's own database goes with it. Connect from TablePlus or DBeaver with the `mariadb+ssh://` URL (`mysql+ssh://` on MySQL) shown at creation: no database port is ever exposed.
 
 ## Restores you can trust 
 
@@ -4161,6 +4227,7 @@ Every database on every server, with backup, restore and password rotation. The 
 | Question | Answer |
 | --- | --- |
 | MariaDB or PostgreSQL? | Both supported; see [Laravel on PostgreSQL](https://cipi.sh/guides/laravel-postgresql). |
+| Can I use MySQL? | Yes, in place of MariaDB on a new server: `cipi db switch mysql` before the first app ([above](#mysql)). MariaDB stays the default. |
 | Can I open the database port? | Avoid it; use SSH tunnels. If you must, allow one IP with `cipi firewall allow 3306 --from=…`. |
 | Need a copy without personal data? | [Anonymized dumps](https://cipi.sh/guides/anonymized-database-dumps). |
 
@@ -4296,7 +4363,7 @@ $ cipi service upgrade valkey [--yes]
 | --- | --- |
 | `nginx` | Web server |
 | `php` or `php8.6-fpm` | All PHP-FPM versions, or one |
-| `mariadb`, `postgresql` (`pgsql`) | Databases |
+| `mariadb` (or `mysql`, where [`cipi db switch mysql`](https://cipi.sh/docs/databases#mysql) ran), `postgresql` (`pgsql`) | Databases |
 | `valkey-server` (`redis`, `valkey`) | Shared Valkey |
 | `supervisor` | Workers, Octane, Horizon, Reverb |
 | `fail2ban` | Brute-force protection |
@@ -4362,7 +4429,7 @@ Security patches for the whole stack, without surprise restarts. Ubuntu's unatte
 | --- | --- | --- |
 | Ubuntu (kernel, libraries…) | unattended-upgrades | Daily |
 | PHP | [cipi php upgrade](https://cipi.sh/docs/php#security) | Daily, 03:30 |
-| Nginx, MariaDB, PostgreSQL, Valkey, Node.js, Composer, FrankenPHP | `cipi autoupdate` | Nightly, 04:20 |
+| Nginx, MariaDB (or MySQL), PostgreSQL, Valkey, Node.js, Composer, FrankenPHP | `cipi autoupdate` | Nightly, 04:20 |
 | Reboot for a new kernel | `cipi reboot auto` | Off unless you turn it on |
 
 ## Nightly patches: `cipi autoupdate` 
@@ -4389,7 +4456,7 @@ Log: `/var/log/cipi/autoupdate.log`.
 
 ```bash
 $ cipi nginx upgrade [--yes]
-$ cipi db upgrade [mariadb|pgsql] [--yes]
+$ cipi db upgrade [mariadb|pgsql] [--yes]     # mariadb: MySQL's packages where it runs
 $ cipi service upgrade valkey [--yes]
 $ cipi service upgrade                 # installed vs available
 ```
@@ -4608,6 +4675,7 @@ $ cipi backup profile add nightly --scope=all --cron='0 2 * * *' --keep-days=14 
 | `--scope=all\|files\|db` | What to take |
 | `--apps`, `--databases`, `--exclude-databases` | Glob patterns; tenant databases created at runtime are found too |
 | `--exclude-tables` | Skip noisy tables (`*.jobs`, `*.telescope_*`) |
+| `--exclude-paths` | Leave folders or files out of the app archives (`storage/app/uploads`, `*.mp4`) — [below](#exclude-paths) |
 | `--every=30m\|6h\|1d` or `--cron='…'` | Schedule |
 | `--dest=local,s3,` | Where to send it |
 | `--keep=N`, `--keep-days=N`, `--keep-weeks=N` | Retention |
@@ -4620,6 +4688,26 @@ $ cipi backup profile remove hourly-db [--purge]   # --purge also deletes its ru
 ```
 
 Apps can declare their own profiles in [cipi.yml](https://cipi.sh/docs/yml) (named `` or `-*`); server-wide profiles stay yours.
+
+### Leave big folders out 
+
+A terabyte of uploads is better kept with `rsync` (or on object storage) than archived every night. Since 5.13.0 a profile can leave paths out of the app archives:
+
+```bash
+$ cipi backup profile edit nightly --exclude-paths='storage/app/uploads,*.mp4'
+$ cipi backup run --profile=nightly --dry-run    # what each app leaves out
+$ cipi backup profile edit nightly --exclude-paths=    # everything again
+```
+
+| Rule | Detail |
+| --- | --- |
+| Relative to the app | `storage/app/uploads` leaves out `shared/storage/app/uploads`; `wp-content/uploads` a custom app's `htdocs/wp-content/uploads` |
+| Patterns | tar wildcards, which also match across `/`: `*.mp4` is every video, `storage/app/*/cache` any such folder |
+| Some apps only | `:`, with an app name or a glob: `shop:…`, `api-*:…` |
+| Refused | Absolute paths (they would match nothing) and the whole app (`*`, `shared`, `htdocs`) |
+| Recorded | Each archive's `meta.json` lists `excluded_paths`, so a restore knows what comes back from elsewhere |
+
+Also as `exclude_paths` in a profile of [cipi.yml](https://cipi.sh/docs/yml), in the [web panel](https://cipi.sh/docs/gui) and over the [API](https://cipi.sh/docs/api#endpoints-databases).
 
 ## 3. Encryption 
 
@@ -4655,7 +4743,7 @@ $ tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files
 ```tree
 /cipi///
 ├── manifest.json
-├── apps/myapp/files.tar.gz        # + meta.json
+├── apps/myapp/files.tar.gz        # + meta.json (excluded_paths, if any)
 └── databases/mariadb/myapp.sql.gz
 ```
 
@@ -4668,6 +4756,7 @@ Files and databases are stored separately, so a database restores without unpack
 | `destination test` fails | Wrong endpoint, region or key permissions on the bucket |
 | Profile overdue | `cipi backup status` names it; check disk space and the run log |
 | Can't open an encrypted archive | You need the backup key from `cipi backup key show` (store it off-server) |
+| Archives too big, runs too slow | Leave large uploads or media out with [`--exclude-paths`](#exclude-paths) and sync them with `rsync` |
 
 ## Questions 
 
@@ -5127,7 +5216,7 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Apps & domains | `app_create`, `app_edit`, `app_delete`, `app_suspend`, `alias_*`, `www_*`, `redirect_change`, `proxy_change`, `basicauth_*` |
 | Updates | `self_update`, `php_upgrade`, `nginx_upgrade`, `mariadb_upgrade`, `pgsql_upgrade`, `valkey_upgrade`, `node_upgrade`, `composer_upgrade`, `frankenphp_upgrade`, `pending_report` |
 | Config | `ini_set`, `app_jit`, `yml_apply`, `yml_fail`, `yml_post_fail`, `node_default` |
-| Other | SSL, PHP, database, workers, services, search, packages, sync, API and password-reset events |
+| Other | SSL, PHP, database (`db_switch` when [MariaDB and MySQL](https://cipi.sh/docs/databases#mysql) are swapped), workers, services, search, packages, sync, API and password-reset events |
 
 `cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. Since 5.12.0, `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
 
@@ -6164,12 +6253,12 @@ cipi CLI | does the work, as on SSH
 | Area | From the panel |
 | --- | --- |
 | Apps | Create, edit, suspend, delete Laravel (FPM or Octane), Node (SPA, static, SSR with framework presets) and custom apps; environment label; aliases, www ↔ apex, SSL, basic auth |
-| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; the hash-chained [deploy audit](https://cipi.sh/docs/deploy-audit) with durations; a log per deploy |
+| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](https://cipi.sh/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](https://cipi.sh/docs/deploy-audit) with durations; a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
 | Routing | Whole-app and path redirects, prefix reverse proxies |
-| App tooling | `.env` editor with masked secrets, Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
-| Databases | MariaDB or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
-| Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, last run; run now, verify, test destinations |
+| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](https://cipi.sh/docs/environment#order) (Cipi 5.13.0+), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
+| Databases | MariaDB (or [MySQL](https://cipi.sh/docs/databases#mysql), shown as such) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
+| Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
@@ -6564,6 +6653,8 @@ Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are a
 
 `POST /api/apps` takes `domain`, `repository`, `branch`, `php`, `env`, `engine` (`mariadb`/`pgsql`), `octane`, `node_build`, `custom` + `docroot` (repository optional for SFTP-only sites), or Node fields (`node`: `spa|static|ssr`, `framework`, `node_version`, `build`, `start`, `output`, `health_path`). The same rules as [`cipi app create`](https://cipi.sh/docs/create-app) apply. `PUT` forwards only fields that changed; a `domain` already used elsewhere answers `409`. App objects return `type` (`laravel`, `custom`, `node`), `env`, `suspended`, `basic_auth`, `octane`, `redirects`, `proxies` and `databases`.
 
+`PUT /api/apps/{name}/env` takes `set` (keys and values), `unset` (keys) and, with Cipi 5.13.0+ and API 1.43+, `order`: every key of the file after `set`/`unset`, each once, in the order they should be in (comments above a key move with it; an `order` alone is enough). It answers `vars` in file order. `GET /api/apps/{name}/basicauth` returns `enabled`, `users` and, from API 1.43, `agent` (`mode`, `public_prefix`).
+
 ### Deploy and cipi.yml 
 
 | Method | Path | Ability |
@@ -6576,7 +6667,7 @@ Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are a
 | `POST` | `/api/apps/{name}/yml/apply` (job) | `yml-manage` |
 | `POST` | `/api/apps/{name}/yml/auto/enable`, `/disable` | `yml-manage` |
 
-`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. `deploy/audit` returns the [hash-chained ledger](https://cipi.sh/docs/deploy-audit).
+`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. With Cipi 5.13.0+ it also returns `paused_commit`: the commit whose automatic deploy failed, which the webhook does not deploy again ([paused commit](https://cipi.sh/docs/deploying#paused)); `deploy/unlock` resumes it, and its job result says `resumed` and `resumed_commit`. `deploy/audit` returns the [hash-chained ledger](https://cipi.sh/docs/deploy-audit).
 
 GET /api/apps/{name}/yml is cipi yml plan &lt;app&gt; --json: the file of the live release, env, auto, valid and errors, in_sync, warnings, changes (kind, token, summary), blockers and notes. See cipi.yml.
 
@@ -6607,7 +6698,7 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `GET` | `/api/backups`, `/api/backups/runs` | `backups-view` |
 | `POST`, `PUT`, `DELETE` | `/api/backups/run`, `/verify`, `/destinations/test`, `/profiles[/{name}]`, `…/enable`, `…/disable` | `backups-manage` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default` and, from API 1.43, `server` and `label`: where [`cipi db switch mysql`](https://cipi.sh/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` (Cipi 5.13.0+, API 1.43+; [paths left out](https://cipi.sh/docs/backups#exclude-paths)). **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
 
 ### Server 
 
@@ -6631,7 +6722,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](https://cipi.sh/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
 
 ## Examples 
 
@@ -6650,6 +6741,8 @@ $ curl -sS "$CIPI_API_URL/api/jobs/9f1c…" -H "$H"      # poll until completed
 
 $ curl -sS -X PUT "$CIPI_API_URL/api/apps/shop/env" -H "$H" -H "Content-Type: application/json" \
     -d '{"set":{"APP_DEBUG":"false"},"unset":["LEGACY_KEY"]}'
+$ curl -sS -X PUT "$CIPI_API_URL/api/apps/shop/env" -H "$H" -H "Content-Type: application/json" \
+    -d '{"order":["APP_NAME","APP_ENV","APP_KEY","APP_DEBUG","APP_URL","DB_CONNECTION", "…every key"]}'
 
 $ curl -sS -X POST "$CIPI_API_URL/api/apps/shop/artisan" -H "$H" -H "Content-Type: application/json" \
     -d '{"command":"cache:clear"}'
@@ -6772,9 +6865,10 @@ $ cipi-cli staging apps list       # an explicit prefix still wins
 | `apps logs  [--type --page --per-page]` | nginx, php, laravel, worker, deploy; page 1 is newest |
 | `apps artisan  ` | Artisan as an async job |
 | `apps run  ` | Allowlisted binaries (`cipi-cli run-commands`) |
-| `apps env show|set ` | Read `.env`, or `--set KEY=VALUE` / `--unset KEY` |
+| `apps env show|set ` | Read `.env` in file order, or `--set KEY=VALUE` / `--unset KEY` / `--order K1,K2,…` |
+| `apps env order  KEY… [--after K / --before K]` | Move keys, the others keep their place (Cipi 5.13.0+, API 1.43+) |
 | `apps auth show|create|update|delete ` | Composer `auth.json` |
-| `apps basicauth status|enable|disable ` | HTTP Basic Auth |
+| `apps basicauth status|enable|disable ` | HTTP Basic Auth: status with users and cipi/agent routes |
 | `apps node status|restart ` | Node status, blue/green restart |
 | `apps search enable|disable ` | Meilisearch for one app |
 | `apps webhook recreate  [--rotate-secret]` | New Git webhook, optionally a new secret |
@@ -6801,6 +6895,7 @@ $ cipi-cli apps create --user=web --domain=web.acme.com --node=ssr --framework=n
     --repository=git@github.com:acme/web.git
 $ cipi-cli apps artisan shop migrate --force
 $ cipi-cli apps env set shop --set APP_DEBUG=false --unset OLD_KEY
+$ cipi-cli apps env order shop DB_HOST DB_PORT --after APP_URL
 $ cipi-cli apps logs shop --type=deploy
 ```
 
@@ -6823,7 +6918,8 @@ $ cipi-cli domains
 | --- | --- |
 | `deploy ` | Zero-downtime deploy, waits for the job |
 | `deploy rollback  [-y]` | Previous release |
-| `deploy unlock ` | Clear a stuck lock |
+| `deploy status  [--tail N]` | Running, queued, interrupted or idle, the last run, and a [paused commit](https://cipi.sh/docs/deploying#paused) (5.13.0+) |
+| `deploy unlock ` | Clear a stuck lock now; resume a paused commit |
 | `deploy config show|set ` | `deploy.php` options: `--optimize`, `--storage-link`, `--queue-restart`, `--horizon-terminate`, `--predeploy-snapshot`, `--node-build`, `--extra-artisan` |
 | `deploy audit  [--days N]` | [Deploy ledger](https://cipi.sh/docs/deploy-audit): origin, operator, IP, commit |
 | `yml ` | The live `cipi.yml`: file, environment, validity, what applying would change |
@@ -6884,7 +6980,7 @@ $ cipi-cli ssl install shop      # re-issue to cover new aliases
 
 | Command | Does |
 | --- | --- |
-| `db engines`, `db install ` | Installed engines; install `mariadb` or `pgsql` |
+| `db engines`, `db install ` | Installed engines, with the server on 3306 (MariaDB or [MySQL](https://cipi.sh/docs/databases#mysql)); install `mariadb` or `pgsql` |
 | `db list [--engine]` | Databases with sizes |
 | `db create  [--engine]` | Create |
 | `db backup ` | Compressed backup on the server |
@@ -6907,6 +7003,24 @@ $ cipi-cli db anonymize download "" -o - | mysql -u root shop_local
 ```
 
 Flags: `--email`, `--url` (when the app redirects, redirects are never followed), `--token`, `-o`, `--force`. Custom and Node apps are refused.
+
+## `backup` 
+
+| Command | Does |
+| --- | --- |
+| `backup`, `backup status` | Destinations, profiles, last runs, what no profile covers |
+| `backup runs [--profile P]` | Runs each destination holds |
+| `backup run [profile]`, `backup verify [profile]` | Start a run in the background; check that the newest run opens |
+| `backup profile add  --dest local,s3 [flags]`, `edit  [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths` (5.13.0+), `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
+| `backup profile enable|disable|remove ` | |
+| `backup destination test [name]` | Reach each S3 destination with its credentials |
+
+```bash
+$ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
+$ cipi-cli backup profile edit nightly --exclude-paths ""     # take everything again
+```
+
+Destinations are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](https://cipi.sh/docs/backups).
 
 ## `php` 
 
@@ -7050,6 +7164,7 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `yml` | `yml-view`, `yml-manage` |
 | `ssl`, `www`, `aliases`, `redirect`, `proxies` | `ssl-manage`, `www-manage`, `aliases-*`, `redirects-*`, `proxies-*` |
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
+| `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |
 | `status`, `disk`, insights | `status-view`, `disk-view`, `*-view` |
 
@@ -7156,9 +7271,9 @@ if ($access && $access['status'] !== 'ok') {      // ok, nobranch or denied
 ```php
 $cipi->wait($cipi->deploys()->start('shop'));
 $cipi->deploys()->rollback('shop');
-$cipi->deploys()->unlock('shop');
+$cipi->deploys()->unlock('shop');               // also resumes a paused commit (Cipi 5.13.0+)
 $cipi->deploys()->audit('shop', days: 30);
-$cipi->deploys()->status('shop', tail: 50);   // running, queued, interrupted, idle
+$cipi->deploys()->status('shop', tail: 50);   // running, queued, interrupted, idle; paused_commit
 $cipi->deploys()->history('shop', limit: 10);
 $cipi->deploys()->last();                     // last run of every app
 $cipi->deployConfig()->update('shop', ['keep_releases' => 5, 'migrate' => true]);
@@ -7201,12 +7316,14 @@ Redirects and proxies are tested with `nginx -t` and reverted on failure; the pr
 
 ```php
 $cipi->env()->update('shop', ['APP_ENV' => 'production'], ['TELESCOPE_ENABLED']);  // merge, unset
+$cipi->env()->reorder('shop', $keysInOrder);   // every key once (API 1.43+, Cipi 5.13.0+)
 $cipi->authJson()->replace('shop', ['http-basic' => ['repo.example.com' => ['username' => 'token', 'password' => $secret]]]);
 
 $cipi->wait($cipi->databases()->create('shop_reports', 'pgsql', app: 'shop'));
 $cipi->databases()->backup('shop');
 $cipi->databases()->password('shop');
 $cipi->databases()->link('legacy', 'shop');
+$cipi->databases()->engines();                // engine, status, port; server/label: MySQL where it runs
 $cipi->wait($cipi->databases()->restoreLocal('shop', __DIR__.'/shop.sql.gz'));   // chunked upload
 ```
 
@@ -7215,6 +7332,7 @@ $cipi->wait($cipi->databases()->restoreLocal('shop', __DIR__.'/shop.sql.gz'));  
 ```php
 $cipi->backups()->createProfile('nightly', [
     'scope' => 'all', 'every' => '1d', 'destinations' => ['s3'], 'keep_days' => 14, 'encrypt' => true,
+    'exclude_paths' => ['storage/app/uploads'],    // API 1.43+, Cipi 5.13.0+
 ]);
 $cipi->backups()->status()['data']['uncovered'];   // what no enabled profile takes
 $cipi->backups()->run('nightly');                  // starts and returns, not a job
@@ -7534,6 +7652,8 @@ MariaDB (port `3306`) is the default because it fits most Laravel apps with zero
 | Simple licensing | GPL community server, no enterprise feature gates, no Oracle dual-licensing to navigate |
 | Native packaging | Installed from MariaDB.org or Ubuntu; Cipi adds users, backups and vault credentials on top |
 
+Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? Since 5.13.0, `cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](https://cipi.sh/docs/databases#mysql)).
+
 ## Why PostgreSQL as an option? 
 
 ```bash
@@ -7605,7 +7725,7 @@ v52026, todayA complete, free platform on your own serverv5 turned the CLI into 
 | Apps | Laravel on PHP-FPM or Octane (FrankenPHP), Node apps (SPA, static, SSR), and custom PHP apps such as WordPress or Symfony |
 | Deploy | Zero-downtime releases, Git push from six forges, preview environments, a hash-chained audit trail, health-checked rollbacks |
 | `cipi.yml` | The app's server settings versioned in its repository: PHP, workers, schedule, domains, databases, backups, per environment |
-| Runtime | Multiple PHP versions side by side, MariaDB and PostgreSQL, Valkey, Meilisearch, Horizon and Reverb |
+| Runtime | Multiple PHP versions side by side, MariaDB (or MySQL) and PostgreSQL, Valkey, Meilisearch, Horizon and Reverb |
 | Operations | Backup profiles to S3 with verification, server monitor, health checks, metrics and uptime history with a heartbeat, disk usage, alerts by e-mail, Slack, Telegram and webhooks |
 | Security | Per-app isolation, encrypted vault, firewall and CrowdSec, Cloudflare Zero Trust, malware scans, automatic PHP and Nginx security updates |
 | Interfaces | The CLI, an optional web panel with roles and SSO, a REST API, cipi-cli, a PHP SDK, WHMCS and MCP servers for AI assistants |
@@ -7793,7 +7913,7 @@ With the webhook in place, every push to `main` deploys. Prefer tests first? Tur
 | 500 error after the first deploy | Read the log: `sudo cipi app logs shop --type=laravel`; usually a missing `.env` key |
 | Certificate fails | DNS doesn't point at the server yet: `dig +short shop.example.com` |
 | Push doesn't deploy | Webhook missing or wrong branch: `sudo cipi deploy shop --webhook`, check `CIPI_DEPLOY_BRANCH` |
-| A deploy hangs or was interrupted | `sudo cipi deploy shop --status`, then `--unlock` |
+| A deploy hangs or was interrupted | `sudo cipi deploy shop --status`; the next deploy removes a stale lock, `--unlock` clears it now |
 | Assets 404 | No build command: `sudo cipi app deploy-config shop --node-build='npm ci && npm run build'` |
 
 
@@ -8695,7 +8815,7 @@ Then remove the deploy job from your pipeline (keep the tests: they still protec
 | Push doesn't deploy (agent mode) | Wrong branch, or no webhook: `cipi git status`, then `cipi app webhook recreate shop` |
 | 404 on `/cipi/webhook` | The agent isn't deployed yet: `sudo cipi deploy shop` once after adding it |
 | Two deploys per push | Turn the webhook off for the app that uses a pipeline |
-| "Deploy locked" in CI | Limit your CI to one deploy at a time; if nothing runs, `sudo cipi deploy shop --unlock` |
+| *A deploy of 'shop' is running* in CI | Limit your CI to one deploy at a time and keep one trigger per app; a stale lock is removed by the next deploy (Cipi 5.13.0+) |
 | Pipeline green, site broken | Add the health check step from the [recipes](https://cipi.sh/docs/ci-pipelines#recipes) |
 
 
@@ -9511,15 +9631,15 @@ For extra safety, [basic auth](https://cipi.sh/docs/basic-auth) or [Zero Trust](
 ## 6. Deploys don't break jobs 
 
 ```flow
-Stop workers | before the swap
-> During a deploy, workers stop first and finish their current job.
+Build & migrate | workers keep running
+> While the new release is built and migrated, workers keep processing jobs on the live code. The deploy never waits for a long job.
 Swap release | atomic
 > The new release goes live in one atomic switch.
-Restart workers | on the new code
-> Workers start again on the new code.
+Restart workers | after the job in hand
+> Each worker (and Horizon) gets SIGTERM, finishes the job it is running and exits; Supervisor starts it again on the new code.
 ```
 
-Workers stop gracefully: the running job finishes first, up to the worker's `--timeout`. Jobs dispatched by the old code must still work with the new code, so don't rename a job class or change its constructor in the same deploy that removes the old one.
+A job that was running when the deploy started finishes on the old code, after the migrations have run: keep migrations backward compatible for one release (add a column, deploy, use it in the next release). Jobs dispatched by the old code must still work with the new code, so don't rename a job class or change its constructor in the same deploy that removes the old one. Before Cipi 5.13.0 workers were stopped before the swap, and a long job could make the deploy fail after 300 seconds ([#536](https://github.com/cipi-sh/cipi/issues/536)).
 
 ## 7. Get alerted 
 
@@ -9804,7 +9924,7 @@ A rollback switches the code back in a second. Database migrations stay as they 
 | `sudo: a terminal is required` | Connected as a user other than `cipi` | Use `cipi@server` |
 | Deploy stage always skipped | Classic Pipeline job, not Multibranch | Use a Multibranch Pipeline, or remove `when { branch 'main' }` |
 | Two deploys per push | Cipi's webhook still active | Untick **Active** on the `/cipi/webhook` hook |
-| "Deploy locked" | Two builds at once or an interrupted deploy | Keep `disableConcurrentBuilds()`; `sudo cipi deploy shop --unlock` if nothing runs |
+| *A deploy of 'shop' is running* | Two builds at once, or a webhook deploy in flight | Keep `disableConcurrentBuilds()`; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
 | `cipi-cli: command not found` | Not installed on that Jenkins agent | Install it (step 3) or pin the stage to an agent label that has it |
 | 401 or 403 from the API | Token wrong, expired, or IP not allowed | `sudo cipi api token list`; `sudo cipi api ip-whitelist show` |
 
@@ -13271,6 +13391,15 @@ $ sudo cipi backup status
 | `all` | Both |
 
 `cipi backup status` flags apps and databases that **no enabled profile covers**, so a new app can't silently go unprotected.
+
+A very large uploads folder (hundreds of GB) is better copied with `rsync` than archived every night. Leave it out of a profile (Cipi 5.13.0+):
+
+```bash
+$ sudo cipi backup profile edit nightly --exclude-paths='storage/app/uploads,*.mp4'
+$ sudo cipi backup run --profile=nightly --dry-run     # says what each app leaves out
+```
+
+Paths are relative to the app (`shop:storage/app/uploads` for one app only); the archive's `meta.json` lists what was left out, so a restore knows which folders come back from elsewhere.
 
 ## 3. Let the app declare its own backups 
 ```yaml

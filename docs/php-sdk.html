@@ -265,9 +265,9 @@ if ($access &amp;&amp; $access['status'] !== 'ok') {      // ok, nobranch or den
 <h2 id="deploy">Deploys, jobs and cipi.yml<a class="anchor" href="#deploy" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;wait($cipi-&gt;deploys()-&gt;start('shop'));
 $cipi-&gt;deploys()-&gt;rollback('shop');
-$cipi-&gt;deploys()-&gt;unlock('shop');
+$cipi-&gt;deploys()-&gt;unlock('shop');               // also resumes a paused commit (Cipi 5.13.0+)
 $cipi-&gt;deploys()-&gt;audit('shop', days: 30);
-$cipi-&gt;deploys()-&gt;status('shop', tail: 50);   // running, queued, interrupted, idle
+$cipi-&gt;deploys()-&gt;status('shop', tail: 50);   // running, queued, interrupted, idle; paused_commit
 $cipi-&gt;deploys()-&gt;history('shop', limit: 10);
 $cipi-&gt;deploys()-&gt;last();                     // last run of every app
 $cipi-&gt;deployConfig()-&gt;update('shop', ['keep_releases' =&gt; 5, 'migrate' =&gt; true]);
@@ -300,16 +300,19 @@ $cipi-&gt;ssl()-&gt;setDnsAccount($cloudflareToken, 'prod');   // sync, never re
 <section class="doc-section" id="sdk-data">
 <h2 id="data">Env, databases and backups<a class="anchor" href="#data" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;env()-&gt;update('shop', ['APP_ENV' =&gt; 'production'], ['TELESCOPE_ENABLED']);  // merge, unset
+$cipi-&gt;env()-&gt;reorder('shop', $keysInOrder);   // every key once (API 1.43+, Cipi 5.13.0+)
 $cipi-&gt;authJson()-&gt;replace('shop', ['http-basic' =&gt; ['repo.example.com' =&gt; ['username' =&gt; 'token', 'password' =&gt; $secret]]]);
 
 $cipi-&gt;wait($cipi-&gt;databases()-&gt;create('shop_reports', 'pgsql', app: 'shop'));
 $cipi-&gt;databases()-&gt;backup('shop');
 $cipi-&gt;databases()-&gt;password('shop');
 $cipi-&gt;databases()-&gt;link('legacy', 'shop');
+$cipi-&gt;databases()-&gt;engines();                // engine, status, port; server/label: MySQL where it runs
 $cipi-&gt;wait($cipi-&gt;databases()-&gt;restoreLocal('shop', __DIR__.'/shop.sql.gz'));   // chunked upload</pre></div>
 <p><code>restoreLocal()</code> streams the dump in chunks (not bound by <code>memory_limit</code>) and cancels the upload if anything is refused. The panel deletes uploads when the restore ends.</p>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;backups()-&gt;createProfile('nightly', [
     'scope' =&gt; 'all', 'every' =&gt; '1d', 'destinations' =&gt; ['s3'], 'keep_days' =&gt; 14, 'encrypt' =&gt; true,
+    'exclude_paths' =&gt; ['storage/app/uploads'],    // API 1.43+, Cipi 5.13.0+
 ]);
 $cipi-&gt;backups()-&gt;status()['data']['uncovered'];   // what no enabled profile takes
 $cipi-&gt;backups()-&gt;run('nightly');                  // starts and returns, not a job

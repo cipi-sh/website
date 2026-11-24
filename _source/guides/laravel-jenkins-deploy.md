@@ -4,7 +4,7 @@ description: A Jenkinsfile that runs your Laravel tests, deploys with Cipi over 
 category: laravel
 order: 18
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-24
 howto: yes
 keywords: laravel jenkins deploy, jenkinsfile laravel, jenkins deploy php vps, jenkins zero downtime laravel, jenkins pipeline laravel ssh
 related:
@@ -272,6 +272,6 @@ A rollback switches the code back in a second. Database migrations stay as they 
 | `sudo: a terminal is required` | Connected as a user other than `cipi` | Use `cipi@server` |
 | Deploy stage always skipped | Classic Pipeline job, not Multibranch | Use a Multibranch Pipeline, or remove `when { branch 'main' }` |
 | Two deploys per push | Cipi's webhook still active | Untick **Active** on the `/cipi/webhook` hook |
-| "Deploy locked" | Two builds at once or an interrupted deploy | Keep `disableConcurrentBuilds()`; `sudo cipi deploy shop --unlock` if nothing runs |
+| *A deploy of 'shop' is running* | Two builds at once, or a webhook deploy in flight | Keep `disableConcurrentBuilds()`; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
 | `cipi-cli: command not found` | Not installed on that Jenkins agent | Install it (step 3) or pin the stage to an agent label that has it |
 | 401 or 403 from the API | Token wrong, expired, or IP not allowed | `sudo cipi api token list`; `sudo cipi api ip-whitelist show` |

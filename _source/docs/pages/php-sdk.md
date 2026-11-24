@@ -104,9 +104,9 @@ if ($access && $access['status'] !== 'ok') {      // ok, nobranch or denied
 ```php
 $cipi->wait($cipi->deploys()->start('shop'));
 $cipi->deploys()->rollback('shop');
-$cipi->deploys()->unlock('shop');
+$cipi->deploys()->unlock('shop');               // also resumes a paused commit (Cipi 5.13.0+)
 $cipi->deploys()->audit('shop', days: 30);
-$cipi->deploys()->status('shop', tail: 50);   // running, queued, interrupted, idle
+$cipi->deploys()->status('shop', tail: 50);   // running, queued, interrupted, idle; paused_commit
 $cipi->deploys()->history('shop', limit: 10);
 $cipi->deploys()->last();                     // last run of every app
 $cipi->deployConfig()->update('shop', ['keep_releases' => 5, 'migrate' => true]);
@@ -153,12 +153,14 @@ Redirects and proxies are tested with `nginx -t` and reverted on failure; the pr
 
 ```php
 $cipi->env()->update('shop', ['APP_ENV' => 'production'], ['TELESCOPE_ENABLED']);  // merge, unset
+$cipi->env()->reorder('shop', $keysInOrder);   // every key once (API 1.43+, Cipi 5.13.0+)
 $cipi->authJson()->replace('shop', ['http-basic' => ['repo.example.com' => ['username' => 'token', 'password' => $secret]]]);
 
 $cipi->wait($cipi->databases()->create('shop_reports', 'pgsql', app: 'shop'));
 $cipi->databases()->backup('shop');
 $cipi->databases()->password('shop');
 $cipi->databases()->link('legacy', 'shop');
+$cipi->databases()->engines();                // engine, status, port; server/label: MySQL where it runs
 $cipi->wait($cipi->databases()->restoreLocal('shop', __DIR__.'/shop.sql.gz'));   // chunked upload
 ```
 
@@ -167,6 +169,7 @@ $cipi->wait($cipi->databases()->restoreLocal('shop', __DIR__.'/shop.sql.gz'));  
 ```php
 $cipi->backups()->createProfile('nightly', [
     'scope' => 'all', 'every' => '1d', 'destinations' => ['s3'], 'keep_days' => 14, 'encrypt' => true,
+    'exclude_paths' => ['storage/app/uploads'],    // API 1.43+, Cipi 5.13.0+
 ]);
 $cipi->backups()->status()['data']['uncovered'];   // what no enabled profile takes
 $cipi->backups()->run('nightly');                  // starts and returns, not a job

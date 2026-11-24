@@ -29,12 +29,12 @@ cipi CLI | does the work, as on SSH
 | Area | From the panel |
 | --- | --- |
 | Apps | Create, edit, suspend, delete Laravel (FPM or Octane), Node (SPA, static, SSR with framework presets) and custom apps; environment label; aliases, www ↔ apex, SSL, basic auth |
-| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; the hash-chained [deploy audit](/docs/deploy-audit) with durations; a log per deploy |
+| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](/docs/deploy-audit) with durations; a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
 | Routing | Whole-app and path redirects, prefix reverse proxies |
-| App tooling | `.env` editor with masked secrets, Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
-| Databases | MariaDB or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
-| Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, last run; run now, verify, test destinations |
+| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order) (Cipi 5.13.0+), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
+| Databases | MariaDB (or [MySQL](/docs/databases#mysql), shown as such) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
+| Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
@@ -125,7 +125,7 @@ A header with status, type, runtime and actions, then one tab per area. Tabs liv
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
 <img src="/img/gui/app-env.webp" width="1440" height="960" alt="Environment editor with masked secrets and one unsaved change" loading="lazy" decoding="async">
 </div>
-<figcaption>.env editing with masked secrets and change tracking.</figcaption>
+<figcaption>.env editing with masked secrets, change tracking and drag-and-drop ordering.</figcaption>
 </figure>
 <figure class="gui-shot">
 <div class="gui-shot-frame">
