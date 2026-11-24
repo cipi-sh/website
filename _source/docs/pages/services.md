@@ -21,7 +21,7 @@ $ cipi service upgrade valkey [--yes]
 | --- | --- |
 | `nginx` | Web server |
 | `php` or `php8.6-fpm` | All PHP-FPM versions, or one |
-| `mariadb`, `postgresql` (`pgsql`) | Databases |
+| `mariadb` (or `mysql`, where [`cipi db switch mysql`](/docs/databases#mysql) ran), `postgresql` (`pgsql`) | Databases |
 | `valkey-server` (`redis`, `valkey`) | Shared Valkey |
 | `supervisor` | Workers, Octane, Horizon, Reverb |
 | `fail2ban` | Brute-force protection |

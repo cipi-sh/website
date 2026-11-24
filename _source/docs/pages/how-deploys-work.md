@@ -22,7 +22,7 @@ Both modes end in the same place: the same pipeline, the same lock, the same [au
 Trigger | push, CI, CLI, panel, API, MCP
 > Something asks for a deploy: a `git push` through the webhook, a CI job, `cipi deploy` on the server, the web panel, the REST API or an AI assistant through MCP. From here on, all of them take exactly the same path.
 Lock | one deploy at a time
-> Cipi takes the app's deploy lock. If another deploy is already running, the new one waits or stops with a clear "locked" message: two deploys never write the same release.
+> Cipi takes the app's deploy lock. If another deploy is already running, a push waits in the queue and deploys right after it, while a deploy asked by hand stops at once with a clear message: two deploys never write the same release.
 Build release | clone, Composer, assets
 > A new folder under `releases/` gets the code of the deploy branch, its Composer packages and, if you set a build command, its front-end assets. The live site is not touched yet: if anything fails here, **nothing is published** and the previous release keeps serving.
 Migrate | optional DB snapshot first
@@ -95,14 +95,15 @@ Recipes for every popular CI are in [CI/CD pipelines](/docs/ci-pipelines): GitHu
 | A live URL per branch | Pipeline mode | [Preview environments](/docs/preview-environments) |
 | Fast staging, careful production | Agent mode on staging, pipeline on production | [Guide: agent vs pipeline](/guides/agent-vs-pipeline-deploys) |
 
-> [!warning] **One trigger per app.** If the webhook and a pipeline both react to the same push, the second deploy hits the lock and fails. When you move an app to pipeline mode, turn its webhook off in the Git provider (GitHub: **Settings → Webhooks**, untick **Active**).
+> [!warning] **One trigger per app.** If the webhook and a pipeline both react to the same push, you get two deploys of it — or a red pipeline, when it asks while the webhook's deploy is running. When you move an app to pipeline mode, turn its webhook off in the Git provider (GitHub: **Settings → Webhooks**, untick **Active**).
 
 ## Common problems {#problems}
 
 | Problem | Cause | Fix |
 | --- | --- | --- |
 | Two deploys for one push | Webhook and pipeline both active | Turn the webhook off for that app |
-| "Deploy locked" | A deploy is already running, or one was interrupted | `cipi deploy shop --status`; if nothing runs, `cipi deploy shop --unlock` |
+| *A deploy of 'shop' is running* | Another deploy is in flight | `cipi deploy shop --status`; retry when it ends (pushes wait in the queue by themselves) |
+| A push did not deploy | The same commit failed before and is [paused](/docs/deploying#paused) | Push a fix, or `cipi deploy shop` |
 | CI green, old code live | The pipeline queued a deploy through the webhook and didn't wait | Use SSH or the API when CI must know the result |
 | Webhook was removed and came back | `cipi git refresh` re-creates webhooks | Turn it off again after a refresh |
 
@@ -112,7 +113,8 @@ Recipes for every popular CI are in [CI/CD pipelines](/docs/ci-pipelines): GitHu
 | --- | --- |
 | Does CI upload my code to the server? | No. The server always pulls from Git with its own read-only deploy key. CI only says when. |
 | Can I deploy a specific commit or tag? | Cipi deploys the tip of the app's branch. To ship a tag, point a release branch at it and deploy that branch. |
-| What if two deploys start at once? | The lock lets one run; the other waits or stops with a message. `cipi deploy shop --status` shows what is running. |
+| What if two deploys start at once? | The lock lets one run. A push that arrives meanwhile is queued and deploys after it; a deploy asked by hand stops with a message. `cipi deploy shop --status` shows what is running. |
+| Does a failed deploy block the next push? | No. The failed commit is [paused](/docs/deploying#paused) so a retry doesn't build it again, but any new commit deploys. |
 | Can I see who deployed? | `cipi deploy shop --audit` lists every deploy with its origin (webhook, CLI, panel, API), the operator and the IP. See [Deploy audit](/docs/deploy-audit). |
 | How do I go back? | `cipi deploy shop --rollback` switches to the previous release in a second. Migrations are not undone. |
 | Do I need the agent for pipeline mode? | No. The agent is needed only for push to deploy in Laravel apps (and for its health, MCP and anonymizer endpoints). |

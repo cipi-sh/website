@@ -45,15 +45,15 @@ A Horizon you disabled stays disabled. `cipi pending` lists apps with Horizon in
 ## During deploys {#deploys}
 
 ```flow
-Stop workers | before the symlink swap
-> Before the new release goes live, workers stop. Each finishes the job it's running (up to its `--timeout`).
+Build & migrate | workers keep running
+> While the new release is built and migrated, Horizon and the workers keep processing jobs on the live release. A deploy never waits for a long job.
 Swap release | atomic
 > The release switches in one atomic step.
-Restart workers | on the new code
-> Workers start again and only ever see the new code with the new database schema.
+Restart workers | after the job in hand
+> Horizon and the queue workers get SIGTERM: each finishes the job it is running and exits, and Supervisor starts it again on the new release. Octane and Reverb are restarted; a program that was not running is started.
 ```
 
-Workers never run old code against a new database. Supervisor restarts a worker only after an unexpected exit. Workers can also be declared in [cipi.yml](/docs/yml).
+Since 5.13.0 nothing stops before the swap: before, a deploy waited for every running job and could fail after 300 seconds with Horizon left in `STOPPING` ([#536](https://github.com/cipi-sh/cipi/issues/536)). The flip side is that jobs taken before the swap run on the previous release, also after the migrations: keep migrations backward compatible for one release (add a column, deploy, then use it). Supervisor restarts a worker after any exit. Workers can also be declared in [cipi.yml](/docs/yml).
 
 ## As the app user {#cipi-worker}
 
@@ -70,7 +70,8 @@ $ sudo cipi-worker restart myapp
 | --- | --- |
 | Jobs never run | No worker on that queue, or `QUEUE_CONNECTION=redis` without Horizon |
 | Job killed after 60 s | Set `public $timeout` on the job and raise `retry_after` |
-| Workers run old code | `cipi worker restart myapp` (deploys do it automatically) |
+| Workers run old code | A long job started before the deploy finishes on the old release; the worker then restarts on the new one. Otherwise `cipi worker restart myapp` |
+| Horizon stuck in `STOPPING` after a deploy | Cipi before 5.13.0: `sudo cipi self-update`; deploys no longer wait for running jobs |
 
 ## Questions {#questions}
 

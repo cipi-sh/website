@@ -4,7 +4,7 @@ description: Encrypted, scheduled backups of every app and database to AWS S3 or
 category: ops
 order: 1
 published: 2026-03-02
-updated: 2026-11-23
+updated: 2026-11-24
 howto: yes
 keywords: laravel backup s3, vps backup s3 compatible, mariadb backup s3, encrypted backup laravel
 related:
@@ -14,7 +14,7 @@ related:
 faq:
   - Which storage works? | Any S3-compatible bucket: AWS S3, Hetzner Object Storage, DigitalOcean Spaces, Backblaze B2, Wasabi, Cloudflare R2, MinIO or [Johnny](https://johnny.web.ap.it/) on another VPS.
   - Are backups encrypted? | With `encrypt: true` (or `--encrypt`) archives are encrypted on the server before upload. Keep the key safe: `cipi backup key show`.
-  - What isn't in a backup? | Certificates (re-issued in a minute) and the releases folder (rebuilt by a deploy). Code is in Git; backups hold databases and `shared/` (`.env`, uploads).
+  - What isn't in a backup? | Certificates (re-issued in a minute) and the releases folder (rebuilt by a deploy). Code is in Git; backups hold databases and `shared/` (`.env`, uploads), minus any `--exclude-paths` you set.
   - Which bucket provider? | Any S3-compatible one: AWS S3, Hetzner, Backblaze B2, Wasabi, Cloudflare R2, Scaleway, DigitalOcean Spaces. Pick one in another region or provider than the server.
   - Where is the encryption key? | `cipi backup key show` prints it. Store it in your password manager: without it, encrypted archives can't be opened.
   - How long does a restore take? | Minutes for a typical app. Test it now so you know: `cipi backup fetch` into a scratch folder, then restore a database.
@@ -73,6 +73,15 @@ $ sudo cipi backup status
 | `all` | Both |
 
 `cipi backup status` flags apps and databases that **no enabled profile covers**, so a new app can't silently go unprotected.
+
+A very large uploads folder (hundreds of GB) is better copied with `rsync` than archived every night. Leave it out of a profile (Cipi 5.13.0+):
+
+```bash
+$ sudo cipi backup profile edit nightly --exclude-paths='storage/app/uploads,*.mp4'
+$ sudo cipi backup run --profile=nightly --dry-run     # says what each app leaves out
+```
+
+Paths are relative to the app (`shop:storage/app/uploads` for one app only); the archive's `meta.json` lists what was left out, so a restore knows which folders come back from elsewhere.
 
 ## 3. Let the app declare its own backups {#in-cipi-yml}
 ```yaml

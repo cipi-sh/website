@@ -6,7 +6,7 @@ Security patches for the whole stack, without surprise restarts. Ubuntu's unatte
 | --- | --- | --- |
 | Ubuntu (kernel, libraries…) | unattended-upgrades | Daily |
 | PHP | [cipi php upgrade](/docs/php#security) | Daily, 03:30 |
-| Nginx, MariaDB, PostgreSQL, Valkey, Node.js, Composer, FrankenPHP | `cipi autoupdate` | Nightly, 04:20 |
+| Nginx, MariaDB (or MySQL), PostgreSQL, Valkey, Node.js, Composer, FrankenPHP | `cipi autoupdate` | Nightly, 04:20 |
 | Reboot for a new kernel | `cipi reboot auto` | Off unless you turn it on |
 
 @section cli-autoupdate
@@ -35,7 +35,7 @@ Log: `/var/log/cipi/autoupdate.log`.
 
 ```bash
 $ cipi nginx upgrade [--yes]
-$ cipi db upgrade [mariadb|pgsql] [--yes]
+$ cipi db upgrade [mariadb|pgsql] [--yes]     # mariadb: MySQL's packages where it runs
 $ cipi service upgrade valkey [--yes]
 $ cipi service upgrade                 # installed vs available
 ```

@@ -115,6 +115,8 @@ Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Write
 
 `POST /api/apps` takes `domain`, `repository`, `branch`, `php`, `env`, `engine` (`mariadb`/`pgsql`), `octane`, `node_build`, `custom` + `docroot` (repository optional for SFTP-only sites), or Node fields (`node`: `spa|static|ssr`, `framework`, `node_version`, `build`, `start`, `output`, `health_path`). The same rules as [`cipi app create`](/docs/create-app) apply. `PUT` forwards only fields that changed; a `domain` already used elsewhere answers `409`. App objects return `type` (`laravel`, `custom`, `node`), `env`, `suspended`, `basic_auth`, `octane`, `redirects`, `proxies` and `databases`.
 
+`PUT /api/apps/{name}/env` takes `set` (keys and values), `unset` (keys) and, with Cipi 5.13.0+ and API 1.43+, `order`: every key of the file after `set`/`unset`, each once, in the order they should be in (comments above a key move with it; an `order` alone is enough). It answers `vars` in file order. `GET /api/apps/{name}/basicauth` returns `enabled`, `users` and, from API 1.43, `agent` (`mode`, `public_prefix`).
+
 ### Deploy and cipi.yml {#endpoints-deploy}
 
 | Method | Path | Ability |
@@ -127,7 +129,7 @@ Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Write
 | `POST` | `/api/apps/{name}/yml/apply` (job) | `yml-manage` |
 | `POST` | `/api/apps/{name}/yml/auto/enable`, `/disable` | `yml-manage` |
 
-`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. `deploy/audit` returns the [hash-chained ledger](/docs/deploy-audit).
+`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. With Cipi 5.13.0+ it also returns `paused_commit`: the commit whose automatic deploy failed, which the webhook does not deploy again ([paused commit](/docs/deploying#paused)); `deploy/unlock` resumes it, and its job result says `resumed` and `resumed_commit`. `deploy/audit` returns the [hash-chained ledger](/docs/deploy-audit).
 
 <p id="cipi-api-yml"><code>GET /api/apps/{name}/yml</code> is <code>cipi yml plan &lt;app&gt; --json</code>: the <code>file</code> of the live release, <code>env</code>, <code>auto</code>, <code>valid</code> and errors, <code>in_sync</code>, <code>warnings</code>, <code>changes</code> (kind, token, summary), <code>blockers</code> and <code>notes</code>. See <a href="/docs/yml">cipi.yml</a>.</p>
 
@@ -158,7 +160,7 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `GET` | `/api/backups`, `/api/backups/runs` | `backups-view` |
 | `POST`, `PUT`, `DELETE` | `/api/backups/run`, `/verify`, `/destinations/test`, `/profiles[/{name}]`, `…/enable`, `…/disable` | `backups-manage` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default` and, from API 1.43, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` (Cipi 5.13.0+, API 1.43+; [paths left out](/docs/backups#exclude-paths)). **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
 
 ### Server {#endpoints-server}
 
@@ -182,7 +184,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
 
 ## Examples {#cipi-api-curl}
 
@@ -201,6 +203,8 @@ $ curl -sS "$CIPI_API_URL/api/jobs/9f1c…" -H "$H"      # poll until completed
 
 $ curl -sS -X PUT "$CIPI_API_URL/api/apps/shop/env" -H "$H" -H "Content-Type: application/json" \
     -d '{"set":{"APP_DEBUG":"false"},"unset":["LEGACY_KEY"]}'
+$ curl -sS -X PUT "$CIPI_API_URL/api/apps/shop/env" -H "$H" -H "Content-Type: application/json" \
+    -d '{"order":["APP_NAME","APP_ENV","APP_KEY","APP_DEBUG","APP_URL","DB_CONNECTION", "…every key"]}'
 
 $ curl -sS -X POST "$CIPI_API_URL/api/apps/shop/artisan" -H "$H" -H "Content-Type: application/json" \
     -d '{"command":"cache:clear"}'

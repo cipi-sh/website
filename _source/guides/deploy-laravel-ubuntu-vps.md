@@ -4,7 +4,7 @@ description: From a fresh Ubuntu 24.04 or 26.04 server to a Laravel app on HTTPS
 category: start
 order: 2
 published: 2026-03-10
-updated: 2026-11-23
+updated: 2026-11-24
 howto: yes
 keywords: deploy laravel vps, laravel ubuntu 24.04, laravel zero downtime deploy, laravel forge alternative free
 related:
@@ -153,5 +153,5 @@ With the webhook in place, every push to `main` deploys. Prefer tests first? Tur
 | 500 error after the first deploy | Read the log: `sudo cipi app logs shop --type=laravel`; usually a missing `.env` key |
 | Certificate fails | DNS doesn't point at the server yet: `dig +short shop.example.com` |
 | Push doesn't deploy | Webhook missing or wrong branch: `sudo cipi deploy shop --webhook`, check `CIPI_DEPLOY_BRANCH` |
-| A deploy hangs or was interrupted | `sudo cipi deploy shop --status`, then `--unlock` |
+| A deploy hangs or was interrupted | `sudo cipi deploy shop --status`; the next deploy removes a stale lock, `--unlock` clears it now |
 | Assets 404 | No build command: `sudo cipi app deploy-config shop --node-build='npm ci && npm run build'` |

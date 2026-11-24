@@ -16,7 +16,7 @@ Verify & queue | signature, branch; answers 200 at once
 Cron, within a minute | starts the deploy as the app user
 > A cron job checks for triggers every minute and starts the deploy as the app's own Linux user, never as root.
 Deploy | the normal zero-downtime pipeline
-> From here it's a normal deploy: new release, Composer, migrations, atomic swap, workers restarted. You get the usual notification.
+> From here it's a normal deploy: new release, Composer, migrations, atomic swap, workers restarted. You get the usual notification. A push that arrives during a deploy waits for it; a commit whose deploy failed is not retried by itself.
 ```
 
 The webhook only drops a trigger file; it never runs the deploy itself. That keeps the HTTP answer instant (providers time out after ~10 s) and the deploy in the same safe context as `cipi deploy`.
@@ -73,7 +73,8 @@ It queues the deploy and answers at once; it doesn't wait for the result. When a
 | 404 | Agent not deployed yet | `cipi deploy myapp` after adding `cipi/agent` |
 | 403, invalid signature | Secret mismatch | Copy the token from `cipi deploy myapp --webhook` again |
 | 200 but no deploy | Another branch was pushed | Check `CIPI_DEPLOY_BRANCH` |
-| Lock error | An interrupted deploy | `cipi deploy myapp --unlock` |
+| Push queued, deploys later | A deploy was running | Nothing: it deploys when that one ends (`cipi deploy myapp --status` says *queued*) |
+| 200 but the same commit doesn't deploy again | It failed before and is [paused](/docs/deploying#paused) | Push a fix, or `cipi deploy myapp` |
 | Two deploys per push | Webhook and pipeline both active | Keep [one trigger](/docs/how-deploys-work) |
 
 ## Common problems {#problems}

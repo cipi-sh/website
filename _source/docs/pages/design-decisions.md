@@ -60,6 +60,8 @@ MariaDB (port `3306`) is the default because it fits most Laravel apps with zero
 | Simple licensing | GPL community server, no enterprise feature gates, no Oracle dual-licensing to navigate |
 | Native packaging | Installed from MariaDB.org or Ubuntu; Cipi adds users, backups and vault credentials on top |
 
+Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? Since 5.13.0, `cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](/docs/databases#mysql)).
+
 @section why-postgresql
 
 ## Why PostgreSQL as an option? {#postgresql}

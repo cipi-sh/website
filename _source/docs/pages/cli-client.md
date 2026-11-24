@@ -65,9 +65,10 @@ $ cipi-cli staging apps list       # an explicit prefix still wins
 | `apps logs <app> [--type --page --per-page]` | nginx, php, laravel, worker, deploy; page 1 is newest |
 | `apps artisan <app> <cmd>` | Artisan as an async job |
 | `apps run <app> <cmd>` | Allowlisted binaries (`cipi-cli run-commands`) |
-| `apps env show|set <app>` | Read `.env`, or `--set KEY=VALUE` / `--unset KEY` |
+| `apps env show|set <app>` | Read `.env` in file order, or `--set KEY=VALUE` / `--unset KEY` / `--order K1,K2,…` |
+| `apps env order <app> KEY… [--after K / --before K]` | Move keys, the others keep their place (Cipi 5.13.0+, API 1.43+) |
 | `apps auth show|create|update|delete <app>` | Composer `auth.json` |
-| `apps basicauth status|enable|disable <app>` | HTTP Basic Auth |
+| `apps basicauth status|enable|disable <app>` | HTTP Basic Auth: status with users and cipi/agent routes |
 | `apps node status|restart <app>` | Node status, blue/green restart |
 | `apps search enable|disable <app>` | Meilisearch for one app |
 | `apps webhook recreate <app> [--rotate-secret]` | New Git webhook, optionally a new secret |
@@ -94,6 +95,7 @@ $ cipi-cli apps create --user=web --domain=web.acme.com --node=ssr --framework=n
     --repository=git@github.com:acme/web.git
 $ cipi-cli apps artisan shop migrate --force
 $ cipi-cli apps env set shop --set APP_DEBUG=false --unset OLD_KEY
+$ cipi-cli apps env order shop DB_HOST DB_PORT --after APP_URL
 $ cipi-cli apps logs shop --type=deploy
 ```
 
@@ -120,7 +122,8 @@ $ cipi-cli domains
 | --- | --- |
 | `deploy <app>` | Zero-downtime deploy, waits for the job |
 | `deploy rollback <app> [-y]` | Previous release |
-| `deploy unlock <app>` | Clear a stuck lock |
+| `deploy status <app> [--tail N]` | Running, queued, interrupted or idle, the last run, and a [paused commit](/docs/deploying#paused) (5.13.0+) |
+| `deploy unlock <app>` | Clear a stuck lock now; resume a paused commit |
 | `deploy config show|set <app>` | `deploy.php` options: `--optimize`, `--storage-link`, `--queue-restart`, `--horizon-terminate`, `--predeploy-snapshot`, `--node-build`, `--extra-artisan` |
 | `deploy audit <app> [--days N]` | [Deploy ledger](/docs/deploy-audit): origin, operator, IP, commit |
 | `yml <app>` | The live `cipi.yml`: file, environment, validity, what applying would change |
@@ -191,7 +194,7 @@ $ cipi-cli ssl install shop      # re-issue to cover new aliases
 
 | Command | Does |
 | --- | --- |
-| `db engines`, `db install <engine>` | Installed engines; install `mariadb` or `pgsql` |
+| `db engines`, `db install <engine>` | Installed engines, with the server on 3306 (MariaDB or [MySQL](/docs/databases#mysql)); install `mariadb` or `pgsql` |
 | `db list [--engine]` | Databases with sizes |
 | `db create <name> [--engine]` | Create |
 | `db backup <name>` | Compressed backup on the server |
@@ -216,6 +219,24 @@ $ cipi-cli db anonymize download "<signed url>" -o - | mysql -u root shop_local
 Flags: `--email`, `--url` (when the app redirects, redirects are never followed), `--token`, `-o`, `--force`. Custom and Node apps are refused.
 
 @section cli-php
+
+## `backup` {#backup}
+
+| Command | Does |
+| --- | --- |
+| `backup`, `backup status` | Destinations, profiles, last runs, what no profile covers |
+| `backup runs [--profile P]` | Runs each destination holds |
+| `backup run [profile]`, `backup verify [profile]` | Start a run in the background; check that the newest run opens |
+| `backup profile add <name> --dest local,s3 [flags]`, `edit <name> [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths` (5.13.0+), `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
+| `backup profile enable|disable|remove <name>` | |
+| `backup destination test [name]` | Reach each S3 destination with its credentials |
+
+```bash
+$ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
+$ cipi-cli backup profile edit nightly --exclude-paths ""     # take everything again
+```
+
+Destinations are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](/docs/backups).
 
 ## `php` {#php}
 
@@ -383,6 +404,7 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `yml` | `yml-view`, `yml-manage` |
 | `ssl`, `www`, `aliases`, `redirect`, `proxies` | `ssl-manage`, `www-manage`, `aliases-*`, `redirects-*`, `proxies-*` |
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
+| `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |
 | `status`, `disk`, insights | `status-view`, `disk-view`, `*-view` |
 
