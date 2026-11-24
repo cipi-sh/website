@@ -33,7 +33,7 @@
         });
         menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-        window.matchMedia('(min-width: 901px)').addEventListener('change', function (e) { if (e.matches) close(); });
+        window.matchMedia('(min-width: 1024px)').addEventListener('change', function (e) { if (e.matches) close(); });
     }
 
     // Copy buttons: .cmd blocks and docs code blocks
