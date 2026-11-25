@@ -20,8 +20,8 @@
         'dashboard-light': 1810 / 2880, 'server-overview-light': 2042 / 2880, 'app-domains': 1814 / 2880,
         'app-routing': 2012 / 2880, 'app-logs': 1996 / 2880, 'server-monitor': 1800 / 2880,
         'server-metrics-light': 3760 / 2880, 'clip-metrics-24h-light': 3760 / 2880, 'clip-metrics-hover-light': 3760 / 2880,
-        'clip-app-hover-light': 3262 / 2880, 'notifications-light': 2514 / 2880, 'clip-notifications-dirty-light': 2514 / 2880,
-        'notifications-add-light': 1800 / 2880
+        'clip-app-hover-light': 3262 / 2880, 'notifications-light': 2586 / 2880, 'clip-notifications-dirty-light': 2586 / 2880,
+        'notifications-add-light': 2078 / 2880, 'notifications-events-light': 1992 / 2880
     };
 
     // shot: { img, cam:[scale, fx, fy], cur:[x,y] | null, click:true, cap, ms }
@@ -99,13 +99,16 @@
         notifications: {
             title: 'Notifications', sub: 'Email, Slack, Telegram, webhooks…',
             shots: [
-                { img: 'notifications-light', cam: [1, .5, 0], cur: [.5, .3], cap: 'Every channel of the server, and where it sends.', ms: 2000 },
-                { img: 'notifications-light', cam: [1.6, .7, .3], cur: [.811, .355], click: true, cap: 'Test it. A refused test says why.', ms: 2200 },
-                { img: 'notifications-light', cam: [1.6, .82, .1], cur: [.887, .098], click: true, cap: 'Add a channel.', ms: 1500 },
-                { img: 'notifications-add-light', cam: [1.25, .5, .35], cur: [.674, .332], click: true, cap: 'Pick the type: only its fields are asked.', ms: 2200 },
-                { img: 'notifications-add-light', cam: [1.35, .5, .85], cur: [.681, .949], click: true, cap: 'Secrets go to the server and never come back.', ms: 2200 },
-                { img: 'clip-notifications-dirty-light', cam: [1.5, .3, .62], cur: [.094, .551], click: true, cap: 'Choose which events notify, by category.', ms: 2200 },
-                { img: 'clip-notifications-dirty-light', cam: [1.6, .8, .47], cur: [.902, .473], click: true, cap: 'One save for every change.', ms: 1900 }
+                { img: 'notifications-light', cam: [1, .5, 0], cur: [.5, .3], cap: 'Every channel of the server: where it sends, what it receives.', ms: 2000 },
+                { img: 'notifications-light', cam: [1.6, .62, .25], cur: [.71, .276], cap: 'Each channel takes everything, or only some events: here, the alarms and security.', ms: 2400 },
+                { img: 'notifications-light', cam: [1.6, .7, .25], cur: [.811, .276], click: true, cap: 'Test it. A refused test says why.', ms: 2000 },
+                { img: 'notifications-light', cam: [1.6, .82, .1], cur: [.887, .096], click: true, cap: 'Add a channel.', ms: 1500 },
+                { img: 'notifications-add-light', cam: [1.25, .5, .32], cur: [.674, .311], click: true, cap: 'Pick the type: only its fields are asked.', ms: 2200 },
+                { img: 'notifications-add-light', cam: [1.35, .5, .85], cur: [.681, .94], click: true, cap: 'Secrets go to the server and never come back.', ms: 2200 },
+                { img: 'notifications-events-light', cam: [1.35, .45, .55], cur: [.386, .527], click: true, cap: 'What it receives: everything, or only some events.', ms: 2200 },
+                { img: 'notifications-events-light', cam: [1.4, .45, .62], cur: [.345, .569], click: true, cap: 'Urgent: failures and security, for the phone. Deploys for the team chat.', ms: 2400 },
+                { img: 'clip-notifications-dirty-light', cam: [1.5, .3, .62], cur: [.094, .55], click: true, cap: 'Choose which events notify, by category.', ms: 2200 },
+                { img: 'clip-notifications-dirty-light', cam: [1.6, .8, .47], cur: [.902, .475], click: true, cap: 'One save for every change.', ms: 1900 }
             ]
         },
         team: {

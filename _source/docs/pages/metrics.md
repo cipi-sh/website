@@ -135,13 +135,13 @@ One bar per day per app: green all checks passed, yellow a few failed, red an in
 
 ### Collection and retention {#settings}
 
-Server managers see the settings card at the bottom of the server tab: how big the database is, the retention of minutes, rollups and events, the per-minute probe and the heartbeat. Saving calls the same `cipi metrics retention` as the CLI. OpenMetrics stays CLI-only, because it opens a port.
+Server managers see the settings card at the bottom of the server tab: how big the database is, the retention of minutes, rollups and events, the per-minute probe and the heartbeat — its URL and interval on the line of the retention fields, where it calls and how the last call went under them. Saving calls the same `cipi metrics retention` as the CLI. OpenMetrics stays CLI-only, because it opens a port.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/metrics-settings-light.webp" width="1440" height="371" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat to hc-ping.com" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/metrics-settings.webp" width="1440" height="371" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat to hc-ping.com" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-settings-light.webp" width="1440" height="335" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat URL and interval to hc-ping.com" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/metrics-settings.webp" width="1440" height="335" alt="Collection and retention card: 7 days of minutes, 15-minute rollups for 30 days, 90 days of events, probe on, heartbeat URL and interval to hc-ping.com" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>The settings card, with the defaults.</figcaption>
 </figure>

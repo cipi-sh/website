@@ -3489,7 +3489,7 @@ The why and the team workflows: [What preview environments can do for your team]
 
 URL: https://cipi.sh/docs/deploy-notifications
 
-Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included.
+Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included — on every channel that takes them since 5.15.0 (before, a deploy through the webhook reached e-mail only).
 
 ## From the server (recommended) 
 
@@ -3497,6 +3497,7 @@ Know about every deploy, success or failure, without watching logs. The simplest
 $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
 $ cipi notification add telegram team --token= --chat-id=
 $ cipi notification test
+$ cipi notification events team deploy        # 5.15.0: only deploys to the team's chat
 ```
 
 | Event | Sent when |
@@ -3998,7 +3999,7 @@ On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty r
 
 ## Behind Cloudflare: the visitor's real IP 
 
-A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+):
+A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+), or one button in the [panel](#real-ip-panel) (5.15.0+):
 
 ```bash
 $ cipi nginx real-ip cloudflare     # on
@@ -4017,6 +4018,16 @@ $ cipi nginx real-ip off            # back to the address of each connection
 `nginx -t` runs before the reload: if Nginx refuses (another `real_ip_header` in your `nginx.conf`, say), the file is taken back and you get Nginx's reason. A `real_ip` configuration Cipi didn't write is left alone.
 
 > [!info] A firewall ban stops direct connections only. A visitor who comes through Cloudflare is blocked at Cloudflare (WAF rules), not on the server. With a [Zero Trust tunnel](https://cipi.sh/docs/zero-trust), `cipi zt enable` already sets the same thing and the two share one file.
+
+### From the panel 
+
+The server's [Firewall tab](https://cipi.sh/docs/firewall#panel) has a **Cloudflare real IP** card (panel 4.7.0, cipi/api 1.45, Cipi 5.15.0): **Turn on**, **Fetch the ranges again** and **Turn off**, with the ranges trusted, when they were fetched and who keeps it on. It takes **Manage** on the server.
+
+| | |
+| --- | --- |
+| **Turning it off** | Only when this setting alone keeps it on: with [Zero Trust](https://cipi.sh/docs/zero-trust) the card says it stays on until the tunnel is disabled. With Fail2ban or CrowdSec running the panel asks first, saying why: a domain still proxied would turn every visitor into one of Cloudflare's addresses, and a ban would hit Cloudflare and the sites behind it |
+| **Never through Cloudflare** | The API refuses to turn it off (`409`) when the panel reaches the server's API through Cloudflare: from then on the API would see Cloudflare instead of the panel, outside its [IP allowlist](https://cipi.sh/docs/api#cipi-api-ip-whitelist). Turn it off at the server |
+| **API** | `real_ip` in `GET /api/firewall`; `PUT` and `DELETE /api/firewall/real-ip`, `POST /api/firewall/real-ip/refresh` ([endpoints](https://cipi.sh/docs/api#endpoints-firewall)) |
 
 ## Your own directives 
 
@@ -4245,7 +4256,8 @@ $ cipi db switch mariadb          # back, on the same terms
 | Checked first | A `mysql-server` package is available, and removing MariaDB would remove nothing but its own packages and client libraries. Otherwise nothing changes |
 | What it does | Stops MariaDB, keeps its data directory aside (`/var/lib/mysql.mariadb-`), purges it, installs MySQL with the same root password (`caching_sha2_password`) and Cipi's tuning (`/etc/mysql/mysql.conf.d/99-cipi.cnf`). If the install fails, MariaDB comes back with its data |
 | What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. At the terminal the messages of `cipi db` say `mysql` (5.14.0+), a name `--engine=` accepts too. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
-| Not in the panel or API | Replacing a database server is an operator decision; the [panel](https://cipi.sh/docs/gui) shows *MySQL* where it runs. A `db_switch` [notification](https://cipi.sh/docs/notifications) is sent |
+| Not in the panel or API | Replacing a database server is an operator decision; the [panel](https://cipi.sh/docs/gui) shows *MySQL* where it runs — in the list, and since panel 4.7.0 in the engine filter, its card and the page's intro too (*MariaDB / MySQL* across servers that run both). A `db_switch` [notification](https://cipi.sh/docs/notifications) is sent |
+| The root password | Reaches `mysql`, `mariadb` and `mysqldump` in an option file read from a pipe, never on their command line (5.15.0+), on MariaDB too. On the command line it sat in the process list, which every user of the server reads; MySQL's client warned about it at every call — *Using a password on the command line interface can be insecure* — and `cipi db list` showed that warning as a database |
 
 Step by step, with what to check in your code first: [Run Laravel on MySQL instead of MariaDB](https://cipi.sh/guides/laravel-mysql-instead-of-mariadb).
 
@@ -5233,7 +5245,7 @@ One bar per day per app: green all checks passed, yellow a few failed, red an in
 
 ### Collection and retention 
 
-Server managers see the settings card at the bottom of the server tab: how big the database is, the retention of minutes, rollups and events, the per-minute probe and the heartbeat. Saving calls the same `cipi metrics retention` as the CLI. OpenMetrics stays CLI-only, because it opens a port.
+Server managers see the settings card at the bottom of the server tab: how big the database is, the retention of minutes, rollups and events, the per-minute probe and the heartbeat — its URL and interval on the line of the retention fields, where it calls and how the last call went under them. Saving calls the same `cipi metrics retention` as the CLI. OpenMetrics stays CLI-only, because it opens a port.
 
 | Server tab | App tab |
 | --- | --- |
@@ -5324,7 +5336,7 @@ $ cipi disk --json       # for scripts (also: cipi disk db --json)
 
 URL: https://cipi.sh/docs/notifications
 
-Cipi tells you when something happens that you should know about: failed deploys and backups, health and monitor alerts, security events (SSH logins, sudo, key changes), patches applied. One command manages where messages go; every enabled trigger reaches every enabled channel.
+Cipi tells you when something happens that you should know about: failed deploys and backups, health and monitor alerts, security events (SSH logins, sudo, key changes), patches applied. One command manages where messages go: an enabled trigger reaches every enabled channel — or, since 5.15.0, only the channels that take it ([what each channel receives](#events)): every notification to one, the alarms alone to another, the deploys to a third.
 
 ```bash
 $ cipi notification                     # channels and active triggers (no secrets shown)
@@ -5333,6 +5345,7 @@ $ cipi notification test all
 $ cipi notification triggers            # which events notify
 $ cipi notification triggers disable monitor_load
 $ cipi notification update ops --url=https://hooks.slack.com/services/…   # 5.12.0
+$ cipi notification events oncall urgent       # 5.15.0: only failures and security events to oncall
 ```
 
 ## Channels 
@@ -5386,11 +5399,42 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 
 `cipi notification test ` exits 1, with the reason, when the channel refuses the request (5.12.0); a disabled channel can be tested before it is turned on.
 
+## What each channel receives 
+
+A channel takes **everything** — the default, and how every channel worked before 5.15.0 — or only the events you give it:
+
+```bash
+$ cipi notification events                   # what each channel takes (--json)
+$ cipi notification events oncall urgent     # failures and security only
+$ cipi notification events team deploy       # deploys only
+$ cipi notification events smtp deploy,backup,security
+$ cipi notification events siem security,ssh_login
+$ cipi notification events team all          # back to everything
+$ cipi notification add slack team --url=… --events=deploy
+```
+
+| Selector | Lets through |
+| --- | --- |
+| `all` | Everything (the same as no list) |
+| `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
+| A category | Every trigger of it, as an id: `apps`, `domains`, `deploy`, `health`, `monitor`, `ssl`, `php`, `updates`, `services`, `database`, `security`, `backup`, `cron`, `cipi-yml`, `basic-auth`, `ssh-keys`… (`cipi notification events --json` lists them with how many triggers each holds) |
+| A trigger | That one: `backup_fail`, `deploy_success`, `ssh_login`… — mixed with categories as you like (`security,ssh_login`) |
+
+`add` and `update` take the same list as `--events=`, with the rest of the channel.
+
+- The [triggers](#triggers) come first: a trigger that is off reaches no channel, whatever the channels take.
+- Every selector is checked before anything is saved: a typo is named and changes nothing.
+- SMTP is a channel like the others (`events smtp …`), and reconfiguring SMTP or editing a channel keeps what it takes.
+- `cipi notification test ` and `cipi monitor test` reach a channel whatever it takes: they have no trigger.
+- `cipi notification --json` gives each channel its `events` (`null` for everything) and lists the `categories`.
+
+Since 5.15.0 the alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su` (through PAM), [your own cron jobs](#security) and deploys through the Git webhook — reach every channel that takes them too. Before, they were sent by e-mail only.
+
 ## In the web panel 
 
-The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.42+) manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
+The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.42+) manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. The list says what each channel **receives**, and the channel's form chooses it — *Everything* or *Only some events*: **Urgent** and the categories of the server (panel 4.7.0, Cipi 5.15.0, cipi/api 1.45). Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
 
-Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/channels[/{id}]`, `POST …/{id}/enable|disable|test`, `GET|PUT /api/notifications/triggers` ([REST API](https://cipi.sh/docs/api#endpoints-server)); from code, `$cipi->notifications()` ([PHP SDK](https://cipi.sh/docs/php-sdk)) and `cipi-cli notifications` ([cipi-cli](https://cipi.sh/docs/cli-client#notifications)); for an assistant, the MCP tools `NotificationsShow`, `NotificationChannelSave`, `NotificationChannelTest`, `NotificationChannelRemove`, `NotificationTriggersUpdate`. Servers older than 5.12.0 keep the SMTP form in the panel.
+Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/channels[/{id}]`, `POST …/{id}/enable|disable|test`, `GET|PUT /api/notifications/triggers` ([REST API](https://cipi.sh/docs/api#endpoints-server); a channel's `events` with API 1.45+); from code, `$cipi->notifications()` ([PHP SDK](https://cipi.sh/docs/php-sdk)) and `cipi-cli notifications` ([cipi-cli](https://cipi.sh/docs/cli-client#notifications)); for an assistant, the MCP tools `NotificationsShow`, `NotificationChannelSave`, `NotificationChannelTest`, `NotificationChannelRemove`, `NotificationTriggersUpdate`. Servers older than 5.12.0 keep the SMTP form in the panel.
 
 ## Security alerts 
 
@@ -5400,7 +5444,7 @@ Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/chan
 | `sudo` / `su` | Who, target user, TTY, key, IP |
 | SSH key added, removed, renamed | Fingerprint, comment, remaining keys |
 
-They run in the background through PAM, so they never slow a login. Wrap your own cron jobs with `cipi-cron-notify` to be alerted when they exit non-zero.
+They run in the background through PAM, so they never slow a login, and since 5.15.0 they reach every channel that takes them (before, e-mail only). Wrap your own cron jobs with `cipi-cron-notify` to be alerted when they exit non-zero.
 
 ## Common problems 
 
@@ -5414,6 +5458,7 @@ They run in the background through PAM, so they never slow a login. Wrap your ow
 | Question | Answer |
 | --- | --- |
 | Which channels? | E-mail, Slack, Mattermost, Google Chat, Discord, Telegram, ntfy, Pushover, signed webhooks. |
+| Can one channel get only the alarms? | Yes (5.15.0+): `cipi notification events  urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events  deploy` ([what each channel receives](#events)). |
 | Can I manage them from the panel? | Yes, every channel and trigger, with Cipi 5.12.0+ and cipi/api 1.42+ ([In the web panel](#panel)). |
 | The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist predates 5.12.0: `sudo cipi self-update` rewrites it. |
 | Step by step? | [Notifications and alerts guide](https://cipi.sh/guides/notifications-alerts). |
@@ -5577,6 +5622,7 @@ The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Fi
 | Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
 | SSH login attempts | The threshold, back to the default, and a warning when fail2ban still runs an older value or isn't running |
 | CrowdSec | [Enable](https://cipi.sh/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
+| Cloudflare real IP | [The visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it (panel 4.7.0, Cipi 5.15.0) |
 
 Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](https://cipi.sh/docs/crowdsec#rescue) stays at the server.
 
@@ -5700,7 +5746,7 @@ The [web panel](https://cipi.sh/docs/firewall#panel) does the same from a server
 | --- | --- |
 | Banning yourself | Your current SSH session is allowlisted before banning starts |
 | Banning the panel | Enabled from the [panel](https://cipi.sh/docs/firewall#panel), the panel's own address is allowlisted (`--allow`); there is no SSH session to allowlist, and the RAM and real-IP checks always apply (`--force` is ignored from the panel) |
-| Banning your CDN | Refused behind a proxy without real-IP config. Behind Cloudflare, [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) writes it (or `cipi zt enable`, with a tunnel) |
+| Banning your CDN | Refused behind a proxy without real-IP config. Behind Cloudflare, [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) writes it — or the panel's Firewall tab, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel) (5.15.0+), or `cipi zt enable`, with a tunnel |
 | Banning your Git provider | GitHub and Bitbucket webhook ranges allowlisted (refreshed, fail-open); GitLab ranges included |
 | Breaking renewals | Let's Encrypt validation, localhost and private ranges allowlisted |
 | Too little RAM | Refused below 512 MB available |
@@ -6477,19 +6523,19 @@ cipi CLI | does the work, as on SSH
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
 | Routing | Whole-app and path redirects, prefix reverse proxies; for server managers, the app's [own Nginx directives](https://cipi.sh/docs/nginx#custom) — headers, caching, limits, `location` blocks — tested with `nginx -t` before the reload (Cipi 5.14.0+) |
 | App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](https://cipi.sh/docs/environment#order) (Cipi 5.13.0+), a block of variables pasted or [edited as text](https://cipi.sh/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
-| Databases | MariaDB (or [MySQL](https://cipi.sh/docs/databases#mysql), shown as such) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
+| Databases | MariaDB (or [MySQL](https://cipi.sh/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
-| Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
+| Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](https://cipi.sh/docs/notifications#events) — everything, or *Urgent* and the categories you choose (Cipi 5.15.0+); every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
 | Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
 | Packages | The [optional packages](https://cipi.sh/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](https://cipi.sh/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
-| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist; SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel), Cipi 5.14.0+) |
+| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel) on, refreshed or off (Cipi 5.15.0+); SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel), Cipi 5.14.0+) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
 | Sign-in | Password with TOTP, optional or [required for every account](https://cipi.sh/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
 
-Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports.
+Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs — never which release has it (panel 4.7.0+).
 
 > [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](https://cipi.sh/docs/design-decisions#packages), monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
@@ -6773,7 +6819,7 @@ cipi CLI via sudoers | the same code path as SSH
 | Search | `GET /api/search`, per-app enable/disable |
 | Databases | List, create, back up, restore (with chunked upload), rotate password, link to apps; deletion stays on the host CLI |
 | Backups | `/api/backups…` profiles, runs, destinations test |
-| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](https://cipi.sh/docs/firewall#panel), API 1.44+) |
+| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](https://cipi.sh/docs/firewall#panel), API 1.44+), Cloudflare real IP (`/api/firewall/real-ip`, API 1.45+) |
 | Jobs | Status, output and parsed `result` (credentials, backup file, webhook token) |
 
 A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall deny`, the CrowdSec rescue, disk limits and DNS accounts are changed on the host.
@@ -6958,7 +7004,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/services`, `/services/{name}/restart` | `services-view` / `services-manage` |
 | `GET`, `PUT`, `DELETE`, `POST` | `/api/smtp`, `/smtp/enable`, `/disable`, `/test` | `smtp-view` / `smtp-manage` |
 | `GET` | `/api/notifications`, `/api/notifications/triggers` ([notifications](https://cipi.sh/docs/notifications#panel), 1.42+) | `notifications-view` or `smtp-view` |
-| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]`, `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
+| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]` (with `events`: what the channel receives, 1.45+), `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
 | `GET` | `/api/health` | `health-view` |
 | `GET`, `POST`, `PUT`, `DELETE` | `/api/node`, `/node/install`, `/node/upgrade`, `/node/default`, `/node/{major}` | `node-view` / `node-runtimes-manage` |
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
@@ -6985,8 +7031,22 @@ API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [pa
 | `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
 | `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
 | `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
+| `PUT`, `DELETE` | `/api/firewall/real-ip` (on, or the ranges fetched again; off) — 1.45+, Cipi 5.15.0+ | `firewall-manage` |
+| `POST` | `/api/firewall/real-ip/refresh` (Cloudflare's ranges fetched again) — 1.45+ | `firewall-manage` |
 
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](https://cipi.sh/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+
+From Cipi 5.15.0 `GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` on an older core. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
+
+### Notification channels: events 
+
+`POST /api/notifications/channels` and `PUT /api/notifications/channels/{id}` take `events` (API 1.45+, Cipi 5.15.0+): `null` for [everything](https://cipi.sh/docs/notifications#events), or a list of categories (`security`, `deploy`, `backup`…), single triggers (`backup_fail`) and `urgent`. Alone, it changes only what the channel receives (for SMTP: no new settings, no test). `GET /api/notifications` gives every channel its `events` and lists the server's `categories` (`id`, `label`, `triggers`). An older core refuses a request with `events` (`503`) rather than saving the channel without them.
+
+```bash
+$ curl -X PUT https://api.example.com/api/notifications/channels/oncall \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"events": ["urgent", "security"]}'
+```
 
 ### Nginx directives 
 
@@ -15265,8 +15325,8 @@ Every Cloudflare setting for wildcards, with checks and errors: [Wildcard domain
 
 Behind the orange cloud, every request comes from a Cloudflare IP. Two layers must know that:
 
-1. **Nginx** must take the visitor's IP from Cloudflare's header. `sudo cipi zt enable` configures exactly that (Cloudflare's ranges, refreshed daily) and teaches Fail2ban and CrowdSec the same ranges. It closes no port: it's the first step of [Zero Trust](https://cipi.sh/guides/cloudflare-zero-trust-laravel), safe to run alone.
-2. **Laravel** must trust the proxy, so `$request->ip()`, rate limiting and HTTPS detection work. In `bootstrap/app.php`:
+1. **Nginx** must take the visitor's IP from Cloudflare's header. `sudo cipi nginx real-ip cloudflare` configures exactly that (Cloudflare's ranges, refreshed every night, believed only from those ranges) and teaches Fail2ban and CrowdSec the same ranges; with the [web panel](https://cipi.sh/docs/nginx#real-ip-panel) it is one button in the server's Firewall tab (Cipi 5.15.0+). A [Zero Trust](https://cipi.sh/guides/cloudflare-zero-trust-laravel) tunnel sets the same thing.
+2. **Laravel**: on PHP-FPM, Nginx already hands it the visitor as `REMOTE_ADDR`, so `$request->ip()` and rate limiting work with no change. Octane and Node apps get it in `X-Forwarded-For`, and HTTPS detection reads `X-Forwarded-Proto`: there Laravel must trust the proxy. In `bootstrap/app.php`:
 
 ```php
 ->withMiddleware(function (Middleware $middleware): void {
@@ -15936,8 +15996,8 @@ Trigger | is this event enabled?
 > Cipi checks whether that event type (trigger) is enabled. You can turn each one off.
 Event log | always written, kept a year
 > Every event is written to the event log anyway, kept for a year, even if no alert goes out.
-Channels | every enabled channel, in parallel
-> The alert is sent to every enabled channel at once: e-mail, Telegram, Slack, webhooks…
+Channels | every enabled channel that takes it
+> The alert goes to every enabled channel that takes that event, at once: one channel may take everything, another only the urgent ones.
 You | e-mail, chat or phone
 > You get it where you are. A broken channel never blocks the others or the deploy.
 ```
@@ -15946,7 +16006,7 @@ You | e-mail, chat or phone
 | --- | --- |
 | **Event** | Something that happened on the server: `deploy_fail`, `backup_stale`, `ssh_login`… |
 | **Trigger** | An on/off switch per event type. All are on by default |
-| **Channel** | A destination: an e-mail address, a Telegram chat, a Slack channel, a webhook URL |
+| **Channel** | A destination: an e-mail address, a Telegram chat, a Slack channel, a webhook URL. It takes every event, or only those you give it |
 | **Event log** | `/var/log/cipi/events.log`, written for every event, muted or not |
 
 ## 1. Choose your channels 
@@ -16030,7 +16090,20 @@ $ sudo cipi notification triggers disable deploy_success
 
 > [!tip] A good rule: if nobody would do anything after reading it, mute it. Alerts you ignore train you to ignore the ones that matter.
 
-## 7. Signed webhooks for your own automation 
+## 7. Send each channel what it's for 
+
+Since Cipi 5.15.0 a channel takes everything (the default) or only some events: categories (`deploy`, `backup`, `security`, `monitor`…), single triggers, or `urgent` — failures and security events, the ones that need someone now.
+
+```bash
+$ sudo cipi notification events oncall urgent           # the phone: only what needs action
+$ sudo cipi notification events team deploy             # the team's chat: deploys
+$ sudo cipi notification events smtp all                # e-mail: everything, the record
+$ sudo cipi notification events                         # what each channel takes
+```
+
+A trigger that is off (step 6) still reaches nobody: the triggers decide *whether* an event notifies, the channels *where*. In the [web panel](https://cipi.sh/docs/notifications#panel), the channel's form has the same choice: *Everything* or *Only some events*.
+
+## 8. Signed webhooks for your own automation 
 
 A webhook channel posts JSON (`server`, `trigger`, `subject`, `body`, `ts`). With a secret, each request carries `X-Cipi-Signature: sha256=…`. Verify it before trusting the payload, for example in a Laravel route:
 
@@ -16051,9 +16124,9 @@ Route::post('/hooks/cipi', function (Request $request) {
 $ sudo cipi notification add webhook router --url=https://ops.example.com/hooks/cipi --secret=…
 ```
 
-This is also how you route: urgent triggers to a phone, the rest to a channel.
+For routing that depends on the payload — the app, the server, the time of day — a webhook to your own code is still the way: the channel's events decide what reaches it, your code decides what happens next.
 
-## 8. Alerts for your own cron jobs 
+## 9. Alerts for your own cron jobs 
 
 Wrap a job in a root cron file with `cipi-cron-notify  `:
 
@@ -16062,15 +16135,22 @@ Wrap a job in a root cron file with `cipi-cron-notify  `:
 0 4 * * * root /usr/local/bin/cipi-cron-notify daily-report sudo -u shop php /home/shop/current/artisan report:daily
 ```
 
-A non-zero exit sends `cron_fail` with the label and the output, through the same channels. Cipi wraps its own nightly jobs the same way.
+A non-zero exit sends `cron_fail` with the label and the output, through the same channels (every channel that takes it since Cipi 5.15.0; e-mail only before). Cipi wraps its own nightly jobs the same way.
 
 ## A setup that works for small teams 
 
 ```stack
 E-mail | everything, searchable record
-Telegram group "ops" | deploy_fail, backup_*, health/monitor, security
-Muted | deploy_success, monitor_load, monitor_ok
+Telegram group "ops" | urgent: failed deploys and backups, health, monitor, security
+Slack "team" | deploy: every release, for the people who ship
+Muted | monitor_load, monitor_ok
 Weekly | read pending_report and update notes
+```
+
+```bash
+$ sudo cipi notification events ops urgent
+$ sudo cipi notification events team deploy
+$ sudo cipi notification triggers set --off=monitor_load,monitor_ok
 ```
 
 ## Troubleshooting 
