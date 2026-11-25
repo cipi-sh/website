@@ -78,6 +78,22 @@ Managed servers need no change: the panel calls their API URLs, and their allowl
 
 ## Two-factor authentication {#two-factor}
 
-Session login with **optional TOTP** per user (Google Authenticator, 1Password, Aegis…), enrolled from the profile. With [single sign-on](/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
+Session login with **TOTP** (Google Authenticator, 1Password, Aegis…), enrolled from Settings: optional per user by default, or required for every account. With [single sign-on](/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
 
-Lost a second factor? From the server, [`cipi gui reset-user`](/docs/gui-maintenance) rewrites the account and removes the enrolment.
+### Required for every account {#two-factor-required}
+
+For policies that ask it of every account (ISO 27001, NIS2), an admin turns on **Team → Two-factor authentication** (panel 4.6.0+, setting `enforce_2fa`, off by default). Nothing changes on the servers.
+
+| Who | What happens |
+| --- | --- |
+| An account without 2FA signing in with its password | Taken to the setup (`/2fa/setup`: QR code, setup key, the first code to confirm) before anything else, then to the page it asked for |
+| A session already open when it's turned on | Taken there at its next page; an action from a page left open is refused the same way |
+| A new user | The invite link opens on the setup |
+| SSO sign-ins | Left to the identity provider's MFA, as always. The same account signing in with its password is asked |
+| Accounts with 2FA | Can't turn it off while it's required; they can **move it to a new device** (the old one works until a code of the new one checks out) |
+
+An admin can turn it on only once their own session passes it (2FA set up, or signed in through SSO). Team then shows who still has to set it up (*Setup pending*; *Via SSO* for linked accounts). [`cipi compliance`](/docs/compliance#controls), control `gui_2fa`, reads the policy: required with everyone enrolled is a pass.
+
+### Lost a second factor {#two-factor-reset}
+
+An admin clicks **Reset 2FA** on the account in Team (panel 4.6.0+; not for your own account). From the server, [`cipi gui reset-user`](/docs/gui-maintenance) rewrites an account and removes the enrolment. With 2FA required, the account sets it up again at its next sign-in.

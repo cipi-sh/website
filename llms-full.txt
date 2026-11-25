@@ -5305,7 +5305,7 @@ Audit | deploy ledger, event log, compliance
 
 | Layer | What Cipi does | Details |
 | --- | --- | --- |
-| **Network** | UFW allows only 22, 80, 443. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](https://cipi.sh/docs/firewall), [Nginx](https://cipi.sh/docs/nginx#default-server) |
+| **Network** | UFW allows only 22, 80, 443; the panel can open ports and block addresses, never close those three. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](https://cipi.sh/docs/firewall), [Nginx](https://cipi.sh/docs/nginx#default-server) |
 | **SSH** | Root login off; the `cipi` admin user is key-only; app users have their own password logins, which you can switch off | [SSH keys](https://cipi.sh/docs/ssh-keys) |
 | **Privilege** | App users can't `su`; the web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist | [Panel architecture](https://cipi.sh/docs/gui-architecture) |
 | **App isolation** | One Linux user per app (home `750`), its own PHP-FPM pool, `open_basedir` to its home, its own database user and Valkey instance | [How Cipi works](https://cipi.sh/docs/how-cipi-works#what-every-app-gets) |
@@ -5319,7 +5319,7 @@ Audit | deploy ledger, event log, compliance
 
 ## No web surface by default 
 
-A fresh Cipi server has **no admin panel**: management happens over SSH. The [web panel](https://cipi.sh/docs/gui-overview) is opt-in, runs as an isolated app on its own domain with two-factor login, and talks to servers only through the API's whitelisted commands.
+A fresh Cipi server has **no admin panel**: management happens over SSH. The [web panel](https://cipi.sh/docs/gui-overview) is opt-in, runs as an isolated app on its own domain with two-factor login (an admin can require it for every account), and talks to servers only through the API's whitelisted commands.
 
 ## What isolation protects 
 
@@ -5341,16 +5341,19 @@ If one app is compromised (a vulnerable plugin, a leaked `.env`), the attacker g
 
 URL: https://cipi.sh/docs/firewall
 
-UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time.
+UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time. Since 5.14.0 the [web panel](#panel) shows all of it, CrowdSec included, and changes what is safe to change from a browser.
 
 ## Ports 
 
 ```bash
-$ cipi firewall list
-$ cipi firewall allow 3306 --from=10.0.0.5        # one address
-$ cipi firewall allow 3306 --from=10.0.0.0/24     # a private subnet
-$ cipi firewall deny 8080
-$ cipi firewall attempts [5|default]              # failed logins before a ban
+$ cipi firewall status [--json]                    # UFW, fail2ban and CrowdSec at a glance (5.14.0+)
+$ cipi firewall list [--json]
+$ cipi firewall allow 3306 --from=10.0.0.5         # one address
+$ cipi firewall allow 3306 --from=10.0.0.0/24      # a private subnet
+$ cipi firewall allow 8000:8100 --proto=udp        # a range, UDP (5.14.0+)
+$ cipi firewall remove 3306 --from=10.0.0.5        # drop what allow made (5.14.0+)
+$ cipi firewall deny 8080                          # ahead of every allow
+$ cipi firewall attempts [5|default]               # failed logins before a ban
 ```
 
 | Protection | Default |
@@ -5362,23 +5365,69 @@ $ cipi firewall attempts [5|default]              # failed logins before a ban
 
 The threshold is written to a drop-in that updates never reset, validated with `fail2ban-client -t` before reload (a rejected value changes nothing). Need a database port? Open it **to specific addresses only**, or better, connect over SSH with the `mariadb+ssh://` URL.
 
+To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). Since 5.14.0 it goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny added after an allow of the same port used to change nothing.
+
 > [!tip] Behind Cloudflare, [cipi zt](https://cipi.sh/docs/zero-trust) can close 80/443 to everyone but Cloudflare, and close 22 entirely.
+
+## Blocked addresses 
+
+```bash
+$ cipi firewall block 198.51.100.23        # every port refused to it
+$ cipi firewall block 198.51.100.0/24      # a range
+$ cipi firewall unblock 198.51.100.23
+```
+
+A block refuses **every port** to an address or a range, ahead of every allow, until you unblock it: a scanner, an abuser, a range that keeps knocking. Unlike a [ban](#ban) it never expires. Ranges wider than `/8` (IPv4) or `/16` (IPv6) are refused.
+
+## What stays open 
+
+Since 5.14.0 the firewall commands refuse what would cut the server off:
+
+| Refused | Why |
+| --- | --- |
+| `deny` of the SSH port, 80 or 443 to everyone; `remove` of the rule that opens them | They are how the server is reached. The SSH ports are read from `sshd -T`, so a custom port counts. One address can still be denied with `--from=` |
+| `block` of a range that takes in the address of your SSH session | You would cut yourself off. The same holds for `deny --from=` on the SSH port |
+| `allow` to everyone of what a Zero Trust lock keeps closed | `cipi zt lock http` keeps 80/443 to Cloudflare, `cipi zt lock ssh` keeps SSH closed: the message says which `cipi zt unlock` reopens it |
+
+`--force` gets past these at the server's shell, when you know why. **From the panel it is ignored**, whatever the panel sends.
+
+Every change is written to `cipi.log`, and says when the rule was already there, when it did not exist, or when UFW is inactive.
 
 ## Bans 
 
 ```bash
 $ cipi ban list                   # banned IPs, by jail (Fail2ban and CrowdSec)
 $ cipi ban unban 203.0.113.42     # from every jail at once
+$ cipi ban unban 203.0.113.0/24   # a CrowdSec range decision
 ```
 
-Locked out a colleague or a CI runner by mistake? Unban from another session or the provider's console. For CI, use a dedicated key (key logins don't fail).
+The address is matched whole (before 5.14.0, `unban 1.2.3.4` could also lift a ban on `11.2.3.45`), and `ban unban` takes nothing but an address or a CIDR. Locked out a colleague or a CI runner by mistake? Unban from another session, the provider's console or the [panel](#panel). For CI, use a dedicated key (key logins don't fail).
+
+## From the panel 
+
+The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Firewall** tab (panel 4.6.0, [API](https://cipi.sh/docs/api#endpoints-firewall) 1.44, Cipi 5.14.0 on the server):
+
+| Section | What it shows and does |
+| --- | --- |
+| At a glance | UFW and its default policy, the ports always kept open, fail2ban and its threshold, CrowdSec, how many addresses are banned; the Zero Trust locks, when there are |
+| Rules | UFW's rules in its order (port or range, protocol, action, source, IPv4/IPv6), *Kept open* on SSH, 80 and 443, the Cipi feature that owns a rule (Zero Trust, Metrics, CrowdSec rescue); **Remove** on what may be removed; **Open a port** or a range, TCP or UDP, to everyone or to one address or range |
+| Blocked addresses | [Blocks](#block): **Block**, **Unblock** |
+| Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
+| SSH login attempts | The threshold, back to the default, and a warning when fail2ban still runs an older value or isn't running |
+| CrowdSec | [Enable](https://cipi.sh/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
+
+Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](https://cipi.sh/docs/crowdsec#rescue) stays at the server.
+
+The server's API token needs `firewall-view` and `firewall-manage` (a `--full-access` token has them). On an older server the tab says what to update: `cipi self-update`, then `cipi api update`.
 
 ## Questions 
 
 | Question | Answer |
 | --- | --- |
-| I locked myself out. | Use the provider's web console to log in, then `cipi ban unban `. Key logins never count as failures, only passwords. |
+| I locked myself out. | Use the provider's web console to log in, then `cipi ban unban ` (or Unban in the panel, from another network). Key logins never count as failures, only passwords. |
 | Should I open the database port? | Avoid it. Connect over SSH (TablePlus, DBeaver support it). If you must, allow one address with `--from`. |
+| How do I close a port I opened? | `cipi firewall remove ` with the same `--from` and `--proto` you opened it with, or Remove in the panel. |
+| Deny, block or ban? | `deny` refuses a port; `block` refuses every port to an address until you unblock it; a ban is Fail2ban's or CrowdSec's, and expires. |
 | Does the provider's firewall conflict? | No. Keep 22, 80 and 443 open in both. |
 
 
@@ -5474,16 +5523,21 @@ CrowdSec reads your Nginx logs, recognises attack patterns (scanners, credential
 
 ```bash
 $ cipi crowdsec enable                 # engine + firewall bouncer
+$ cipi crowdsec enable --allow=203.0.113.7   # and never ban this address (5.14.0+)
 $ cipi crowdsec status                 # engine, bouncer, rescue listener, decisions
 $ cipi crowdsec allow 203.0.113.42     # never ban this address
+$ cipi crowdsec unallow 203.0.113.42
 $ cipi crowdsec disable                # flush rules first, then remove
 ```
+
+The [web panel](https://cipi.sh/docs/firewall#panel) does the same from a server's Firewall tab (panel 4.6.0, Cipi 5.14.0): enable and disable run as jobs, the allowlist is edited in place, and CrowdSec's decisions sit next to Fail2ban's bans, each with *Unban*. What would stop `enable` (too little RAM, a reverse proxy without real-IP config) is shown before you try.
 
 ## Safe by construction 
 
 | Risk | Guard |
 | --- | --- |
 | Banning yourself | Your current SSH session is allowlisted before banning starts |
+| Banning the panel | Enabled from the [panel](https://cipi.sh/docs/firewall#panel), the panel's own address is allowlisted (`--allow`); there is no SSH session to allowlist, and the RAM and real-IP checks always apply (`--force` is ignored from the panel) |
 | Banning your CDN | Refused behind a proxy without real-IP config ([cipi zt enable](https://cipi.sh/docs/zero-trust) writes it) |
 | Banning your Git provider | GitHub and Bitbucket webhook ranges allowlisted (refreshed, fail-open); GitLab ranges included |
 | Breaking renewals | Let's Encrypt validation, localhost and private ranges allowlisted |
@@ -5501,7 +5555,7 @@ $ cipi crowdsec rescue token     # print the curl command (keep it off the serve
 $ cipi crowdsec rescue rotate    # new token, mailed to you
 ```
 
-It grants nothing but the ability to connect again. The port is kept open ahead of CrowdSec's own rules; wrong tokens are throttled. `cipi ban list` and `cipi ban unban` cover CrowdSec too.
+It grants nothing but the ability to connect again. The port is kept open ahead of CrowdSec's own rules; wrong tokens are throttled. `cipi ban list` and `cipi ban unban` cover CrowdSec too (a range decision: `cipi ban unban 203.0.113.0/24`). The rescue is break-glass for the server's owner, so it is deliberately **not** in the panel.
 
 
 ## Cloudflare Zero Trust
@@ -5636,7 +5690,7 @@ $ cipi compliance controls            # mapping to ISO 27001:2022 Annex A and SO
 | `firewall`, `intrusion`, `kernel` | UFW default deny; Fail2ban/CrowdSec; network sysctls |
 | `patching`, `time` | Security updates, reboots pending; NTP |
 | `tls` | Protocols, HSTS, certificate expiry and key type |
-| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts |
+| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts: [required](https://cipi.sh/docs/gui-install#two-factor-required) with everyone enrolled passes, required with accounts still to enrol warns and names them (5.14.0+) |
 | `secrets` | Encrypted, root-only configuration |
 | `deploys` | [Deploy audit](https://cipi.sh/docs/deploy-audit) chain intact, hooks present, no unaudited releases |
 | `backups` | Freshness, off-site copy, encryption |
@@ -6266,14 +6320,15 @@ cipi CLI | does the work, as on SSH
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
+| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist; SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel), Cipi 5.14.0+) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
-| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed) |
-| Sign-in | Password with optional TOTP, or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
+| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
+| Sign-in | Password with TOTP, optional or [required for every account](https://cipi.sh/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports.
 
-> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software, monitor thresholds and Zero Trust changes stay on the CLI by design.
+> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software, monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
 ## Screenshot tour 
 
@@ -6303,11 +6358,15 @@ The Metrics tab of a server and of each app: charts from 1 hour to 30 days with 
 
 Every channel of the server and which events reach it. Secrets never come back to the panel; an empty secret field keeps the stored one. See [notifications](https://cipi.sh/docs/notifications#panel).
 
+### Firewall
+
+UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order with *Kept open* on SSH, 80 and 443 and the Cipi feature that owns each one, blocked addresses, everything banned right now with *Unban*, the SSH login threshold and CrowdSec with its allowlist. Viewing needs a level on the server, changing needs Manage. See [firewall](https://cipi.sh/docs/firewall#panel).
+
 ### Connections and security
 
 ### Team and roles
 
-Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days.
+Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days. An admin can [require two-factor authentication](https://cipi.sh/docs/gui-install#two-factor-required) for every account: the list then shows who still has to set it up.
 
 
 ## Install the panel
@@ -6382,9 +6441,25 @@ Managed servers need no change: the panel calls their API URLs, and their allowl
 
 ## Two-factor authentication 
 
-Session login with **optional TOTP** per user (Google Authenticator, 1Password, Aegis…), enrolled from the profile. With [single sign-on](https://cipi.sh/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
+Session login with **TOTP** (Google Authenticator, 1Password, Aegis…), enrolled from Settings: optional per user by default, or required for every account. With [single sign-on](https://cipi.sh/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
 
-Lost a second factor? From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites the account and removes the enrolment.
+### Required for every account 
+
+For policies that ask it of every account (ISO 27001, NIS2), an admin turns on **Team → Two-factor authentication** (panel 4.6.0+, setting `enforce_2fa`, off by default). Nothing changes on the servers.
+
+| Who | What happens |
+| --- | --- |
+| An account without 2FA signing in with its password | Taken to the setup (`/2fa/setup`: QR code, setup key, the first code to confirm) before anything else, then to the page it asked for |
+| A session already open when it's turned on | Taken there at its next page; an action from a page left open is refused the same way |
+| A new user | The invite link opens on the setup |
+| SSO sign-ins | Left to the identity provider's MFA, as always. The same account signing in with its password is asked |
+| Accounts with 2FA | Can't turn it off while it's required; they can **move it to a new device** (the old one works until a code of the new one checks out) |
+
+An admin can turn it on only once their own session passes it (2FA set up, or signed in through SSO). Team then shows who still has to set it up (*Setup pending*; *Via SSO* for linked accounts). [`cipi compliance`](https://cipi.sh/docs/compliance#controls), control `gui_2fa`, reads the policy: required with everyone enrolled is a pass.
+
+### Lost a second factor 
+
+An admin clicks **Reset 2FA** on the account in Team (panel 4.6.0+; not for your own account). From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites an account and removes the enrolment. With 2FA required, the account sets it up again at its next sign-in.
 
 
 ## Single sign-on
@@ -6480,7 +6555,7 @@ The panel is the `cipi/gui` Composer package, so updating is Composer plus migra
 | --- | --- |
 | `cipi gui status` | Installed or not, domain, health of its services |
 | `cipi gui fix-permissions` | Repairs the FPM `open_basedir` and runtime permissions; run it on permission or autoload errors after an update |
-| `cipi gui reset-user` | Rewrites an admin's e-mail, name and password and clears their 2FA (alias `reset-password`) |
+| `cipi gui reset-user` | Rewrites an admin's e-mail, name and password and clears their 2FA (alias `reset-password`); with [2FA required](https://cipi.sh/docs/gui-install#two-factor-required) they set it up again at the next sign-in. For other accounts, *Reset 2FA* in Team does it from the panel |
 
 Locked out by [SSO-only](https://cipi.sh/docs/gui-sso)? `cipi gui sso only off` brings password sign-in back first.
 
@@ -6533,9 +6608,10 @@ cipi CLI via sudoers | the same code path as SSH
 | Search | `GET /api/search`, per-app enable/disable |
 | Databases | List, create, back up, restore (with chunked upload), rotate password, link to apps; deletion stays on the host CLI |
 | Backups | `/api/backups…` profiles, runs, destinations test |
+| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](https://cipi.sh/docs/firewall#panel), API 1.44+) |
 | Jobs | Status, output and parsed `result` (credentials, backup file, webhook token) |
 
-A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall attempts`, disk limits and DNS accounts are changed on the host.
+A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall deny`, the CrowdSec rescue, disk limits and DNS accounts are changed on the host.
 
 > [!info] Prefer the terminal? The [CLI client](https://cipi.sh/docs/cli-client) does the same over the API, and the [WHMCS module](https://cipi.sh/docs/whmcs) automates it for hosting providers.
 
@@ -6624,6 +6700,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
+| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
 | Read-only insights | `search-view`, `search-manage`, `packages-view`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
@@ -6633,7 +6710,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 ## REST endpoints 
 
-Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token).
+Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 ### Apps 
 
@@ -6726,7 +6803,23 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](https://cipi.sh/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+### Firewall 
+
+API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [panel's Firewall tab](https://cipi.sh/docs/firewall#panel) uses.
+
+| Method | Path | Ability |
+| --- | --- | --- |
+| `GET` | `/api/firewall` (UFW, protected ports, Zero Trust locks, Fail2ban, CrowdSec) | `firewall-view` |
+| `POST`, `DELETE` | `/api/firewall/rules` (`port`, `from`, `proto`; `action: deny` to remove a deny) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/blocks` (`address`) | `firewall-manage` |
+| `PUT` | `/api/firewall/attempts` (1–100, `null` for the default) | `firewall-manage` |
+| `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
+| `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
+
+`GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](https://cipi.sh/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
 
 ## Examples 
 
@@ -6783,7 +6876,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server 
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the firewall (read-only, `FirewallStatus`, 1.44+), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \
@@ -13922,7 +14015,7 @@ $ sudo cipi ban list               # banned IPs, CrowdSec and Fail2ban together
 $ sudo cipi ban unban 192.0.2.10   # lift a ban everywhere at once
 ```
 
-Within a day you'll usually see bans for scanners that probed paths your apps don't have.
+Within a day you'll usually see bans for scanners that probed paths your apps don't have. With the [web panel](https://cipi.sh/docs/firewall#panel) (Cipi 5.14.0+), the server's Firewall tab shows the same list, CrowdSec's decisions and Fail2ban's bans together, each with *Unban*, and edits the allowlist.
 
 ## 4. If you ban yourself: the rescue 
 
@@ -14163,7 +14256,7 @@ Security on your own server is a list of boring things done every time. Here's t
 | --- | --- |
 | Each app isolated from the others | Own Linux user, PHP pool with `open_basedir`, database user |
 | SSH by key only, no root login | Installer default; `sudo cipi ssh list` |
-| Firewall with only 22, 80, 443 | UFW by default; `sudo cipi firewall list` |
+| Firewall with only 22, 80, 443 | UFW by default; `sudo cipi firewall status`, or the panel's [Firewall tab](https://cipi.sh/docs/firewall#panel) |
 | Brute-force bans | fail2ban; `sudo cipi firewall attempts 3`; optional [CrowdSec](https://cipi.sh/docs/crowdsec) |
 | PHP patched the day fixes ship | Nightly at 03:30; `sudo cipi php upgrade` ([case study](https://cipi.sh/guides/php-nginx-cve-patching)) |
 | nginx patched | `sudo cipi nginx security`, `sudo cipi autoupdate on nginx` |
@@ -14592,7 +14685,7 @@ Log in with the admin account it asks for, then **Connections → add server** w
 | Admin | Everything |
 | User | Only granted servers (View or Manage) or apps (View, Deploy, Edit, Environment, Logs, Commands, Delete) |
 
-Invites are copyable links that work once and expire after seven days. Turn on TOTP 2FA per user, or [single sign-on](https://cipi.sh/docs/gui-sso) with Entra ID, Google Workspace, Okta or any OIDC provider.
+Invites are copyable links that work once and expire after seven days. Turn on TOTP 2FA per user, [require it for every account](https://cipi.sh/docs/gui-install#two-factor-required) (Team → Two-factor authentication), or use [single sign-on](https://cipi.sh/docs/gui-sso) with Entra ID, Google Workspace, Okta or any OIDC provider.
 
 ## 4. Automate with the API
 

@@ -20,7 +20,7 @@ The panel is the `cipi/gui` Composer package, so updating is Composer plus migra
 | --- | --- |
 | `cipi gui status` | Installed or not, domain, health of its services |
 | `cipi gui fix-permissions` | Repairs the FPM `open_basedir` and runtime permissions; run it on permission or autoload errors after an update |
-| `cipi gui reset-user` | Rewrites an admin's e-mail, name and password and clears their 2FA (alias `reset-password`) |
+| `cipi gui reset-user` | Rewrites an admin's e-mail, name and password and clears their 2FA (alias `reset-password`); with [2FA required](/docs/gui-install#two-factor-required) they set it up again at the next sign-in. For other accounts, *Reset 2FA* in Team does it from the panel |
 
 Locked out by [SSO-only](/docs/gui-sso)? `cipi gui sso only off` brings password sign-in back first.
 

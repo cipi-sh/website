@@ -4,7 +4,7 @@ description: Add an optional, self-hosted web panel for your team and clients, a
 category: ops
 order: 4
 published: 2026-04-28
-updated: 2026-11-23
+updated: 2026-11-25
 howto: yes
 keywords: laravel server panel self-hosted, forge alternative with gui, server management api laravel, cipi panel
 related:
@@ -60,7 +60,7 @@ Log in with the admin account it asks for, then **Connections → add server** w
 | Admin | Everything |
 | User | Only granted servers (View or Manage) or apps (View, Deploy, Edit, Environment, Logs, Commands, Delete) |
 
-Invites are copyable links that work once and expire after seven days. Turn on TOTP 2FA per user, or [single sign-on](/docs/gui-sso) with Entra ID, Google Workspace, Okta or any OIDC provider.
+Invites are copyable links that work once and expire after seven days. Turn on TOTP 2FA per user, [require it for every account](/docs/gui-install#two-factor-required) (Team → Two-factor authentication), or use [single sign-on](/docs/gui-sso) with Entra ID, Google Workspace, Okta or any OIDC provider.
 
 ## 4. Automate with the API
 

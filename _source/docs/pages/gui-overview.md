@@ -38,14 +38,15 @@ cipi CLI | does the work, as on SSH
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
+| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist; SSH, 80 and 443 always stay open ([firewall](/docs/firewall#panel), Cipi 5.14.0+) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
-| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed) |
-| Sign-in | Password with optional TOTP, or [single sign-on](/docs/gui-sso) over OpenID Connect |
+| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
+| Sign-in | Password with TOTP, optional or [required for every account](/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](/docs/gui-sso) over OpenID Connect |
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports.
 
-> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software, monitor thresholds and Zero Trust changes stay on the CLI by design.
+> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software, monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
 @section gui-tour
 
@@ -228,6 +229,10 @@ Every channel of the server and which events reach it. Secrets never come back t
 <figcaption>Adding a channel shows only the fields of its type.</figcaption>
 </figure>
 
+### Firewall
+
+UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order with *Kept open* on SSH, 80 and 443 and the Cipi feature that owns each one, blocked addresses, everything banned right now with *Unban*, the SSH login threshold and CrowdSec with its allowlist. Viewing needs a level on the server, changing needs Manage. See [firewall](/docs/firewall#panel).
+
 ### Connections and security
 
 <div class="gui-shot-grid">
@@ -249,7 +254,7 @@ Every channel of the server and which events reach it. Secrets never come back t
 
 ### Team and roles
 
-Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days.
+Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days. An admin can [require two-factor authentication](/docs/gui-install#two-factor-required) for every account: the list then shows who still has to set it up.
 
 <div class="gui-shot-grid">
 <figure class="gui-shot">

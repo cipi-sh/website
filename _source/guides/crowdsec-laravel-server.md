@@ -4,7 +4,7 @@ description: What CrowdSec is and how it differs from Fail2ban and a WAF, enabli
 category: security
 order: 6
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-25
 howto: yes
 keywords: crowdsec laravel, crowdsec nginx ubuntu, block bots laravel server, crowdsec vs fail2ban, crowdsec firewall bouncer, protect laravel from scanners
 docs:
@@ -92,7 +92,7 @@ $ sudo cipi ban list               # banned IPs, CrowdSec and Fail2ban together
 $ sudo cipi ban unban 192.0.2.10   # lift a ban everywhere at once
 ```
 
-Within a day you'll usually see bans for scanners that probed paths your apps don't have.
+Within a day you'll usually see bans for scanners that probed paths your apps don't have. With the [web panel](/docs/firewall#panel) (Cipi 5.14.0+), the server's Firewall tab shows the same list, CrowdSec's decisions and Fail2ban's bans together, each with *Unban*, and edits the allowlist.
 
 ## 4. If you ban yourself: the rescue {#rescue}
 

@@ -82,6 +82,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
+| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
 | Read-only insights | `search-view`, `search-manage`, `packages-view`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
@@ -91,7 +92,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 ## REST endpoints {#endpoints}
 
-Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token).
+Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 ### Apps {#endpoints-apps}
 
@@ -184,7 +185,23 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+### Firewall {#endpoints-firewall}
+
+API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [panel's Firewall tab](/docs/firewall#panel) uses.
+
+| Method | Path | Ability |
+| --- | --- | --- |
+| `GET` | `/api/firewall` (UFW, protected ports, Zero Trust locks, Fail2ban, CrowdSec) | `firewall-view` |
+| `POST`, `DELETE` | `/api/firewall/rules` (`port`, `from`, `proto`; `action: deny` to remove a deny) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/blocks` (`address`) | `firewall-manage` |
+| `PUT` | `/api/firewall/attempts` (1–100, `null` for the default) | `firewall-manage` |
+| `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
+| `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
+
+`GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
 
 ## Examples {#cipi-api-curl}
 
@@ -241,7 +258,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server {#mcp}
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the firewall (read-only, `FirewallStatus`, 1.44+), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \
