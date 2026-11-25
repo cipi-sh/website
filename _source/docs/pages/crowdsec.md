@@ -19,7 +19,7 @@ The [web panel](/docs/firewall#panel) does the same from a server's Firewall tab
 | --- | --- |
 | Banning yourself | Your current SSH session is allowlisted before banning starts |
 | Banning the panel | Enabled from the [panel](/docs/firewall#panel), the panel's own address is allowlisted (`--allow`); there is no SSH session to allowlist, and the RAM and real-IP checks always apply (`--force` is ignored from the panel) |
-| Banning your CDN | Refused behind a proxy without real-IP config ([cipi zt enable](/docs/zero-trust) writes it) |
+| Banning your CDN | Refused behind a proxy without real-IP config. Behind Cloudflare, [`cipi nginx real-ip cloudflare`](/docs/nginx#real-ip) writes it (or `cipi zt enable`, with a tunnel) |
 | Banning your Git provider | GitHub and Bitbucket webhook ranges allowlisted (refreshed, fail-open); GitLab ranges included |
 | Breaking renewals | Let's Encrypt validation, localhost and private ranges allowlisted |
 | Too little RAM | Refused below 512 MB available |

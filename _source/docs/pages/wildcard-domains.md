@@ -131,8 +131,8 @@ Let's Encrypt is the safer default: it keeps working if you ever switch a record
 
 Behind the orange cloud every request comes from a Cloudflare IP. Left as is, Nginx logs, Fail2ban, CrowdSec and Laravel (`$request->ip()`, rate limiting, login throttling) see the same few addresses for every visitor.
 
-1. **Nginx**: `cipi zt enable` sets Nginx's real IP from Cloudflare's ranges (refreshed daily) and teaches Fail2ban and CrowdSec the same ranges. It closes no port and routes nothing through the tunnel, so it's safe on its own.
-2. **Laravel**: trust the proxy in `bootstrap/app.php`:
+1. **Nginx**: [`cipi nginx real-ip cloudflare`](/docs/nginx#real-ip) sets Nginx's real IP from Cloudflare's ranges (refreshed every night) and teaches Fail2ban and CrowdSec the same ranges. No token and no tunnel (Cipi 5.14.0+; with a [Zero Trust](/docs/zero-trust) tunnel, `cipi zt enable` does the same). From here `$request->ip()` is already the visitor's.
+2. **Laravel**: trust the proxy in `bootstrap/app.php`, so the scheme and host Cloudflare forwards are believed too:
 
 ```php
 ->withMiddleware(function (Middleware $middleware): void {

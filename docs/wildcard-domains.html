@@ -241,7 +241,7 @@
 <p>Let's Encrypt is the safer default: it keeps working if you ever switch a record to grey. Origin CA fits servers that are permanently behind the proxy or the tunnel.</p>
 <h2 id="real-ip">Real IPs and a closed origin<a class="anchor" href="#real-ip" aria-label="Link to this section">#</a></h2>
 <p>Behind the orange cloud every request comes from a Cloudflare IP. Left as is, Nginx logs, Fail2ban, CrowdSec and Laravel (<code>$request-&gt;ip()</code>, rate limiting, login throttling) see the same few addresses for every visitor.</p>
-<ol><li><strong>Nginx</strong>: <code>cipi zt enable</code> sets Nginx's real IP from Cloudflare's ranges (refreshed daily) and teaches Fail2ban and CrowdSec the same ranges. It closes no port and routes nothing through the tunnel, so it's safe on its own.</li><li><strong>Laravel</strong>: trust the proxy in <code>bootstrap/app.php</code>:</li></ol>
+<ol><li><strong>Nginx</strong>: <a href="/docs/nginx#real-ip"><code>cipi nginx real-ip cloudflare</code></a> sets Nginx's real IP from Cloudflare's ranges (refreshed every night) and teaches Fail2ban and CrowdSec the same ranges. No token and no tunnel (Cipi 5.14.0+; with a <a href="/docs/zero-trust">Zero Trust</a> tunnel, <code>cipi zt enable</code> does the same). From here <code>$request-&gt;ip()</code> is already the visitor's.</li><li><strong>Laravel</strong>: trust the proxy in <code>bootstrap/app.php</code>, so the scheme and host Cloudflare forwards are believed too:</li></ol>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>-&gt;withMiddleware(function (Middleware $middleware): void {
     $middleware-&gt;trustProxies(at: '*');
 })</pre></div>

@@ -200,7 +200,7 @@
 </header>
 <div class="prose">
 <section class="doc-section" id="cli-nginx">
-<p>Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades and the default server.</p>
+<p>Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives.</p>
 <div class="term" data-term data-autoplay="view" style="--term-min:calc(7 * 1.65em + 36px)" data-prompt="root@vps:~#"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">PHP and Nginx security</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: PHP and Nginx security">$ cipi nginx security
 $ cipi php upgrade</pre><script type="application/json" class="term-script">[{"c": "cipi nginx security"}, {"o": [["✓ ", "ok"], ["nginx 1.31.9 (nginx.org mainline): CVE fixes of 18 Nov 2026 applied", ""]], "d": 600}, {"o": [["✓ ", "ok"], ["No HTTP/2 listeners: the HTTP/2 advisories don't reach this server", ""]], "d": 200}, {"c": "cipi php upgrade"}, {"o": [["✓ ", "ok"], ["PHP 8.5.13, 8.4.28 installed; FPM pools restarted", ""]], "d": 900}, {"o": [["Runs nightly at 03:30 and exits 1 while a vulnerable build is installed", "dim"]], "d": 200}]</script></div>
 <h2 id="nginx-security">Security report<a class="anchor" href="#nginx-security" aria-label="Link to this section">#</a></h2>
@@ -216,6 +216,14 @@ $ cipi php upgrade</pre><script type="application/json" class="term-script">[{"c
 <h2 id="default-server">Default server<a class="anchor" href="#default-server" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi nginx default-server status|on|off</pre></div>
 <p>On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty reply (444) instead of reaching one of your apps or a tenant resolver.</p>
+<h2 id="real-ip">Behind Cloudflare: the visitor's real IP<a class="anchor" href="#real-ip" aria-label="Link to this section">#</a></h2>
+<p>A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+):</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi nginx real-ip cloudflare<span class="c">     # on</span>
+<span class="p"></span>cipi nginx real-ip status<span class="c">         # --json for scripts</span>
+<span class="p"></span>cipi nginx real-ip off<span class="c">            # back to the address of each connection</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>What it does</strong></td><td>Gives Nginx Cloudflare's IPv4 and IPv6 ranges and <code>CF-Connecting-IP</code>: a request from one of the ranges gets the visitor's address</td></tr><tr><td><strong>Why it can't be forged</strong></td><td>A request from anywhere else keeps the address of its connection, so sending the header straight to your server does nothing. Domains not behind Cloudflare are unaffected</td></tr><tr><td><strong>In the app</strong></td><td>With PHP-FPM the visitor's address is <code>REMOTE_ADDR</code>: <code>$request-&gt;ip()</code>, rate limiting and login throttling work with no change in Laravel. Octane and Node apps get it in <code>X-Forwarded-For</code>, as they already do for a direct visitor</td></tr><tr><td><strong>Fail2ban and CrowdSec</strong></td><td>Never ban Cloudflare's ranges (that would take every proxied site down), and <code>cipi crowdsec enable</code> no longer needs <code>--force</code> behind the proxy</td></tr><tr><td><strong>Kept current</strong></td><td>The ranges are Cloudflare's public list — no token — fetched again every night; if the fetch fails, the previous ones stay</td></tr></tbody></table></div>
+<p><code>nginx -t</code> runs before the reload: if Nginx refuses (another <code>real_ip_header</code> in your <code>nginx.conf</code>, say), the file is taken back and you get Nginx's reason. A <code>real_ip</code> configuration Cipi didn't write is left alone.</p>
+<div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>A firewall ban stops direct connections only. A visitor who comes through Cloudflare is blocked at Cloudflare (WAF rules), not on the server. With a <a href="/docs/zero-trust">Zero Trust tunnel</a>, <code>cipi zt enable</code> already sets the same thing and the two share one file.</p></div></div>
 </section>
 <section class="doc-section" id="nginx-config">
 <h2 id="custom">Your own directives<a class="anchor" href="#custom" aria-label="Link to this section">#</a></h2>
@@ -252,6 +260,7 @@ location ~* \.(?:woff2?|ttf)$ {
 <li><a class="l2" href="#nginx-security">Security report</a></li>
 <li><a class="l2" href="#upgrade">Upgrades</a></li>
 <li><a class="l2" href="#default-server">Default server</a></li>
+<li><a class="l2" href="#real-ip">Behind Cloudflare: the visitor&#x27;s real IP</a></li>
 <li><a class="l2" href="#custom">Your own directives</a></li>
 <li><a class="l3" href="#custom-api">From the API, the SDK and cipi-cli</a></li>
 </ol>
