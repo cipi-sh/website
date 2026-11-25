@@ -31,7 +31,7 @@ $ cipi package remove pandoc --yes     # no prompt; required without a terminal 
 
 `cipi package list` marks each entry installed, **partial** (some apt packages missing — `install` completes it) or not installed; `--json` adds what each brings (`binaries`), whether it is tools or libraries (`kind`) and what a partial install lacks (`missing`). Install shows what apt will do (packages, disk space) and asks first; afterwards Cipi checks each binary is on the `PATH`. It refuses to start with less than 1 GB free.
 
-Every entry has to be **stateless** (binaries, libraries, fonts: no daemon, no port, no credentials), **from an Ubuntu repository** (Ubuntu ships its security updates) and backed by a real Laravel or PHP package. Anything with a daemon, a port or state is a service, not a package: see [search](/docs/search) and [databases](/docs/databases). Names that changed between Ubuntu releases (the 24.04 `t64` libraries) are resolved on the server, so the same entry works on 24.04 and later.
+Every entry has to be **stateless** (binaries, libraries, fonts: no daemon, no port, no credentials), **from an Ubuntu repository** (Ubuntu ships its security updates) and backed by a real Laravel or PHP package. Why the catalog is closed, and why that lets the panel use it: [design decisions](/docs/design-decisions#packages). Anything with a daemon, a port or state is a service, not a package: see [search](/docs/search) and [databases](/docs/databases). Names that changed between Ubuntu releases (the 24.04 `t64` libraries) are resolved on the server, so the same entry works on 24.04 and later.
 
 ## Browsershot {#browsershot}
 

@@ -43,7 +43,7 @@ $ sudo cipi api api.example.com
 $ sudo cipi api token create --name=panel --full-access
 ```
 
-The API checks DNS, issues its certificate and runs as `www-data`, calling an allowlist of `cipi` commands. Installing software or dropping data stays on the CLI.
+The API checks DNS, issues its certificate and runs as `www-data`, calling an allowlist of `cipi` commands. Dropping data, and installing anything outside the [closed package catalog](/docs/packages), stays on the CLI.
 
 ## 2. Install the panel
 

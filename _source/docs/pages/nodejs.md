@@ -21,4 +21,4 @@ $ cipi node remove 20             # refused while in use
 | Per Laravel app (`cipi app edit myapp --node-version=24`) | That app's builds only |
 | Per Node app (`--node-version`) | That app's runtime |
 
-Runtimes live in `/opt/cipi/node/<version>` behind an atomic symlink per major, so `cipi node upgrade` moves every app on that major at once. Files you installed yourself in `/usr/local/bin` are never overwritten. The panel can list runtimes and restart Node apps; installing software stays a root-only CLI action.
+Runtimes live in `/opt/cipi/node/<version>` behind an atomic symlink per major, so `cipi node upgrade` moves every app on that major at once. Files you installed yourself in `/usr/local/bin` are never overwritten. The panel can install, upgrade and remove runtimes and choose the server default too (Cipi 5.9.0+, ability `node-runtimes-manage`), and restart Node apps.
