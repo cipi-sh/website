@@ -88,14 +88,16 @@ Creating an app starts with its type. Node presets (Next.js, Nuxt, SvelteKit, As
 
 ### App detail
 
-A header with status, type, runtime and actions, then one tab per area. Tabs live in the URL (`?tab=deploy`), so they can be bookmarked.
+A header with status, type, runtime, the server and its IP, and actions, then one tab per area. Tabs live in the URL (`?tab=deploy`), so they can be bookmarked.
+
+The Overview's details say where to connect and as whom (panel 4.6.0+): the app's Linux **user** — the one that signs in over [SSH and SFTP](/docs/app-ssh), named after the app — the **server's IP** and the `ssh shop@203.0.113.24` command made of the two. A click copies each. The IP is the one the panel keeps for the server, typed on Connections or read from its status, so this works with any Cipi version; the command uses the default SSH port.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
 <img src="/img/gui/app-overview.webp" width="1440" height="945" alt="App overview with details, configuration, healthcheck and search" loading="lazy" decoding="async">
 </div>
-<figcaption>Overview: details, configuration (PHP, Node pin, repository, branch, domain), HTTP healthcheck and Meilisearch.</figcaption>
+<figcaption>Overview: details (user, server IP and SSH command included), configuration (PHP, Node pin, repository, branch, domain), HTTP healthcheck and Meilisearch.</figcaption>
 </figure>
 
 <figure class="gui-shot">
