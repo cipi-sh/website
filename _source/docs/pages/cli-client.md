@@ -307,6 +307,7 @@ Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packag
 ```bash
 $ cipi-cli packages                              # the catalog: status, what each brings
 $ cipi-cli packages install browsershot
+$ cipi-cli packages install sec-nuclei           # a pinned upstream release; again to update
 $ cipi-cli prod packages remove ffmpeg -y
 ```
 

@@ -55,12 +55,12 @@ Some Laravel packages call a program on the host: Browsershot needs the librarie
 | Rule | Why |
 | --- | --- |
 | Stateless: programs, libraries, fonts | No daemon, no port, no credentials, nothing to back up or to patch outside apt |
-| From an Ubuntu repository | Ubuntu ships the security updates, and the server applies them unattended |
+| From an Ubuntu repository, or an upstream release pinned in Cipi | Ubuntu ships the security updates, and the server applies them unattended. What Ubuntu doesn't ship (the security scanners Hackly runs) is pinned to one version and its SHA-256: nothing resolves "latest" on the server, and a file that doesn't match is refused |
 | A real Laravel or PHP package behind it | "Might be handy" is not a reason |
 
 Chromium is the rejection that shows why the rules matter. On Ubuntu 24.04 `chromium-browser` installs the snap, with `snapd`: a daemon, and a Chrome that isn't the one Puppeteer was tested with. So the `browsershot` entry installs the libraries and fonts, and Chrome comes with Puppeteer, per app. `wkhtmltopdf` is out too: archived upstream, its WebKit unpatched.
 
-**Because the set is closed, the panel and the API may install and remove entries** (Cipi 5.14.0). The worst a stolen session or token can do is install `ffmpeg`, or remove it, and a removal takes only what no other package needs. `--force`, `--autoremove` and anything outside the catalog stay at the server's shell. The [MCP server](/docs/mcp) only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the [firewall](/docs/firewall#panel).
+**Because the set is closed, the panel and the API may install and remove entries** (Cipi 5.14.0), the pinned upstream ones included. The worst a stolen session or token can do is install `ffmpeg` or a scanner whose bytes Cipi pinned, or remove it, and a removal takes only what no other package needs. A pinned version is also why an upstream entry isn't patched unattended: a newer one comes with a Cipi release, and the operator installs it. `--force`, `--autoremove` and anything outside the catalog stay at the server's shell. The [MCP server](/docs/mcp) only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the [firewall](/docs/firewall#panel).
 
 @section why-mariadb
 
