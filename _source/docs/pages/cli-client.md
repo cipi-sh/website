@@ -177,6 +177,25 @@ $ cipi-cli redirect add shop --from /blog/ --to https://blog.acme.com/
 $ cipi-cli proxies add shop --prefix /api --upstream http://127.0.0.1:8080 --strip-prefix
 ```
 
+## `nginx` {#nginx}
+
+An app's [own Nginx directives](/docs/nginx#custom): headers, caching, limits, rewrites, `location` blocks, kept by Cipi and included in the app's server block.
+
+| Command | Does |
+| --- | --- |
+| `nginx show <app>` | Print them (redirect to a file to keep a copy; `--json` for scripts) |
+| `nginx edit <app>` | Open them in `$VISUAL` / `$EDITOR` on your computer; a changed text is sent, tested and made live |
+| `nginx set <app> --file <path>` | Replace them with a file's content (`-` for stdin) |
+| `nginx reset <app>` | Remove them (`-y` to skip the question) |
+
+```bash
+$ cipi-cli nginx edit shop
+$ cipi-cli nginx show shop > shop.nginx.conf
+$ cipi-cli prod nginx set shop --file shop.nginx.conf
+```
+
+The server tests every change with `nginx -t`; a refused text changes nothing, its reasons are printed line by line and `edit` offers the editor again. From the API [a subset of Nginx's language](/docs/nginx#custom-api) is accepted. Needs Cipi 5.14.0+, cipi/api 1.44+ and the `nginx-view` / `nginx-manage` abilities.
+
 @section cli-aliases
 
 ## `aliases` {#aliases}
@@ -412,6 +431,7 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `deploy`, `deploy audit` | `deploy-manage` |
 | `yml` | `yml-view`, `yml-manage` |
 | `ssl`, `www`, `aliases`, `redirect`, `proxies` | `ssl-manage`, `www-manage`, `aliases-*`, `redirects-*`, `proxies-*` |
+| `nginx` | `nginx-view`, `nginx-manage` |
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
 | `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |

@@ -218,11 +218,30 @@ $ cipi php upgrade</pre><script type="application/json" class="term-script">[{"c
 <p>On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty reply (444) instead of reaching one of your apps or a tenant resolver.</p>
 </section>
 <section class="doc-section" id="nginx-config">
-<h2 id="custom">Custom Nginx config<a class="anchor" href="#custom" aria-label="Link to this section">#</a></h2>
-<p>Cipi generates each vhost (<code>/etc/nginx/sites-available/myapp</code>) and regenerates it when you change aliases, PHP, SSL, redirects or proxies. Prefer Cipi's commands and <a href="/docs/yml#cli-yml-routes">cipi.yml routes</a> over hand edits; if you must edit, test and reload:</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo nano /etc/nginx/sites-available/myapp
-<span class="p"></span>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</pre></div>
-<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Hand edits are overwritten by the next regeneration. Keep them small and documented, and re-check with <code>cipi nginx security</code>.</p></div></div>
+<h2 id="custom">Your own directives<a class="anchor" href="#custom" aria-label="Link to this section">#</a></h2>
+<p>Cipi generates each vhost (<code>/etc/nginx/sites-available/myapp</code>) and writes it again whenever aliases, PHP, SSL, basic auth, redirects or proxies change — so an edit of that file never lasts. What lasts is a text of your own per app: Cipi keeps it and includes it in the app's server block.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi nginx edit myapp<span class="c">                    # in $EDITOR; tested and live when you save</span>
+<span class="p"></span>cipi nginx show myapp<span class="c">                    # --json for scripts</span>
+<span class="p"></span>cipi nginx set myapp --file=myapp.conf<span class="c">   # the same from a file (- for stdin)</span>
+<span class="p"></span>cipi nginx reset myapp<span class="c">                   # remove them</span></pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">nginx</span><button class="code-copy-btn" type="button">Copy</button></div><pre>client_max_body_size 512M;
+
+location ^~ /downloads/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    access_log off;
+}
+
+location ~* \.(?:woff2?|ttf)$ {
+    add_header Access-Control-Allow-Origin "*";
+    expires 1y;
+}</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Where it lives</strong></td><td>In the app's settings, so it follows <a href="/docs/sync"><code>cipi sync</code></a>, and in <code>/etc/nginx/cipi-custom/myapp.conf</code>, included before <code>location /</code> in every kind of vhost: Laravel, Octane, custom, Node</td></tr><tr><td><strong>What it's for</strong></td><td>Headers, caching, upload size, timeouts, rewrites, <code>location</code> blocks of your own</td></tr><tr><td><strong>What it can't do</strong></td><td>Redefine a location Cipi already defines (<code>/</code>, <code>\.php$</code>, the ACME path): Nginx says <em>duplicate location</em> and nothing changes. For reverse proxies and redirects use <a href="/docs/redirects-proxies"><code>cipi proxy</code> and <code>cipi redirect</code></a></td></tr><tr><td><strong>Limits</strong></td><td>32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend</td></tr></tbody></table></div>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Save</b><span>your text</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>nginx -t</b><span>must pass</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Reload</b><span>graceful</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Refused</b><span>everything back</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Save</b></div><p>The text is saved with the app's settings and its vhost is written again with the <code>include</code>.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>nginx -t</b></div><p>Nginx tests the whole configuration. If it's already broken before your change, Cipi stops and touches nothing.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Reload</b></div><p>Passed: a graceful reload, no connection dropped.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Refused</b></div><p>Failed: the settings and the vhost go back to what they were and you get Nginx's reason by line (<code>line 3: unknown directive "foo"</code>). <code>cipi nginx edit</code> offers the editor again on your text.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<h3 id="custom-api">From the API, the SDK and cipi-cli<a class="anchor" href="#custom-api" aria-label="Link to this section">#</a></h3>
+<p>The same text can be read and replaced through the <a href="/docs/api#endpoints-nginx">API</a> (<code>GET</code>, <code>PUT</code>, <code>DELETE /api/apps/{name}/nginx</code>), the <a href="/docs/php-sdk#domains">PHP SDK</a> (<code>$cipi-&gt;nginx()</code>) and <a href="/docs/cli-client#nginx">cipi-cli</a> from your laptop (<code>cipi-cli nginx edit myapp</code> opens your own editor).</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Through the API <strong>a subset of Nginx's language</strong> is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an <code>access_log</code> or <code>error_log</code> path and reads an <code>include</code> as root, <code>server_name</code> takes another app's domain, <code>listen</code> opens a port, a <code>*_pass</code> reaches another app's PHP socket or a database on the loopback.</p></div></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>From the API</th><th></th></tr></thead><tbody><tr><td><strong>Accepted</strong></td><td><code>location</code>, <code>if</code>, <code>return</code>, <code>rewrite</code>, <code>set</code>, <code>try_files</code>, <code>error_page</code>, <code>add_header</code>, <code>expires</code>, <code>gzip*</code>, <code>client_max_body_size</code> and the timeouts, <code>allow</code> / <code>deny</code>, <code>autoindex</code>, <code>types</code>, <code>sub_filter</code>, the <code>fastcgi_*</code> and <code>proxy_*</code> buffers and timeouts, <code>access_log off</code>, <code>auth_basic off</code>, <code>root</code> and <code>alias</code> under <code>/home/myapp/</code></td></tr><tr><td><strong>Refused</strong></td><td>A log path, <code>include</code>, <code>listen</code>, <code>server_name</code>, every <code>*_pass</code>, certificates, <code>auth_basic_user_file</code>, a path outside the app's home, and anything not on the list — by name, with its line</td></tr><tr><td><strong>The whole language</strong></td><td><code>cipi nginx edit myapp</code> at the server, as root</td></tr></tbody></table></div>
+<p><code>cipi nginx set myapp --file=… --strict</code> applies the API's check at the terminal, to try a text before sending it from a script.</p>
 </section>
 
 </div>
@@ -233,7 +252,8 @@ $ cipi php upgrade</pre><script type="application/json" class="term-script">[{"c
 <li><a class="l2" href="#nginx-security">Security report</a></li>
 <li><a class="l2" href="#upgrade">Upgrades</a></li>
 <li><a class="l2" href="#default-server">Default server</a></li>
-<li><a class="l2" href="#custom">Custom Nginx config</a></li>
+<li><a class="l2" href="#custom">Your own directives</a></li>
+<li><a class="l3" href="#custom-api">From the API, the SDK and cipi-cli</a></li>
 </ol>
 <div class="toc-tools">
 <a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/nginx.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>

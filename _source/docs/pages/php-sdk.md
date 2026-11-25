@@ -145,7 +145,15 @@ $cipi->ssl()->install('shop', dns: 'cloudflare', account: 'prod', wildcard: true
 $cipi->ssl()->setDnsAccount($cloudflareToken, 'prod');   // sync, never returned
 ```
 
-Redirects and proxies are tested with `nginx -t` and reverted on failure; the proxy loopback guard can't be bypassed. Node apps: `node()->status($app)`, `node()->restart($app)`.
+Redirects and proxies are tested with `nginx -t` and reverted on failure; the proxy loopback guard can't be bypassed.
+
+```php
+$cipi->nginx()->show('shop')['data']['config'];                     // the app's own directives
+$cipi->nginx()->update('shop', "client_max_body_size 512M;\n");     // sync: nginx -t, then reload
+$cipi->nginx()->reset('shop');
+```
+
+`nginx()` reads and replaces [an app's own Nginx directives](/docs/nginx#custom) (API 1.44+, Cipi 5.14+). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
 
 @section sdk-data
 

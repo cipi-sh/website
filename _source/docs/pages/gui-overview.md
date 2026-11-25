@@ -29,18 +29,18 @@ cipi CLI | does the work, as on SSH
 | Area | From the panel |
 | --- | --- |
 | Apps | Create, edit, suspend, delete Laravel (FPM or Octane), Node (SPA, static, SSR with framework presets) and custom apps; environment label; aliases, www ↔ apex, SSL, basic auth |
-| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](/docs/deploy-audit) with durations; a log per deploy |
+| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](/docs/deploy-audit) with durations and each commit's title (Cipi 5.14.0+); a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
 | Routing | Whole-app and path redirects, prefix reverse proxies |
-| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order) (Cipi 5.13.0+), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
+| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order) (Cipi 5.13.0+), a block of variables pasted or [edited as text](/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](/docs/databases#mysql), shown as such) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+) |
-| Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
+| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
 | Packages | The [optional packages](/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
 | Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist; SSH, 80 and 443 always stay open ([firewall](/docs/firewall#panel), Cipi 5.14.0+) |
-| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
+| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
 | Sign-in | Password with TOTP, optional or [required for every account](/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](/docs/gui-sso) over OpenID Connect |

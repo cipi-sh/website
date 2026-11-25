@@ -77,7 +77,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Deploy | `deploy-manage` (deploy, rollback, unlock, audit, status) |
 | `cipi.yml` | `yml-view`, `yml-manage` |
 | Domains and SSL | `aliases-view`, `aliases-create`, `aliases-delete`, `www-manage`, `ssl-manage` |
-| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage` |
+| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` |
 | Node | `node-view`, `node-manage` (SSR restart), `node-runtimes-manage` |
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
@@ -93,7 +93,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 ## REST endpoints {#endpoints}
 
-Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second (1.44+) — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 ### Apps {#endpoints-apps}
 
@@ -146,6 +146,7 @@ Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Write
 | `GET` | `/api/apps/{name}/redirects` | `redirects-view` |
 | `PUT`, `DELETE`, `POST` | `/api/apps/{name}/redirect`, `/redirect/enable`, `/disable`, `/redirects` | `redirects-manage` |
 | `GET`, `POST`, `DELETE` | `/api/apps/{name}/proxies` | `proxies-view` / `proxies-manage` |
+| `GET`, `PUT`, `DELETE` | `/api/apps/{name}/nginx` ([an app's own directives](#endpoints-nginx)) | `nginx-view` / `nginx-manage` |
 
 Redirects and proxies use the CLI's own validation, regenerate the vhost and revert if `nginx -t` fails. The loopback guard on proxies is **never bypassed from the API**.
 
@@ -203,6 +204,12 @@ API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [pa
 | `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
 
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+
+### Nginx directives {#endpoints-nginx}
+
+`GET /api/apps/{name}/nginx` answers `{app, config, bytes, max_bytes, active, suspended}`: `config` is the text an app adds to [its own server block](/docs/nginx#custom), empty when it has none. `PUT` with `{"config": "…"}` replaces it (an empty one removes it), `DELETE` removes it. Both are **synchronous**: `nginx -t` runs before Nginx reloads.
+
+A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home. Needs Cipi 5.14.0+ (`503` before).
 
 ### Optional packages {#endpoints-packages}
 

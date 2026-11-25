@@ -295,7 +295,11 @@ $cipi-&gt;proxies()-&gt;add('shop', prefix: '/api/', upstream: 'http://127.0.0.1
 $cipi-&gt;ssl()-&gt;install('shop');
 $cipi-&gt;ssl()-&gt;install('shop', dns: 'cloudflare', account: 'prod', wildcard: true);
 $cipi-&gt;ssl()-&gt;setDnsAccount($cloudflareToken, 'prod');   // sync, never returned</pre></div>
-<p>Redirects and proxies are tested with <code>nginx -t</code> and reverted on failure; the proxy loopback guard can't be bypassed. Node apps: <code>node()-&gt;status($app)</code>, <code>node()-&gt;restart($app)</code>.</p>
+<p>Redirects and proxies are tested with <code>nginx -t</code> and reverted on failure; the proxy loopback guard can't be bypassed.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;nginx()-&gt;show('shop')['data']['config'];                     // the app's own directives
+$cipi-&gt;nginx()-&gt;update('shop', "client_max_body_size 512M;\n");     // sync: nginx -t, then reload
+$cipi-&gt;nginx()-&gt;reset('shop');</pre></div>
+<p><code>nginx()</code> reads and replaces <a href="/docs/nginx#custom">an app's own Nginx directives</a> (API 1.44+, Cipi 5.14+). A refused text is a <code>ValidationException</code> (422) and changes nothing; from the API <a href="/docs/nginx#custom-api">a subset of the language</a> is accepted. Node apps: <code>node()-&gt;status($app)</code>, <code>node()-&gt;restart($app)</code>.</p>
 </section>
 <section class="doc-section" id="sdk-data">
 <h2 id="data">Env, databases and backups<a class="anchor" href="#data" aria-label="Link to this section">#</a></h2>

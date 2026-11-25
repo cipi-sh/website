@@ -50,13 +50,59 @@ On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty r
 
 @section nginx-config
 
-## Custom Nginx config {#custom}
+## Your own directives {#custom}
 
-Cipi generates each vhost (`/etc/nginx/sites-available/myapp`) and regenerates it when you change aliases, PHP, SSL, redirects or proxies. Prefer Cipi's commands and [cipi.yml routes](/docs/yml#cli-yml-routes) over hand edits; if you must edit, test and reload:
+Cipi generates each vhost (`/etc/nginx/sites-available/myapp`) and writes it again whenever aliases, PHP, SSL, basic auth, redirects or proxies change — so an edit of that file never lasts. What lasts is a text of your own per app: Cipi keeps it and includes it in the app's server block.
 
 ```bash
-$ sudo nano /etc/nginx/sites-available/myapp
-$ sudo nginx -t && sudo systemctl reload nginx
+$ cipi nginx edit myapp                    # in $EDITOR; tested and live when you save
+$ cipi nginx show myapp                    # --json for scripts
+$ cipi nginx set myapp --file=myapp.conf   # the same from a file (- for stdin)
+$ cipi nginx reset myapp                   # remove them
 ```
 
-> [!warning] Hand edits are overwritten by the next regeneration. Keep them small and documented, and re-check with `cipi nginx security`.
+```nginx
+client_max_body_size 512M;
+
+location ^~ /downloads/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    access_log off;
+}
+
+location ~* \.(?:woff2?|ttf)$ {
+    add_header Access-Control-Allow-Origin "*";
+    expires 1y;
+}
+```
+
+| | |
+| --- | --- |
+| **Where it lives** | In the app's settings, so it follows [`cipi sync`](/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
+| **What it's for** | Headers, caching, upload size, timeouts, rewrites, `location` blocks of your own |
+| **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`cipi proxy` and `cipi redirect`](/docs/redirects-proxies) |
+| **Limits** | 32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend |
+
+```flow
+Save | your text
+> The text is saved with the app's settings and its vhost is written again with the `include`.
+nginx -t | must pass
+> Nginx tests the whole configuration. If it's already broken before your change, Cipi stops and touches nothing.
+Reload | graceful
+> Passed: a graceful reload, no connection dropped.
+Refused | everything back
+> Failed: the settings and the vhost go back to what they were and you get Nginx's reason by line (`line 3: unknown directive "foo"`). `cipi nginx edit` offers the editor again on your text.
+```
+
+### From the API, the SDK and cipi-cli {#custom-api}
+
+The same text can be read and replaced through the [API](/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor).
+
+> [!security] Through the API **a subset of Nginx's language** is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an `access_log` or `error_log` path and reads an `include` as root, `server_name` takes another app's domain, `listen` opens a port, a `*_pass` reaches another app's PHP socket or a database on the loopback.
+
+| From the API | |
+| --- | --- |
+| **Accepted** | `location`, `if`, `return`, `rewrite`, `set`, `try_files`, `error_page`, `add_header`, `expires`, `gzip*`, `client_max_body_size` and the timeouts, `allow` / `deny`, `autoindex`, `types`, `sub_filter`, the `fastcgi_*` and `proxy_*` buffers and timeouts, `access_log off`, `auth_basic off`, `root` and `alias` under `/home/myapp/` |
+| **Refused** | A log path, `include`, `listen`, `server_name`, every `*_pass`, certificates, `auth_basic_user_file`, a path outside the app's home, and anything not on the list — by name, with its line |
+| **The whole language** | `cipi nginx edit myapp` at the server, as root |
+
+`cipi nginx set myapp --file=… --strict` applies the API's check at the terminal, to try a text before sending it from a script.
