@@ -122,9 +122,11 @@ Three choices worth noting:
 | --- | --- |
 | **Valkey instead of Redis** | Same protocol, same `phpredis`, same `REDIS_*` keys, but BSD-licensed and stewarded by the Linux Foundation. Servers moved automatically on `cipi self-update` ([why](/docs/design-decisions#valkey)) |
 | **MariaDB by default** | A GPL community server with no enterprise edition gating features and no dual licensing to navigate; MySQL stays available as an explicit choice ([guide](/guides/laravel-mysql-instead-of-mariadb)) |
-| **No source-available component** | Nothing Cipi installs carries a "no competing service" clause, so you can host clients, sell hosting or build a platform on it |
+| **No source-available component** | Nothing in this stack carries a "no competing service" clause, so you can host clients, sell hosting or build a platform on it |
 
 None of these components is AGPL. Cipi installs them from their official packages and configures them, it doesn't ship modified copies, so running them creates no licence obligation for you as the operator of the server.
+
+The [optional packages](/docs/packages) are a different matter: third-party tools installed only when you ask, each under its own licence. Most are open source. Among the [security scanners](/docs/packages#sec), WPScan (`sec-wpscan`) is not: it is free to test your own systems and for penetration testers, but needs a commercial licence to be sold as a service. Nmap (`sec-recon`) has a licence of its own, the NPSL: the GPL with extra terms. Read a tool's licence before you build a paid service on it.
 
 ## Transparency: you can read what runs as root {#transparency}
 

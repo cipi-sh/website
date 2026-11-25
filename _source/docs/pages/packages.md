@@ -60,6 +60,8 @@ A command name works as well (`cipi package install nuclei`). Hackly finds them 
 
 > [!warning] Scan only what you're allowed to. Hackly checks DNS ownership before a scan; the tools themselves don't.
 
+Each scanner keeps its own licence. WPScan's isn't an open-source one: testing your own systems and penetration testing are free, selling it as a service needs a commercial licence from its authors. Nmap has its own too (the NPSL: the GPL with extra terms).
+
 ## Upstream releases {#upstream}
 
 Ubuntu has no nuclei, ZAP, WPScan, Trivy, Semgrep or Checkov, and its Nikto is too old. Those entries are **upstream releases pinned in Cipi**:
