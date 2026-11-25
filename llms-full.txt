@@ -4397,16 +4397,17 @@ Prefer the narrowest restart: one app's workers before Supervisor, one PHP versi
 
 URL: https://cipi.sh/docs/packages
 
-Tools some Laravel packages need on the host, from Ubuntu's own repositories, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask.
+Tools and libraries some Laravel packages need on the host, from Ubuntu's own repositories, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask. Since 5.14.0 the catalog has eleven entries, Browsershot's included, and the [web panel](#panel) installs and removes them too.
 
 ## Commands 
 
 ```bash
-$ cipi package list
-$ cipi package install image-optimizers
-$ cipi package install ffmpeg
-$ cipi package install webp            # one binary from a group
+$ cipi package list [--json]
+$ cipi package install browsershot
+$ cipi package install libreoffice
+$ cipi package install webp            # one apt package of a group
 $ cipi package remove ffmpeg
+$ cipi package remove pandoc --yes     # no prompt; required without a terminal (5.14.0+)
 ```
 
 ## Available packages 
@@ -4414,11 +4415,47 @@ $ cipi package remove ffmpeg
 | Package | Installs | For |
 | --- | --- | --- |
 | `image-optimizers` | jpegoptim, optipng, pngquant, gifsicle, webp | `spatie/laravel-image-optimizer` |
-| `ffmpeg` | ffmpeg | `pbmedia/laravel-ffmpeg` (run it in a queue worker, never in a request) |
+| `avif` | `avifenc` | AVIF in `spatie/laravel-image-optimizer` (5.14.0+) |
+| `ffmpeg` | `ffmpeg`, `ffprobe` | `pbmedia/laravel-ffmpeg` (run it in a queue worker, never in a request) |
 | `imagemagick` | `convert` / `magick` CLI | Code that shells out to ImageMagick (the PHP extension is already installed) |
-| `poppler-utils` | `pdftotext` | `spatie/pdf-to-text`, feeding PDFs to search |
+| `poppler-utils` | `pdftotext`, `pdftoppm` | `spatie/pdf-to-text`, feeding PDFs to search |
+| `browsershot` | The libraries and fonts Chrome needs to start | `spatie/browsershot`, `spatie/laravel-pdf` with Browsershot (5.14.0+, [below](#browsershot)) |
+| `fonts-cjk` | Noto CJK fonts | Chinese, Japanese and Korean text in PDFs and images (5.14.0+) |
+| `pdftk` | `pdftk` (pdftk-java) | `mikehaertl/php-pdftk`: fill forms, merge, split (pulls a headless Java runtime; 5.14.0+) |
+| `libreoffice` | `soffice`, Writer and Calc without a GUI | DOCX, XLSX and ODT to PDF with `soffice --headless --convert-to pdf` (5.14.0+) |
+| `pandoc` | `pandoc` | `ueberdosis/pandoc`: Markdown, HTML, DOCX, ODT, EPUB (5.14.0+) |
+| `tesseract` | `tesseract`, English, Italian, German, French and Spanish | `thiagoalessio/tesseract_ocr` (5.14.0+) |
 
-Install and remove show what apt will do (packages, disk space) and ask first; afterwards Cipi checks each binary is on the `PATH`. Removal previews orphaned dependencies before cleaning them up. Anything with a daemon, a port or state is a service, not a package: see [search](https://cipi.sh/docs/search) and [databases](https://cipi.sh/docs/databases).
+`cipi package list` marks each entry installed, **partial** (some apt packages missing — `install` completes it) or not installed; `--json` adds what each brings (`binaries`), whether it is tools or libraries (`kind`) and what a partial install lacks (`missing`). Install shows what apt will do (packages, disk space) and asks first; afterwards Cipi checks each binary is on the `PATH`. It refuses to start with less than 1 GB free.
+
+Every entry has to be **stateless** (binaries, libraries, fonts: no daemon, no port, no credentials), **from an Ubuntu repository** (Ubuntu ships its security updates) and backed by a real Laravel or PHP package. Anything with a daemon, a port or state is a service, not a package: see [search](https://cipi.sh/docs/search) and [databases](https://cipi.sh/docs/databases). Names that changed between Ubuntu releases (the 24.04 `t64` libraries) are resolved on the server, so the same entry works on 24.04 and later.
+
+## Browsershot 
+
+Browsershot drives Chrome through Puppeteer, and Puppeteer downloads **its own Chrome** for the version it was tested with. What the server lacks is the shared libraries and fonts that Chrome needs to start; that is the `browsershot` entry:
+
+```bash
+$ sudo cipi package install browsershot            # once per server
+$ cipi app run shop npm install puppeteer          # per app: Chrome comes with it
+```
+
+Better still, keep `puppeteer` in the app's `package.json`, so every deploy installs it. Point Browsershot at the app's Node and npm if they aren't on the `PATH` of PHP-FPM (`setNodeBinary()`, `setNpmBinary()`), and render in a queue worker, not in the request: a page takes seconds and hundreds of MB of RAM.
+
+There is **no `chromium` entry on purpose.** On Ubuntu 24.04 `chromium-browser` is a transitional package that installs the snap, with `snapd`: a daemon, outside the allowlist's rules, and a Chrome that isn't the one Puppeteer expects. `wkhtmltopdf` isn't there either: archived upstream, on an unpatched Qt WebKit. Use Browsershot (or `libreoffice` for office documents) instead.
+
+## Removing 
+
+`cipi package remove` takes **only what no other package needs**. Before asking, it shows what goes: the entry's packages, and the dependencies that become unused because of them. Dependencies that were already unused before stay where they are; `--autoremove` takes them too, at the server's shell.
+
+When something else on the server depends on a tool entry (software you installed by hand on top of `ffmpeg`, say), the removal stops and names it: nothing is changed. `--force` at the server's shell removes them as well.
+
+For a library entry (`browsershot`, `fonts-cjk`) the libraries are often shared: the ones other software still uses stay installed, and when every one of them is still in use nothing is removed, with the reason. Apps that use a removed entry stop working, so the prompt asks first; without a terminal (the panel, a script) it needs `--yes`.
+
+## From the panel 
+
+The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Packages** tab: the whole catalog, each entry with what it brings (`ffmpeg, ffprobe`, or *Libraries*), what a partial install lacks, and since panel 4.6.0 ([API](https://cipi.sh/docs/api#endpoints-packages) 1.44, Cipi 5.14.0 on the server) **Install**, **Complete install** and **Remove**, confirmed and run as jobs.
+
+Changing needs **Manage** on the server, and the token the `packages-manage` ability. The panel takes only ids the page lists, and the server's catalog is closed whatever is sent: the panel passes `--yes`, its `--force` and `--autoremove` are ignored and the disk check holds. The [MCP server](https://cipi.sh/docs/mcp) lists the catalog but doesn't install or remove.
 
 
 ## Stack upgrades
@@ -6320,6 +6357,7 @@ cipi CLI | does the work, as on SSH
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
 | Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
+| Packages | The [optional packages](https://cipi.sh/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers and the rest of the catalog — with what each brings; **Install** and **Remove** as jobs (Cipi 5.14.0+) |
 | Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist; SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel), Cipi 5.14.0+) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
@@ -6598,7 +6636,7 @@ cipi CLI via sudoers | the same code path as SSH
 
 | Area | Endpoints used |
 | --- | --- |
-| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages, monitor, Zero Trust, `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
+| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove, API 1.44+), monitor, Zero Trust, `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
 | Apps | CRUD, suspend, fix-permissions, basic auth, logs, `.env`, `auth.json`, Artisan, app commands; create with `engine`, `octane`, Node options; webhook rotation; per-app health check |
 | Deploy | Deploy, rollback, unlock, `deploy/audit`, `deploy/history`, `GET /api/deploys/last`, `deploy-config` |
 | `cipi.yml` | `GET /api/apps/{name}/yml`, `POST …/yml/apply`, `…/yml/auto/enable|disable` |
@@ -6701,7 +6739,8 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
 | Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
-| Read-only insights | `search-view`, `search-manage`, `packages-view`, `monitor-view`, `zt-view`, `disk-view` |
+| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) — manage 1.44+ |
+| Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
@@ -6797,7 +6836,9 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
 | `GET`, `POST` | `/api/search`, `/api/apps/{name}/search/enable`, `/disable` | `search-view` / `search-manage` |
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
-| `GET` | `/api/packages`, `/api/monitor`, `/api/zt` | `packages-view`, `monitor-view`, `zt-view` |
+| `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
+| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
+| `GET` | `/api/monitor`, `/api/zt` | `monitor-view`, `zt-view` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](https://cipi.sh/docs/metrics), 1.41+) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](https://cipi.sh/docs/basic-auth#agent)) | `apps-basicauth` |
@@ -6819,7 +6860,13 @@ API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [pa
 
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](https://cipi.sh/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+### Optional packages 
+
+`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, and on Cipi 5.14.0+ `kind` (`tools`, `libraries`), `binaries` and `missing`.
+
+`POST /api/packages/{id}` installs an entry of the server's [closed catalog](https://cipi.sh/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](https://cipi.sh/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes — and need API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](https://cipi.sh/docs/packages#panel) uses.
+
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](https://cipi.sh/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
 ## Examples 
 
@@ -6876,7 +6923,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server 
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the firewall (read-only, `FirewallStatus`, 1.44+), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \
@@ -7173,6 +7220,14 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
 
+[Optional packages](https://cipi.sh/docs/packages) are installed and removed too (Cipi 5.14.0+, API 1.44+, `packages-manage`; jobs the CLI waits for):
+
+```bash
+$ cipi-cli packages                              # the catalog: status, what each brings
+$ cipi-cli packages install browsershot
+$ cipi-cli prod packages remove ffmpeg -y
+```
+
 [Metrics](https://cipi.sh/docs/metrics) (API 1.41+), with sparklines in the terminal:
 
 ```bash
@@ -7455,11 +7510,12 @@ $cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' =>
 $cipi->notifications()->update('oncall', ['chat_id' => '-1009999']);   // the token is kept
 $cipi->notifications()->setTriggers(['deploy_success' => false]);
 $cipi->wait($cipi->node()->upgrade(24, restart: true));
+$cipi->wait($cipi->packages()->install('browsershot'));   // API 1.44+, Cipi 5.14+
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet
 ```
 
-Packages, monitor, Zero Trust and disk usage are read-only, as on the API.
+Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](https://cipi.sh/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
 
 ## Security 
 
@@ -7826,7 +7882,7 @@ v52026, todayA complete, free platform on your own serverv5 turned the CLI into 
 | Apps | Laravel on PHP-FPM or Octane (FrankenPHP), Node apps (SPA, static, SSR), and custom PHP apps such as WordPress or Symfony |
 | Deploy | Zero-downtime releases, Git push from six forges, preview environments, a hash-chained audit trail, health-checked rollbacks |
 | `cipi.yml` | The app's server settings versioned in its repository: PHP, workers, schedule, domains, databases, backups, per environment |
-| Runtime | Multiple PHP versions side by side, MariaDB (or MySQL) and PostgreSQL, Valkey, Meilisearch, Horizon and Reverb |
+| Runtime | Multiple PHP versions side by side, MariaDB (or MySQL) and PostgreSQL, Valkey, Meilisearch, Horizon and Reverb, optional host tools (Browsershot, ffmpeg, LibreOffice, OCR) |
 | Operations | Backup profiles to S3 with verification, server monitor, health checks, metrics and uptime history with a heartbeat, disk usage, alerts by e-mail, Slack, Telegram and webhooks |
 | Security | Per-app isolation, encrypted vault, firewall and CrowdSec, Cloudflare Zero Trust, malware scans, automatic PHP and Nginx security updates |
 | Interfaces | The CLI, an optional web panel with roles and SSO, a REST API, cipi-cli, a PHP SDK, WHMCS and MCP servers for AI assistants |

@@ -83,7 +83,8 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
 | Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
-| Read-only insights | `search-view`, `search-manage`, `packages-view`, `monitor-view`, `zt-view`, `disk-view` |
+| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) — manage 1.44+ |
+| Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
@@ -179,7 +180,9 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
 | `GET`, `POST` | `/api/search`, `/api/apps/{name}/search/enable`, `/disable` | `search-view` / `search-manage` |
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
-| `GET` | `/api/packages`, `/api/monitor`, `/api/zt` | `packages-view`, `monitor-view`, `zt-view` |
+| `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
+| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
+| `GET` | `/api/monitor`, `/api/zt` | `monitor-view`, `zt-view` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics), 1.41+) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
@@ -201,7 +204,13 @@ API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [pa
 
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+### Optional packages {#endpoints-packages}
+
+`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, and on Cipi 5.14.0+ `kind` (`tools`, `libraries`), `binaries` and `missing`.
+
+`POST /api/packages/{id}` installs an entry of the server's [closed catalog](/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes — and need API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](/docs/packages#panel) uses.
+
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
 ## Examples {#cipi-api-curl}
 
@@ -258,7 +267,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server {#mcp}
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the firewall (read-only, `FirewallStatus`, 1.44+), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \

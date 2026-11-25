@@ -25,7 +25,7 @@ cipi CLI via sudoers | the same code path as SSH
 
 | Area | Endpoints used |
 | --- | --- |
-| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages, monitor, Zero Trust, `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
+| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove, API 1.44+), monitor, Zero Trust, `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
 | Apps | CRUD, suspend, fix-permissions, basic auth, logs, `.env`, `auth.json`, Artisan, app commands; create with `engine`, `octane`, Node options; webhook rotation; per-app health check |
 | Deploy | Deploy, rollback, unlock, `deploy/audit`, `deploy/history`, `GET /api/deploys/last`, `deploy-config` |
 | `cipi.yml` | `GET /api/apps/{name}/yml`, `POST …/yml/apply`, `…/yml/auto/enable|disable` |

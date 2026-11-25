@@ -302,6 +302,14 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
 
+[Optional packages](/docs/packages) are installed and removed too (Cipi 5.14.0+, API 1.44+, `packages-manage`; jobs the CLI waits for):
+
+```bash
+$ cipi-cli packages                              # the catalog: status, what each brings
+$ cipi-cli packages install browsershot
+$ cipi-cli prod packages remove ffmpeg -y
+```
+
 [Metrics](/docs/metrics) (API 1.41+), with sparklines in the terminal:
 
 ```bash

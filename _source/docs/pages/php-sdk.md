@@ -197,11 +197,12 @@ $cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' =>
 $cipi->notifications()->update('oncall', ['chat_id' => '-1009999']);   // the token is kept
 $cipi->notifications()->setTriggers(['deploy_success' => false]);
 $cipi->wait($cipi->node()->upgrade(24, restart: true));
+$cipi->wait($cipi->packages()->install('browsershot'));   // API 1.44+, Cipi 5.14+
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet
 ```
 
-Packages, monitor, Zero Trust and disk usage are read-only, as on the API.
+Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
 
 @section sdk-security
 
