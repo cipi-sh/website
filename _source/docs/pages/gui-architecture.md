@@ -35,7 +35,7 @@ cipi CLI via sudoers | the same code path as SSH
 | Search | `GET /api/search`, per-app enable/disable |
 | Databases | List, create, back up, restore (with chunked upload), rotate password, link to apps; deletion stays on the host CLI |
 | Backups | `/api/backups…` profiles, runs, destinations test |
-| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](/docs/firewall#panel), API 1.44+) |
+| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](/docs/firewall#panel), API 1.44+), Cloudflare real IP (`/api/firewall/real-ip`, API 1.45+) |
 | Jobs | Status, output and parsed `result` (credentials, backup file, webhook token) |
 
 A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall deny`, the CrowdSec rescue, disk limits and DNS accounts are changed on the host.

@@ -175,7 +175,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/services`, `/services/{name}/restart` | `services-view` / `services-manage` |
 | `GET`, `PUT`, `DELETE`, `POST` | `/api/smtp`, `/smtp/enable`, `/disable`, `/test` | `smtp-view` / `smtp-manage` |
 | `GET` | `/api/notifications`, `/api/notifications/triggers` ([notifications](/docs/notifications#panel), 1.42+) | `notifications-view` or `smtp-view` |
-| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]`, `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
+| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]` (with `events`: what the channel receives, 1.45+), `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
 | `GET` | `/api/health` | `health-view` |
 | `GET`, `POST`, `PUT`, `DELETE` | `/api/node`, `/node/install`, `/node/upgrade`, `/node/default`, `/node/{major}` | `node-view` / `node-runtimes-manage` |
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
@@ -202,8 +202,22 @@ API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [pa
 | `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
 | `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
 | `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
+| `PUT`, `DELETE` | `/api/firewall/real-ip` (on, or the ranges fetched again; off) — 1.45+, Cipi 5.15.0+ | `firewall-manage` |
+| `POST` | `/api/firewall/real-ip/refresh` (Cloudflare's ranges fetched again) — 1.45+ | `firewall-manage` |
 
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+
+From Cipi 5.15.0 `GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` on an older core. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
+
+### Notification channels: events {#endpoints-notification-events}
+
+`POST /api/notifications/channels` and `PUT /api/notifications/channels/{id}` take `events` (API 1.45+, Cipi 5.15.0+): `null` for [everything](/docs/notifications#events), or a list of categories (`security`, `deploy`, `backup`…), single triggers (`backup_fail`) and `urgent`. Alone, it changes only what the channel receives (for SMTP: no new settings, no test). `GET /api/notifications` gives every channel its `events` and lists the server's `categories` (`id`, `label`, `triggers`). An older core refuses a request with `events` (`503`) rather than saving the channel without them.
+
+```bash
+$ curl -X PUT https://api.example.com/api/notifications/channels/oncall \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"events": ["urgent", "security"]}'
+```
 
 ### Nginx directives {#endpoints-nginx}
 

@@ -4,7 +4,7 @@ description: Set up Cipi notifications from scratch, explained for beginners: wh
 category: ops
 order: 3
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-25
 howto: yes
 keywords: server alerts telegram, laravel deploy notifications slack, server monitoring alerts email, ntfy pushover server alerts, webhook signed alerts
 docs:
@@ -21,9 +21,9 @@ faq:
   - Can a broken webhook block a deploy? | No. Delivery is best-effort with a 5-second timeout and runs in the background. A dead endpoint never stalls a deploy, a backup or a cron job.
   - Are my tokens stored safely? | Secrets you omit from the command line are asked without echo, stored encrypted, and never printed back, not even by `cipi notification`.
   - I muted a trigger. Is the event lost? | No. Every event is written to `/var/log/cipi/events.log` (kept a year) whatever you mute.
-  - Can different events go to different channels? | Triggers decide which events notify; every enabled channel receives them. To route urgent events only to your phone, point a webhook at a small router (n8n, a Laravel route, a Cloudflare Worker) and fan out from there, or use ntfy's priority: urgent events are raised to high.
+  - Can different events go to different channels? | Yes, since Cipi 5.15.0: each channel takes everything or only the events you give it — `sudo cipi notification events oncall urgent` sends failures and security events alone to the phone, `events team deploy` only deploys to the team's chat. Triggers still decide which events notify at all.
   - How do I get alerts for my own cron jobs? | Wrap them with `cipi-cron-notify`: when the command exits non-zero you get a `cron_fail` notification with its output.
-  - Can I see who logged in to the server? | Yes. SSH logins as root or a sudoer, `sudo` and `su` are security triggers with source IP and key fingerprint, delivered through PAM in the background.
+  - Can I see who logged in to the server? | Yes. SSH logins as root or a sudoer, `sudo` and `su` are security triggers with source IP and key fingerprint, delivered through PAM in the background to every channel that takes them (e-mail only before Cipi 5.15.0).
 ---
 A server that fails quietly is the worst kind. Cipi can tell you when something needs your attention (a failed deploy, a backup that didn't run, a full disk, an SSH login) on the channels you already use. This guide explains how notifications work and how to set them up so they help instead of becoming noise.
 
@@ -36,8 +36,8 @@ Trigger | is this event enabled?
 > Cipi checks whether that event type (trigger) is enabled. You can turn each one off.
 Event log | always written, kept a year
 > Every event is written to the event log anyway, kept for a year, even if no alert goes out.
-Channels | every enabled channel, in parallel
-> The alert is sent to every enabled channel at once: e-mail, Telegram, Slack, webhooks…
+Channels | every enabled channel that takes it
+> The alert goes to every enabled channel that takes that event, at once: one channel may take everything, another only the urgent ones.
 You | e-mail, chat or phone
 > You get it where you are. A broken channel never blocks the others or the deploy.
 ```
@@ -46,7 +46,7 @@ You | e-mail, chat or phone
 | --- | --- |
 | **Event** | Something that happened on the server: `deploy_fail`, `backup_stale`, `ssh_login`… |
 | **Trigger** | An on/off switch per event type. All are on by default |
-| **Channel** | A destination: an e-mail address, a Telegram chat, a Slack channel, a webhook URL |
+| **Channel** | A destination: an e-mail address, a Telegram chat, a Slack channel, a webhook URL. It takes every event, or only those you give it |
 | **Event log** | `/var/log/cipi/events.log`, written for every event, muted or not |
 
 ## 1. Choose your channels {#channels}
@@ -132,7 +132,20 @@ $ sudo cipi notification triggers disable deploy_success
 
 > [!tip] A good rule: if nobody would do anything after reading it, mute it. Alerts you ignore train you to ignore the ones that matter.
 
-## 7. Signed webhooks for your own automation {#webhook}
+## 7. Send each channel what it's for {#routing}
+
+Since Cipi 5.15.0 a channel takes everything (the default) or only some events: categories (`deploy`, `backup`, `security`, `monitor`…), single triggers, or `urgent` — failures and security events, the ones that need someone now.
+
+```bash
+$ sudo cipi notification events oncall urgent           # the phone: only what needs action
+$ sudo cipi notification events team deploy             # the team's chat: deploys
+$ sudo cipi notification events smtp all                # e-mail: everything, the record
+$ sudo cipi notification events                         # what each channel takes
+```
+
+A trigger that is off (step 6) still reaches nobody: the triggers decide *whether* an event notifies, the channels *where*. In the [web panel](/docs/notifications#panel), the channel's form has the same choice: *Everything* or *Only some events*.
+
+## 8. Signed webhooks for your own automation {#webhook}
 
 A webhook channel posts JSON (`server`, `trigger`, `subject`, `body`, `ts`). With a secret, each request carries `X-Cipi-Signature: sha256=…`. Verify it before trusting the payload, for example in a Laravel route:
 
@@ -153,9 +166,9 @@ Route::post('/hooks/cipi', function (Request $request) {
 $ sudo cipi notification add webhook router --url=https://ops.example.com/hooks/cipi --secret=…
 ```
 
-This is also how you route: urgent triggers to a phone, the rest to a channel.
+For routing that depends on the payload — the app, the server, the time of day — a webhook to your own code is still the way: the channel's events decide what reaches it, your code decides what happens next.
 
-## 8. Alerts for your own cron jobs {#cron}
+## 9. Alerts for your own cron jobs {#cron}
 
 Wrap a job in a root cron file with `cipi-cron-notify <label> <command…>`:
 
@@ -164,15 +177,22 @@ Wrap a job in a root cron file with `cipi-cron-notify <label> <command…>`:
 0 4 * * * root /usr/local/bin/cipi-cron-notify daily-report sudo -u shop php /home/shop/current/artisan report:daily
 ```
 
-A non-zero exit sends `cron_fail` with the label and the output, through the same channels. Cipi wraps its own nightly jobs the same way.
+A non-zero exit sends `cron_fail` with the label and the output, through the same channels (every channel that takes it since Cipi 5.15.0; e-mail only before). Cipi wraps its own nightly jobs the same way.
 
 ## A setup that works for small teams {#recipe}
 
 ```stack
 E-mail | everything, searchable record
-Telegram group "ops" | deploy_fail, backup_*, health/monitor, security
-Muted | deploy_success, monitor_load, monitor_ok
+Telegram group "ops" | urgent: failed deploys and backups, health, monitor, security
+Slack "team" | deploy: every release, for the people who ship
+Muted | monitor_load, monitor_ok
 Weekly | read pending_report and update notes
+```
+
+```bash
+$ sudo cipi notification events ops urgent
+$ sudo cipi notification events team deploy
+$ sudo cipi notification triggers set --off=monitor_load,monitor_ok
 ```
 
 ## Troubleshooting {#troubleshooting}

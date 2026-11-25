@@ -50,7 +50,7 @@ On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty r
 
 ## Behind Cloudflare: the visitor's real IP {#real-ip}
 
-A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+):
+A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+), or one button in the [panel](#real-ip-panel) (5.15.0+):
 
 ```bash
 $ cipi nginx real-ip cloudflare     # on
@@ -69,6 +69,25 @@ $ cipi nginx real-ip off            # back to the address of each connection
 `nginx -t` runs before the reload: if Nginx refuses (another `real_ip_header` in your `nginx.conf`, say), the file is taken back and you get Nginx's reason. A `real_ip` configuration Cipi didn't write is left alone.
 
 > [!info] A firewall ban stops direct connections only. A visitor who comes through Cloudflare is blocked at Cloudflare (WAF rules), not on the server. With a [Zero Trust tunnel](/docs/zero-trust), `cipi zt enable` already sets the same thing and the two share one file.
+
+### From the panel {#real-ip-panel}
+
+The server's [Firewall tab](/docs/firewall#panel) has a **Cloudflare real IP** card (panel 4.7.0, cipi/api 1.45, Cipi 5.15.0): **Turn on**, **Fetch the ranges again** and **Turn off**, with the ranges trusted, when they were fetched and who keeps it on. It takes **Manage** on the server.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/firewall-real-ip-light.webp" width="652" height="375" alt="Cloudflare real IP card: on, header CF-Connecting-IP, 22 trusted ranges fetched every night, kept by this setting, Fetch the ranges again and Turn off" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/firewall-real-ip.webp" width="652" height="375" alt="Cloudflare real IP card: on, header CF-Connecting-IP, 22 trusted ranges fetched every night, kept by this setting, Fetch the ranges again and Turn off" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>The Firewall tab's Cloudflare real IP card, on.</figcaption>
+</figure>
+
+| | |
+| --- | --- |
+| **Turning it off** | Only when this setting alone keeps it on: with [Zero Trust](/docs/zero-trust) the card says it stays on until the tunnel is disabled. With Fail2ban or CrowdSec running the panel asks first, saying why: a domain still proxied would turn every visitor into one of Cloudflare's addresses, and a ban would hit Cloudflare and the sites behind it |
+| **Never through Cloudflare** | The API refuses to turn it off (`409`) when the panel reaches the server's API through Cloudflare: from then on the API would see Cloudflare instead of the panel, outside its [IP allowlist](/docs/api#cipi-api-ip-whitelist). Turn it off at the server |
+| **API** | `real_ip` in `GET /api/firewall`; `PUT` and `DELETE /api/firewall/real-ip`, `POST /api/firewall/real-ip/refresh` ([endpoints](/docs/api#endpoints-firewall)) |
 
 @section nginx-config
 

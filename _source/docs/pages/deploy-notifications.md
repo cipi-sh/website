@@ -1,6 +1,6 @@
 @section deploy-notifications
 
-Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included.
+Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included — on every channel that takes them since 5.15.0 (before, a deploy through the webhook reached e-mail only).
 
 ## From the server (recommended) {#server}
 
@@ -8,6 +8,7 @@ Know about every deploy, success or failure, without watching logs. The simplest
 $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
 $ cipi notification add telegram team --token=<bot-token> --chat-id=<chat-id>
 $ cipi notification test
+$ cipi notification events team deploy        # 5.15.0: only deploys to the team's chat
 ```
 
 | Event | Sent when |

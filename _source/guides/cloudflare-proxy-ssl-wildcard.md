@@ -4,7 +4,7 @@ description: Put a Laravel app on Cipi behind Cloudflare without redirect loops 
 category: ops
 order: 8
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-25
 howto: yes
 keywords: cloudflare laravel setup, cloudflare full strict laravel, too many redirects cloudflare laravel, cloudflare wildcard certificate laravel, cloudflare proxy real ip laravel, cloudflare dns-01 lets encrypt
 docs:
@@ -136,8 +136,8 @@ Every Cloudflare setting for wildcards, with checks and errors: [Wildcard domain
 
 Behind the orange cloud, every request comes from a Cloudflare IP. Two layers must know that:
 
-1. **Nginx** must take the visitor's IP from Cloudflare's header. `sudo cipi zt enable` configures exactly that (Cloudflare's ranges, refreshed daily) and teaches Fail2ban and CrowdSec the same ranges. It closes no port: it's the first step of [Zero Trust](/guides/cloudflare-zero-trust-laravel), safe to run alone.
-2. **Laravel** must trust the proxy, so `$request->ip()`, rate limiting and HTTPS detection work. In `bootstrap/app.php`:
+1. **Nginx** must take the visitor's IP from Cloudflare's header. `sudo cipi nginx real-ip cloudflare` configures exactly that (Cloudflare's ranges, refreshed every night, believed only from those ranges) and teaches Fail2ban and CrowdSec the same ranges; with the [web panel](/docs/nginx#real-ip-panel) it is one button in the server's Firewall tab (Cipi 5.15.0+). A [Zero Trust](/guides/cloudflare-zero-trust-laravel) tunnel sets the same thing.
+2. **Laravel**: on PHP-FPM, Nginx already hands it the visitor as `REMOTE_ADDR`, so `$request->ip()` and rate limiting work with no change. Octane and Node apps get it in `X-Forwarded-For`, and HTTPS detection reads `X-Forwarded-Proto`: there Laravel must trust the proxy. In `bootstrap/app.php`:
 
 ```php
 ->withMiddleware(function (Middleware $middleware): void {

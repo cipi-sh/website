@@ -80,6 +80,7 @@ The server page of the [web panel](/docs/gui-overview) has a **Firewall** tab (p
 | Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
 | SSH login attempts | The threshold, back to the default, and a warning when fail2ban still runs an older value or isn't running |
 | CrowdSec | [Enable](/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
+| Cloudflare real IP | [The visitor's address behind Cloudflare](/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it (panel 4.7.0, Cipi 5.15.0) |
 
 Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](/docs/crowdsec#rescue) stays at the server.
 
