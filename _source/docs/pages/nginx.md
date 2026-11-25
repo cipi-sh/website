@@ -115,11 +115,11 @@ Refused | everything back
 > Failed: the settings and the vhost go back to what they were and you get Nginx's reason by line (`line 3: unknown directive "foo"`). `cipi nginx edit` offers the editor again on your text.
 ```
 
-### From the API, the SDK and cipi-cli {#custom-api}
+### From the panel, the API, the SDK and cipi-cli {#custom-api}
 
-The same text can be read and replaced through the [API](/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor).
+The same text can be read and replaced from the [web panel](/docs/gui-overview) — the app's **Routing** tab, *Nginx directives*, for whoever has Manage on the server (panel 4.6.0+) — through the [API](/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor). In the panel a refused text is listed with its reasons and stays in the form to fix.
 
-> [!security] Through the API **a subset of Nginx's language** is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an `access_log` or `error_log` path and reads an `include` as root, `server_name` takes another app's domain, `listen` opens a port, a `*_pass` reaches another app's PHP socket or a database on the loopback.
+> [!security] Through the API — so from the panel, the SDK and cipi-cli too — **a subset of Nginx's language** is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an `access_log` or `error_log` path and reads an `include` as root, `server_name` takes another app's domain, `listen` opens a port, a `*_pass` reaches another app's PHP socket or a database on the loopback.
 
 | From the API | |
 | --- | --- |
