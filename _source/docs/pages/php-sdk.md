@@ -145,7 +145,15 @@ $cipi->ssl()->install('shop', dns: 'cloudflare', account: 'prod', wildcard: true
 $cipi->ssl()->setDnsAccount($cloudflareToken, 'prod');   // sync, never returned
 ```
 
-Redirects and proxies are tested with `nginx -t` and reverted on failure; the proxy loopback guard can't be bypassed. Node apps: `node()->status($app)`, `node()->restart($app)`.
+Redirects and proxies are tested with `nginx -t` and reverted on failure; the proxy loopback guard can't be bypassed.
+
+```php
+$cipi->nginx()->show('shop')['data']['config'];                     // the app's own directives
+$cipi->nginx()->update('shop', "client_max_body_size 512M;\n");     // sync: nginx -t, then reload
+$cipi->nginx()->reset('shop');
+```
+
+`nginx()` reads and replaces [an app's own Nginx directives](/docs/nginx#custom) (API 1.44+, Cipi 5.14+). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
 
 @section sdk-data
 
@@ -197,11 +205,12 @@ $cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' =>
 $cipi->notifications()->update('oncall', ['chat_id' => '-1009999']);   // the token is kept
 $cipi->notifications()->setTriggers(['deploy_success' => false]);
 $cipi->wait($cipi->node()->upgrade(24, restart: true));
+$cipi->wait($cipi->packages()->install('browsershot'));   // API 1.44+, Cipi 5.14+
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet
 ```
 
-Packages, monitor, Zero Trust and disk usage are read-only, as on the API.
+Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
 
 @section sdk-security
 

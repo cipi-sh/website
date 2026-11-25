@@ -56,7 +56,9 @@ Your own keys (Stripe, mail, APIs) go anywhere in the file and are never overwri
 
 ## In the web panel {#in-the-panel}
 
-Edit the `.env` with secrets masked and changes tracked, and drag rows by their handle (or use ↑/↓ on it) to reorder them: the new order is saved with your other changes (panel 4.5+, Cipi 5.13.0+). The [web panel](/docs/gui) is optional; everything here also works from the CLI.
+Edit the `.env` with secrets masked and changes tracked, and drag rows by their handle (or use ↑/↓ on it) to reorder them: the new order is saved with your other changes (panel 4.5+, Cipi 5.13.0+).
+
+Variables that arrive as a block — from a README, a chat, another `.env` — don't have to be typed row by row (panel 4.6.0+). **Paste variables** takes `KEY=value` lines and splits them into the list: known keys take the new value, new ones are added, nothing is removed. **Edit as text** shows the whole list as text to edit by hand; what you apply replaces the list, so a line you take out removes that key. Quotes, `export`, comments and blank lines are understood; a value has to stay on one line. Either way nothing is sent until you press **Save .env**. The [web panel](/docs/gui) is optional; everything here also works from the CLI.
 
 <cipi-clips name="env"></cipi-clips>
 

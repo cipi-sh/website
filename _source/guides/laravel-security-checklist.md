@@ -4,7 +4,7 @@ description: A practical checklist for a Laravel app on your own server, coverin
 category: security
 order: 3
 published: 2026-02-18
-updated: 2026-11-23
+updated: 2026-11-25
 keywords: laravel security checklist, laravel production hardening, secure laravel server, laravel vps security
 related:
   - php-nginx-cve-patching
@@ -47,7 +47,7 @@ Security on your own server is a list of boring things done every time. Here's t
 | --- | --- |
 | Each app isolated from the others | Own Linux user, PHP pool with `open_basedir`, database user |
 | SSH by key only, no root login | Installer default; `sudo cipi ssh list` |
-| Firewall with only 22, 80, 443 | UFW by default; `sudo cipi firewall list` |
+| Firewall with only 22, 80, 443 | UFW by default; `sudo cipi firewall status`, or the panel's [Firewall tab](/docs/firewall#panel) |
 | Brute-force bans | fail2ban; `sudo cipi firewall attempts 3`; optional [CrowdSec](/docs/crowdsec) |
 | PHP patched the day fixes ship | Nightly at 03:30; `sudo cipi php upgrade` ([case study](/guides/php-nginx-cve-patching)) |
 | nginx patched | `sudo cipi nginx security`, `sudo cipi autoupdate on nginx` |

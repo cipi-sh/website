@@ -77,12 +77,14 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Deploy | `deploy-manage` (deploy, rollback, unlock, audit, status) |
 | `cipi.yml` | `yml-view`, `yml-manage` |
 | Domains and SSL | `aliases-view`, `aliases-create`, `aliases-delete`, `www-manage`, `ssl-manage` |
-| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage` |
+| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` |
 | Node | `node-view`, `node-manage` (SSR restart), `node-runtimes-manage` |
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
-| Read-only insights | `search-view`, `search-manage`, `packages-view`, `monitor-view`, `zt-view`, `disk-view` |
+| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
+| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) — manage 1.44+ |
+| Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
@@ -91,7 +93,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 ## REST endpoints {#endpoints}
 
-Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token).
+Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second (1.44+) — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 ### Apps {#endpoints-apps}
 
@@ -144,6 +146,7 @@ Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Write
 | `GET` | `/api/apps/{name}/redirects` | `redirects-view` |
 | `PUT`, `DELETE`, `POST` | `/api/apps/{name}/redirect`, `/redirect/enable`, `/disable`, `/redirects` | `redirects-manage` |
 | `GET`, `POST`, `DELETE` | `/api/apps/{name}/proxies` | `proxies-view` / `proxies-manage` |
+| `GET`, `PUT`, `DELETE` | `/api/apps/{name}/nginx` ([an app's own directives](#endpoints-nginx)) | `nginx-view` / `nginx-manage` |
 
 Redirects and proxies use the CLI's own validation, regenerate the vhost and revert if `nginx -t` fails. The loopback guard on proxies is **never bypassed from the API**.
 
@@ -178,13 +181,43 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
 | `GET`, `POST` | `/api/search`, `/api/apps/{name}/search/enable`, `/disable` | `search-view` / `search-manage` |
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
-| `GET` | `/api/packages`, `/api/monitor`, `/api/zt` | `packages-view`, `monitor-view`, `zt-view` |
+| `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
+| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
+| `GET` | `/api/monitor`, `/api/zt` | `monitor-view`, `zt-view` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics), 1.41+) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+### Firewall {#endpoints-firewall}
+
+API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [panel's Firewall tab](/docs/firewall#panel) uses.
+
+| Method | Path | Ability |
+| --- | --- | --- |
+| `GET` | `/api/firewall` (UFW, protected ports, Zero Trust locks, Fail2ban, CrowdSec) | `firewall-view` |
+| `POST`, `DELETE` | `/api/firewall/rules` (`port`, `from`, `proto`; `action: deny` to remove a deny) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/blocks` (`address`) | `firewall-manage` |
+| `PUT` | `/api/firewall/attempts` (1–100, `null` for the default) | `firewall-manage` |
+| `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
+| `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
+
+`GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+
+### Nginx directives {#endpoints-nginx}
+
+`GET /api/apps/{name}/nginx` answers `{app, config, bytes, max_bytes, active, suspended}`: `config` is the text an app adds to [its own server block](/docs/nginx#custom), empty when it has none. `PUT` with `{"config": "…"}` replaces it (an empty one removes it), `DELETE` removes it. Both are **synchronous**: `nginx -t` runs before Nginx reloads.
+
+A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home. Needs Cipi 5.14.0+ (`503` before).
+
+### Optional packages {#endpoints-packages}
+
+`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, and on Cipi 5.14.0+ `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
+
+`POST /api/packages/{id}` installs an entry of the server's [closed catalog](/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes — and need API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](/docs/packages#panel) uses.
+
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
 ## Examples {#cipi-api-curl}
 
@@ -241,7 +274,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server {#mcp}
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \

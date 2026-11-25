@@ -15,7 +15,7 @@ Audit | deploy ledger, event log, compliance
 
 | Layer | What Cipi does | Details |
 | --- | --- | --- |
-| **Network** | UFW allows only 22, 80, 443. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](/docs/firewall), [Nginx](/docs/nginx#default-server) |
+| **Network** | UFW allows only 22, 80, 443; the panel can open ports and block addresses, never close those three. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](/docs/firewall), [Nginx](/docs/nginx#default-server) |
 | **SSH** | Root login off; the `cipi` admin user is key-only; app users have their own password logins, which you can switch off | [SSH keys](/docs/ssh-keys) |
 | **Privilege** | App users can't `su`; the web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist | [Panel architecture](/docs/gui-architecture) |
 | **App isolation** | One Linux user per app (home `750`), its own PHP-FPM pool, `open_basedir` to its home, its own database user and Valkey instance | [How Cipi works](/docs/how-cipi-works#what-every-app-gets) |
@@ -29,7 +29,7 @@ Audit | deploy ledger, event log, compliance
 
 ## No web surface by default {#no-panel}
 
-A fresh Cipi server has **no admin panel**: management happens over SSH. The [web panel](/docs/gui-overview) is opt-in, runs as an isolated app on its own domain with two-factor login, and talks to servers only through the API's whitelisted commands.
+A fresh Cipi server has **no admin panel**: management happens over SSH. The [web panel](/docs/gui-overview) is opt-in, runs as an isolated app on its own domain with two-factor login (an admin can require it for every account), and talks to servers only through the API's whitelisted commands.
 
 ## What isolation protects {#isolation}
 

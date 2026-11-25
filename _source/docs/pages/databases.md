@@ -36,7 +36,7 @@ $ cipi db switch mariadb          # back, on the same terms
 | Which MySQL | From the Ubuntu archive: 8.0 on 24.04 (security fixes backported by Ubuntu), 8.4 LTS on 26.04. No extra repository or key |
 | Checked first | A `mysql-server` package is available, and removing MariaDB would remove nothing but its own packages and client libraries. Otherwise nothing changes |
 | What it does | Stops MariaDB, keeps its data directory aside (`/var/lib/mysql.mariadb-<time>`), purges it, installs MySQL with the same root password (`caching_sha2_password`) and Cipi's tuning (`/etc/mysql/mysql.conf.d/99-cipi.cnf`). If the install fails, MariaDB comes back with its data |
-| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
+| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. At the terminal the messages of `cipi db` say `mysql` (5.14.0+), a name `--engine=` accepts too. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
 | Not in the panel or API | Replacing a database server is an operator decision; the [panel](/docs/gui) shows *MySQL* where it runs. A `db_switch` [notification](/docs/notifications) is sent |
 
 Step by step, with what to check in your code first: [Run Laravel on MySQL instead of MariaDB](/guides/laravel-mysql-instead-of-mariadb).

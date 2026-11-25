@@ -29,23 +29,25 @@ cipi CLI | does the work, as on SSH
 | Area | From the panel |
 | --- | --- |
 | Apps | Create, edit, suspend, delete Laravel (FPM or Octane), Node (SPA, static, SSR with framework presets) and custom apps; environment label; aliases, www ↔ apex, SSL, basic auth |
-| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](/docs/deploy-audit) with durations; a log per deploy |
+| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](/docs/deploy-audit) with durations and each commit's title (Cipi 5.14.0+); a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
-| Routing | Whole-app and path redirects, prefix reverse proxies |
-| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order) (Cipi 5.13.0+), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
+| Routing | Whole-app and path redirects, prefix reverse proxies; for server managers, the app's [own Nginx directives](/docs/nginx#custom) — headers, caching, limits, `location` blocks — tested with `nginx -t` before the reload (Cipi 5.14.0+) |
+| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order) (Cipi 5.13.0+), a block of variables pasted or [edited as text](/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](/docs/databases#mysql), shown as such) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+) |
-| Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
-| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
+| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
+| Packages | The [optional packages](/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
+| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist; SSH, 80 and 443 always stay open ([firewall](/docs/firewall#panel), Cipi 5.14.0+) |
+| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
-| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed) |
-| Sign-in | Password with optional TOTP, or [single sign-on](/docs/gui-sso) over OpenID Connect |
+| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
+| Sign-in | Password with TOTP, optional or [required for every account](/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](/docs/gui-sso) over OpenID Connect |
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports.
 
-> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software, monitor thresholds and Zero Trust changes stay on the CLI by design.
+> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](/docs/design-decisions#packages), monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
 @section gui-tour
 
@@ -86,14 +88,16 @@ Creating an app starts with its type. Node presets (Next.js, Nuxt, SvelteKit, As
 
 ### App detail
 
-A header with status, type, runtime and actions, then one tab per area. Tabs live in the URL (`?tab=deploy`), so they can be bookmarked.
+A header with status, type, runtime, the server and its IP, and actions, then one tab per area. Tabs live in the URL (`?tab=deploy`), so they can be bookmarked.
+
+The Overview's details say where to connect and as whom (panel 4.6.0+): the app's Linux **user** — the one that signs in over [SSH and SFTP](/docs/app-ssh), named after the app — the **server's IP** and the `ssh shop@203.0.113.24` command made of the two. A click copies each. The IP is the one the panel keeps for the server, typed on Connections or read from its status, so this works with any Cipi version; the command uses the default SSH port.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
 <img src="/img/gui/app-overview.webp" width="1440" height="945" alt="App overview with details, configuration, healthcheck and search" loading="lazy" decoding="async">
 </div>
-<figcaption>Overview: details, configuration (PHP, Node pin, repository, branch, domain), HTTP healthcheck and Meilisearch.</figcaption>
+<figcaption>Overview: details (user, server IP and SSH command included), configuration (PHP, Node pin, repository, branch, domain), HTTP healthcheck and Meilisearch.</figcaption>
 </figure>
 
 <figure class="gui-shot">
@@ -228,6 +232,10 @@ Every channel of the server and which events reach it. Secrets never come back t
 <figcaption>Adding a channel shows only the fields of its type.</figcaption>
 </figure>
 
+### Firewall
+
+UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order with *Kept open* on SSH, 80 and 443 and the Cipi feature that owns each one, blocked addresses, everything banned right now with *Unban*, the SSH login threshold and CrowdSec with its allowlist. Viewing needs a level on the server, changing needs Manage. See [firewall](/docs/firewall#panel).
+
 ### Connections and security
 
 <div class="gui-shot-grid">
@@ -249,7 +257,7 @@ Every channel of the server and which events reach it. Secrets never come back t
 
 ### Team and roles
 
-Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days.
+Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days. An admin can [require two-factor authentication](/docs/gui-install#two-factor-required) for every account: the list then shows who still has to set it up.
 
 <div class="gui-shot-grid">
 <figure class="gui-shot">

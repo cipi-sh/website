@@ -819,7 +819,9 @@ Your own keys (Stripe, mail, APIs) go anywhere in the file and are never overwri
 
 ## In the web panel 
 
-Edit the `.env` with secrets masked and changes tracked, and drag rows by their handle (or use ↑/↓ on it) to reorder them: the new order is saved with your other changes (panel 4.5+, Cipi 5.13.0+). The [web panel](https://cipi.sh/docs/gui) is optional; everything here also works from the CLI.
+Edit the `.env` with secrets masked and changes tracked, and drag rows by their handle (or use ↑/↓ on it) to reorder them: the new order is saved with your other changes (panel 4.5+, Cipi 5.13.0+).
+
+Variables that arrive as a block — from a README, a chat, another `.env` — don't have to be typed row by row (panel 4.6.0+). **Paste variables** takes `KEY=value` lines and splits them into the list: known keys take the new value, new ones are added, nothing is removed. **Edit as text** shows the whole list as text to edit by hand; what you apply replaces the list, so a line you take out removes that key. Quotes, `export`, comments and blank lines are understood; a value has to stay on one line. Either way nothing is sent until you press **Save .env**. The [web panel](https://cipi.sh/docs/gui) is optional; everything here also works from the CLI.
 
 ## Common problems 
 
@@ -1251,6 +1253,8 @@ myapp@server:~$ ll ~/releases/
 ```
 
 The app's shell has `ll`, `deploy` and `composer` shortcuts.
+
+With the [web panel](https://cipi.sh/docs/gui-overview) (4.6.0+), the app page shows the user, the server's IP and this `ssh` command, each copied with a click.
 
 ## Control access 
 
@@ -2956,6 +2960,8 @@ The app's deploy recipe calls a root-owned helper at each outcome. Root **verifi
 
 The panel shows the ledger on each app's Deploy tab; the API serves it at `GET /api/apps/{name}/deploy/audit`.
 
+`cipi deploy myapp --audit --json` (and so the API and the panel) adds a `subject` to each record: the first line of the commit's message, read from the app's own Git clone when you ask (Cipi 5.14.0+). It is **not** in the ledger and no hash covers it: the record proves which commit went live, the clone says what it's called. A commit the clone no longer has gets none.
+
 > [!note] The chain proves nothing older than the newest record was changed. Root could still rewrite the whole file, which is why the syslog copy matters. File edits over SFTP are not deploys; [malware scan](https://cipi.sh/docs/malware-scan) integrity covers those.
 
 
@@ -3787,8 +3793,8 @@ Let's Encrypt is the safer default: it keeps working if you ever switch a record
 
 Behind the orange cloud every request comes from a Cloudflare IP. Left as is, Nginx logs, Fail2ban, CrowdSec and Laravel (`$request->ip()`, rate limiting, login throttling) see the same few addresses for every visitor.
 
-1. **Nginx**: `cipi zt enable` sets Nginx's real IP from Cloudflare's ranges (refreshed daily) and teaches Fail2ban and CrowdSec the same ranges. It closes no port and routes nothing through the tunnel, so it's safe on its own.
-2. **Laravel**: trust the proxy in `bootstrap/app.php`:
+1. **Nginx**: [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) sets Nginx's real IP from Cloudflare's ranges (refreshed every night) and teaches Fail2ban and CrowdSec the same ranges. No token and no tunnel (Cipi 5.14.0+; with a [Zero Trust](https://cipi.sh/docs/zero-trust) tunnel, `cipi zt enable` does the same). From here `$request->ip()` is already the visitor's.
+2. **Laravel**: trust the proxy in `bootstrap/app.php`, so the scheme and host Cloudflare forwards are believed too:
 
 ```php
 ->withMiddleware(function (Middleware $middleware): void {
@@ -3944,7 +3950,7 @@ Changes fire `redirect_change` / `proxy_change` [notifications](https://cipi.sh/
 
 URL: https://cipi.sh/docs/nginx
 
-Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades and the default server.
+Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives.
 
 ## Security report 
 
@@ -3990,16 +3996,84 @@ $ cipi nginx default-server status|on|off
 
 On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty reply (444) instead of reaching one of your apps or a tenant resolver.
 
-## Custom Nginx config 
+## Behind Cloudflare: the visitor's real IP 
 
-Cipi generates each vhost (`/etc/nginx/sites-available/myapp`) and regenerates it when you change aliases, PHP, SSL, redirects or proxies. Prefer Cipi's commands and [cipi.yml routes](https://cipi.sh/docs/yml#cli-yml-routes) over hand edits; if you must edit, test and reload:
+A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+):
 
 ```bash
-$ sudo nano /etc/nginx/sites-available/myapp
-$ sudo nginx -t && sudo systemctl reload nginx
+$ cipi nginx real-ip cloudflare     # on
+$ cipi nginx real-ip status         # --json for scripts
+$ cipi nginx real-ip off            # back to the address of each connection
 ```
 
-> [!warning] Hand edits are overwritten by the next regeneration. Keep them small and documented, and re-check with `cipi nginx security`.
+| | |
+| --- | --- |
+| **What it does** | Gives Nginx Cloudflare's IPv4 and IPv6 ranges and `CF-Connecting-IP`: a request from one of the ranges gets the visitor's address |
+| **Why it can't be forged** | A request from anywhere else keeps the address of its connection, so sending the header straight to your server does nothing. Domains not behind Cloudflare are unaffected |
+| **In the app** | With PHP-FPM the visitor's address is `REMOTE_ADDR`: `$request->ip()`, rate limiting and login throttling work with no change in Laravel. Octane and Node apps get it in `X-Forwarded-For`, as they already do for a direct visitor |
+| **Fail2ban and CrowdSec** | Never ban Cloudflare's ranges (that would take every proxied site down), and `cipi crowdsec enable` no longer needs `--force` behind the proxy |
+| **Kept current** | The ranges are Cloudflare's public list — no token — fetched again every night; if the fetch fails, the previous ones stay |
+
+`nginx -t` runs before the reload: if Nginx refuses (another `real_ip_header` in your `nginx.conf`, say), the file is taken back and you get Nginx's reason. A `real_ip` configuration Cipi didn't write is left alone.
+
+> [!info] A firewall ban stops direct connections only. A visitor who comes through Cloudflare is blocked at Cloudflare (WAF rules), not on the server. With a [Zero Trust tunnel](https://cipi.sh/docs/zero-trust), `cipi zt enable` already sets the same thing and the two share one file.
+
+## Your own directives 
+
+Cipi generates each vhost (`/etc/nginx/sites-available/myapp`) and writes it again whenever aliases, PHP, SSL, basic auth, redirects or proxies change — so an edit of that file never lasts. What lasts is a text of your own per app: Cipi keeps it and includes it in the app's server block.
+
+```bash
+$ cipi nginx edit myapp                    # in $EDITOR; tested and live when you save
+$ cipi nginx show myapp                    # --json for scripts
+$ cipi nginx set myapp --file=myapp.conf   # the same from a file (- for stdin)
+$ cipi nginx reset myapp                   # remove them
+```
+
+```nginx
+client_max_body_size 512M;
+
+location ^~ /downloads/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    access_log off;
+}
+
+location ~* \.(?:woff2?|ttf)$ {
+    add_header Access-Control-Allow-Origin "*";
+    expires 1y;
+}
+```
+
+| | |
+| --- | --- |
+| **Where it lives** | In the app's settings, so it follows [`cipi sync`](https://cipi.sh/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
+| **What it's for** | Headers, caching, upload size, timeouts, rewrites, `location` blocks of your own |
+| **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`cipi proxy` and `cipi redirect`](https://cipi.sh/docs/redirects-proxies) |
+| **Limits** | 32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend |
+
+```flow
+Save | your text
+> The text is saved with the app's settings and its vhost is written again with the `include`.
+nginx -t | must pass
+> Nginx tests the whole configuration. If it's already broken before your change, Cipi stops and touches nothing.
+Reload | graceful
+> Passed: a graceful reload, no connection dropped.
+Refused | everything back
+> Failed: the settings and the vhost go back to what they were and you get Nginx's reason by line (`line 3: unknown directive "foo"`). `cipi nginx edit` offers the editor again on your text.
+```
+
+### From the panel, the API, the SDK and cipi-cli 
+
+The same text can be read and replaced from the [web panel](https://cipi.sh/docs/gui-overview) — the app's **Routing** tab, *Nginx directives*, for whoever has Manage on the server (panel 4.6.0+) — through the [API](https://cipi.sh/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](https://cipi.sh/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](https://cipi.sh/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor). In the panel a refused text is listed with its reasons and stays in the form to fix.
+
+> [!security] Through the API — so from the panel, the SDK and cipi-cli too — **a subset of Nginx's language** is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an `access_log` or `error_log` path and reads an `include` as root, `server_name` takes another app's domain, `listen` opens a port, a `*_pass` reaches another app's PHP socket or a database on the loopback.
+
+| From the API | |
+| --- | --- |
+| **Accepted** | `location`, `if`, `return`, `rewrite`, `set`, `try_files`, `error_page`, `add_header`, `expires`, `gzip*`, `client_max_body_size` and the timeouts, `allow` / `deny`, `autoindex`, `types`, `sub_filter`, the `fastcgi_*` and `proxy_*` buffers and timeouts, `access_log off`, `auth_basic off`, `root` and `alias` under `/home/myapp/` |
+| **Refused** | A log path, `include`, `listen`, `server_name`, every `*_pass`, certificates, `auth_basic_user_file`, a path outside the app's home, and anything not on the list — by name, with its line |
+| **The whole language** | `cipi nginx edit myapp` at the server, as root |
+
+`cipi nginx set myapp --file=… --strict` applies the API's check at the terminal, to try a text before sending it from a script.
 
 
 ## PHP versions & php.ini
@@ -4129,7 +4203,7 @@ $ cipi node remove 20             # refused while in use
 | Per Laravel app (`cipi app edit myapp --node-version=24`) | That app's builds only |
 | Per Node app (`--node-version`) | That app's runtime |
 
-Runtimes live in `/opt/cipi/node/` behind an atomic symlink per major, so `cipi node upgrade` moves every app on that major at once. Files you installed yourself in `/usr/local/bin` are never overwritten. The panel can list runtimes and restart Node apps; installing software stays a root-only CLI action.
+Runtimes live in `/opt/cipi/node/` behind an atomic symlink per major, so `cipi node upgrade` moves every app on that major at once. Files you installed yourself in `/usr/local/bin` are never overwritten. The panel can install, upgrade and remove runtimes and choose the server default too (Cipi 5.9.0+, ability `node-runtimes-manage`), and restart Node apps.
 
 
 ## Databases
@@ -4170,7 +4244,7 @@ $ cipi db switch mariadb          # back, on the same terms
 | Which MySQL | From the Ubuntu archive: 8.0 on 24.04 (security fixes backported by Ubuntu), 8.4 LTS on 26.04. No extra repository or key |
 | Checked first | A `mysql-server` package is available, and removing MariaDB would remove nothing but its own packages and client libraries. Otherwise nothing changes |
 | What it does | Stops MariaDB, keeps its data directory aside (`/var/lib/mysql.mariadb-`), purges it, installs MySQL with the same root password (`caching_sha2_password`) and Cipi's tuning (`/etc/mysql/mysql.conf.d/99-cipi.cnf`). If the install fails, MariaDB comes back with its data |
-| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
+| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. At the terminal the messages of `cipi db` say `mysql` (5.14.0+), a name `--engine=` accepts too. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
 | Not in the panel or API | Replacing a database server is an operator decision; the [panel](https://cipi.sh/docs/gui) shows *MySQL* where it runs. A `db_switch` [notification](https://cipi.sh/docs/notifications) is sent |
 
 Step by step, with what to check in your code first: [Run Laravel on MySQL instead of MariaDB](https://cipi.sh/guides/laravel-mysql-instead-of-mariadb).
@@ -4397,16 +4471,17 @@ Prefer the narrowest restart: one app's workers before Supervisor, one PHP versi
 
 URL: https://cipi.sh/docs/packages
 
-Tools some Laravel packages need on the host, from Ubuntu's own repositories, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask.
+Tools and libraries some Laravel packages need on the host, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask. Most come from Ubuntu's own repositories; a few, which Ubuntu doesn't ship, are [upstream releases](#upstream) pinned by version and SHA-256. Since 5.14.0 the catalog has twenty entries, Browsershot's and the [security scanners](#sec) of Hackly included, and the [web panel](#panel) installs and removes them too.
 
 ## Commands 
 
 ```bash
-$ cipi package list
-$ cipi package install image-optimizers
-$ cipi package install ffmpeg
-$ cipi package install webp            # one binary from a group
+$ cipi package list [--json]
+$ cipi package install browsershot
+$ cipi package install libreoffice
+$ cipi package install webp            # one apt package of a group
 $ cipi package remove ffmpeg
+$ cipi package remove pandoc --yes     # no prompt; required without a terminal (5.14.0+)
 ```
 
 ## Available packages 
@@ -4414,11 +4489,96 @@ $ cipi package remove ffmpeg
 | Package | Installs | For |
 | --- | --- | --- |
 | `image-optimizers` | jpegoptim, optipng, pngquant, gifsicle, webp | `spatie/laravel-image-optimizer` |
-| `ffmpeg` | ffmpeg | `pbmedia/laravel-ffmpeg` (run it in a queue worker, never in a request) |
+| `avif` | `avifenc` | AVIF in `spatie/laravel-image-optimizer` (5.14.0+) |
+| `ffmpeg` | `ffmpeg`, `ffprobe` | `pbmedia/laravel-ffmpeg` (run it in a queue worker, never in a request) |
 | `imagemagick` | `convert` / `magick` CLI | Code that shells out to ImageMagick (the PHP extension is already installed) |
-| `poppler-utils` | `pdftotext` | `spatie/pdf-to-text`, feeding PDFs to search |
+| `poppler-utils` | `pdftotext`, `pdftoppm` | `spatie/pdf-to-text`, feeding PDFs to search |
+| `browsershot` | The libraries and fonts Chrome needs to start | `spatie/browsershot`, `spatie/laravel-pdf` with Browsershot (5.14.0+, [below](#browsershot)) |
+| `fonts-cjk` | Noto CJK fonts | Chinese, Japanese and Korean text in PDFs and images (5.14.0+) |
+| `pdftk` | `pdftk` (pdftk-java) | `mikehaertl/php-pdftk`: fill forms, merge, split (pulls a headless Java runtime; 5.14.0+) |
+| `libreoffice` | `soffice`, Writer and Calc without a GUI | DOCX, XLSX and ODT to PDF with `soffice --headless --convert-to pdf` (5.14.0+) |
+| `pandoc` | `pandoc` | `ueberdosis/pandoc`: Markdown, HTML, DOCX, ODT, EPUB (5.14.0+) |
+| `tesseract` | `tesseract`, English, Italian, German, French and Spanish | `thiagoalessio/tesseract_ocr` (5.14.0+) |
 
-Install and remove show what apt will do (packages, disk space) and ask first; afterwards Cipi checks each binary is on the `PATH`. Removal previews orphaned dependencies before cleaning them up. Anything with a daemon, a port or state is a service, not a package: see [search](https://cipi.sh/docs/search) and [databases](https://cipi.sh/docs/databases).
+`cipi package list` marks each entry installed, **partial** (some apt packages missing — `install` completes it) or not installed; `--json` adds what each brings (`binaries`), whether it is tools or libraries (`kind`) and what a partial install lacks (`missing`). Install shows what apt will do (packages, disk space) and asks first; afterwards Cipi checks each binary is on the `PATH`. It refuses to start with less than 1 GB free.
+
+Every entry has to be **stateless** (binaries, libraries, fonts: no daemon, no port, no credentials), **from an Ubuntu repository** (Ubuntu ships its security updates) or an [upstream release pinned in Cipi](#upstream), and backed by a real Laravel or PHP package. Why the catalog is closed, and why that lets the panel use it: [design decisions](https://cipi.sh/docs/design-decisions#packages). Anything with a daemon, a port or state is a service, not a package: see [search](https://cipi.sh/docs/search) and [databases](https://cipi.sh/docs/databases). Names that changed between Ubuntu releases (the 24.04 `t64` libraries) are resolved on the server, so the same entry works on 24.04 and later.
+
+## Security scanners 
+
+[Hackly](https://github.com/andreapollastri/hackly) scans the domains and repositories of a team: it runs a dozen open-source scanners and keeps their findings. On a Cipi server, the `sec-*` entries install them:
+
+| Package | Source | Installs | Hackly uses it for |
+| --- | --- | --- | --- |
+| `sec-recon` | Ubuntu | `nmap`, `dig`, `whois` | Port scans, DNS and WHOIS, mail security |
+| `sec-gitleaks` | Ubuntu | `gitleaks` | Secrets in repositories |
+| `sec-nuclei` | upstream 3.11.1 | `nuclei` | DAST, path discovery, pentests |
+| `sec-zap` | upstream 2.17.0 | OWASP ZAP (`zap.sh`) and a Java runtime from Ubuntu | Baseline and pentest scans |
+| `sec-nikto` | upstream 2.6.1 | `nikto`, Perl modules from Ubuntu | Pentests. Ubuntu's Nikto is 2.1.5 (2014), with no JSON reports |
+| `sec-wpscan` | upstream 3.8.28 | `wpscan`, Ruby from Ubuntu | WordPress targets |
+| `sec-trivy` | upstream 0.76.2 | `trivy` | Dependency vulnerabilities (SCA) |
+| `sec-semgrep` | upstream 1.185.0 | `semgrep` | Static analysis (SAST) |
+| `sec-checkov` | upstream 3.3.26 | `checkov` | Infrastructure as code |
+
+```bash
+$ for p in sec-recon sec-gitleaks sec-nuclei sec-zap sec-nikto sec-wpscan sec-trivy sec-semgrep sec-checkov; do
+    sudo cipi package install "$p" --yes
+  done
+$ cipi app artisan hackly hackly:check-binaries
+```
+
+A command name works as well (`cipi package install nuclei`). Hackly finds them on the `PATH` (`/usr/local/bin`): no `.env` changes. Install only what the scans you run need — ZAP takes about 1 GB of RAM while it scans, so keep it off a small server that also serves production apps.
+
+> [!warning] Scan only what you're allowed to. Hackly checks DNS ownership before a scan; the tools themselves don't.
+
+Each scanner keeps its own licence. WPScan's isn't an open-source one: testing your own systems and penetration testing are free, selling it as a service needs a commercial licence from its authors. Nmap has its own too (the NPSL: the GPL with extra terms).
+
+## Upstream releases 
+
+Ubuntu has no nuclei, ZAP, WPScan, Trivy, Semgrep or Checkov, and its Nikto is too old. Those entries are **upstream releases pinned in Cipi**:
+
+| Pinned | How |
+| --- | --- |
+| One version per entry | The server never resolves "latest"; a newer version arrives with a Cipi release |
+| The download, by SHA-256 | nuclei and ZAP archives, Trivy's `.deb`. A file that doesn't match its pin is refused and deleted, nothing installed. The pins come from upstream's own checksums and manifests, checked against the files |
+| A git tag, by commit | Nikto: the `2.6.1` tag must point at the pinned commit |
+| Python and Ruby tools, by version | Semgrep and Checkov from PyPI, WPScan from RubyGems, each in a directory of its own; their dependencies are resolved by pip and gem |
+
+Each lives in `/opt/cipi/packages//`, `current` points at the live version, and its commands are linked into `/usr/local/bin`. A command already there that Cipi didn't install (a script's, Hackly's own installers') is left alone: remove it, or replace it with `--force` at the server's shell, never from the panel. The apt packages an entry needs (a Java runtime, Ruby, Perl modules) come and go with it; one that another package already brought (Java, for `pdftk`) is kept for the entry too, so removing `pdftk` doesn't take it away under ZAP. Build tools (WPScan's `build-essential`) are removed right after the build, and an install that fails puts back what apt installed for it. One `install` or `remove` runs at a time: a second one waits.
+
+Upstream entries aren't updated by unattended-upgrades. When a Cipi release pins a newer version, `cipi package list` marks the entry outdated and `cipi self-update` names it; installing it again updates it (the new version first, `current` swapped, the old one removed):
+
+```bash
+$ cipi package list                    # ◐ sec-nuclei   3.10.0 installed, 3.11.1 available
+$ sudo cipi package install sec-nuclei --yes
+```
+
+## Browsershot 
+
+Browsershot drives Chrome through Puppeteer, and Puppeteer downloads **its own Chrome** for the version it was tested with. What the server lacks is the shared libraries and fonts that Chrome needs to start; that is the `browsershot` entry:
+
+```bash
+$ sudo cipi package install browsershot            # once per server
+$ cipi app run shop npm install puppeteer          # per app: Chrome comes with it
+```
+
+Better still, keep `puppeteer` in the app's `package.json`, so every deploy installs it. Point Browsershot at the app's Node and npm if they aren't on the `PATH` of PHP-FPM (`setNodeBinary()`, `setNpmBinary()`), and render in a queue worker, not in the request: a page takes seconds and hundreds of MB of RAM.
+
+There is **no `chromium` entry on purpose.** On Ubuntu 24.04 `chromium-browser` is a transitional package that installs the snap, with `snapd`: a daemon, outside the allowlist's rules, and a Chrome that isn't the one Puppeteer expects. `wkhtmltopdf` isn't there either: archived upstream, on an unpatched Qt WebKit. Use Browsershot (or `libreoffice` for office documents) instead.
+
+## Removing 
+
+`cipi package remove` takes **only what no other package needs**: for an upstream entry, its directory, its links and the apt packages only it needed. Before asking, it shows what goes: the entry's packages, and the dependencies that become unused because of them. Dependencies that were already unused before stay where they are; `--autoremove` takes them too, at the server's shell.
+
+When something else on the server depends on a tool entry (software you installed by hand on top of `ffmpeg`, say), the removal stops and names it: nothing is changed. `--force` at the server's shell removes them as well. A tool another package pulled in (`dig`, for `ubuntu-standard`) was never the entry's: it stays.
+
+For a library entry (`browsershot`, `fonts-cjk`) the libraries are often shared: the ones other software still uses stay installed, and when every one of them is still in use nothing is removed, with the reason. Apps that use a removed entry stop working, so the prompt asks first; without a terminal (the panel, a script) it needs `--yes`.
+
+## From the panel 
+
+The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Packages** tab: the whole catalog, each entry with what it brings (`ffmpeg, ffprobe`, or *Libraries*), what a partial install lacks, the pinned version of an *Upstream* entry (and **Update to x.y.z** when an older one is installed), and since panel 4.6.0 ([API](https://cipi.sh/docs/api#endpoints-packages) 1.44, Cipi 5.14.0 on the server) **Install**, **Complete install** and **Remove**, confirmed and run as jobs.
+
+Changing needs **Manage** on the server, and the token the `packages-manage` ability. The panel takes only ids the page lists, and the server's catalog is closed whatever is sent: the panel passes `--yes`, its `--force` and `--autoremove` are ignored and the disk check holds. The [MCP server](https://cipi.sh/docs/mcp) lists the catalog but doesn't install or remove.
 
 
 ## Stack upgrades
@@ -4587,6 +4747,8 @@ $ userdel -r APP
 ## 2. Cipi itself 
 
 ```bash
+$ cipi package list                             # optional packages: remove the installed ones first,
+$ cipi package remove  --yes                # with their links in /usr/local/bin and their apt packages
 $ systemctl disable --now cipi-queue 2>/dev/null; rm -f /etc/systemd/system/cipi-queue.service
 $ userdel -r cipi; groupdel cipi-ssh; groupdel cipi-apps
 $ rm -rf /opt/cipi /etc/cipi /var/log/cipi /usr/local/bin/cipi*
@@ -5305,7 +5467,7 @@ Audit | deploy ledger, event log, compliance
 
 | Layer | What Cipi does | Details |
 | --- | --- | --- |
-| **Network** | UFW allows only 22, 80, 443. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](https://cipi.sh/docs/firewall), [Nginx](https://cipi.sh/docs/nginx#default-server) |
+| **Network** | UFW allows only 22, 80, 443; the panel can open ports and block addresses, never close those three. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](https://cipi.sh/docs/firewall), [Nginx](https://cipi.sh/docs/nginx#default-server) |
 | **SSH** | Root login off; the `cipi` admin user is key-only; app users have their own password logins, which you can switch off | [SSH keys](https://cipi.sh/docs/ssh-keys) |
 | **Privilege** | App users can't `su`; the web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist | [Panel architecture](https://cipi.sh/docs/gui-architecture) |
 | **App isolation** | One Linux user per app (home `750`), its own PHP-FPM pool, `open_basedir` to its home, its own database user and Valkey instance | [How Cipi works](https://cipi.sh/docs/how-cipi-works#what-every-app-gets) |
@@ -5319,7 +5481,7 @@ Audit | deploy ledger, event log, compliance
 
 ## No web surface by default 
 
-A fresh Cipi server has **no admin panel**: management happens over SSH. The [web panel](https://cipi.sh/docs/gui-overview) is opt-in, runs as an isolated app on its own domain with two-factor login, and talks to servers only through the API's whitelisted commands.
+A fresh Cipi server has **no admin panel**: management happens over SSH. The [web panel](https://cipi.sh/docs/gui-overview) is opt-in, runs as an isolated app on its own domain with two-factor login (an admin can require it for every account), and talks to servers only through the API's whitelisted commands.
 
 ## What isolation protects 
 
@@ -5341,16 +5503,19 @@ If one app is compromised (a vulnerable plugin, a leaked `.env`), the attacker g
 
 URL: https://cipi.sh/docs/firewall
 
-UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time.
+UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time. Since 5.14.0 the [web panel](#panel) shows all of it, CrowdSec included, and changes what is safe to change from a browser.
 
 ## Ports 
 
 ```bash
-$ cipi firewall list
-$ cipi firewall allow 3306 --from=10.0.0.5        # one address
-$ cipi firewall allow 3306 --from=10.0.0.0/24     # a private subnet
-$ cipi firewall deny 8080
-$ cipi firewall attempts [5|default]              # failed logins before a ban
+$ cipi firewall status [--json]                    # UFW, fail2ban and CrowdSec at a glance (5.14.0+)
+$ cipi firewall list [--json]
+$ cipi firewall allow 3306 --from=10.0.0.5         # one address
+$ cipi firewall allow 3306 --from=10.0.0.0/24      # a private subnet
+$ cipi firewall allow 8000:8100 --proto=udp        # a range, UDP (5.14.0+)
+$ cipi firewall remove 3306 --from=10.0.0.5        # drop what allow made (5.14.0+)
+$ cipi firewall deny 8080                          # ahead of every allow
+$ cipi firewall attempts [5|default]               # failed logins before a ban
 ```
 
 | Protection | Default |
@@ -5362,23 +5527,69 @@ $ cipi firewall attempts [5|default]              # failed logins before a ban
 
 The threshold is written to a drop-in that updates never reset, validated with `fail2ban-client -t` before reload (a rejected value changes nothing). Need a database port? Open it **to specific addresses only**, or better, connect over SSH with the `mariadb+ssh://` URL.
 
+To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). Since 5.14.0 it goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny added after an allow of the same port used to change nothing.
+
 > [!tip] Behind Cloudflare, [cipi zt](https://cipi.sh/docs/zero-trust) can close 80/443 to everyone but Cloudflare, and close 22 entirely.
+
+## Blocked addresses 
+
+```bash
+$ cipi firewall block 198.51.100.23        # every port refused to it
+$ cipi firewall block 198.51.100.0/24      # a range
+$ cipi firewall unblock 198.51.100.23
+```
+
+A block refuses **every port** to an address or a range, ahead of every allow, until you unblock it: a scanner, an abuser, a range that keeps knocking. Unlike a [ban](#ban) it never expires. Ranges wider than `/8` (IPv4) or `/16` (IPv6) are refused.
+
+## What stays open 
+
+Since 5.14.0 the firewall commands refuse what would cut the server off:
+
+| Refused | Why |
+| --- | --- |
+| `deny` of the SSH port, 80 or 443 to everyone; `remove` of the rule that opens them | They are how the server is reached. The SSH ports are read from `sshd -T`, so a custom port counts. One address can still be denied with `--from=` |
+| `block` of a range that takes in the address of your SSH session | You would cut yourself off. The same holds for `deny --from=` on the SSH port |
+| `allow` to everyone of what a Zero Trust lock keeps closed | `cipi zt lock http` keeps 80/443 to Cloudflare, `cipi zt lock ssh` keeps SSH closed: the message says which `cipi zt unlock` reopens it |
+
+`--force` gets past these at the server's shell, when you know why. **From the panel it is ignored**, whatever the panel sends.
+
+Every change is written to `cipi.log`, and says when the rule was already there, when it did not exist, or when UFW is inactive.
 
 ## Bans 
 
 ```bash
 $ cipi ban list                   # banned IPs, by jail (Fail2ban and CrowdSec)
 $ cipi ban unban 203.0.113.42     # from every jail at once
+$ cipi ban unban 203.0.113.0/24   # a CrowdSec range decision
 ```
 
-Locked out a colleague or a CI runner by mistake? Unban from another session or the provider's console. For CI, use a dedicated key (key logins don't fail).
+The address is matched whole (before 5.14.0, `unban 1.2.3.4` could also lift a ban on `11.2.3.45`), and `ban unban` takes nothing but an address or a CIDR. Locked out a colleague or a CI runner by mistake? Unban from another session, the provider's console or the [panel](#panel). For CI, use a dedicated key (key logins don't fail).
+
+## From the panel 
+
+The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Firewall** tab (panel 4.6.0, [API](https://cipi.sh/docs/api#endpoints-firewall) 1.44, Cipi 5.14.0 on the server):
+
+| Section | What it shows and does |
+| --- | --- |
+| At a glance | UFW and its default policy, the ports always kept open, fail2ban and its threshold, CrowdSec, how many addresses are banned; the Zero Trust locks, when there are |
+| Rules | UFW's rules in its order (port or range, protocol, action, source, IPv4/IPv6), *Kept open* on SSH, 80 and 443, the Cipi feature that owns a rule (Zero Trust, Metrics, CrowdSec rescue); **Remove** on what may be removed; **Open a port** or a range, TCP or UDP, to everyone or to one address or range |
+| Blocked addresses | [Blocks](#block): **Block**, **Unblock** |
+| Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
+| SSH login attempts | The threshold, back to the default, and a warning when fail2ban still runs an older value or isn't running |
+| CrowdSec | [Enable](https://cipi.sh/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
+
+Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](https://cipi.sh/docs/crowdsec#rescue) stays at the server.
+
+The server's API token needs `firewall-view` and `firewall-manage` (a `--full-access` token has them). On an older server the tab says what to update: `cipi self-update`, then `cipi api update`.
 
 ## Questions 
 
 | Question | Answer |
 | --- | --- |
-| I locked myself out. | Use the provider's web console to log in, then `cipi ban unban `. Key logins never count as failures, only passwords. |
+| I locked myself out. | Use the provider's web console to log in, then `cipi ban unban ` (or Unban in the panel, from another network). Key logins never count as failures, only passwords. |
 | Should I open the database port? | Avoid it. Connect over SSH (TablePlus, DBeaver support it). If you must, allow one address with `--from`. |
+| How do I close a port I opened? | `cipi firewall remove ` with the same `--from` and `--proto` you opened it with, or Remove in the panel. |
+| Deny, block or ban? | `deny` refuses a port; `block` refuses every port to an address until you unblock it; a ban is Fail2ban's or CrowdSec's, and expires. |
 | Does the provider's firewall conflict? | No. Keep 22, 80 and 443 open in both. |
 
 
@@ -5474,17 +5685,22 @@ CrowdSec reads your Nginx logs, recognises attack patterns (scanners, credential
 
 ```bash
 $ cipi crowdsec enable                 # engine + firewall bouncer
+$ cipi crowdsec enable --allow=203.0.113.7   # and never ban this address (5.14.0+)
 $ cipi crowdsec status                 # engine, bouncer, rescue listener, decisions
 $ cipi crowdsec allow 203.0.113.42     # never ban this address
+$ cipi crowdsec unallow 203.0.113.42
 $ cipi crowdsec disable                # flush rules first, then remove
 ```
+
+The [web panel](https://cipi.sh/docs/firewall#panel) does the same from a server's Firewall tab (panel 4.6.0, Cipi 5.14.0): enable and disable run as jobs, the allowlist is edited in place, and CrowdSec's decisions sit next to Fail2ban's bans, each with *Unban*. What would stop `enable` (too little RAM, a reverse proxy without real-IP config) is shown before you try.
 
 ## Safe by construction 
 
 | Risk | Guard |
 | --- | --- |
 | Banning yourself | Your current SSH session is allowlisted before banning starts |
-| Banning your CDN | Refused behind a proxy without real-IP config ([cipi zt enable](https://cipi.sh/docs/zero-trust) writes it) |
+| Banning the panel | Enabled from the [panel](https://cipi.sh/docs/firewall#panel), the panel's own address is allowlisted (`--allow`); there is no SSH session to allowlist, and the RAM and real-IP checks always apply (`--force` is ignored from the panel) |
+| Banning your CDN | Refused behind a proxy without real-IP config. Behind Cloudflare, [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) writes it (or `cipi zt enable`, with a tunnel) |
 | Banning your Git provider | GitHub and Bitbucket webhook ranges allowlisted (refreshed, fail-open); GitLab ranges included |
 | Breaking renewals | Let's Encrypt validation, localhost and private ranges allowlisted |
 | Too little RAM | Refused below 512 MB available |
@@ -5501,7 +5717,7 @@ $ cipi crowdsec rescue token     # print the curl command (keep it off the serve
 $ cipi crowdsec rescue rotate    # new token, mailed to you
 ```
 
-It grants nothing but the ability to connect again. The port is kept open ahead of CrowdSec's own rules; wrong tokens are throttled. `cipi ban list` and `cipi ban unban` cover CrowdSec too.
+It grants nothing but the ability to connect again. The port is kept open ahead of CrowdSec's own rules; wrong tokens are throttled. `cipi ban list` and `cipi ban unban` cover CrowdSec too (a range decision: `cipi ban unban 203.0.113.0/24`). The rescue is break-glass for the server's owner, so it is deliberately **not** in the panel.
 
 
 ## Cloudflare Zero Trust
@@ -5636,7 +5852,7 @@ $ cipi compliance controls            # mapping to ISO 27001:2022 Annex A and SO
 | `firewall`, `intrusion`, `kernel` | UFW default deny; Fail2ban/CrowdSec; network sysctls |
 | `patching`, `time` | Security updates, reboots pending; NTP |
 | `tls` | Protocols, HSTS, certificate expiry and key type |
-| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts |
+| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts: [required](https://cipi.sh/docs/gui-install#two-factor-required) with everyone enrolled passes, required with accounts still to enrol warns and names them (5.14.0+) |
 | `secrets` | Encrypted, root-only configuration |
 | `deploys` | [Deploy audit](https://cipi.sh/docs/deploy-audit) chain intact, hooks present, no unaudited releases |
 | `backups` | Freshness, off-site copy, encryption |
@@ -6257,23 +6473,25 @@ cipi CLI | does the work, as on SSH
 | Area | From the panel |
 | --- | --- |
 | Apps | Create, edit, suspend, delete Laravel (FPM or Octane), Node (SPA, static, SSR with framework presets) and custom apps; environment label; aliases, www ↔ apex, SSL, basic auth |
-| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](https://cipi.sh/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](https://cipi.sh/docs/deploy-audit) with durations; a log per deploy |
+| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](https://cipi.sh/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](https://cipi.sh/docs/deploy-audit) with durations and each commit's title (Cipi 5.14.0+); a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
-| Routing | Whole-app and path redirects, prefix reverse proxies |
-| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](https://cipi.sh/docs/environment#order) (Cipi 5.13.0+), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
+| Routing | Whole-app and path redirects, prefix reverse proxies; for server managers, the app's [own Nginx directives](https://cipi.sh/docs/nginx#custom) — headers, caching, limits, `location` blocks — tested with `nginx -t` before the reload (Cipi 5.14.0+) |
+| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](https://cipi.sh/docs/environment#order) (Cipi 5.13.0+), a block of variables pasted or [edited as text](https://cipi.sh/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](https://cipi.sh/docs/databases#mysql), shown as such) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
-| Server | Status, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
-| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay with colour-coded output; one-time credentials with copy buttons |
+| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
+| Packages | The [optional packages](https://cipi.sh/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](https://cipi.sh/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
+| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist; SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel), Cipi 5.14.0+) |
+| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
-| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed) |
-| Sign-in | Password with optional TOTP, or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
+| Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
+| Sign-in | Password with TOTP, optional or [required for every account](https://cipi.sh/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports.
 
-> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software, monitor thresholds and Zero Trust changes stay on the CLI by design.
+> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](https://cipi.sh/docs/design-decisions#packages), monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
 ## Screenshot tour 
 
@@ -6287,7 +6505,9 @@ Creating an app starts with its type. Node presets (Next.js, Nuxt, SvelteKit, As
 
 ### App detail
 
-A header with status, type, runtime and actions, then one tab per area. Tabs live in the URL (`?tab=deploy`), so they can be bookmarked.
+A header with status, type, runtime, the server and its IP, and actions, then one tab per area. Tabs live in the URL (`?tab=deploy`), so they can be bookmarked.
+
+The Overview's details say where to connect and as whom (panel 4.6.0+): the app's Linux **user** — the one that signs in over [SSH and SFTP](https://cipi.sh/docs/app-ssh), named after the app — the **server's IP** and the `ssh shop@203.0.113.24` command made of the two. A click copies each. The IP is the one the panel keeps for the server, typed on Connections or read from its status, so this works with any Cipi version; the command uses the default SSH port.
 
 ### Jobs
 
@@ -6303,11 +6523,15 @@ The Metrics tab of a server and of each app: charts from 1 hour to 30 days with 
 
 Every channel of the server and which events reach it. Secrets never come back to the panel; an empty secret field keeps the stored one. See [notifications](https://cipi.sh/docs/notifications#panel).
 
+### Firewall
+
+UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order with *Kept open* on SSH, 80 and 443 and the Cipi feature that owns each one, blocked addresses, everything banned right now with *Unban*, the SSH login threshold and CrowdSec with its allowlist. Viewing needs a level on the server, changing needs Manage. See [firewall](https://cipi.sh/docs/firewall#panel).
+
 ### Connections and security
 
 ### Team and roles
 
-Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days.
+Admins see and do everything. A user gets what an admin grants and is invited with a copyable link that works once and expires after seven days. An admin can [require two-factor authentication](https://cipi.sh/docs/gui-install#two-factor-required) for every account: the list then shows who still has to set it up.
 
 
 ## Install the panel
@@ -6382,9 +6606,25 @@ Managed servers need no change: the panel calls their API URLs, and their allowl
 
 ## Two-factor authentication 
 
-Session login with **optional TOTP** per user (Google Authenticator, 1Password, Aegis…), enrolled from the profile. With [single sign-on](https://cipi.sh/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
+Session login with **TOTP** (Google Authenticator, 1Password, Aegis…), enrolled from Settings: optional per user by default, or required for every account. With [single sign-on](https://cipi.sh/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
 
-Lost a second factor? From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites the account and removes the enrolment.
+### Required for every account 
+
+For policies that ask it of every account (ISO 27001, NIS2), an admin turns on **Team → Two-factor authentication** (panel 4.6.0+, setting `enforce_2fa`, off by default). Nothing changes on the servers.
+
+| Who | What happens |
+| --- | --- |
+| An account without 2FA signing in with its password | Taken to the setup (`/2fa/setup`: QR code, setup key, the first code to confirm) before anything else, then to the page it asked for |
+| A session already open when it's turned on | Taken there at its next page; an action from a page left open is refused the same way |
+| A new user | The invite link opens on the setup |
+| SSO sign-ins | Left to the identity provider's MFA, as always. The same account signing in with its password is asked |
+| Accounts with 2FA | Can't turn it off while it's required; they can **move it to a new device** (the old one works until a code of the new one checks out) |
+
+An admin can turn it on only once their own session passes it (2FA set up, or signed in through SSO). Team then shows who still has to set it up (*Setup pending*; *Via SSO* for linked accounts). [`cipi compliance`](https://cipi.sh/docs/compliance#controls), control `gui_2fa`, reads the policy: required with everyone enrolled is a pass.
+
+### Lost a second factor 
+
+An admin clicks **Reset 2FA** on the account in Team (panel 4.6.0+; not for your own account). From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites an account and removes the enrolment. With 2FA required, the account sets it up again at its next sign-in.
 
 
 ## Single sign-on
@@ -6480,7 +6720,7 @@ The panel is the `cipi/gui` Composer package, so updating is Composer plus migra
 | --- | --- |
 | `cipi gui status` | Installed or not, domain, health of its services |
 | `cipi gui fix-permissions` | Repairs the FPM `open_basedir` and runtime permissions; run it on permission or autoload errors after an update |
-| `cipi gui reset-user` | Rewrites an admin's e-mail, name and password and clears their 2FA (alias `reset-password`) |
+| `cipi gui reset-user` | Rewrites an admin's e-mail, name and password and clears their 2FA (alias `reset-password`); with [2FA required](https://cipi.sh/docs/gui-install#two-factor-required) they set it up again at the next sign-in. For other accounts, *Reset 2FA* in Team does it from the panel |
 
 Locked out by [SSO-only](https://cipi.sh/docs/gui-sso)? `cipi gui sso only off` brings password sign-in back first.
 
@@ -6523,7 +6763,7 @@ cipi CLI via sudoers | the same code path as SSH
 
 | Area | Endpoints used |
 | --- | --- |
-| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages, monitor, Zero Trust, `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
+| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove, API 1.44+), monitor, Zero Trust, `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
 | Apps | CRUD, suspend, fix-permissions, basic auth, logs, `.env`, `auth.json`, Artisan, app commands; create with `engine`, `octane`, Node options; webhook rotation; per-app health check |
 | Deploy | Deploy, rollback, unlock, `deploy/audit`, `deploy/history`, `GET /api/deploys/last`, `deploy-config` |
 | `cipi.yml` | `GET /api/apps/{name}/yml`, `POST …/yml/apply`, `…/yml/auto/enable|disable` |
@@ -6533,9 +6773,10 @@ cipi CLI via sudoers | the same code path as SSH
 | Search | `GET /api/search`, per-app enable/disable |
 | Databases | List, create, back up, restore (with chunked upload), rotate password, link to apps; deletion stays on the host CLI |
 | Backups | `/api/backups…` profiles, runs, destinations test |
+| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](https://cipi.sh/docs/firewall#panel), API 1.44+) |
 | Jobs | Status, output and parsed `result` (credentials, backup file, webhook token) |
 
-A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall attempts`, disk limits and DNS accounts are changed on the host.
+A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall deny`, the CrowdSec rescue, disk limits and DNS accounts are changed on the host.
 
 > [!info] Prefer the terminal? The [CLI client](https://cipi.sh/docs/cli-client) does the same over the API, and the [WHMCS module](https://cipi.sh/docs/whmcs) automates it for hosting providers.
 
@@ -6619,12 +6860,14 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Deploy | `deploy-manage` (deploy, rollback, unlock, audit, status) |
 | `cipi.yml` | `yml-view`, `yml-manage` |
 | Domains and SSL | `aliases-view`, `aliases-create`, `aliases-delete`, `www-manage`, `ssl-manage` |
-| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage` |
+| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` |
 | Node | `node-view`, `node-manage` (SSR restart), `node-runtimes-manage` |
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
-| Read-only insights | `search-view`, `search-manage`, `packages-view`, `monitor-view`, `zt-view`, `disk-view` |
+| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
+| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) — manage 1.44+ |
+| Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
@@ -6633,7 +6876,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 ## REST endpoints 
 
-Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token).
+Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second (1.44+) — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 ### Apps 
 
@@ -6686,6 +6929,7 @@ GET /api/apps/{name}/yml is cipi yml plan &lt;app&gt; --json: the file of the li
 | `GET` | `/api/apps/{name}/redirects` | `redirects-view` |
 | `PUT`, `DELETE`, `POST` | `/api/apps/{name}/redirect`, `/redirect/enable`, `/disable`, `/redirects` | `redirects-manage` |
 | `GET`, `POST`, `DELETE` | `/api/apps/{name}/proxies` | `proxies-view` / `proxies-manage` |
+| `GET`, `PUT`, `DELETE` | `/api/apps/{name}/nginx` ([an app's own directives](#endpoints-nginx)) | `nginx-view` / `nginx-manage` |
 
 Redirects and proxies use the CLI's own validation, regenerate the vhost and revert if `nginx -t` fails. The loopback guard on proxies is **never bypassed from the API**.
 
@@ -6720,13 +6964,43 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
 | `GET`, `POST` | `/api/search`, `/api/apps/{name}/search/enable`, `/disable` | `search-view` / `search-manage` |
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
-| `GET` | `/api/packages`, `/api/monitor`, `/api/zt` | `packages-view`, `monitor-view`, `zt-view` |
+| `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
+| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
+| `GET` | `/api/monitor`, `/api/zt` | `monitor-view`, `zt-view` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](https://cipi.sh/docs/metrics), 1.41+) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](https://cipi.sh/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch or host packages, stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port) and every Zero Trust change. Installing software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it.
+### Firewall 
+
+API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [panel's Firewall tab](https://cipi.sh/docs/firewall#panel) uses.
+
+| Method | Path | Ability |
+| --- | --- | --- |
+| `GET` | `/api/firewall` (UFW, protected ports, Zero Trust locks, Fail2ban, CrowdSec) | `firewall-view` |
+| `POST`, `DELETE` | `/api/firewall/rules` (`port`, `from`, `proto`; `action: deny` to remove a deny) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/blocks` (`address`) | `firewall-manage` |
+| `PUT` | `/api/firewall/attempts` (1–100, `null` for the default) | `firewall-manage` |
+| `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
+| `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
+| `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
+
+`GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](https://cipi.sh/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+
+### Nginx directives 
+
+`GET /api/apps/{name}/nginx` answers `{app, config, bytes, max_bytes, active, suspended}`: `config` is the text an app adds to [its own server block](https://cipi.sh/docs/nginx#custom), empty when it has none. `PUT` with `{"config": "…"}` replaces it (an empty one removes it), `DELETE` removes it. Both are **synchronous**: `nginx -t` runs before Nginx reloads.
+
+A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](https://cipi.sh/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home. Needs Cipi 5.14.0+ (`503` before).
+
+### Optional packages 
+
+`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, and on Cipi 5.14.0+ `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](https://cipi.sh/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
+
+`POST /api/packages/{id}` installs an entry of the server's [closed catalog](https://cipi.sh/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](https://cipi.sh/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes — and need API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](https://cipi.sh/docs/packages#panel) uses.
+
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](https://cipi.sh/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
 ## Examples 
 
@@ -6783,7 +7057,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server 
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \
@@ -6971,6 +7245,25 @@ $ cipi-cli redirect add shop --from /blog/ --to https://blog.acme.com/
 $ cipi-cli proxies add shop --prefix /api --upstream http://127.0.0.1:8080 --strip-prefix
 ```
 
+## `nginx` 
+
+An app's [own Nginx directives](https://cipi.sh/docs/nginx#custom): headers, caching, limits, rewrites, `location` blocks, kept by Cipi and included in the app's server block.
+
+| Command | Does |
+| --- | --- |
+| `nginx show ` | Print them (redirect to a file to keep a copy; `--json` for scripts) |
+| `nginx edit ` | Open them in `$VISUAL` / `$EDITOR` on your computer; a changed text is sent, tested and made live |
+| `nginx set  --file ` | Replace them with a file's content (`-` for stdin) |
+| `nginx reset ` | Remove them (`-y` to skip the question) |
+
+```bash
+$ cipi-cli nginx edit shop
+$ cipi-cli nginx show shop > shop.nginx.conf
+$ cipi-cli prod nginx set shop --file shop.nginx.conf
+```
+
+The server tests every change with `nginx -t`; a refused text changes nothing, its reasons are printed line by line and `edit` offers the editor again. From the API [a subset of Nginx's language](https://cipi.sh/docs/nginx#custom-api) is accepted. Needs Cipi 5.14.0+, cipi/api 1.44+ and the `nginx-view` / `nginx-manage` abilities.
+
 ## `aliases` 
 
 ```bash
@@ -7080,6 +7373,15 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
 
+[Optional packages](https://cipi.sh/docs/packages) are installed and removed too (Cipi 5.14.0+, API 1.44+, `packages-manage`; jobs the CLI waits for):
+
+```bash
+$ cipi-cli packages                              # the catalog: status, what each brings
+$ cipi-cli packages install browsershot
+$ cipi-cli packages install sec-nuclei           # a pinned upstream release; again to update
+$ cipi-cli prod packages remove ffmpeg -y
+```
+
 [Metrics](https://cipi.sh/docs/metrics) (API 1.41+), with sparklines in the terminal:
 
 ```bash
@@ -7167,6 +7469,7 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `deploy`, `deploy audit` | `deploy-manage` |
 | `yml` | `yml-view`, `yml-manage` |
 | `ssl`, `www`, `aliases`, `redirect`, `proxies` | `ssl-manage`, `www-manage`, `aliases-*`, `redirects-*`, `proxies-*` |
+| `nginx` | `nginx-view`, `nginx-manage` |
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
 | `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |
@@ -7314,7 +7617,15 @@ $cipi->ssl()->install('shop', dns: 'cloudflare', account: 'prod', wildcard: true
 $cipi->ssl()->setDnsAccount($cloudflareToken, 'prod');   // sync, never returned
 ```
 
-Redirects and proxies are tested with `nginx -t` and reverted on failure; the proxy loopback guard can't be bypassed. Node apps: `node()->status($app)`, `node()->restart($app)`.
+Redirects and proxies are tested with `nginx -t` and reverted on failure; the proxy loopback guard can't be bypassed.
+
+```php
+$cipi->nginx()->show('shop')['data']['config'];                     // the app's own directives
+$cipi->nginx()->update('shop', "client_max_body_size 512M;\n");     // sync: nginx -t, then reload
+$cipi->nginx()->reset('shop');
+```
+
+`nginx()` reads and replaces [an app's own Nginx directives](https://cipi.sh/docs/nginx#custom) (API 1.44+, Cipi 5.14+). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](https://cipi.sh/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
 
 ## Env, databases and backups 
 
@@ -7362,11 +7673,12 @@ $cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' =>
 $cipi->notifications()->update('oncall', ['chat_id' => '-1009999']);   // the token is kept
 $cipi->notifications()->setTriggers(['deploy_success' => false]);
 $cipi->wait($cipi->node()->upgrade(24, restart: true));
+$cipi->wait($cipi->packages()->install('browsershot'));   // API 1.44+, Cipi 5.14+
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet
 ```
 
-Packages, monitor, Zero Trust and disk usage are read-only, as on the API.
+Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](https://cipi.sh/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
 
 ## Security 
 
@@ -7646,6 +7958,20 @@ Cipi installs Nginx, PHP-FPM, MariaDB or PostgreSQL, Valkey and Supervisor **as 
 
 **When Docker is the better fit.** Many stacks on one host (Go, Python, Rails next to PHP), images built once in CI and shipped unchanged, or a team that already thinks in containers. Then a Docker PaaS such as [Coolify](https://cipi.sh/alternative-to-coolify) or [Dokku](https://cipi.sh/alternative-to-dokku) suits you better: see the [comparison](https://cipi.sh/docs/vs-alternatives#docker). **Locally**, Docker is great: [Sail](https://laravel.com/docs/sail) or [init](https://init.web.ap.it/) on your laptop, Cipi on the server. Cipi itself doesn't install inside a container: the installer detects Docker, LXC, OpenVZ or WSL and stops.
 
+## Why a closed package catalog? 
+
+Some Laravel packages call a program on the host: Browsershot needs the libraries Chrome starts with, `laravel-ffmpeg` needs `ffmpeg`, OCR needs `tesseract`. Cipi could offer `apt install `. It doesn't: a panel or a token that installs any package is a root shell with extra steps. [`cipi package`](https://cipi.sh/docs/packages) has a **closed catalog** instead, and every entry has to earn its place:
+
+| Rule | Why |
+| --- | --- |
+| Stateless: programs, libraries, fonts | No daemon, no port, no credentials, nothing to back up or to patch outside apt |
+| From an Ubuntu repository, or an upstream release pinned in Cipi | Ubuntu ships the security updates, and the server applies them unattended. What Ubuntu doesn't ship (the security scanners Hackly runs) is pinned to one version and its SHA-256: nothing resolves "latest" on the server, and a file that doesn't match is refused |
+| A real Laravel or PHP package behind it | "Might be handy" is not a reason |
+
+Chromium is the rejection that shows why the rules matter. On Ubuntu 24.04 `chromium-browser` installs the snap, with `snapd`: a daemon, and a Chrome that isn't the one Puppeteer was tested with. So the `browsershot` entry installs the libraries and fonts, and Chrome comes with Puppeteer, per app. `wkhtmltopdf` is out too: archived upstream, its WebKit unpatched.
+
+**Because the set is closed, the panel and the API may install and remove entries** (Cipi 5.14.0), the pinned upstream ones included. The worst a stolen session or token can do is install `ffmpeg` or a scanner whose bytes Cipi pinned, or remove it, and a removal takes only what no other package needs. A pinned version is also why an upstream entry isn't patched unattended: a newer one comes with a Cipi release, and the operator installs it. `--force`, `--autoremove` and anything outside the catalog stay at the server's shell. The [MCP server](https://cipi.sh/docs/mcp) only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the [firewall](https://cipi.sh/docs/firewall#panel).
+
 ## Why MariaDB by default? 
 
 MariaDB (port `3306`) is the default because it fits most Laravel apps with zero friction. [PostgreSQL](#why-postgresql) is one command away and can run next to it.
@@ -7733,7 +8059,7 @@ v52026, todayA complete, free platform on your own serverv5 turned the CLI into 
 | Apps | Laravel on PHP-FPM or Octane (FrankenPHP), Node apps (SPA, static, SSR), and custom PHP apps such as WordPress or Symfony |
 | Deploy | Zero-downtime releases, Git push from six forges, preview environments, a hash-chained audit trail, health-checked rollbacks |
 | `cipi.yml` | The app's server settings versioned in its repository: PHP, workers, schedule, domains, databases, backups, per environment |
-| Runtime | Multiple PHP versions side by side, MariaDB (or MySQL) and PostgreSQL, Valkey, Meilisearch, Horizon and Reverb |
+| Runtime | Multiple PHP versions side by side, MariaDB (or MySQL) and PostgreSQL, Valkey, Meilisearch, Horizon and Reverb, optional host tools (Browsershot, ffmpeg, LibreOffice, OCR) |
 | Operations | Backup profiles to S3 with verification, server monitor, health checks, metrics and uptime history with a heartbeat, disk usage, alerts by e-mail, Slack, Telegram and webhooks |
 | Security | Per-app isolation, encrypted vault, firewall and CrowdSec, Cloudflare Zero Trust, malware scans, automatic PHP and Nginx security updates |
 | Interfaces | The CLI, an optional web panel with roles and SSO, a REST API, cipi-cli, a PHP SDK, WHMCS and MCP servers for AI assistants |
@@ -8721,9 +9047,11 @@ Three choices worth noting:
 | --- | --- |
 | **Valkey instead of Redis** | Same protocol, same `phpredis`, same `REDIS_*` keys, but BSD-licensed and stewarded by the Linux Foundation. Servers moved automatically on `cipi self-update` ([why](https://cipi.sh/docs/design-decisions#valkey)) |
 | **MariaDB by default** | A GPL community server with no enterprise edition gating features and no dual licensing to navigate; MySQL stays available as an explicit choice ([guide](https://cipi.sh/guides/laravel-mysql-instead-of-mariadb)) |
-| **No source-available component** | Nothing Cipi installs carries a "no competing service" clause, so you can host clients, sell hosting or build a platform on it |
+| **No source-available component** | Nothing in this stack carries a "no competing service" clause, so you can host clients, sell hosting or build a platform on it |
 
 None of these components is AGPL. Cipi installs them from their official packages and configures them, it doesn't ship modified copies, so running them creates no licence obligation for you as the operator of the server.
+
+The [optional packages](https://cipi.sh/docs/packages) are a different matter: third-party tools installed only when you ask, each under its own licence. Most are open source. Among the [security scanners](https://cipi.sh/docs/packages#sec), WPScan (`sec-wpscan`) is not: it is free to test your own systems and for penetration testers, but needs a commercial licence to be sold as a service. Nmap (`sec-recon`) has a licence of its own, the NPSL: the GPL with extra terms. Read a tool's licence before you build a paid service on it.
 
 ## Transparency: you can read what runs as root 
 
@@ -13451,7 +13779,7 @@ $ claude mcp add --transport http cipi-server https://api.example.com/mcp \
     --header "Authorization: Bearer "
 ```
 
-Destructive host operations (dropping databases, removing PHP versions, installing software) are kept off the API on purpose.
+Destructive host operations (dropping databases, removing PHP versions, installing software outside the [closed package catalog](https://cipi.sh/docs/packages)) are kept off the API on purpose, and the server MCP doesn't install or remove even those packages: it lists them.
 
 ## Guardrails in one table
 
@@ -13922,7 +14250,7 @@ $ sudo cipi ban list               # banned IPs, CrowdSec and Fail2ban together
 $ sudo cipi ban unban 192.0.2.10   # lift a ban everywhere at once
 ```
 
-Within a day you'll usually see bans for scanners that probed paths your apps don't have.
+Within a day you'll usually see bans for scanners that probed paths your apps don't have. With the [web panel](https://cipi.sh/docs/firewall#panel) (Cipi 5.14.0+), the server's Firewall tab shows the same list, CrowdSec's decisions and Fail2ban's bans together, each with *Unban*, and edits the allowlist.
 
 ## 4. If you ban yourself: the rescue 
 
@@ -14163,7 +14491,7 @@ Security on your own server is a list of boring things done every time. Here's t
 | --- | --- |
 | Each app isolated from the others | Own Linux user, PHP pool with `open_basedir`, database user |
 | SSH by key only, no root login | Installer default; `sudo cipi ssh list` |
-| Firewall with only 22, 80, 443 | UFW by default; `sudo cipi firewall list` |
+| Firewall with only 22, 80, 443 | UFW by default; `sudo cipi firewall status`, or the panel's [Firewall tab](https://cipi.sh/docs/firewall#panel) |
 | Brute-force bans | fail2ban; `sudo cipi firewall attempts 3`; optional [CrowdSec](https://cipi.sh/docs/crowdsec) |
 | PHP patched the day fixes ship | Nightly at 03:30; `sudo cipi php upgrade` ([case study](https://cipi.sh/guides/php-nginx-cve-patching)) |
 | nginx patched | `sudo cipi nginx security`, `sudo cipi autoupdate on nginx` |
@@ -14575,7 +14903,7 @@ $ sudo cipi api api.example.com
 $ sudo cipi api token create --name=panel --full-access
 ```
 
-The API checks DNS, issues its certificate and runs as `www-data`, calling an allowlist of `cipi` commands. Installing software or dropping data stays on the CLI.
+The API checks DNS, issues its certificate and runs as `www-data`, calling an allowlist of `cipi` commands. Dropping data, and installing anything outside the [closed package catalog](https://cipi.sh/docs/packages), stays on the CLI.
 
 ## 2. Install the panel
 
@@ -14592,7 +14920,7 @@ Log in with the admin account it asks for, then **Connections → add server** w
 | Admin | Everything |
 | User | Only granted servers (View or Manage) or apps (View, Deploy, Edit, Environment, Logs, Commands, Delete) |
 
-Invites are copyable links that work once and expire after seven days. Turn on TOTP 2FA per user, or [single sign-on](https://cipi.sh/docs/gui-sso) with Entra ID, Google Workspace, Okta or any OIDC provider.
+Invites are copyable links that work once and expire after seven days. Turn on TOTP 2FA per user, [require it for every account](https://cipi.sh/docs/gui-install#two-factor-required) (Team → Two-factor authentication), or use [single sign-on](https://cipi.sh/docs/gui-sso) with Entra ID, Google Workspace, Okta or any OIDC provider.
 
 ## 4. Automate with the API
 

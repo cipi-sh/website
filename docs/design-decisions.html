@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Design decisions — Cipi docs</title>
-    <meta name="description" content="Why no Docker, why MariaDB, PostgreSQL, Valkey, Laravel — and why not local.">
+    <meta name="description" content="Why no Docker, a closed package catalog, MariaDB, PostgreSQL, Valkey, Laravel — and why not local.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://cipi.sh/docs/design-decisions">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="Cipi">
     <meta property="og:url" content="https://cipi.sh/docs/design-decisions">
     <meta property="og:title" content="Design decisions — Cipi docs">
-    <meta property="og:description" content="Why no Docker, why MariaDB, PostgreSQL, Valkey, Laravel — and why not local.">
+    <meta property="og:description" content="Why no Docker, a closed package catalog, MariaDB, PostgreSQL, Valkey, Laravel — and why not local.">
     <meta property="og:image" content="https://cipi.sh/img/og/docs-design-decisions.jpg?v=20171003">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -27,7 +27,7 @@
     <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/docs.css">
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Design decisions", "description": "Why no Docker, why MariaDB, PostgreSQL, Valkey, Laravel — and why not local.", "url": "https://cipi.sh/docs/design-decisions", "dateModified": "2026-11-24", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Design decisions", "description": "Why no Docker, a closed package catalog, MariaDB, PostgreSQL, Valkey, Laravel — and why not local.", "url": "https://cipi.sh/docs/design-decisions", "dateModified": "2026-11-25", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "About", "item": "https://cipi.sh/docs/about"}, {"@type": "ListItem", "position": 3, "name": "Design decisions", "item": "https://cipi.sh/docs/design-decisions"}]}</script>
 </head>
 <body class="docs">
@@ -195,7 +195,7 @@
 <header>
 <ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/about">About</a></li><li aria-current="page">Design decisions</li></ol>
 <h1>Design decisions</h1>
-<p class="docs-lead">Why no Docker, why MariaDB, PostgreSQL, Valkey, Laravel — and why not local.</p>
+<p class="docs-lead">Why no Docker, a closed package catalog, MariaDB, PostgreSQL, Valkey, Laravel — and why not local.</p>
 <div class="docs-meta"><span>About</span></div>
 </header>
 <div class="prose">
@@ -214,6 +214,13 @@
 <div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>The firewall point is the one that bites. Docker writes its own iptables rules for published ports, and they're evaluated before UFW. A database container published on <code>3306</code> is reachable from the internet even with <code>ufw deny 3306</code>. Docker's own documentation calls Docker and UFW incompatible. On a Cipi server, what the firewall says is what's open.</p></div></div>
 <p><strong>What you don't lose.</strong> The things people use Docker for on a server are already there: per-app isolation, one version of PHP per app (<a href="/docs/php">8.3 to 8.6</a> side by side), a database per app, reproducible settings in <a href="/docs/yml"><code>cipi.yml</code></a> committed to the repository, and zero-downtime deploys with rollback.</p>
 <p><strong>When Docker is the better fit.</strong> Many stacks on one host (Go, Python, Rails next to PHP), images built once in CI and shipped unchanged, or a team that already thinks in containers. Then a Docker PaaS such as <a href="/alternative-to-coolify">Coolify</a> or <a href="/alternative-to-dokku">Dokku</a> suits you better: see the <a href="/docs/vs-alternatives#docker">comparison</a>. <strong>Locally</strong>, Docker is great: <a href="https://laravel.com/docs/sail">Sail</a> or <a href="https://init.web.ap.it/">init</a> on your laptop, Cipi on the server. Cipi itself doesn't install inside a container: the installer detects Docker, LXC, OpenVZ or WSL and stops.</p>
+</section>
+<section class="doc-section" id="why-packages">
+<h2 id="packages">Why a closed package catalog?<a class="anchor" href="#packages" aria-label="Link to this section">#</a></h2>
+<p>Some Laravel packages call a program on the host: Browsershot needs the libraries Chrome starts with, <code>laravel-ffmpeg</code> needs <code>ffmpeg</code>, OCR needs <code>tesseract</code>. Cipi could offer <code>apt install &lt;anything&gt;</code>. It doesn't: a panel or a token that installs any package is a root shell with extra steps. <a href="/docs/packages"><code>cipi package</code></a> has a <strong>closed catalog</strong> instead, and every entry has to earn its place:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why</th></tr></thead><tbody><tr><td>Stateless: programs, libraries, fonts</td><td>No daemon, no port, no credentials, nothing to back up or to patch outside apt</td></tr><tr><td>From an Ubuntu repository, or an upstream release pinned in Cipi</td><td>Ubuntu ships the security updates, and the server applies them unattended. What Ubuntu doesn't ship (the security scanners Hackly runs) is pinned to one version and its SHA-256: nothing resolves "latest" on the server, and a file that doesn't match is refused</td></tr><tr><td>A real Laravel or PHP package behind it</td><td>"Might be handy" is not a reason</td></tr></tbody></table></div>
+<p>Chromium is the rejection that shows why the rules matter. On Ubuntu 24.04 <code>chromium-browser</code> installs the snap, with <code>snapd</code>: a daemon, and a Chrome that isn't the one Puppeteer was tested with. So the <code>browsershot</code> entry installs the libraries and fonts, and Chrome comes with Puppeteer, per app. <code>wkhtmltopdf</code> is out too: archived upstream, its WebKit unpatched.</p>
+<p><strong>Because the set is closed, the panel and the API may install and remove entries</strong> (Cipi 5.14.0), the pinned upstream ones included. The worst a stolen session or token can do is install <code>ffmpeg</code> or a scanner whose bytes Cipi pinned, or remove it, and a removal takes only what no other package needs. A pinned version is also why an upstream entry isn't patched unattended: a newer one comes with a Cipi release, and the operator installs it. <code>--force</code>, <code>--autoremove</code> and anything outside the catalog stay at the server's shell. The <a href="/docs/mcp">MCP server</a> only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the <a href="/docs/firewall#panel">firewall</a>.</p>
 </section>
 <section class="doc-section" id="why-mariadb">
 <h2 id="mariadb">Why MariaDB by default?<a class="anchor" href="#mariadb" aria-label="Link to this section">#</a></h2>
@@ -253,6 +260,7 @@
 <h2>On this page</h2><ol>
 <li><a class="l2" href="#local">Why not local?</a></li>
 <li><a class="l2" href="#docker">Why no Docker?</a></li>
+<li><a class="l2" href="#packages">Why a closed package catalog?</a></li>
 <li><a class="l2" href="#mariadb">Why MariaDB by default?</a></li>
 <li><a class="l2" href="#postgresql">Why PostgreSQL as an option?</a></li>
 <li><a class="l2" href="#valkey">Why Valkey?</a></li>

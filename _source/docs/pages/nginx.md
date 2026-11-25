@@ -1,6 +1,6 @@
 @section cli-nginx
 
-Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades and the default server.
+Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives.
 
 <cipi-term name="nginx-security"></cipi-term>
 
@@ -48,15 +48,83 @@ $ cipi nginx default-server status|on|off
 
 On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty reply (444) instead of reaching one of your apps or a tenant resolver.
 
-@section nginx-config
+## Behind Cloudflare: the visitor's real IP {#real-ip}
 
-## Custom Nginx config {#custom}
-
-Cipi generates each vhost (`/etc/nginx/sites-available/myapp`) and regenerates it when you change aliases, PHP, SSL, redirects or proxies. Prefer Cipi's commands and [cipi.yml routes](/docs/yml#cli-yml-routes) over hand edits; if you must edit, test and reload:
+A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+):
 
 ```bash
-$ sudo nano /etc/nginx/sites-available/myapp
-$ sudo nginx -t && sudo systemctl reload nginx
+$ cipi nginx real-ip cloudflare     # on
+$ cipi nginx real-ip status         # --json for scripts
+$ cipi nginx real-ip off            # back to the address of each connection
 ```
 
-> [!warning] Hand edits are overwritten by the next regeneration. Keep them small and documented, and re-check with `cipi nginx security`.
+| | |
+| --- | --- |
+| **What it does** | Gives Nginx Cloudflare's IPv4 and IPv6 ranges and `CF-Connecting-IP`: a request from one of the ranges gets the visitor's address |
+| **Why it can't be forged** | A request from anywhere else keeps the address of its connection, so sending the header straight to your server does nothing. Domains not behind Cloudflare are unaffected |
+| **In the app** | With PHP-FPM the visitor's address is `REMOTE_ADDR`: `$request->ip()`, rate limiting and login throttling work with no change in Laravel. Octane and Node apps get it in `X-Forwarded-For`, as they already do for a direct visitor |
+| **Fail2ban and CrowdSec** | Never ban Cloudflare's ranges (that would take every proxied site down), and `cipi crowdsec enable` no longer needs `--force` behind the proxy |
+| **Kept current** | The ranges are Cloudflare's public list — no token — fetched again every night; if the fetch fails, the previous ones stay |
+
+`nginx -t` runs before the reload: if Nginx refuses (another `real_ip_header` in your `nginx.conf`, say), the file is taken back and you get Nginx's reason. A `real_ip` configuration Cipi didn't write is left alone.
+
+> [!info] A firewall ban stops direct connections only. A visitor who comes through Cloudflare is blocked at Cloudflare (WAF rules), not on the server. With a [Zero Trust tunnel](/docs/zero-trust), `cipi zt enable` already sets the same thing and the two share one file.
+
+@section nginx-config
+
+## Your own directives {#custom}
+
+Cipi generates each vhost (`/etc/nginx/sites-available/myapp`) and writes it again whenever aliases, PHP, SSL, basic auth, redirects or proxies change — so an edit of that file never lasts. What lasts is a text of your own per app: Cipi keeps it and includes it in the app's server block.
+
+```bash
+$ cipi nginx edit myapp                    # in $EDITOR; tested and live when you save
+$ cipi nginx show myapp                    # --json for scripts
+$ cipi nginx set myapp --file=myapp.conf   # the same from a file (- for stdin)
+$ cipi nginx reset myapp                   # remove them
+```
+
+```nginx
+client_max_body_size 512M;
+
+location ^~ /downloads/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    access_log off;
+}
+
+location ~* \.(?:woff2?|ttf)$ {
+    add_header Access-Control-Allow-Origin "*";
+    expires 1y;
+}
+```
+
+| | |
+| --- | --- |
+| **Where it lives** | In the app's settings, so it follows [`cipi sync`](/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
+| **What it's for** | Headers, caching, upload size, timeouts, rewrites, `location` blocks of your own |
+| **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`cipi proxy` and `cipi redirect`](/docs/redirects-proxies) |
+| **Limits** | 32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend |
+
+```flow
+Save | your text
+> The text is saved with the app's settings and its vhost is written again with the `include`.
+nginx -t | must pass
+> Nginx tests the whole configuration. If it's already broken before your change, Cipi stops and touches nothing.
+Reload | graceful
+> Passed: a graceful reload, no connection dropped.
+Refused | everything back
+> Failed: the settings and the vhost go back to what they were and you get Nginx's reason by line (`line 3: unknown directive "foo"`). `cipi nginx edit` offers the editor again on your text.
+```
+
+### From the panel, the API, the SDK and cipi-cli {#custom-api}
+
+The same text can be read and replaced from the [web panel](/docs/gui-overview) — the app's **Routing** tab, *Nginx directives*, for whoever has Manage on the server (panel 4.6.0+) — through the [API](/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor). In the panel a refused text is listed with its reasons and stays in the form to fix.
+
+> [!security] Through the API — so from the panel, the SDK and cipi-cli too — **a subset of Nginx's language** is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an `access_log` or `error_log` path and reads an `include` as root, `server_name` takes another app's domain, `listen` opens a port, a `*_pass` reaches another app's PHP socket or a database on the loopback.
+
+| From the API | |
+| --- | --- |
+| **Accepted** | `location`, `if`, `return`, `rewrite`, `set`, `try_files`, `error_page`, `add_header`, `expires`, `gzip*`, `client_max_body_size` and the timeouts, `allow` / `deny`, `autoindex`, `types`, `sub_filter`, the `fastcgi_*` and `proxy_*` buffers and timeouts, `access_log off`, `auth_basic off`, `root` and `alias` under `/home/myapp/` |
+| **Refused** | A log path, `include`, `listen`, `server_name`, every `*_pass`, certificates, `auth_basic_user_file`, a path outside the app's home, and anything not on the list — by name, with its line |
+| **The whole language** | `cipi nginx edit myapp` at the server, as root |
+
+`cipi nginx set myapp --file=… --strict` applies the API's check at the terminal, to try a text before sending it from a script.

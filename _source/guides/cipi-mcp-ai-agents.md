@@ -112,7 +112,7 @@ $ claude mcp add --transport http cipi-server https://api.example.com/mcp \
     --header "Authorization: Bearer <token>"
 ```
 
-Destructive host operations (dropping databases, removing PHP versions, installing software) are kept off the API on purpose.
+Destructive host operations (dropping databases, removing PHP versions, installing software outside the [closed package catalog](/docs/packages)) are kept off the API on purpose, and the server MCP doesn't install or remove even those packages: it lists them.
 
 ## Guardrails in one table
 
