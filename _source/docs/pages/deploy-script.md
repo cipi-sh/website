@@ -50,7 +50,7 @@ after('artisan:migrate', 'app:warm');
 
 The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → **symlink** → restart workers → cleanup.
 
-**Each step runs once.** Before Cipi 5.17.0 a Laravel deploy ran `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` twice — once from Deployer's own Laravel recipe, once from Cipi's — and `--no-migrate` / `--no-optimize` turned off only one of the two. `cipi self-update` fixes the recipe of every app (the deploy log now shows one `artisan:migrate` and one `artisan:optimize`), and an option turned off is really skipped. A recipe you edited by hand is left alone and named, with the command that regenerates it.
+**Each step runs once.** A Laravel deploy runs `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` one time each — the deploy log shows one `artisan:migrate` and one `artisan:optimize` — and a step turned off with `--no-migrate` or `--no-optimize` is really skipped. A log that shows them twice comes from a recipe written by an old release: `cipi self-update` rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.
 
 > [!warning] Changing PHP or branch with `cipi app edit` regenerates `deploy.php`. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer `deploy-config` and [cipi.yml](/docs/yml), which are never lost.
 

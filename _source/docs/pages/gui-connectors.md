@@ -1,6 +1,6 @@
 @section gui-connectors
 
-The providers around your servers, driven from the panel: **28 connectors** for clouds and VPS, domains and DNS, object storage, email, monitoring and security scanners (cipi/gui 4.8.0+). Create a Droplet or an EC2 instance, point a DNS record at a server **by its name**, publish the DNS a mail domain asks for on Cloudflare, make a bucket and a key an app can use on that bucket only, resolve a Sentry issue, snooze an Oh Dear check, ignore an Aikido finding — without opening twenty dashboards.
+The providers around your servers, driven from the panel: **28 connectors** for clouds and VPS, domains and DNS, object storage, email, monitoring and security scanners. Create a Droplet or an EC2 instance, point a DNS record at a server **by its name**, publish the DNS a mail domain asks for on Cloudflare, make a bucket and a key an app can use on that bucket only, resolve a Sentry issue, snooze an Oh Dear check, ignore an Aikido finding — without opening twenty dashboards.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">

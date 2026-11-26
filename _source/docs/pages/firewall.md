@@ -1,18 +1,18 @@
 @section cli-firewall
 
-UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time. Since 5.14.0 the [web panel](#panel) shows all of it, CrowdSec included, and changes what is safe to change from a browser.
+UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time. The [web panel](#panel) shows all of it, CrowdSec included, and changes what is safe to change from a browser.
 
 <cipi-term name="firewall"></cipi-term>
 
 ## Ports {#ports}
 
 ```bash
-$ cipi firewall status [--json]                    # UFW, fail2ban and CrowdSec at a glance (5.14.0+)
+$ cipi firewall status [--json]                    # UFW, fail2ban and CrowdSec at a glance
 $ cipi firewall list [--json]
 $ cipi firewall allow 3306 --from=10.0.0.5         # one address
 $ cipi firewall allow 3306 --from=10.0.0.0/24      # a private subnet
-$ cipi firewall allow 8000:8100 --proto=udp        # a range, UDP (5.14.0+)
-$ cipi firewall remove 3306 --from=10.0.0.5        # drop what allow made (5.14.0+)
+$ cipi firewall allow 8000:8100 --proto=udp        # a range, UDP
+$ cipi firewall remove 3306 --from=10.0.0.5        # drop what allow made
 $ cipi firewall deny 8080                          # ahead of every allow
 $ cipi firewall attempts [5|default]               # failed logins before a ban
 ```
@@ -26,7 +26,7 @@ $ cipi firewall attempts [5|default]               # failed logins before a ban
 
 The threshold is written to a drop-in that updates never reset, validated with `fail2ban-client -t` before reload (a rejected value changes nothing). Need a database port? Open it **to specific addresses only**, or better, connect over SSH with the `mariadb+ssh://` URL.
 
-To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). Since 5.14.0 it goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny added after an allow of the same port used to change nothing.
+To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). It goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny placed after an allow of the same port would change nothing.
 
 > [!tip] Behind Cloudflare, [cipi zt](/docs/zero-trust) can close 80/443 to everyone but Cloudflare, and close 22 entirely.
 
@@ -42,7 +42,7 @@ A block refuses **every port** to an address or a range, ahead of every allow, u
 
 ## What stays open {#protected}
 
-Since 5.14.0 the firewall commands refuse what would cut the server off:
+The firewall commands refuse what would cut the server off:
 
 | Refused | Why |
 | --- | --- |
@@ -64,13 +64,13 @@ $ cipi ban unban 203.0.113.42     # from every jail at once
 $ cipi ban unban 203.0.113.0/24   # a CrowdSec range decision
 ```
 
-The address is matched whole (before 5.14.0, `unban 1.2.3.4` could also lift a ban on `11.2.3.45`), and `ban unban` takes nothing but an address or a CIDR. Locked out a colleague or a CI runner by mistake? Unban from another session, the provider's console or the [panel](#panel). For CI, use a dedicated key (key logins don't fail).
+The address is matched whole (`unban 1.2.3.4` never lifts a ban on `11.2.3.45`), and `ban unban` takes nothing but an address or a CIDR. Locked out a colleague or a CI runner by mistake? Unban from another session, the provider's console or the [panel](#panel). For CI, use a dedicated key (key logins don't fail).
 
 @section firewall-panel
 
 ## From the panel {#panel}
 
-The server page of the [web panel](/docs/gui-overview) has a **Firewall** tab (panel 4.6.0, [API](/docs/api#endpoints-firewall) 1.44, Cipi 5.14.0 on the server):
+The server page of the [web panel](/docs/gui-overview) has a **Firewall** tab (over the [API](/docs/api#endpoints-firewall)):
 
 | Section | What it shows and does |
 | --- | --- |
@@ -80,7 +80,7 @@ The server page of the [web panel](/docs/gui-overview) has a **Firewall** tab (p
 | Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
 | SSH login attempts | The threshold, back to the default, and a warning when fail2ban still runs an older value or isn't running |
 | CrowdSec | [Enable](/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
-| Cloudflare real IP | [The visitor's address behind Cloudflare](/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it (panel 4.7.0, Cipi 5.15.0) |
+| Cloudflare real IP | [The visitor's address behind Cloudflare](/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it |
 
 Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](/docs/crowdsec#rescue) stays at the server.
 

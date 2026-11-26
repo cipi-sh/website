@@ -32,6 +32,6 @@ The app's deploy recipe calls a root-owned helper at each outcome. Root **verifi
 
 The panel shows the ledger on each app's Deploy tab; the API serves it at `GET /api/apps/{name}/deploy/audit`.
 
-`cipi deploy myapp --audit --json` (and so the API and the panel) adds a `subject` to each record: the first line of the commit's message, read from the app's own Git clone when you ask (Cipi 5.14.0+). It is **not** in the ledger and no hash covers it: the record proves which commit went live, the clone says what it's called. A commit the clone no longer has gets none.
+`cipi deploy myapp --audit --json` (and so the API and the panel) adds a `subject` to each record: the first line of the commit's message, read from the app's own Git clone when you ask. It is **not** in the ledger and no hash covers it: the record proves which commit went live, the clone says what it's called. A commit the clone no longer has gets none.
 
 > [!note] The chain proves nothing older than the newest record was changed. Root could still rewrite the whole file, which is why the syslog copy matters. File edits over SFTP are not deploys; [malware scan](/docs/malware-scan) integrity covers those.

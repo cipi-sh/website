@@ -492,7 +492,7 @@ cipi-cli eu deploy shop && cipi-cli us deploy shop
 | `Host key verification failed` | `SERVER_KNOWN_HOSTS` is empty or from another server | Save it again with `ssh-keyscan` and compare the fingerprint |
 | `sudo: a terminal is required` | The SSH user isn't `cipi` | Connect as `cipi@…`, the user allowed to run `sudo cipi` without a password |
 | Every push deploys twice | The webhook is still active | [Turn it off](#webhook-off) |
-| *A deploy of 'shop' is running* | Two pipelines at once, or a webhook deploy in flight | Add a concurrency limit and keep one trigger per app; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
+| *A deploy of 'shop' is running* | Two pipelines at once, or a webhook deploy in flight | Add a concurrency limit and keep one trigger per app; a lock left by an interrupted deploy is removed by the next deploy |
 | `401` or `403` from the API | Token expired, wrong ability, or IP not allowed | `cipi api token list`; ability `deploy-manage`; `cipi api ip-whitelist show` |
 | cipi-cli "timed out after polling" | The build takes more than about nine minutes | The deploy continues on the server: `cipi-cli prod deploy status shop` |
 | Azure task fails on a good deploy | `failOnStdErr` is on | Set `failOnStdErr: false` |

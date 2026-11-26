@@ -77,13 +77,13 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Deploy | `deploy-manage` (deploy, rollback, unlock, audit, status) |
 | `cipi.yml` | `yml-view`, `yml-manage` |
 | Domains and SSL | `aliases-view`, `aliases-create`, `aliases-delete`, `www-manage`, `ssl-manage` |
-| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` (an app's directives and, from 1.47, its [page cache](/docs/page-cache)) |
+| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` (an app's directives and its [page cache](/docs/page-cache)) |
 | Node | `node-view`, `node-manage` (SSR restart), `node-runtimes-manage` |
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
-| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
-| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) — manage 1.44+ |
+| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) |
+| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) |
 | Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
@@ -91,11 +91,13 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 `php artisan cipi:token-abilities` (or the `cipi api token create` checklist) shows the canonical list.
 
-API 1.47 adds no ability: its routes sit under the ones a token already has — `nginx-*` for the [page cache](#endpoints-cache), `php-*` for the [PHP of an Octane app](#endpoints-octane), `services-*` for [Valkey per app](#endpoints-valkey), `notifications-*` for the [time zone and server name](#endpoints-notification-settings). A token made for one of those areas can do the new things of the same area.
+Some routes have no ability of their own and sit under an area's: `nginx-*` for the [page cache](#endpoints-cache), `php-*` for the [PHP of an Octane app](#endpoints-octane), `services-*` for [Valkey per app](#endpoints-valkey), `notifications-*` for the [time zone and server name](#endpoints-notification-settings) of notifications. A token made for one of those areas can use them.
 
 ## REST endpoints {#endpoints}
 
-Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second (1.44+) — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+
+The API and the server's Cipi are updated separately (`cipi api update`, `cipi self-update`). A route whose command the server's Cipi doesn't have yet answers `503` and says so: update the server.
 
 A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens) (`cipi zt access enable --api --allow=none`) also needs the headers of a service token: `CF-Access-Client-Id` and `CF-Access-Client-Secret` (`cipi zt service-token create <name> --for=api`).
 
@@ -121,7 +123,7 @@ A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens
 
 `POST /api/apps` takes `domain`, `repository`, `branch`, `php`, `env`, `engine` (`mariadb`/`pgsql`), `octane`, `node_build`, `custom` + `docroot` (repository optional for SFTP-only sites), or Node fields (`node`: `spa|static|ssr`, `framework`, `node_version`, `build`, `start`, `output`, `health_path`). The same rules as [`cipi app create`](/docs/create-app) apply. `PUT` forwards only fields that changed; a `domain` already used elsewhere answers `409`. App objects return `type` (`laravel`, `custom`, `node`), `env`, `suspended`, `basic_auth`, `octane`, `redirects`, `proxies` and `databases`.
 
-`PUT /api/apps/{name}/env` takes `set` (keys and values), `unset` (keys) and, with Cipi 5.13.0+ and API 1.43+, `order`: every key of the file after `set`/`unset`, each once, in the order they should be in (comments above a key move with it; an `order` alone is enough). It answers `vars` in file order. `GET /api/apps/{name}/basicauth` returns `enabled`, `users` and, from API 1.43, `agent` (`mode`, `public_prefix`).
+`PUT /api/apps/{name}/env` takes `set` (keys and values), `unset` (keys) and `order`: every key of the file after `set`/`unset`, each once, in the order they should be in (comments above a key move with it; an `order` alone is enough). It answers `vars` in file order. `GET /api/apps/{name}/basicauth` returns `enabled`, `users` and `agent` (`mode`, `public_prefix`).
 
 ### Deploy and cipi.yml {#endpoints-deploy}
 
@@ -135,7 +137,7 @@ A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens
 | `POST` | `/api/apps/{name}/yml/apply` (job) | `yml-manage` |
 | `POST` | `/api/apps/{name}/yml/auto/enable`, `/disable` | `yml-manage` |
 
-`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. With Cipi 5.13.0+ it also returns `paused_commit`: the commit whose automatic deploy failed, which the webhook does not deploy again ([paused commit](/docs/deploying#paused)); `deploy/unlock` resumes it, and its job result says `resumed` and `resumed_commit`. `deploy/audit` returns the [hash-chained ledger](/docs/deploy-audit).
+`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. It also returns `paused_commit`: the commit whose automatic deploy failed, which the webhook does not deploy again ([paused commit](/docs/deploying#paused)); `deploy/unlock` resumes it, and its job result says `resumed` and `resumed_commit`. `deploy/audit` returns the [hash-chained ledger](/docs/deploy-audit).
 
 <p id="cipi-api-yml"><code>GET /api/apps/{name}/yml</code> is <code>cipi yml plan &lt;app&gt; --json</code>: the <code>file</code> of the live release, <code>env</code>, <code>auto</code>, <code>valid</code> and errors, <code>in_sync</code>, <code>warnings</code>, <code>changes</code> (kind, token, summary), <code>blockers</code> and <code>notes</code>. See <a href="/docs/yml">cipi.yml</a>.</p>
 
@@ -167,7 +169,7 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `GET` | `/api/backups`, `/api/backups/runs` | `backups-view` |
 | `POST`, `PUT`, `DELETE` | `/api/backups/run`, `/verify`, `/destinations/test`, `/profiles[/{name}]`, `…/enable`, `…/disable` | `backups-manage` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default` and, from API 1.43, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` (Cipi 5.13.0+, API 1.43+; [paths left out](/docs/backups#exclude-paths)). **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](/docs/backups#exclude-paths)). **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
 
 ### Server {#endpoints-server}
 
@@ -175,31 +177,31 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | --- | --- | --- |
 | `GET` | `/api/status` (same JSON as `cipi status`) | `status-view` |
 | `GET`, `POST` | `/api/php`, `/api/php/install` | `php-view` / `php-manage` |
-| `GET`, `POST` | `/api/frankenphp`, `/api/frankenphp/upgrade` (the FrankenPHP build of each Octane app, 1.40+) | `php-view` / `php-manage` |
-| `GET`, `PUT`, `POST` | `/api/apps/{name}/octane`, `/octane/php`, `/octane/restart` ([the PHP of an Octane app](#endpoints-octane), 1.47+) | `php-view` / `php-manage` |
+| `GET`, `POST` | `/api/frankenphp`, `/api/frankenphp/upgrade` (the FrankenPHP build of each Octane app) | `php-view` / `php-manage` |
+| `GET`, `PUT`, `POST` | `/api/apps/{name}/octane`, `/octane/php`, `/octane/restart` ([the PHP of an Octane app](#endpoints-octane)) | `php-view` / `php-manage` |
 | `GET`, `POST`, `DELETE` | `/api/ssh/keys[/{n}]` | `ssh-view` / `ssh-manage` |
 | `GET`, `POST` | `/api/services`, `/services/{name}/restart` | `services-view` / `services-manage` |
-| `GET`, `POST` | `/api/valkey`, `/valkey/isolate`, `/valkey/share`, `/valkey/{app}/restart`, `/valkey/flush-shared` ([Valkey per app](#endpoints-valkey), 1.47+) | `services-view` / `services-manage` |
+| `GET`, `POST` | `/api/valkey`, `/valkey/isolate`, `/valkey/share`, `/valkey/{app}/restart`, `/valkey/flush-shared` ([Valkey per app](#endpoints-valkey)) | `services-view` / `services-manage` |
 | `GET`, `PUT`, `DELETE`, `POST` | `/api/smtp`, `/smtp/enable`, `/disable`, `/test` | `smtp-view` / `smtp-manage` |
-| `GET` | `/api/notifications`, `/api/notifications/triggers` ([notifications](/docs/notifications#panel), 1.42+) | `notifications-view` or `smtp-view` |
-| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]` (with `events`: what the channel receives, 1.45+), `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
-| `GET`, `PUT` | `/api/notifications/settings` ([time zone and server name](#endpoints-notification-settings), 1.47+) | `notifications-view` / `notifications-manage`, or the `smtp-*` pair |
+| `GET` | `/api/notifications`, `/api/notifications/triggers` ([notifications](/docs/notifications#panel)) | `notifications-view` or `smtp-view` |
+| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]` (with `events`: what the channel receives), `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
+| `GET`, `PUT` | `/api/notifications/settings` ([time zone and server name](#endpoints-notification-settings)) | `notifications-view` / `notifications-manage`, or the `smtp-*` pair |
 | `GET` | `/api/health` | `health-view` |
 | `GET`, `POST`, `PUT`, `DELETE` | `/api/node`, `/node/install`, `/node/upgrade`, `/node/default`, `/node/{major}` | `node-view` / `node-runtimes-manage` |
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
 | `GET`, `POST` | `/api/search`, `/api/apps/{name}/search/enable`, `/disable` | `search-view` / `search-manage` |
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
 | `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
-| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
-| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](/docs/zero-trust#panel) picture: 1.46+, Cipi 5.16.0+) | `monitor-view`, `zt-view` |
-| `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics), 1.41+) | `metrics-view` |
+| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`) | `packages-manage` |
+| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](/docs/zero-trust#panel) picture) | `monitor-view`, `zt-view` |
+| `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics)) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
 ### Firewall {#endpoints-firewall}
 
-API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [panel's Firewall tab](/docs/firewall#panel) uses.
+What the [panel's Firewall tab](/docs/firewall#panel) uses.
 
 | Method | Path | Ability |
 | --- | --- | --- |
@@ -210,16 +212,16 @@ API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [pa
 | `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
 | `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
 | `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
-| `PUT`, `DELETE` | `/api/firewall/real-ip` (on, or the ranges fetched again; off) — 1.45+, Cipi 5.15.0+ | `firewall-manage` |
-| `POST` | `/api/firewall/real-ip/refresh` (Cloudflare's ranges fetched again) — 1.45+ | `firewall-manage` |
+| `PUT`, `DELETE` | `/api/firewall/real-ip` (on, or the ranges fetched again; off) | `firewall-manage` |
+| `POST` | `/api/firewall/real-ip/refresh` (Cloudflare's ranges fetched again) | `firewall-manage` |
 
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
 
-From Cipi 5.15.0 `GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` on an older core. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
+`GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` when the server's Cipi doesn't have it yet. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
 
 ### Notification channels: events {#endpoints-notification-events}
 
-`POST /api/notifications/channels` and `PUT /api/notifications/channels/{id}` take `events` (API 1.45+, Cipi 5.15.0+): `null` for [everything](/docs/notifications#events), or a list of categories (`security`, `deploy`, `backup`…), single triggers (`backup_fail`) and `urgent`. Alone, it changes only what the channel receives (for SMTP: no new settings, no test). `GET /api/notifications` gives every channel its `events` and lists the server's `categories` (`id`, `label`, `triggers`). An older core refuses a request with `events` (`503`) rather than saving the channel without them.
+`POST /api/notifications/channels` and `PUT /api/notifications/channels/{id}` take `events`: `null` for [everything](/docs/notifications#events), or a list of categories (`security`, `deploy`, `backup`…), single triggers (`backup_fail`) and `urgent`. Alone, it changes only what the channel receives (for SMTP: no new settings, no test). `GET /api/notifications` gives every channel its `events` and lists the server's `categories` (`id`, `label`, `triggers`). A server whose Cipi doesn't know `events` yet refuses the request (`503`) rather than saving the channel without them.
 
 ```bash
 $ curl -X PUT https://api.example.com/api/notifications/channels/oncall \
@@ -231,19 +233,20 @@ $ curl -X PUT https://api.example.com/api/notifications/channels/oncall \
 
 `GET /api/apps/{name}/nginx` answers `{app, config, bytes, max_bytes, active, suspended}`: `config` is the text an app adds to [its own server block](/docs/nginx#custom), empty when it has none. `PUT` with `{"config": "…"}` replaces it (an empty one removes it), `DELETE` removes it. Both are **synchronous**: `nginx -t` runs before Nginx reloads.
 
-A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home. Needs Cipi 5.14.0+ (`503` before).
+A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home.
 
 ### Page cache {#endpoints-cache}
 
-API 1.47+ with Cipi 5.17.0+ on the server (`503` on an older core). The [page cache](/docs/page-cache) of an app: Nginx answers with the page PHP made, without running PHP — not OPcache, which is always on.
+The [page cache](/docs/page-cache) of an app: Nginx answers with the page PHP made, without running PHP — not OPcache, which is always on.
 
 | Method | Path | Ability |
 | --- | --- | --- |
 | `GET` | `/api/apps/{name}/cache`, `/api/cache` (every app) | `nginx-view` |
-| `PUT` | `/api/apps/{name}/cache` — `{enabled, ttl?, size?, clear_on_deploy?}` | `nginx-manage` |
+| `PUT` | `/api/apps/{name}/cache` — `{enabled, ttl?, size?, clear_on_deploy?, exclude?}` | `nginx-manage` |
+| `PUT` | `/api/apps/{name}/cache/exclude` — `{exclude: ["/cart*", "/feed"]}` | `nginx-manage` |
 | `POST` | `/api/apps/{name}/cache/clear` | `nginx-manage` |
 
-`GET` answers `supported` (false for a Node app), `kind` (`fastcgi`, `proxy`), `enabled`, `active`, `ttl`, `ttl_seconds`, `size`, `clear_on_deploy`, `files` and `bytes` on disk now, `path`, `suspended` and `clear_command` — what [a recipe of your own](/docs/page-cache#recipe) runs to empty it. `PUT` with `enabled: true` changes what is given and leaves the rest (`ttl`, `size` and `clear_on_deploy` with `enabled: false` are a `422`). `clear` answers the cache after it, with `cleared`. Synchronous: `nginx -t` runs before the reload, and a refusal is a `422` with the server's words.
+`GET` answers `supported` (false for a Node app), `kind` (`fastcgi`, `proxy`), `enabled`, `active`, `ttl`, `ttl_seconds`, `size`, `clear_on_deploy`, `exclude` (the app's [own paths that are never cached](/docs/page-cache#exclude)), `files` and `bytes` on disk now, `path`, `suspended` and `clear_command` — what [a recipe of your own](/docs/page-cache#recipe) runs to empty it. `PUT` with `enabled: true` changes what is given and leaves the rest (`ttl`, `size`, `clear_on_deploy` and `exclude` with `enabled: false` are a `422`). `…/cache/exclude` sets the whole list, with the cache on or off; an empty one keeps none, and a path that isn't one (letters, digits, `. _ ~ % - /` and `*`, 50 at most) is a `422` before anything runs. `clear` answers the cache after it, with `cleared`. Synchronous: `nginx -t` runs before the reload, and a refusal is a `422` with the server's words.
 
 ```bash
 $ curl -X PUT https://api.example.com/api/apps/blog/cache \
@@ -254,7 +257,7 @@ $ curl -X POST https://api.example.com/api/apps/blog/cache/clear -H "Authorizati
 
 ### The PHP of an Octane app {#endpoints-octane}
 
-API 1.47+, Cipi 5.17.0+. An [Octane app runs two PHP](/docs/octane#octane-php): the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.
+An [Octane app runs two PHP](/docs/octane#octane-php): the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.
 
 | Method | Path | |
 | --- | --- | --- |
@@ -266,7 +269,7 @@ An app that isn't on Octane answers `422`. The job fails, with nothing changed, 
 
 ### Valkey per app {#endpoints-valkey}
 
-API 1.47+, Cipi 5.17.0+. [Who shares the server's Valkey](/docs/valkey#manage) and who has an instance of its own.
+[Who shares the server's Valkey](/docs/valkey#manage) and who has an instance of its own.
 
 | Method | Path | |
 | --- | --- | --- |
@@ -280,7 +283,7 @@ API 1.47+, Cipi 5.17.0+. [Who shares the server's Valkey](/docs/valkey#manage) a
 
 ### Notification settings {#endpoints-notification-settings}
 
-`GET /api/notifications/settings` (API 1.47+, Cipi 5.17.0+) answers `timezone` (`null`: the server's own), `server_timezone`, `server_name` (`null`: the hostname), `hostname` and `now` — the time as a notification would write it at this moment. `PUT` takes `timezone`, `server_name` or both; `null` puts the server's own back. The same object is in `GET /api/notifications` as `settings`. See [how notifications are written](/docs/notifications#written).
+`GET /api/notifications/settings` answers `timezone` (`null`: the server's own), `server_timezone`, `server_name` (`null`: the hostname), `hostname` and `now` — the time as a notification would write it at this moment. `PUT` takes `timezone`, `server_name` or both; `null` puts the server's own back. The same object is in `GET /api/notifications` as `settings`. See [how notifications are written](/docs/notifications#written).
 
 ```bash
 $ curl -X PUT https://api.example.com/api/notifications/settings \
@@ -290,9 +293,9 @@ $ curl -X PUT https://api.example.com/api/notifications/settings \
 
 ### Optional packages {#endpoints-packages}
 
-`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, and on Cipi 5.14.0+ `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
+`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
 
-`POST /api/packages/{id}` installs an entry of the server's [closed catalog](/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes — and need API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](/docs/packages#panel) uses.
+`POST /api/packages/{id}` installs an entry of the server's [closed catalog](/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes. An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](/docs/packages#panel) uses.
 
 > [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
@@ -333,7 +336,7 @@ The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, a
 | --- | --- |
 | HTTP 500 on `/docs` or `/mcp` after an update | `cipi api fix-permissions`, then `cipi api status` |
 | `sudo: a terminal is required` | `cipi self-update` regenerates the allowlist |
-| `sudo: I'm sorry www-data. I'm afraid I can't do that` on new endpoints (e.g. metrics) | The allowlist is older than the command. `sudo cipi self-update` (5.11.2+) rewrites it, split into rules of 40 commands for sudo-rs on Ubuntu 26.04 and validated with `visudo` first; check with `sudo -l -U www-data` |
+| `sudo: I'm sorry www-data. I'm afraid I can't do that` on new endpoints (e.g. metrics) | The allowlist is older than the command. `sudo cipi self-update` rewrites it, split into rules of 40 commands for sudo-rs on Ubuntu 26.04 and validated with `visudo` first; check with `sudo -l -U www-data` |
 | Panel says backups aren't configured | Compare `ls -l /etc/cipi/backup.json` with `sudo -u www-data sudo -n /usr/local/bin/cipi backup status --json` |
 
 ## IP allowlist {#cipi-api-ip-whitelist}

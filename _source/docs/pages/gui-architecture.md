@@ -11,8 +11,8 @@ The panel is a standard **Laravel** application distributed as the `cipi/gui` pa
 | Install path | `/opt/cipi/gui` |
 | Config | `/etc/cipi/gui.json` |
 | Isolation | Own FPM pool, `open_basedir` limited to its own directories |
-| Auth | Session login, optional TOTP or [passkeys](/docs/gui-install#passkeys) (WebAuthn checked by the panel itself, 4.8.0+), optional OpenID Connect SSO |
-| Connectors | Providers' APIs called from the panel over HTTPS (4.8.0+); credentials encrypted with `APP_KEY` in `cipi_connector_accounts`, never sent back to the page |
+| Auth | Session login, optional TOTP or [passkeys](/docs/gui-install#passkeys) (WebAuthn checked by the panel itself), optional OpenID Connect SSO |
+| Connectors | Providers' APIs called from the panel over HTTPS; credentials encrypted with `APP_KEY` in `cipi_connector_accounts`, never sent back to the page |
 | Jobs | No local queue worker: remote jobs polled through each server's API |
 
 ```stack
@@ -26,7 +26,7 @@ cipi CLI via sudoers | the same code path as SSH
 
 | Area | Endpoints used |
 | --- | --- |
-| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove, API 1.44+), monitor, Zero Trust (`GET /api/zt` with `details`, API 1.46+), `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
+| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove), monitor, Zero Trust (`GET /api/zt` with `details`), `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
 | Apps | CRUD, suspend, fix-permissions, basic auth, logs, `.env`, `auth.json`, Artisan, app commands; create with `engine`, `octane`, Node options; webhook rotation; per-app health check |
 | Deploy | Deploy, rollback, unlock, `deploy/audit`, `deploy/history`, `GET /api/deploys/last`, `deploy-config` |
 | `cipi.yml` | `GET /api/apps/{name}/yml`, `POST …/yml/apply`, `…/yml/auto/enable|disable` |
@@ -36,7 +36,7 @@ cipi CLI via sudoers | the same code path as SSH
 | Search | `GET /api/search`, per-app enable/disable |
 | Databases | List, create, back up, restore (with chunked upload), rotate password, link to apps; deletion stays on the host CLI |
 | Backups | `/api/backups…` profiles, runs, destinations test |
-| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](/docs/firewall#panel), API 1.44+), Cloudflare real IP (`/api/firewall/real-ip`, API 1.45+) |
+| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](/docs/firewall#panel)), Cloudflare real IP (`/api/firewall/real-ip`) |
 | Jobs | Status, output and parsed `result` (credentials, backup file, webhook token) |
 
 A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall deny`, the CrowdSec rescue, disk limits and DNS accounts are changed on the host.

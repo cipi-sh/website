@@ -1,6 +1,6 @@
 @section cipi-smtp
 
-Cipi tells you when something happens that you should know about: failed deploys and backups, health and monitor alerts, security events (SSH logins, sudo, key changes), patches applied. One command manages where messages go: an enabled trigger reaches every enabled channel — or, since 5.15.0, only the channels that take it ([what each channel receives](#events)): every notification to one, the alarms alone to another, the deploys to a third.
+Cipi tells you when something happens that you should know about: failed deploys and backups, health and monitor alerts, security events (SSH logins, sudo, key changes), patches applied. One command manages where messages go: an enabled trigger reaches every enabled channel — or only the channels that take it ([what each channel receives](#events)): every notification to one, the alarms alone to another, the deploys to a third.
 
 <cipi-term name="notifications"></cipi-term>
 
@@ -10,8 +10,8 @@ $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
 $ cipi notification test all
 $ cipi notification triggers            # which events notify
 $ cipi notification triggers disable monitor_load
-$ cipi notification update ops --url=https://hooks.slack.com/services/…   # 5.12.0
-$ cipi notification events oncall urgent       # 5.15.0: only failures and security events to oncall
+$ cipi notification update ops --url=https://hooks.slack.com/services/…
+$ cipi notification events oncall urgent       # only failures and security events to oncall
 ```
 
 @section cipi-alert-channels
@@ -63,13 +63,13 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Config | `ini_set`, `app_jit`, `yml_apply`, `yml_fail`, `yml_post_fail`, `node_default` |
 | Other | SSL, PHP, database (`db_switch` when [MariaDB and MySQL](/docs/databases#mysql) are swapped), workers, services, search, packages, sync, API and password-reset events |
 
-`cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. Since 5.12.0, `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
+`cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
 
-`cipi notification test <id>` exits 1, with the reason, when the channel refuses the request (5.12.0); a disabled channel can be tested before it is turned on.
+`cipi notification test <id>` exits 1, with the reason, when the channel refuses the request; a disabled channel can be tested before it is turned on.
 
 ## What each channel receives {#events}
 
-A channel takes **everything** — the default, and how every channel worked before 5.15.0 — or only the events you give it:
+A channel takes **everything** — the default — or only the events you give it:
 
 ```bash
 $ cipi notification events                   # what each channel takes (--json)
@@ -84,7 +84,7 @@ $ cipi notification add slack team --url=… --events=deploy
 | Selector | Lets through |
 | --- | --- |
 | `all` | Everything (the same as no list) |
-| `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, the Cloudflare Tunnel down (5.16.0), an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
+| `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, the Cloudflare Tunnel down, an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
 | A category | Every trigger of it, as an id: `apps`, `domains`, `deploy`, `health`, `monitor`, `ssl`, `php`, `updates`, `services`, `database`, `security`, `backup`, `cron`, `cipi-yml`, `basic-auth`, `ssh-keys`… (`cipi notification events --json` lists them with how many triggers each holds) |
 | A trigger | That one: `backup_fail`, `deploy_success`, `ssh_login`… — mixed with categories as you like (`security,ssh_login`) |
 
@@ -96,11 +96,11 @@ $ cipi notification add slack team --url=… --events=deploy
 - `cipi notification test <id>` and `cipi monitor test` reach a channel whatever it takes: they have no trigger.
 - `cipi notification --json` gives each channel its `events` (`null` for everything) and lists the `categories`.
 
-Since 5.15.0 the alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su` (through PAM), [your own cron jobs](#security) and deploys through the Git webhook — reach every channel that takes them too. Before, they were sent by e-mail only.
+The alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su` (through PAM), [your own cron jobs](#security) and deploys through the Git webhook — reach every channel that takes them too, not e-mail alone.
 
 ## The server's name and the time zone {#written}
 
-Every notification names the server and the time. By default that is the machine's hostname (`vmi12334`) and the server's own time zone — UTC on most servers. Since 5.17.0 both are yours to set:
+Every notification names the server and the time. By default that is the machine's hostname (`vmi12334`) and the server's own time zone — UTC on most servers. Both are yours to set:
 
 ```bash
 $ cipi notification timezone                # what it is now
@@ -124,11 +124,11 @@ Time: 2026-11-26 16:04:05 CET
 | **Webhook channel** | The JSON keeps `server` (the hostname) and gains `server_name` — `null` when none is set |
 | **Why not change the server's time zone?** | You can (`timedatectl set-timezone`), but cron schedules, logs and every app's default follow it. This setting touches only how Cipi writes its messages |
 
-In the [panel](#panel) it is the **Written as** card of the Notifications tab (panel 4.9.0, cipi/api 1.47): the server name — with one click to use the name the server has in the panel, so a notification and the panel say the same — and the time zone, with how the next notification reads. Over the API: `GET|PUT /api/notifications/settings` ([endpoint](/docs/api#endpoints-notification-settings)); `$cipi->notifications()->setTimezone('Europe/Rome')`; `cipi-cli notifications timezone Europe/Rome`.
+In the [panel](#panel) it is the **Written as** card of the Notifications tab: the server name — with one click to use the name the server has in the panel, so a notification and the panel say the same — and the time zone, with how the next notification reads. Over the API: `GET|PUT /api/notifications/settings` ([endpoint](/docs/api#endpoints-notification-settings)); `$cipi->notifications()->setTimezone('Europe/Rome')`; `cipi-cli notifications timezone Europe/Rome`.
 
 ## In the web panel {#panel}
 
-The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.42+) manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. The list says what each channel **receives**, and the channel's form chooses it — *Everything* or *Only some events*: **Urgent** and the categories of the server (panel 4.7.0, Cipi 5.15.0, cipi/api 1.45). Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
+The **Notifications** tab of each server manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. The list says what each channel **receives**, and the channel's form chooses it — *Everything* or *Only some events*: **Urgent** and the categories of the server. Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
 
 <cipi-clips name="notifications"></cipi-clips>
 
@@ -159,7 +159,7 @@ The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.4
 <figcaption>What a channel receives: everything, or Urgent and the categories you tick. A single trigger set at the server is shown and kept.</figcaption>
 </figure>
 
-Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/channels[/{id}]`, `POST …/{id}/enable|disable|test`, `GET|PUT /api/notifications/triggers` ([REST API](/docs/api#endpoints-server); a channel's `events` with API 1.45+); from code, `$cipi->notifications()` ([PHP SDK](/docs/php-sdk)) and `cipi-cli notifications` ([cipi-cli](/docs/cli-client#notifications)); for an assistant, the MCP tools `NotificationsShow`, `NotificationChannelSave`, `NotificationChannelTest`, `NotificationChannelRemove`, `NotificationTriggersUpdate`. Servers older than 5.12.0 keep the SMTP form in the panel.
+Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/channels[/{id}]`, `POST …/{id}/enable|disable|test`, `GET|PUT /api/notifications/triggers` ([REST API](/docs/api#endpoints-server)); from code, `$cipi->notifications()` ([PHP SDK](/docs/php-sdk)) and `cipi-cli notifications` ([cipi-cli](/docs/cli-client#notifications)); for an assistant, the MCP tools `NotificationsShow`, `NotificationChannelSave`, `NotificationChannelTest`, `NotificationChannelRemove`, `NotificationTriggersUpdate`.
 
 ## Security alerts {#security}
 
@@ -169,7 +169,7 @@ Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/chan
 | `sudo` / `su` | Who, target user, TTY, key, IP |
 | SSH key added, removed, renamed | Fingerprint, comment, remaining keys |
 
-They run in the background through PAM, so they never slow a login, and since 5.15.0 they reach every channel that takes them (before, e-mail only). Wrap your own cron jobs with `cipi-cron-notify` to be alerted when they exit non-zero.
+They run in the background through PAM, so they never slow a login, and they reach every channel that takes them. Wrap your own cron jobs with `cipi-cron-notify` to be alerted when they exit non-zero.
 
 ## Common problems {#problems}
 
@@ -183,9 +183,9 @@ They run in the background through PAM, so they never slow a login, and since 5.
 | Question | Answer |
 | --- | --- |
 | Which channels? | E-mail, Slack, Mattermost, Google Chat, Discord, Telegram, ntfy, Pushover, signed webhooks. |
-| Can one channel get only the alarms? | Yes (5.15.0+): `cipi notification events <id> urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events <id> deploy` ([what each channel receives](#events)). |
+| Can one channel get only the alarms? | Yes: `cipi notification events <id> urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events <id> deploy` ([what each channel receives](#events)). |
 | The time in a notification is UTC | That's the server's time zone. `cipi notification timezone Europe/Rome` writes notifications in yours and leaves the server alone ([details](#written)). |
 | A notification says `vmi12334`: which server is it? | The machine's hostname. `cipi notification server-name production` gives it a name of yours; the panel shows each server's hostname next to its name and sets it in one click ([details](#written)). |
-| Can I manage them from the panel? | Yes, every channel and trigger, with Cipi 5.12.0+ and cipi/api 1.42+ ([In the web panel](#panel)). |
-| The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist predates 5.12.0: `sudo cipi self-update` rewrites it. |
+| Can I manage them from the panel? | Yes, every channel and trigger ([In the web panel](#panel)). |
+| The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist was written by an old Cipi release: `sudo cipi self-update` rewrites it. |
 | Step by step? | [Notifications and alerts guide](/guides/notifications-alerts). |

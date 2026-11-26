@@ -60,7 +60,7 @@ Some Laravel packages call a program on the host: Browsershot needs the librarie
 
 Chromium is the rejection that shows why the rules matter. On Ubuntu 24.04 `chromium-browser` installs the snap, with `snapd`: a daemon, and a Chrome that isn't the one Puppeteer was tested with. So the `browsershot` entry installs the libraries and fonts, and Chrome comes with Puppeteer, per app. `wkhtmltopdf` is out too: archived upstream, its WebKit unpatched.
 
-**Because the set is closed, the panel and the API may install and remove entries** (Cipi 5.14.0), the pinned upstream ones included. The worst a stolen session or token can do is install `ffmpeg` or a scanner whose bytes Cipi pinned, or remove it, and a removal takes only what no other package needs. A pinned version is also why an upstream entry isn't patched unattended: a newer one comes with a Cipi release, and the operator installs it. `--force`, `--autoremove` and anything outside the catalog stay at the server's shell. The [MCP server](/docs/mcp) only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the [firewall](/docs/firewall#panel).
+**Because the set is closed, the panel and the API may install and remove entries**, the pinned upstream ones included. The worst a stolen session or token can do is install `ffmpeg` or a scanner whose bytes Cipi pinned, or remove it, and a removal takes only what no other package needs. A pinned version is also why an upstream entry isn't patched unattended: a newer one comes with a Cipi release, and the operator installs it. `--force`, `--autoremove` and anything outside the catalog stay at the server's shell. The [MCP server](/docs/mcp) only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the [firewall](/docs/firewall#panel).
 
 @section why-mariadb
 
@@ -76,7 +76,7 @@ MariaDB (port `3306`) is the default because it fits most Laravel apps with zero
 | Simple licensing | GPL community server, no enterprise feature gates, no Oracle dual-licensing to navigate |
 | Native packaging | Installed from MariaDB.org or Ubuntu; Cipi adds users, backups and vault credentials on top |
 
-Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? Since 5.13.0, `cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](/docs/databases#mysql)).
+Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? `cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](/docs/databases#mysql)).
 
 @section why-postgresql
 

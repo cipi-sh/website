@@ -53,7 +53,7 @@ If the copy fails, the app stays exactly where it was. Apps whose Redis points e
 
 ### From the panel {#panel}
 
-The server's **Services** tab in the [web panel](/docs/gui-overview) has a **Valkey per app** card (panel 4.9.0, cipi/api 1.47, Cipi 5.17.0): every Laravel app with what it uses — its own instance (port, memory, keys) or the shared one — and how many are still sharing. **Isolate** one app or all of them, **Share again**, **Restart** an instance, and, once no app uses the shared instance, **Empty the shared instance**. It takes *Manage* on the server.
+The server's **Services** tab in the [web panel](/docs/gui-overview) has a **Valkey per app** card: every Laravel app with what it uses — its own instance (port, memory, keys) or the shared one — and how many are still sharing. **Isolate** one app or all of them, **Share again**, **Restart** an instance, and, once no app uses the shared instance, **Empty the shared instance**. It takes *Manage* on the server.
 
 | | |
 | --- | --- |

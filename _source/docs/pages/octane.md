@@ -72,7 +72,7 @@ while Composer, artisan, cron and the workers run PHP 8.5
   → cipi frankenphp php gameportal 8.5
 ```
 
-Since Cipi 5.17.0 you say **which PHP**, by its number, as for any other app — not "upgrade" and see what arrives:
+You say **which PHP**, by its number, as for any other app — not "upgrade" and see what arrives:
 
 ```bash
 $ cipi frankenphp php myapp            # what answers requests, what runs the rest
@@ -102,7 +102,7 @@ Move the rest | Composer, artisan, cron, workers
 
 ### From the panel {#octane-panel}
 
-An Octane app has an **Octane** tab in the [web panel](/docs/gui-overview) (panel 4.9.0, cipi/api 1.47): the PHP that answers the requests next to the PHP that runs the rest, a warning when they are two versions with a button that puts them on one, **Switch PHP** among the versions installed on the server, **Restart Octane** and **Update the build**. It takes *Edit* on the app. The same through the [API](/docs/api#endpoints-octane) (`GET /api/apps/{name}/octane`, `PUT …/octane/php`, `POST …/octane/restart`), the [PHP SDK](/docs/php-sdk) (`$cipi->octane()->php('myapp', '8.6')`) and [cipi-cli](/docs/cli-client) (`cipi-cli octane php myapp 8.6`).
+An Octane app has an **Octane** tab in the [web panel](/docs/gui-overview): the PHP that answers the requests next to the PHP that runs the rest, a warning when they are two versions with a button that puts them on one, **Switch PHP** among the versions installed on the server, **Restart Octane** and **Update the build**. It takes *Edit* on the app. The same through the [API](/docs/api#endpoints-octane) (`GET /api/apps/{name}/octane`, `PUT …/octane/php`, `POST …/octane/restart`), the [PHP SDK](/docs/php-sdk) (`$cipi->octane()->php('myapp', '8.6')`) and [cipi-cli](/docs/cli-client) (`cipi-cli octane php myapp 8.6`).
 
 > [!tip] Octane serves HTTP only. Run long jobs on [queue workers or Horizon](/docs/workers) and WebSockets on [Reverb](/docs/reverb).
 

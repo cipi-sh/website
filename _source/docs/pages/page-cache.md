@@ -1,6 +1,6 @@
 @section page-cache
 
-The page cache is Nginx's: it keeps the page PHP made and answers the next visitors with it, **without running PHP at all**. One command turns it on for an app (Cipi 5.17.0+). It's built for WordPress and for any site whose pages are the same for everyone who isn't signed in.
+The page cache is Nginx's: it keeps the page PHP made and answers the next visitors with it, **without running PHP at all**. One command turns it on for an app. It's built for WordPress and for any site whose pages are the same for everyone who isn't signed in.
 
 <cipi-term name="page-cache"></cipi-term>
 
@@ -9,6 +9,7 @@ $ cipi cache blog on                 # pages kept 10 minutes, up to 256 MB on di
 $ cipi cache blog on --ttl=1h --size=1g
 $ cipi cache blog ttl 30m            # how long a page is kept
 $ cipi cache blog clear              # delete the cached pages now
+$ cipi cache blog exclude add '/feed'   # a path of your own that is never cached
 $ cipi cache blog off                # every request runs PHP again
 $ cipi cache blog                    # on or off, pages and bytes now   (--json)
 $ cipi cache                         # every app
@@ -54,10 +55,34 @@ Every rule fails towards *not cached* — a page that is slower, never a private
 | `/wp-admin`, `wp-login.php`, `wp-cron.php`, `xmlrpc.php`, `/wp-json` | Back offices and what must run every time |
 | A URL with a query string | Searches, filters, previews. Tracking parameters alone (`utm_*`, `fbclid`, `gclid`…) don't count: the link a newsletter sends to everybody is cached |
 | A response that sets a cookie, or says `Cache-Control: private`, `no-cache` or `no-store` | The app's own headers are respected: what it marks private stays private |
+| The paths the app adds itself | What none of the rules above can see — [paths of your own](#exclude) |
 
 The time you set is for pages that say nothing themselves: a response with its own `Cache-Control: max-age` is kept that long instead. A page that isn't there (404) is kept for a minute at most.
 
 > [!note] **Laravel chooses its pages.** Laravel marks every response `no-cache, private`, and a route of the `web` group starts a session — so nothing is cached until a route says so. Give the pages that are the same for everyone a route without session and cookies, and mark it public: `->middleware('cache.headers:public;max_age=600')`. WordPress needs nothing: its public pages carry no such header.
+
+### Paths of your own {#exclude}
+
+The rules above read cookies and headers. A page they can't tell from a public one is a path you add: a page that differs per visitor with no cookie or header saying so (a wishlist kept in the browser, a price by country), a feed that must always be fresh, a page with a counter.
+
+```bash
+$ cipi cache shop exclude add '/wishlist*' '/feed'
+$ cipi cache shop exclude                       # the list: Cipi's own rules and the app's   (--json)
+$ cipi cache shop exclude remove '/feed'        # --all for none of its own
+$ cipi cache shop exclude set '/wishlist*,/feed,/sitemap*.xml'   # exactly these
+$ cipi cache shop on --exclude='/wishlist*,/feed'   # with the rest, when turning it on
+```
+
+| Path | What it keeps out |
+| --- | --- |
+| `/cart*` | Everything that starts so — `/cart`, `/cart/`, `/cart/items`. `*` stands for anything, slashes included |
+| `/feed` | The path itself, with or without its last slash and whatever its query string — not `/feed/atom` |
+| `/shop/*/reviews` | A `*` in the middle |
+| `/sitemap*.xml` | `/sitemap.xml`, `/sitemap_index.xml` |
+
+Upper and lower case are the same. A path is made of letters, digits, `. _ ~ % - /` and `*` — a path with other characters is written as the browser sends it (`/caff%C3%A8`) — and an app has 50 at most. `/*` is refused: every page is `cipi cache <app> off`. Quote a path with a `*`, or the shell expands it. With the cache off the list is kept, and applies when it is turned on. An excluded page answers `X-Cache-Status: BYPASS`.
+
+> [!tip] WooCommerce's cart, checkout and account stay out already, whatever their address: by their cookies and by the `no-cache` headers WooCommerce sends on those pages. Adding their paths as well costs nothing, and no longer depends on a plugin or a theme leaving those headers alone — with your shop's own addresses if they are translated: `cipi cache shop exclude add '/cart*' '/checkout*' '/my-account*'`.
 
 ### Check a page {#check}
 
@@ -72,7 +97,7 @@ X-Cache-Status: HIT
 | --- | --- |
 | `MISS` | Not kept yet: PHP made it, and it is kept now |
 | `HIT` | Answered from the cache; PHP didn't run |
-| `BYPASS` | One of the rules above: a cookie, a query string, an admin path |
+| `BYPASS` | One of the rules above: a cookie, a query string, an admin path, a [path of your own](#exclude) |
 | `EXPIRED` | Its time was up: PHP made it again |
 | `STALE`, `UPDATING` | The old page was served while a new one is made, or because PHP didn't answer |
 
@@ -133,25 +158,27 @@ add_action('save_post', function () {
 | **Where the pages are** | `/var/cache/nginx/cipi/<app>`, one zone per app — no app reads another's |
 | **Size** | `--size` (16m to 100g, default 256m): past it Nginx drops the pages asked for least |
 | **Time** | `--ttl` or `cipi cache <app> ttl` — `30s`, `10m`, `1h`, `7d`, thirty days at most |
+| **Paths of its own** | A `map` per app next to its zone, named in both `*_cache_bypass` and `*_no_cache`: an excluded page is neither read from the cache nor written to it |
 | **Concurrency** | One request builds a missing page; the others wait for it instead of all hitting PHP |
 
 `nginx -t` runs before the reload: if Nginx refuses, the vhost goes back to what it was and you get its reason. The setting lives with the app, so it follows [`cipi sync`](/docs/sync); a suspended app keeps it and gets it back when unsuspended. Turning the cache on or off notifies `app_cache`.
 
 ## From the panel, the API, the SDK and cipi-cli {#panel}
 
-The app's **Page cache** tab in the [web panel](/docs/gui-overview) (panel 4.9.0, cipi/api 1.47) turns it on and off, sets the time and the size, shows the pages kept now and has **Empty the cache now**. It also says what this page says — what OPcache already does, what the page cache adds, what is never cached — and shows the command for a recipe of your own with the app's name in it, ready to copy. Turning it on or off takes *Edit* on the app; emptying it comes with *Deploy* too.
+The app's **Page cache** tab in the [web panel](/docs/gui-overview) turns it on and off, sets the time and the size, shows the pages kept now and has **Empty the cache now**. **Paths that are never cached** takes the [paths of your own](#exclude), one per line, checked before they are saved. It also says what this page says — what OPcache already does, what the page cache adds, what is never cached — and shows the command for a recipe of your own with the app's name in it, ready to copy. Turning it on or off takes *Edit* on the app; emptying it comes with *Deploy* too.
 
 | | |
 | --- | --- |
-| **API** | `GET` and `PUT /api/apps/{name}/cache`, `POST /api/apps/{name}/cache/clear`, `GET /api/cache` — abilities `nginx-view`, `nginx-manage` ([endpoints](/docs/api#endpoints-cache)) |
-| **PHP SDK** | `$cipi->cache()->enable('blog', ttl: '1h')`, `->clear('blog')`, `->disable('blog')` |
-| **cipi-cli** | `cipi-cli cache on blog --ttl 1h`, `cipi-cli cache clear blog` |
+| **API** | `GET` and `PUT /api/apps/{name}/cache`, `PUT /api/apps/{name}/cache/exclude`, `POST /api/apps/{name}/cache/clear`, `GET /api/cache` — abilities `nginx-view`, `nginx-manage` ([endpoints](/docs/api#endpoints-cache)) |
+| **PHP SDK** | `$cipi->cache()->enable('blog', ttl: '1h')`, `->exclude('blog', ['/feed'])`, `->clear('blog')`, `->disable('blog')` |
+| **cipi-cli** | `cipi-cli cache on blog --ttl 1h`, `cipi-cli cache exclude blog add '/feed'`, `cipi-cli cache clear blog` |
 | **MCP** | `PageCacheShow`, `PageCacheUpdate`, `PageCacheClear` |
 
 ## Questions {#questions}
 
 | Question | Answer |
 | --- | --- |
+| Is it the cache of RunCloud Hub, RunCache or a WordPress cache plugin? | The same engine — Nginx's FastCGI cache — with the other way of keeping it fresh. Those keep a page for hours and rely on a WordPress plugin to delete it when its post changes. Cipi keeps a page 10 minutes and needs nothing inside WordPress: an edit shows up by itself. For the first way, give pages a long time (`cipi cache blog ttl 8h`) and add the [five lines that empty the cache when a post is saved](#recipe) — the whole cache of the app, not the single page. |
 | Do I still need a WordPress cache plugin? | Not for page caching: Nginx does it before PHP starts, which a plugin can't. An object cache (queries, in [Valkey](/docs/valkey)) is a different thing and still helps the pages that do reach PHP. |
 | A visitor signs in: does he see a cached page? | No. A session or login cookie bypasses the cache, in both directions: nothing is read from it and nothing is stored. |
 | Is it safe with WooCommerce? | The cart, the checkout and the account are never cached (cookies and `POST`). Catalogue pages are, for visitors with an empty cart. |

@@ -18,7 +18,7 @@ $ cipi compliance controls            # mapping to ISO 27001:2022 Annex A and SO
 | `firewall`, `intrusion`, `kernel` | UFW default deny; Fail2ban/CrowdSec; network sysctls |
 | `patching`, `time` | Security updates, reboots pending; NTP |
 | `tls` | Protocols, HSTS, certificate expiry and key type |
-| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts: [required](/docs/gui-install#two-factor-required) with everyone enrolled passes, required with accounts still to enrol warns and names them (5.14.0+) |
+| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts: [required](/docs/gui-install#two-factor-required) with everyone enrolled passes, required with accounts still to enrol warns and names them |
 | `secrets` | Encrypted, root-only configuration |
 | `deploys` | [Deploy audit](/docs/deploy-audit) chain intact, hooks present, no unaudited releases |
 | `backups` | Freshness, off-site copy, encryption |

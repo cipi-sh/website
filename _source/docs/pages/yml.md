@@ -80,7 +80,7 @@ backup:
   profiles:                        # names: myapp or myapp-*
     - { name: myapp-db, scope: db, every: 30m, keep: 48, destinations: [local] }
     - { name: myapp-nightly, scope: all, cron: "0 2 * * *", keep_days: 14, destinations: [s3], encrypt: true }
-    - { name: myapp-files, scope: files, every: 6h, keep: 8, destinations: [s3], exclude_paths: [storage/app/uploads] }  # 5.13.0+
+    - { name: myapp-files, scope: files, every: 6h, keep: 8, destinations: [s3], exclude_paths: [storage/app/uploads] }
 ```
 
 | Section | Same as | Notes |
@@ -96,7 +96,7 @@ backup:
 | `ssl.force_https` | `cipi ssl force` | Can only be turned on from the file |
 | `env.required` | | A missing variable blocks the plan |
 | `crons` | | Allowlisted runners only; your other cron lines are untouched |
-| `backup.profiles` | [cipi backup](/docs/backups) | The file owns the profiles it created; `exclude_paths` ([5.13.0+](/docs/backups#exclude-paths)) is validated like `--exclude-paths` |
+| `backup.profiles` | [cipi backup](/docs/backups) | The file owns the profiles it created; [`exclude_paths`](/docs/backups#exclude-paths) is validated like `--exclude-paths` |
 
 ## Routes: www, basic auth, redirects, proxies {#cli-yml-routes}
 
