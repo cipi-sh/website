@@ -196,6 +196,26 @@ $ cipi-cli prod nginx set shop --file shop.nginx.conf
 
 The server tests every change with `nginx -t`; a refused text changes nothing, its reasons are printed line by line and `edit` offers the editor again. From the API [a subset of Nginx's language](/docs/nginx#custom-api) is accepted. Needs Cipi 5.14.0+, cipi/api 1.44+ and the `nginx-view` / `nginx-manage` abilities.
 
+## `cache` {#cache}
+
+The [page cache](/docs/page-cache) of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP. Not OPcache, which is always on.
+
+| Command | Does |
+| --- | --- |
+| `cache` | Every app: on or off, how long pages are kept, pages and bytes on disk |
+| `cache show <app>` | One app, with the command that empties it on the server |
+| `cache on <app> [--ttl 10m] [--size 256m] [--deploy-clear=false]` | Turn it on, or change it when it is on |
+| `cache ttl <app> <time>` | How long a page is kept: `30s`, `10m`, `1h`, `7d` |
+| `cache clear <app>` | Delete the cached pages now |
+| `cache off <app>` | Every request runs PHP again |
+
+```bash
+$ cipi-cli cache on blog --ttl 1h
+$ cipi-cli cache clear blog
+```
+
+Cipi empties the cache after every deploy by itself. Needs Cipi 5.17.0+, cipi/api 1.47+ and `nginx-view` / `nginx-manage`.
+
 @section cli-aliases
 
 ## `aliases` {#aliases}
@@ -266,6 +286,25 @@ Destinations are added on the server (`cipi backup destination add`): an S3 secr
 
 Switching the default and removing versions stay on the server (`cipi php switch|remove`).
 
+## `octane` {#octane}
+
+The [PHP of an Octane app](/docs/octane#octane-php): the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.
+
+| Command | Does |
+| --- | --- |
+| `octane show <app>` | Both PHP, the build, and — when they are two versions — the command that puts them on one |
+| `octane php <app> <version>` | Both on that version, by its number (async job): Octane is checked, and the previous build returns if it doesn't answer |
+| `octane restart <app>` | Restart Octane on its build and check it |
+| `octane builds` | The FrankenPHP build of every Octane app |
+| `octane upgrade [app]` | The newest build on the app's own PHP — never another version |
+
+```bash
+$ cipi-cli octane show shop
+$ cipi-cli octane php shop 8.6
+```
+
+Needs Cipi 5.17.0+, cipi/api 1.47+ and `php-view` / `php-manage`.
+
 @section cli-services
 
 ## `services` and `ssh-keys` {#services}
@@ -277,6 +316,20 @@ Switching the default and removing versions stay on the server (`cipi php switch
 | `ssh-keys list` | Authorized keys of the `cipi` user, with ids |
 | `ssh-keys add [key] [--file F]` | Add a public key |
 | `ssh-keys remove <id>` | Remove one |
+
+## `valkey` {#valkey}
+
+[Valkey per app](/docs/valkey#manage), for the whole server:
+
+| Command | Does |
+| --- | --- |
+| `valkey` | Every Laravel app with what it uses: its own instance, or the shared one |
+| `valkey isolate <app>` / `--all` | Give an app, or every app still on the shared instance, its own (`--no-copy` to start empty; `-y` skips the question) |
+| `valkey share <app>` | Move it back and remove its instance |
+| `valkey restart <app>` | Restart an app's instance |
+| `valkey flush-shared` | Once nobody uses it: empty the shared instance and change its password |
+
+No password travels through the API: the new shared one stays on the server (`cipi credentials`). Needs Cipi 5.17.0+, cipi/api 1.47+ and `services-view` / `services-manage`.
 
 @section cli-smtp
 
@@ -352,6 +405,9 @@ $ cipi-cli notifications update oncall --chat-id -1009999    # secrets left out 
 $ cipi-cli notifications test all                # exits 1 when a channel refuses it
 $ cipi-cli notifications triggers off deploy_success ssh_login
 $ cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,health_fail
+$ cipi-cli notifications timezone Europe/Rome    # the Time line of every notification (API 1.47+)
+$ cipi-cli notifications server-name production  # "production (vmi12334)" instead of the hostname
+$ cipi-cli notifications settings                # what they are now
 ```
 
 @section cli-status
@@ -431,7 +487,9 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `deploy`, `deploy audit` | `deploy-manage` |
 | `yml` | `yml-view`, `yml-manage` |
 | `ssl`, `www`, `aliases`, `redirect`, `proxies` | `ssl-manage`, `www-manage`, `aliases-*`, `redirects-*`, `proxies-*` |
-| `nginx` | `nginx-view`, `nginx-manage` |
+| `nginx`, `cache` | `nginx-view`, `nginx-manage` |
+| `octane` | `php-view`, `php-manage` |
+| `valkey` | `services-view`, `services-manage` |
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
 | `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |

@@ -28,3 +28,5 @@ $ cipi app jit myapp --json                          # current state
 A value forced with [cipi ini](/docs/php#cli-ini) wins. `cipi app convert` resets JIT. Panel API: `GET|PUT /api/apps/{name}/jit`.
 
 > [!tip] Measure before and after on your real workload; keep JIT only where it pays.
+
+> [!note] JIT and OPcache make PHP run faster. For pages that are the same for every visitor there is something quicker than running PHP: not running it — the [page cache](/docs/page-cache).

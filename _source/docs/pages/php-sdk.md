@@ -155,6 +155,15 @@ $cipi->nginx()->reset('shop');
 
 `nginx()` reads and replaces [an app's own Nginx directives](/docs/nginx#custom) (API 1.44+, Cipi 5.14+). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
 
+```php
+$cipi->cache()->enable('blog', ttl: '1h', size: '1g');   // nginx's page cache: sync, nginx -t first
+$cipi->cache()->show('blog')['data'];                    // enabled, ttl, files, bytes, clear_command, …
+$cipi->cache()->clear('blog')['data']['cleared'];        // pages deleted
+$cipi->cache()->disable('blog');
+```
+
+`cache()` is the [page cache](/docs/page-cache) of an app (API 1.47+, Cipi 5.17+): Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call `clear()` when content changes without one.
+
 @section sdk-data
 
 ## Env, databases and backups {#data}
@@ -209,6 +218,21 @@ $cipi->wait($cipi->packages()->install('browsershot'));   // API 1.44+, Cipi 5.1
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet
 ```
+
+```php
+$o = $cipi->octane()->show('shop')['data'];           // php, octane_php, state, available_php, fix
+$cipi->wait($cipi->octane()->php('shop', '8.6'));     // Octane and the server's PHP on 8.6, by its number
+$cipi->wait($cipi->octane()->restart('shop'));
+
+$cipi->valkey()->list()['data']['shared'];            // apps still on the shared Valkey
+$cipi->wait($cipi->valkey()->isolateAll());           // each its own instance
+$cipi->valkey()->flushShared();                       // then: empty the shared one, change its password
+
+$cipi->notifications()->setTimezone('Europe/Rome');   // the Time line of every notification
+$cipi->notifications()->setServerName('production');  // "production (vmi12334)"
+```
+
+`octane()`, `valkey()` and the notification settings need API 1.47+ and Cipi 5.17+: [the PHP of an Octane app](/docs/octane#octane-php), [Valkey per app](/docs/valkey#manage) — no password is ever returned — and [how notifications are written](/docs/notifications#written).
 
 Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
 

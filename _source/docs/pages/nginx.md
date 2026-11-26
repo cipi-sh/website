@@ -1,6 +1,6 @@
 @section cli-nginx
 
-Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives.
+Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives. The cache of whole pages — Nginx answering without running PHP — has [a page of its own](/docs/page-cache).
 
 <cipi-term name="nginx-security"></cipi-term>
 
@@ -119,7 +119,7 @@ location ~* \.(?:woff2?|ttf)$ {
 | | |
 | --- | --- |
 | **Where it lives** | In the app's settings, so it follows [`cipi sync`](/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
-| **What it's for** | Headers, caching, upload size, timeouts, rewrites, `location` blocks of your own |
+| **What it's for** | Headers, browser caching, upload size, timeouts, rewrites, `location` blocks of your own. For caching whole pages in Nginx use [`cipi cache`](/docs/page-cache), which writes and maintains it |
 | **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`cipi proxy` and `cipi redirect`](/docs/redirects-proxies) |
 | **Limits** | 32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend |
 

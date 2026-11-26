@@ -4,11 +4,12 @@ description: Host a WooCommerce shop on an Ubuntu VPS from zero, explained for b
 category: php
 order: 3
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: woocommerce vps hosting, woocommerce nginx php-fpm, woocommerce performance server, self-hosted woocommerce, woocommerce cron action scheduler
 docs:
   - custom-apps
+  - page-cache
   - databases
   - ssl
   - backups
@@ -24,7 +25,7 @@ faq:
   - Why disable WP-Cron? | WP-Cron only runs when someone visits the site. Orders, stock holds, subscription renewals and webhooks scheduled by Action Scheduler can wait or pile up. A real cron runs them every minute, whatever the traffic.
   - Which payment plugins work? | All of them: the server doesn't restrict outgoing HTTPS. Make sure the shop is on HTTPS (`cipi ssl force`) before you enable live payments, and keep test keys on staging.
   - How do I update plugins safely? | On the staging copy first, then on production right after a fresh database backup (`cipi db backup shop`). Cipi patches PHP itself every night; plugins and WordPress core are updated by you from the dashboard.
-  - Does Cipi install a page cache like Varnish? | No. Use a WordPress page-cache plugin that writes static files, and keep the cart, checkout and account pages uncached (WooCommerce does this with good plugins out of the box).
+  - Does Cipi have a page cache like Varnish? | Yes, since 5.17.0: `cipi cache shop on` turns on Nginx's own page cache. Catalogue pages are answered without running PHP; the cart, the checkout, the account and every signed-in visitor are never cached. No plugin needed.
   - What if the shop gets hacked? | Restore files and database from the last clean backup, rotate passwords (`cipi db password shop`), update every plugin, and run `cipi scan shop`. Backups every 30 minutes keep the loss small.
   - Can I send order e-mails from the server? | Send them through an SMTP or API provider (Postmark, Mailgun, SES, Brevo…) with an SMTP plugin. Direct mail from a VPS usually lands in spam, and many providers block port 25.
 ---
@@ -145,7 +146,7 @@ Install an SMTP plugin (WP Mail SMTP, FluentSMTP…) and enter your provider's S
 | Layer | What to do |
 | --- | --- |
 | PHP | OPcache is on by default. Keep PHP current: Cipi patches it every night |
-| Page cache | A plugin that writes static HTML (cart, checkout and account pages excluded) |
+| Page cache | `sudo cipi cache shop on` (5.17.0+): Nginx answers catalogue pages without running PHP. The cart, checkout, account and signed-in visitors are never cached; after a price or stock change, `sudo cipi cache shop clear` or wait for the pages to expire ([page cache](/docs/page-cache)) |
 | Images | Serve WebP; the optional `image-optimizers` host package adds `cwebp`, `jpegoptim`, `pngquant` (`sudo cipi package install image-optimizers`) |
 | CDN | Cloudflare in front (orange cloud) with SSL mode **Full (strict)** |
 | Database | Keep `wp_options` autoload small; delete old transients |

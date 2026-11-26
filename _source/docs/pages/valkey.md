@@ -51,4 +51,14 @@ Back online | seconds later
 
 If the copy fails, the app stays exactly where it was. Apps whose Redis points elsewhere are left alone. Clones and synced apps get their own instance. `cipi pending` lists apps still on the shared instance.
 
+### From the panel {#panel}
+
+The server's **Services** tab in the [web panel](/docs/gui-overview) has a **Valkey per app** card (panel 4.9.0, cipi/api 1.47, Cipi 5.17.0): every Laravel app with what it uses — its own instance (port, memory, keys) or the shared one — and how many are still sharing. **Isolate** one app or all of them, **Share again**, **Restart** an instance, and, once no app uses the shared instance, **Empty the shared instance**. It takes *Manage* on the server.
+
+| | |
+| --- | --- |
+| **API** | `GET /api/valkey`, `POST /api/valkey/isolate`, `/share`, `/{app}/restart`, `/flush-shared` — abilities `services-view`, `services-manage` ([endpoints](/docs/api#endpoints-valkey)) |
+| **PHP SDK / cipi-cli** | `$cipi->valkey()->isolateAll()` · `cipi-cli valkey isolate --all` |
+| **Passwords** | None travels through the API or the panel. The new shared password after *Empty the shared instance* stays on the server: `cipi credentials` |
+
 > [!note] `cipi app create --valkey=shared` keeps one app on the server-wide instance. Valkey is excluded from unattended upgrades; patch it with [stack upgrades](/docs/stack-upgrades).

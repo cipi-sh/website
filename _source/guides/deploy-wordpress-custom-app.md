@@ -4,7 +4,7 @@ description: Run WordPress as an isolated custom app with its own PHP pool, data
 category: php
 order: 1
 published: 2026-04-09
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: wordpress vps hosting, wordpress nginx php-fpm, wordpress and laravel same server, self-hosted wordpress
 related:
@@ -16,11 +16,12 @@ faq:
   - Git or SFTP? | Both work. Git suits a theme or a site under version control; SFTP suits a classic WordPress where plugins update from the dashboard.
   - Can WordPress update itself? | Yes, files in `~/htdocs` belong to the app user, so core, plugin and theme updates work from the dashboard.
   - Does WordPress get isolation like Laravel apps? | Yes: own Linux user, PHP pool and database. A compromised plugin can't read other apps.
-  - Which caching? | A page cache plugin plus OPcache (on by default) is enough for most sites. Valkey object cache helps busy WooCommerce shops.
+  - Which caching? | OPcache is on by default; add Cipi's own page cache with `cipi cache blog on` (5.17.0+): Nginx answers public pages without running PHP, with no plugin. A Valkey object cache helps busy WooCommerce shops for the pages that still reach PHP.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 docs:
   - custom-apps
+  - page-cache
   - databases
   - ssl
   - backups
@@ -83,7 +84,21 @@ app:
 
 Or from the CLI: `sudo cipi app edit blog --php=8.4`. Check plugin compatibility before moving to a newer PHP.
 
-## 6. Back it up
+## 6. Make it fast: the page cache
+
+OPcache is already on, so PHP doesn't parse its files at every request — but WordPress still boots, loads its plugins and asks the database for every visitor. Turn on Nginx's page cache and public pages are answered **without running PHP at all** (Cipi 5.17.0+):
+
+```bash
+$ sudo cipi cache blog on                # pages kept 10 minutes
+$ sudo cipi cache blog on --ttl=1h       # or longer
+$ curl -sI https://blog.example.com/ | grep -i x-cache-status    # MISS, then HIT
+```
+
+Signed-in users, `/wp-admin`, previews, searches, comments being posted and carts are never cached, so the dashboard works as before and no cache plugin is needed. A post you edit shows up when its page expires; to publish at once, empty the cache — `sudo cipi cache blog clear`, the button in the web panel, or automatically from WordPress with a five-line must-use plugin ([the recipe](/docs/page-cache#recipe)). A deploy run by Cipi empties it by itself.
+
+What the page cache is next to OPcache, what it never caches and how to check a page: [Page cache](/docs/page-cache).
+
+## 7. Back it up
 
 ```bash
 $ sudo cipi backup profile add blog-nightly --scope=all --cron='0 3 * * *' --keep-days=14 --dest=s3 --encrypt

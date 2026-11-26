@@ -98,6 +98,34 @@ $ cipi notification add slack team --url=… --events=deploy
 
 Since 5.15.0 the alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su` (through PAM), [your own cron jobs](#security) and deploys through the Git webhook — reach every channel that takes them too. Before, they were sent by e-mail only.
 
+## The server's name and the time zone {#written}
+
+Every notification names the server and the time. By default that is the machine's hostname (`vmi12334`) and the server's own time zone — UTC on most servers. Since 5.17.0 both are yours to set:
+
+```bash
+$ cipi notification timezone                # what it is now
+$ cipi notification timezone Europe/Rome    # the Time line of every notification
+$ cipi notification timezone server         # back to the server's own
+$ cipi notification server-name production  # "production (vmi12334)" instead of "vmi12334"
+$ cipi notification server-name --clear     # back to the hostname
+```
+
+```text
+Server: production (vmi12334)
+App: shop
+Branch: main
+Time: 2026-11-26 16:04:05 CET
+```
+
+| | |
+| --- | --- |
+| **Time zone** | An IANA name (`Europe/Rome`, `America/New_York`, `UTC`; `timedatectl list-timezones` has them all). For notifications **only**: the server's clock, cron and logs don't change. Every message — deploys, backups, SSH logins, your own cron jobs — follows it |
+| **Server name** | Letters, digits, spaces, dots, dashes and underscores, 40 at most. The subject carries the name, the body `name (hostname)`: the machine is still there to grep for |
+| **Webhook channel** | The JSON keeps `server` (the hostname) and gains `server_name` — `null` when none is set |
+| **Why not change the server's time zone?** | You can (`timedatectl set-timezone`), but cron schedules, logs and every app's default follow it. This setting touches only how Cipi writes its messages |
+
+In the [panel](#panel) it is the **Written as** card of the Notifications tab (panel 4.9.0, cipi/api 1.47): the server name — with one click to use the name the server has in the panel, so a notification and the panel say the same — and the time zone, with how the next notification reads. Over the API: `GET|PUT /api/notifications/settings` ([endpoint](/docs/api#endpoints-notification-settings)); `$cipi->notifications()->setTimezone('Europe/Rome')`; `cipi-cli notifications timezone Europe/Rome`.
+
 ## In the web panel {#panel}
 
 The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.42+) manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. The list says what each channel **receives**, and the channel's form chooses it — *Everything* or *Only some events*: **Urgent** and the categories of the server (panel 4.7.0, Cipi 5.15.0, cipi/api 1.45). Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
@@ -156,6 +184,8 @@ They run in the background through PAM, so they never slow a login, and since 5.
 | --- | --- |
 | Which channels? | E-mail, Slack, Mattermost, Google Chat, Discord, Telegram, ntfy, Pushover, signed webhooks. |
 | Can one channel get only the alarms? | Yes (5.15.0+): `cipi notification events <id> urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events <id> deploy` ([what each channel receives](#events)). |
+| The time in a notification is UTC | That's the server's time zone. `cipi notification timezone Europe/Rome` writes notifications in yours and leaves the server alone ([details](#written)). |
+| A notification says `vmi12334`: which server is it? | The machine's hostname. `cipi notification server-name production` gives it a name of yours; the panel shows each server's hostname next to its name and sets it in one click ([details](#written)). |
 | Can I manage them from the panel? | Yes, every channel and trigger, with Cipi 5.12.0+ and cipi/api 1.42+ ([In the web panel](#panel)). |
 | The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist predates 5.12.0: `sudo cipi self-update` rewrites it. |
 | Step by step? | [Notifications and alerts guide](/guides/notifications-alerts). |

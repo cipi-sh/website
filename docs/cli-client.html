@@ -96,6 +96,7 @@
 <li><a href="/docs/create-app">Create an app</a></li>
 <li><a href="/docs/octane">Laravel Octane</a></li>
 <li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/page-cache">Page cache</a></li>
 <li><a href="/docs/node-apps">Node apps</a></li>
 <li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
 <li><a href="/docs/manage-apps">Manage apps</a></li>
@@ -204,7 +205,7 @@
 <p><code>cipi-cli</code> manages your Cipi servers <strong>from your laptop, without SSH</strong>. It's a single Go binary (Linux and macOS, amd64 and arm64, MIT) that talks to each server's <a href="/docs/api">Cipi API</a>: apps, deploys, <code>cipi.yml</code>, SSL, databases and anonymized dumps, PHP, services, keys, SMTP, health checks and disk usage. One profile per server, so a fleet is one command away.</p>
 <div class="term" data-term data-autoplay="view" style="--term-min:calc(11 * 1.65em + 36px)" data-prompt="you@laptop:~$"><div class="term-bar"><span class="term-dots"><i></i><i></i><i></i></span><span class="term-title">cipi-cli on your laptop</span><button class="term-btn" type="button" data-term-copy><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button><button class="term-btn" type="button" data-term-replay aria-label="Replay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 8a5.5 5.5 0 109.4-3.9M12 1.5v3h-3"/></svg>Replay</button></div><pre class="term-body" aria-label="Terminal demo: cipi-cli on your laptop">$ cipi-cli api token add prod
 $ cipi-cli status
-$ cipi-cli staging deploy myapp</pre><script type="application/json" class="term-script">[{"c": "cipi-cli api token add prod"}, {"o": "Cipi API endpoint: https://api.example.com", "d": 400}, {"o": "API token: 1|yourtoken...", "d": 400}, {"o": [["Server profile \"prod\" saved → ~/.cipi/config.json", ""]], "d": 300}, {"c": "cipi-cli status", "wait": 300}, {"o": [["NAME      IP              CPU   RAM   APPS  CIPI", "dim"]], "d": 400}, {"o": "prod*     203.0.113.10    12%   48%   6     5.16.0"}, {"o": "staging   203.0.113.20     4%   31%   2     5.16.0"}, {"c": "cipi-cli staging deploy myapp", "wait": 300}, {"o": [["✓ ", "ok"], ["Deployed to release #14. Zero downtime.", ""]], "d": 1400}]</script></div>
+$ cipi-cli staging deploy myapp</pre><script type="application/json" class="term-script">[{"c": "cipi-cli api token add prod"}, {"o": "Cipi API endpoint: https://api.example.com", "d": 400}, {"o": "API token: 1|yourtoken...", "d": 400}, {"o": [["Server profile \"prod\" saved → ~/.cipi/config.json", ""]], "d": 300}, {"c": "cipi-cli status", "wait": 300}, {"o": [["NAME      IP              CPU   RAM   APPS  CIPI", "dim"]], "d": 400}, {"o": "prod*     203.0.113.10    12%   48%   6     5.17.0"}, {"o": "staging   203.0.113.20     4%   31%   2     5.17.0"}, {"c": "cipi-cli staging deploy myapp", "wait": 300}, {"o": [["✓ ", "ok"], ["Deployed to release #14. Zero downtime.", ""]], "d": 1400}]</script></div>
 <div class="callout info"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><p>Each server needs <a href="/docs/api"><code>cipi api</code></a> installed, and a token from <code>cipi api token create</code>.</p></div></div>
 <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>chmod +x cipi-cli-* &amp;&amp; sudo mv cipi-cli-* /usr/local/bin/cipi-cli<span class="c">   # from GitHub Releases</span>
@@ -283,6 +284,12 @@ Deployed to release #14. Zero downtime.</pre></div>
 <span class="p"></span>cipi-cli nginx show shop &gt; shop.nginx.conf
 <span class="p"></span>cipi-cli prod nginx set shop --file shop.nginx.conf</pre></div>
 <p>The server tests every change with <code>nginx -t</code>; a refused text changes nothing, its reasons are printed line by line and <code>edit</code> offers the editor again. From the API <a href="/docs/nginx#custom-api">a subset of Nginx's language</a> is accepted. Needs Cipi 5.14.0+, cipi/api 1.44+ and the <code>nginx-view</code> / <code>nginx-manage</code> abilities.</p>
+<h2 id="cache"><code>cache</code><a class="anchor" href="#cache" aria-label="Link to this section">#</a></h2>
+<p>The <a href="/docs/page-cache">page cache</a> of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP. Not OPcache, which is always on.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>cache</code></td><td>Every app: on or off, how long pages are kept, pages and bytes on disk</td></tr><tr><td><code>cache show &lt;app&gt;</code></td><td>One app, with the command that empties it on the server</td></tr><tr><td><code>cache on &lt;app&gt; [--ttl 10m] [--size 256m] [--deploy-clear=false]</code></td><td>Turn it on, or change it when it is on</td></tr><tr><td><code>cache ttl &lt;app&gt; &lt;time&gt;</code></td><td>How long a page is kept: <code>30s</code>, <code>10m</code>, <code>1h</code>, <code>7d</code></td></tr><tr><td><code>cache clear &lt;app&gt;</code></td><td>Delete the cached pages now</td></tr><tr><td><code>cache off &lt;app&gt;</code></td><td>Every request runs PHP again</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli cache on blog --ttl 1h
+<span class="p"></span>cipi-cli cache clear blog</pre></div>
+<p>Cipi empties the cache after every deploy by itself. Needs Cipi 5.17.0+, cipi/api 1.47+ and <code>nginx-view</code> / <code>nginx-manage</code>.</p>
 </section>
 <section class="doc-section" id="cli-aliases">
 <h2 id="aliases"><code>aliases</code><a class="anchor" href="#aliases" aria-label="Link to this section">#</a></h2>
@@ -313,10 +320,20 @@ Deployed to release #14. Zero downtime.</pre></div>
 <h2 id="php"><code>php</code><a class="anchor" href="#php" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>php list</code></td><td>Installed versions, FPM status, default; legacy versions marked</td></tr><tr><td><code>php install &lt;version&gt;</code></td><td><code>8.3</code>, <code>8.4</code>, <code>8.5</code> or <code>8.6</code> (async job)</td></tr></tbody></table></div>
 <p>Switching the default and removing versions stay on the server (<code>cipi php switch|remove</code>).</p>
+<h2 id="octane"><code>octane</code><a class="anchor" href="#octane" aria-label="Link to this section">#</a></h2>
+<p>The <a href="/docs/octane#octane-php">PHP of an Octane app</a>: the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>octane show &lt;app&gt;</code></td><td>Both PHP, the build, and — when they are two versions — the command that puts them on one</td></tr><tr><td><code>octane php &lt;app&gt; &lt;version&gt;</code></td><td>Both on that version, by its number (async job): Octane is checked, and the previous build returns if it doesn't answer</td></tr><tr><td><code>octane restart &lt;app&gt;</code></td><td>Restart Octane on its build and check it</td></tr><tr><td><code>octane builds</code></td><td>The FrankenPHP build of every Octane app</td></tr><tr><td><code>octane upgrade [app]</code></td><td>The newest build on the app's own PHP — never another version</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli octane show shop
+<span class="p"></span>cipi-cli octane php shop 8.6</pre></div>
+<p>Needs Cipi 5.17.0+, cipi/api 1.47+ and <code>php-view</code> / <code>php-manage</code>.</p>
 </section>
 <section class="doc-section" id="cli-services">
 <h2 id="services"><code>services</code> and <code>ssh-keys</code><a class="anchor" href="#services" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>services list [name]</code></td><td>Status of system services</td></tr><tr><td><code>services restart &lt;name&gt;</code></td><td>e.g. <code>nginx</code>, <code>mariadb</code>, <code>php8.6-fpm</code></td></tr><tr><td><code>ssh-keys list</code></td><td>Authorized keys of the <code>cipi</code> user, with ids</td></tr><tr><td><code>ssh-keys add [key] [--file F]</code></td><td>Add a public key</td></tr><tr><td><code>ssh-keys remove &lt;id&gt;</code></td><td>Remove one</td></tr></tbody></table></div>
+<h2 id="valkey"><code>valkey</code><a class="anchor" href="#valkey" aria-label="Link to this section">#</a></h2>
+<p><a href="/docs/valkey#manage">Valkey per app</a>, for the whole server:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Command</th><th>Does</th></tr></thead><tbody><tr><td><code>valkey</code></td><td>Every Laravel app with what it uses: its own instance, or the shared one</td></tr><tr><td><code>valkey isolate &lt;app&gt;</code> / <code>--all</code></td><td>Give an app, or every app still on the shared instance, its own (<code>--no-copy</code> to start empty; <code>-y</code> skips the question)</td></tr><tr><td><code>valkey share &lt;app&gt;</code></td><td>Move it back and remove its instance</td></tr><tr><td><code>valkey restart &lt;app&gt;</code></td><td>Restart an app's instance</td></tr><tr><td><code>valkey flush-shared</code></td><td>Once nobody uses it: empty the shared instance and change its password</td></tr></tbody></table></div>
+<p>No password travels through the API: the new shared one stays on the server (<code>cipi credentials</code>). Needs Cipi 5.17.0+, cipi/api 1.47+ and <code>services-view</code> / <code>services-manage</code>.</p>
 </section>
 <section class="doc-section" id="cli-smtp">
 <h2 id="smtp"><code>smtp</code><a class="anchor" href="#smtp" aria-label="Link to this section">#</a></h2>
@@ -359,7 +376,10 @@ Deployed to release #14. Zero downtime.</pre></div>
 <span class="p"></span>cipi-cli notifications update oncall --chat-id -1009999<span class="c">    # secrets left out are kept</span>
 <span class="p"></span>cipi-cli notifications test all<span class="c">                # exits 1 when a channel refuses it</span>
 <span class="p"></span>cipi-cli notifications triggers off deploy_success ssh_login
-<span class="p"></span>cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,health_fail</pre></div>
+<span class="p"></span>cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,health_fail
+<span class="p"></span>cipi-cli notifications timezone Europe/Rome<span class="c">    # the Time line of every notification (API 1.47+)</span>
+<span class="p"></span>cipi-cli notifications server-name production<span class="c">  # "production (vmi12334)" instead of the hostname</span>
+<span class="p"></span>cipi-cli notifications settings<span class="c">                # what they are now</span></pre></div>
 </section>
 <section class="doc-section" id="cli-status">
 <h2 id="status"><code>status</code><a class="anchor" href="#status" aria-label="Link to this section">#</a></h2>
@@ -400,7 +420,7 @@ Deployed to release #14. Zero downtime.</pre></div>
 </section>
 <section class="doc-section" id="cli-requirements">
 <h2 id="requirements">Token abilities by command<a class="anchor" href="#requirements" aria-label="Link to this section">#</a></h2>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Commands</th><th>Abilities</th></tr></thead><tbody><tr><td><code>apps list/show</code>, <code>domains</code>, <code>apps logs</code></td><td><code>apps-view</code></td></tr><tr><td><code>apps create/edit/delete/suspend</code></td><td><code>apps-create</code>, <code>apps-edit</code>, <code>apps-delete</code>, <code>apps-suspend</code></td></tr><tr><td><code>apps env/auth/artisan/run</code>, <code>deploy config</code></td><td><code>apps-env</code>, <code>apps-auth</code>, <code>apps-artisan</code>, <code>apps-run</code>, <code>apps-deploy-config</code></td></tr><tr><td><code>deploy</code>, <code>deploy audit</code></td><td><code>deploy-manage</code></td></tr><tr><td><code>yml</code></td><td><code>yml-view</code>, <code>yml-manage</code></td></tr><tr><td><code>ssl</code>, <code>www</code>, <code>aliases</code>, <code>redirect</code>, <code>proxies</code></td><td><code>ssl-manage</code>, <code>www-manage</code>, <code>aliases-*</code>, <code>redirects-*</code>, <code>proxies-*</code></td></tr><tr><td><code>nginx</code></td><td><code>nginx-view</code>, <code>nginx-manage</code></td></tr><tr><td><code>db</code></td><td><code>dbs-view</code>, <code>dbs-create</code>, <code>dbs-manage</code> (anonymize: <code>apps-view</code> + <code>apps-env</code>)</td></tr><tr><td><code>backup</code></td><td><code>backups-view</code> (status, runs), <code>backups-manage</code></td></tr><tr><td><code>php</code>, <code>services</code>, <code>ssh-keys</code>, <code>smtp</code>, <code>health</code>, <code>ip-whitelist</code></td><td>matching <code>*-view</code> / <code>*-manage</code></td></tr><tr><td><code>status</code>, <code>disk</code>, insights</td><td><code>status-view</code>, <code>disk-view</code>, <code>*-view</code></td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Commands</th><th>Abilities</th></tr></thead><tbody><tr><td><code>apps list/show</code>, <code>domains</code>, <code>apps logs</code></td><td><code>apps-view</code></td></tr><tr><td><code>apps create/edit/delete/suspend</code></td><td><code>apps-create</code>, <code>apps-edit</code>, <code>apps-delete</code>, <code>apps-suspend</code></td></tr><tr><td><code>apps env/auth/artisan/run</code>, <code>deploy config</code></td><td><code>apps-env</code>, <code>apps-auth</code>, <code>apps-artisan</code>, <code>apps-run</code>, <code>apps-deploy-config</code></td></tr><tr><td><code>deploy</code>, <code>deploy audit</code></td><td><code>deploy-manage</code></td></tr><tr><td><code>yml</code></td><td><code>yml-view</code>, <code>yml-manage</code></td></tr><tr><td><code>ssl</code>, <code>www</code>, <code>aliases</code>, <code>redirect</code>, <code>proxies</code></td><td><code>ssl-manage</code>, <code>www-manage</code>, <code>aliases-*</code>, <code>redirects-*</code>, <code>proxies-*</code></td></tr><tr><td><code>nginx</code>, <code>cache</code></td><td><code>nginx-view</code>, <code>nginx-manage</code></td></tr><tr><td><code>octane</code></td><td><code>php-view</code>, <code>php-manage</code></td></tr><tr><td><code>valkey</code></td><td><code>services-view</code>, <code>services-manage</code></td></tr><tr><td><code>db</code></td><td><code>dbs-view</code>, <code>dbs-create</code>, <code>dbs-manage</code> (anonymize: <code>apps-view</code> + <code>apps-env</code>)</td></tr><tr><td><code>backup</code></td><td><code>backups-view</code> (status, runs), <code>backups-manage</code></td></tr><tr><td><code>php</code>, <code>services</code>, <code>ssh-keys</code>, <code>smtp</code>, <code>health</code>, <code>ip-whitelist</code></td><td>matching <code>*-view</code> / <code>*-manage</code></td></tr><tr><td><code>status</code>, <code>disk</code>, insights</td><td><code>status-view</code>, <code>disk-view</code>, <code>*-view</code></td></tr></tbody></table></div>
 <p>Simplest: <code>cipi api token create --name=laptop --full-access</code>. Keep server and API current with <code>cipi self-update</code> so every command is available.</p>
 </section>
 
@@ -419,12 +439,14 @@ Deployed to release #14. Zero downtime.</pre></div>
 <li><a class="l2" href="#www">www</a></li>
 <li><a class="l2" href="#redirect">redirect and proxies</a></li>
 <li><a class="l2" href="#nginx">nginx</a></li>
+<li><a class="l2" href="#cache">cache</a></li>
 <li><a class="l2" href="#aliases">aliases</a></li>
 <li><a class="l2" href="#db">db</a></li>
-<li><a class="l3" href="#cli-db-anonymize">Anonymized dumps</a></li>
 <li><a class="l2" href="#backup">backup</a></li>
 <li><a class="l2" href="#php">php</a></li>
+<li><a class="l2" href="#octane">octane</a></li>
 <li><a class="l2" href="#services">services and ssh-keys</a></li>
+<li><a class="l2" href="#valkey">valkey</a></li>
 <li><a class="l2" href="#smtp">smtp</a></li>
 <li><a class="l2" href="#health">health</a></li>
 <li><a class="l2" href="#ip-whitelist">ip-whitelist</a></li>

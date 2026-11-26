@@ -77,7 +77,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Deploy | `deploy-manage` (deploy, rollback, unlock, audit, status) |
 | `cipi.yml` | `yml-view`, `yml-manage` |
 | Domains and SSL | `aliases-view`, `aliases-create`, `aliases-delete`, `www-manage`, `ssl-manage` |
-| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` |
+| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` (an app's directives and, from 1.47, its [page cache](/docs/page-cache)) |
 | Node | `node-view`, `node-manage` (SSR restart), `node-runtimes-manage` |
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
@@ -90,6 +90,8 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | MCP | `mcp-access` (covers every MCP tool) |
 
 `php artisan cipi:token-abilities` (or the `cipi api token create` checklist) shows the canonical list.
+
+API 1.47 adds no ability: its routes sit under the ones a token already has — `nginx-*` for the [page cache](#endpoints-cache), `php-*` for the [PHP of an Octane app](#endpoints-octane), `services-*` for [Valkey per app](#endpoints-valkey), `notifications-*` for the [time zone and server name](#endpoints-notification-settings). A token made for one of those areas can do the new things of the same area.
 
 ## REST endpoints {#endpoints}
 
@@ -173,11 +175,15 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | --- | --- | --- |
 | `GET` | `/api/status` (same JSON as `cipi status`) | `status-view` |
 | `GET`, `POST` | `/api/php`, `/api/php/install` | `php-view` / `php-manage` |
+| `GET`, `POST` | `/api/frankenphp`, `/api/frankenphp/upgrade` (the FrankenPHP build of each Octane app, 1.40+) | `php-view` / `php-manage` |
+| `GET`, `PUT`, `POST` | `/api/apps/{name}/octane`, `/octane/php`, `/octane/restart` ([the PHP of an Octane app](#endpoints-octane), 1.47+) | `php-view` / `php-manage` |
 | `GET`, `POST`, `DELETE` | `/api/ssh/keys[/{n}]` | `ssh-view` / `ssh-manage` |
 | `GET`, `POST` | `/api/services`, `/services/{name}/restart` | `services-view` / `services-manage` |
+| `GET`, `POST` | `/api/valkey`, `/valkey/isolate`, `/valkey/share`, `/valkey/{app}/restart`, `/valkey/flush-shared` ([Valkey per app](#endpoints-valkey), 1.47+) | `services-view` / `services-manage` |
 | `GET`, `PUT`, `DELETE`, `POST` | `/api/smtp`, `/smtp/enable`, `/disable`, `/test` | `smtp-view` / `smtp-manage` |
 | `GET` | `/api/notifications`, `/api/notifications/triggers` ([notifications](/docs/notifications#panel), 1.42+) | `notifications-view` or `smtp-view` |
 | `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]` (with `events`: what the channel receives, 1.45+), `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
+| `GET`, `PUT` | `/api/notifications/settings` ([time zone and server name](#endpoints-notification-settings), 1.47+) | `notifications-view` / `notifications-manage`, or the `smtp-*` pair |
 | `GET` | `/api/health` | `health-view` |
 | `GET`, `POST`, `PUT`, `DELETE` | `/api/node`, `/node/install`, `/node/upgrade`, `/node/default`, `/node/{major}` | `node-view` / `node-runtimes-manage` |
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
@@ -226,6 +232,61 @@ $ curl -X PUT https://api.example.com/api/notifications/channels/oncall \
 `GET /api/apps/{name}/nginx` answers `{app, config, bytes, max_bytes, active, suspended}`: `config` is the text an app adds to [its own server block](/docs/nginx#custom), empty when it has none. `PUT` with `{"config": "…"}` replaces it (an empty one removes it), `DELETE` removes it. Both are **synchronous**: `nginx -t` runs before Nginx reloads.
 
 A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home. Needs Cipi 5.14.0+ (`503` before).
+
+### Page cache {#endpoints-cache}
+
+API 1.47+ with Cipi 5.17.0+ on the server (`503` on an older core). The [page cache](/docs/page-cache) of an app: Nginx answers with the page PHP made, without running PHP — not OPcache, which is always on.
+
+| Method | Path | Ability |
+| --- | --- | --- |
+| `GET` | `/api/apps/{name}/cache`, `/api/cache` (every app) | `nginx-view` |
+| `PUT` | `/api/apps/{name}/cache` — `{enabled, ttl?, size?, clear_on_deploy?}` | `nginx-manage` |
+| `POST` | `/api/apps/{name}/cache/clear` | `nginx-manage` |
+
+`GET` answers `supported` (false for a Node app), `kind` (`fastcgi`, `proxy`), `enabled`, `active`, `ttl`, `ttl_seconds`, `size`, `clear_on_deploy`, `files` and `bytes` on disk now, `path`, `suspended` and `clear_command` — what [a recipe of your own](/docs/page-cache#recipe) runs to empty it. `PUT` with `enabled: true` changes what is given and leaves the rest (`ttl`, `size` and `clear_on_deploy` with `enabled: false` are a `422`). `clear` answers the cache after it, with `cleared`. Synchronous: `nginx -t` runs before the reload, and a refusal is a `422` with the server's words.
+
+```bash
+$ curl -X PUT https://api.example.com/api/apps/blog/cache \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"enabled": true, "ttl": "1h"}'
+$ curl -X POST https://api.example.com/api/apps/blog/cache/clear -H "Authorization: Bearer $TOKEN"
+```
+
+### The PHP of an Octane app {#endpoints-octane}
+
+API 1.47+, Cipi 5.17.0+. An [Octane app runs two PHP](/docs/octane#octane-php): the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.
+
+| Method | Path | |
+| --- | --- | --- |
+| `GET` | `/api/apps/{name}/octane` | `php`, `octane_php`, `build`, `frankenphp`, `state` (`ok`, `mismatch`, `vulnerable`, `unpinned`, `missing`), `restart_pending`, `available_php`, and for a mismatch `fix: {command, why}` |
+| `PUT` | `/api/apps/{name}/octane/php` — `{"php": "8.5"}` | Job `octane-php`: both on that version, by its number |
+| `POST` | `/api/apps/{name}/octane/restart` | Job `octane-restart`: restarted on its build, and checked |
+
+An app that isn't on Octane answers `422`. The job fails, with nothing changed, when no FrankenPHP release carries the PHP asked for or when Octane doesn't answer on the new build.
+
+### Valkey per app {#endpoints-valkey}
+
+API 1.47+, Cipi 5.17.0+. [Who shares the server's Valkey](/docs/valkey#manage) and who has an instance of its own.
+
+| Method | Path | |
+| --- | --- | --- |
+| `GET` | `/api/valkey` | `shared_port`, `apps` (`app`, `uses`: `own`, `shared`, `external`, `none`; `port`, `instance`, `memory`, `keys`), `shared` (the apps still on the shared instance), `isolated` |
+| `POST` | `/api/valkey/isolate` — `{"app": "shop"}` or `{"all": true}`; `copy: false` to start empty | Job `valkey-isolate`; `result` has `moved`, `left`, `shared_can_be_flushed` |
+| `POST` | `/api/valkey/share` — `{"app": "shop"}` | Job `valkey-share` |
+| `POST` | `/api/valkey/{app}/restart` | Synchronous; the list after it |
+| `POST` | `/api/valkey/flush-shared` | Empties the shared instance and changes its password; `409` while an app uses it |
+
+> [!security] **No password leaves the server through these routes.** The list has none, and the new shared password that `cipi valkey flush-shared` prints once is neither returned nor put in an error: it stays in `cipi credentials`.
+
+### Notification settings {#endpoints-notification-settings}
+
+`GET /api/notifications/settings` (API 1.47+, Cipi 5.17.0+) answers `timezone` (`null`: the server's own), `server_timezone`, `server_name` (`null`: the hostname), `hostname` and `now` — the time as a notification would write it at this moment. `PUT` takes `timezone`, `server_name` or both; `null` puts the server's own back. The same object is in `GET /api/notifications` as `settings`. See [how notifications are written](/docs/notifications#written).
+
+```bash
+$ curl -X PUT https://api.example.com/api/notifications/settings \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"timezone": "Europe/Rome", "server_name": "production"}'
+```
 
 ### Optional packages {#endpoints-packages}
 
@@ -290,7 +351,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server {#mcp}
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), the page cache of an app (`PageCacheShow`, `PageCacheUpdate`, `PageCacheClear`), the PHP of an Octane app (`OctanePhpShow`, `OctanePhpSwitch`), Valkey per app (read-only: `ValkeyList`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \

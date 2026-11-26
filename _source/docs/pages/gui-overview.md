@@ -32,16 +32,18 @@ cipi CLI | does the work, as on SSH
 | Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](/docs/deploy-audit) with durations and each commit's title (Cipi 5.14.0+); a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
 | Routing | Whole-app and path redirects, prefix reverse proxies; for server managers, the app's [own Nginx directives](/docs/nginx#custom) — headers, caching, limits, `location` blocks — tested with `nginx -t` before the reload (Cipi 5.14.0+) |
+| Page cache | An app's [Nginx page cache](/docs/page-cache#panel): on and off, how long a page is kept, how much disk, **Empty the cache now** — with what it is next to OPcache (which is on already), what it gives WordPress and content sites, what is never cached, and the command for a deploy recipe of your own, ready to copy (panel 4.9.0, Cipi 5.17.0+) |
+| Octane | For an Octane app: the PHP that answers the requests next to the PHP that runs Composer, artisan, cron and the workers, a warning when they are two versions, [**Switch PHP** by its number](/docs/octane#octane-panel), restart, update the FrankenPHP build (panel 4.9.0, Cipi 5.17.0+) |
 | App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order) (Cipi 5.13.0+), a block of variables pasted or [edited as text](/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
-| Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](/docs/notifications#events) — everything, or *Urgent* and the categories you choose (Cipi 5.15.0+); every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+) |
-| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor |
+| Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](/docs/notifications#events) — everything, or *Urgent* and the categories you choose (Cipi 5.15.0+); every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+); *Written as* — the [server's name and the time zone](/docs/notifications#written) of every notification, the panel's own name in one click (panel 4.9.0, Cipi 5.17.0+) |
+| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor; [Valkey per app](/docs/valkey#panel) — who shares the server's instance, *Isolate* one app or all, empty the shared one (panel 4.9.0, Cipi 5.17.0+); the machine's **hostname** next to the name the server has in the panel, in Connections, the dashboard and the switcher: it is what a notification calls it |
 | Zero Trust | The server's [Cloudflare Tunnel](/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet (Cipi 5.16.0+) |
 | Packages | The [optional packages](/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
 | Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](/docs/nginx#real-ip-panel) on, refreshed or off (Cipi 5.15.0+); SSH, 80 and 443 always stay open ([firewall](/docs/firewall#panel), Cipi 5.14.0+) |
-| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
+| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons and [**Save to…**](#save-to) for your password manager (panel 4.9.0) |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
 | Infrastructure | [28 connectors](/docs/gui-connectors) for the providers around your servers (admins): clouds and VPS — DigitalOcean, Hetzner, AWS, Google Cloud, Azure, OVHcloud, Vultr, Akamai, Scaleway, Contabo, UpCloud — Cloudflare and the registrars, with DNS records [pointed at a server by its name](/docs/gui-connectors#servers); S3, R2, Spaces, B2, Wasabi and Johnny with [keys for one bucket](/docs/gui-connectors#bucket-keys); Postmark, Mailgun, Resend and SES with their DNS [published on Cloudflare](/docs/gui-connectors#publish-dns); Sentry, Oh Dear, Better Stack, Datadog, CloudWatch, Boogle; Aikido and Hackly (panel 4.8.0+) |
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
@@ -50,6 +52,25 @@ cipi CLI | does the work, as on SSH
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs — never which release has it (panel 4.7.0+).
 
 > [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](/docs/design-decisions#packages), monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
+
+## Save to… a password manager {#save-to}
+
+Credentials the panel shows once — a new app's SSH and database users, a database's new password, a basic auth password — have a **Save to…** menu (panel 4.9.0): it downloads them as the file your password manager imports, or copies them as text.
+
+| Manager | The file | Import it from |
+| --- | --- | --- |
+| 1Password | CSV: `Title, Website, Username, Password, Notes` | Import → CSV file |
+| Bitwarden | *Bitwarden (csv)* | Tools → Import data |
+| Proton Pass | Generic CSV | Settings → Import |
+| Apple Passwords | CSV | File → Import Passwords (Mac) |
+| Google Password Manager — Chrome, Edge, Brave | CSV: `name, url, username, password, note` | Password Manager → Settings → Import |
+| KeePassXC | CSV with the field names in the first line | Database → Import → CSV file |
+| LastPass | Generic CSV | Advanced Options → Import |
+| Any other | `title, url, username, password, notes` — the format of `cipi credentials export` | Its CSV import |
+
+Each login carries a title (`shop — SSH / SFTP on production`), the app's address, the user, the password and a note saying what it opens. The file is made **in your browser** from what the page already shows: nothing is stored on the panel, nothing is sent anywhere, no third-party script is loaded. It holds the passwords in clear — **delete it once imported**.
+
+> [!note] Why a file and not a "Save in…" button? No password manager lets a web page push an item into a vault; 1Password alone publishes an embeddable *Save in 1Password* button, and it works by loading 1Password's script into the page that shows your passwords. The panel loads no third-party script, so it gives every manager — 1Password included — its import file.
 
 @section gui-tour
 

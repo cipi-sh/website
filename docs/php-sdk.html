@@ -96,6 +96,7 @@
 <li><a href="/docs/create-app">Create an app</a></li>
 <li><a href="/docs/octane">Laravel Octane</a></li>
 <li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/page-cache">Page cache</a></li>
 <li><a href="/docs/node-apps">Node apps</a></li>
 <li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
 <li><a href="/docs/manage-apps">Manage apps</a></li>
@@ -301,6 +302,11 @@ $cipi-&gt;ssl()-&gt;setDnsAccount($cloudflareToken, 'prod');   // sync, never re
 $cipi-&gt;nginx()-&gt;update('shop', "client_max_body_size 512M;\n");     // sync: nginx -t, then reload
 $cipi-&gt;nginx()-&gt;reset('shop');</pre></div>
 <p><code>nginx()</code> reads and replaces <a href="/docs/nginx#custom">an app's own Nginx directives</a> (API 1.44+, Cipi 5.14+). A refused text is a <code>ValidationException</code> (422) and changes nothing; from the API <a href="/docs/nginx#custom-api">a subset of the language</a> is accepted. Node apps: <code>node()-&gt;status($app)</code>, <code>node()-&gt;restart($app)</code>.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;cache()-&gt;enable('blog', ttl: '1h', size: '1g');   // nginx's page cache: sync, nginx -t first
+$cipi-&gt;cache()-&gt;show('blog')['data'];                    // enabled, ttl, files, bytes, clear_command, …
+$cipi-&gt;cache()-&gt;clear('blog')['data']['cleared'];        // pages deleted
+$cipi-&gt;cache()-&gt;disable('blog');</pre></div>
+<p><code>cache()</code> is the <a href="/docs/page-cache">page cache</a> of an app (API 1.47+, Cipi 5.17+): Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call <code>clear()</code> when content changes without one.</p>
 </section>
 <section class="doc-section" id="sdk-data">
 <h2 id="data">Env, databases and backups<a class="anchor" href="#data" aria-label="Link to this section">#</a></h2>
@@ -343,6 +349,17 @@ $cipi-&gt;wait($cipi-&gt;node()-&gt;upgrade(24, restart: true));
 $cipi-&gt;wait($cipi-&gt;packages()-&gt;install('browsershot'));   // API 1.44+, Cipi 5.14+
 $cipi-&gt;ipWhitelist()-&gt;replace(['203.0.113.10'], ensureClientIp: true);
 $cipi-&gt;request('GET', '/apps/shop');               // any endpoint not wrapped yet</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$o = $cipi-&gt;octane()-&gt;show('shop')['data'];           // php, octane_php, state, available_php, fix
+$cipi-&gt;wait($cipi-&gt;octane()-&gt;php('shop', '8.6'));     // Octane and the server's PHP on 8.6, by its number
+$cipi-&gt;wait($cipi-&gt;octane()-&gt;restart('shop'));
+
+$cipi-&gt;valkey()-&gt;list()['data']['shared'];            // apps still on the shared Valkey
+$cipi-&gt;wait($cipi-&gt;valkey()-&gt;isolateAll());           // each its own instance
+$cipi-&gt;valkey()-&gt;flushShared();                       // then: empty the shared one, change its password
+
+$cipi-&gt;notifications()-&gt;setTimezone('Europe/Rome');   // the Time line of every notification
+$cipi-&gt;notifications()-&gt;setServerName('production');  // "production (vmi12334)"</pre></div>
+<p><code>octane()</code>, <code>valkey()</code> and the notification settings need API 1.47+ and Cipi 5.17+: <a href="/docs/octane#octane-php">the PHP of an Octane app</a>, <a href="/docs/valkey#manage">Valkey per app</a> — no password is ever returned — and <a href="/docs/notifications#written">how notifications are written</a>.</p>
 <p>Monitor, Zero Trust and disk usage are read-only, as on the API. <a href="/docs/packages">Optional packages</a> are listed, installed and removed (<code>packages()-&gt;list()</code>, <code>install()</code>, <code>remove()</code>): the catalog is closed and lives on the server.</p>
 </section>
 <section class="doc-section" id="sdk-security">
