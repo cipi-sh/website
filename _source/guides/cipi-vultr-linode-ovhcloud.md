@@ -4,7 +4,7 @@ description: Install Cipi on Vultr, Akamai Linode, OVHcloud, Scaleway or any pro
 category: providers
 order: 5
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: laravel vultr, laravel linode, laravel ovhcloud vps, laravel scaleway, install cipi
 related:
@@ -67,6 +67,8 @@ Then log in as `cipi` and follow [the main guide](/guides/deploy-laravel-ubuntu-
 | Reverse DNS set to your hostname | Helps deliverability of notification e-mail |
 | Outbound 25 often blocked | Send mail through an SMTP provider on 587 |
 | A second region or provider for backups | Point `cipi backup` at an S3-compatible bucket elsewhere |
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **Vultr**, **Akamai (Linode)** and **OVHcloud** connectors (and Scaleway, Contabo, UpCloud) list your servers with each Cipi server named, with their power actions, firewalls, snapshots, IPs and DNS. See [Connectors](/docs/gui-connectors#vultr).
 
 ## Troubleshooting {#troubleshooting}
 

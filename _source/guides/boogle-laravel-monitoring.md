@@ -4,7 +4,7 @@ description: Run Boogle, a free open-source exception tracker and uptime monitor
 category: ops
 order: 6
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: self-hosted sentry alternative laravel, laravel exception tracking self-hosted, boogle laravel, laravel uptime monitor open source, laravel error monitoring free
 docs:
@@ -197,6 +197,8 @@ Keyboard shortcuts move through the list; bulk actions handle noisy days. Share 
 | **Boogle** | Exceptions inside the code, and uptime from outside | Bugs and outages |
 
 Use all three: they answer different questions. Cipi's alerts go to Telegram, Slack and more ([notifications](/guides/notifications-alerts)); Boogle's go by e-mail.
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **Boogle** connector lists your projects with the client's `.env`, turns uptime checks on and off, and lets you read, fix and close exceptions next to the apps that throw them. See [Connectors](/docs/gui-connectors#boogle).
 
 ## Troubleshooting {#troubleshooting}
 

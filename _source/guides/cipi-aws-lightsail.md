@@ -4,7 +4,7 @@ description: Create an AWS Lightsail instance for Laravel step by step (OS-only 
 category: providers
 order: 2
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: laravel lightsail, deploy laravel amazon lightsail, lightsail ubuntu laravel, cheap laravel hosting aws
 related:
@@ -81,6 +81,8 @@ Point an `A` record at the static IP (Lightsail DNS zones work), then create and
 | You need VPC, autoscaling groups, RDS in private subnets | Move to [EC2](/guides/cipi-aws-ec2) |
 
 > [!note] Lightsail's own snapshots copy the whole disk. Keep Cipi's [S3 backups](/guides/backup-vps-s3) too: they're per app, encrypted and restorable on any server.
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **AWS** connector covers every kind of Lightsail resource — instances with each Cipi server named, static IPs, firewall ports, snapshots, disks, DNS zones — next to EC2, S3, Route 53, SES and CloudWatch. See [Connectors](/docs/gui-connectors#aws).
 
 ## Troubleshooting {#troubleshooting}
 

@@ -95,6 +95,8 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second (1.44+) — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
+A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens) (`cipi zt access enable --api --allow=none`) also needs the headers of a service token: `CF-Access-Client-Id` and `CF-Access-Client-Secret` (`cipi zt service-token create <name> --for=api`).
+
 ### Apps {#endpoints-apps}
 
 | Method | Path | Ability |
@@ -183,7 +185,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
 | `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
 | `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
-| `GET` | `/api/monitor`, `/api/zt` | `monitor-view`, `zt-view` |
+| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](/docs/zero-trust#panel) picture: 1.46+, Cipi 5.16.0+) | `monitor-view`, `zt-view` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics), 1.41+) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |

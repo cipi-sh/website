@@ -28,7 +28,7 @@
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/docs.css">
     <link rel="stylesheet" href="/assets/css/clips.css">
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Server monitor", "description": "Disk, certificates, services, workers and 5xx checks.", "url": "https://cipi.sh/docs/monitor", "dateModified": "2026-11-25", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Server monitor", "description": "Disk, certificates, services, workers and 5xx checks.", "url": "https://cipi.sh/docs/monitor", "dateModified": "2026-11-26", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Backups & monitoring", "item": "https://cipi.sh/docs/operations"}, {"@type": "ListItem", "position": 3, "name": "Server monitor", "item": "https://cipi.sh/docs/monitor"}]}</script>
 </head>
 <body class="docs">
@@ -174,6 +174,7 @@
 <details class="side-group"><summary>Web panel</summary><ul>
 <li><a href="/docs/gui-overview">Panel overview</a></li>
 <li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-connectors">Connectors</a></li>
 <li><a href="/docs/gui-sso">Single sign-on</a></li>
 <li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
 <li><a href="/docs/gui-architecture">Panel architecture</a></li>
@@ -208,8 +209,8 @@
 <span class="p"></span>cipi monitor set disk --warn=85 --crit=95
 <span class="p"></span>cipi monitor disable load
 <span class="p"></span>cipi monitor test<span class="c">               # sample alert to every channel</span></pre></div>
-<h2 id="checks">Eight checks, on by default<a class="anchor" href="#checks" aria-label="Link to this section">#</a></h2>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Check</th><th>Watches</th><th>Alerts when</th></tr></thead><tbody><tr><td><code>disk</code></td><td>Every local filesystem</td><td>≥80% warn, ≥90% critical</td></tr><tr><td><code>app_disk</code></td><td>Apps with a <a href="/docs/limits#disk">soft disk limit</a></td><td>≥90% of the limit, then over it</td></tr><tr><td><code>ssl</code></td><td>Let's Encrypt certificates</td><td>≤14 days to expiry, or expired</td></tr><tr><td><code>services</code></td><td>Nginx, databases, PHP-FPM, Valkey, Supervisor, Fail2ban…</td><td>Any unit not active</td></tr><tr><td><code>workers</code></td><td>Queue workers and Horizon</td><td>A process not running</td></tr><tr><td><code>http_5xx</code></td><td>New lines in each app's access log</td><td>≥20 errors <strong>and</strong> ≥5% of requests</td></tr><tr><td><code>fs</code></td><td><code>/etc/cipi</code>, <code>/var/log/cipi</code></td><td>No longer writable (read-only remount)</td></tr><tr><td><code>load</code></td><td>1-minute load</td><td>Above 4× the cores for 2 runs in a row</td></tr></tbody></table></div>
+<h2 id="checks">The checks, on by default<a class="anchor" href="#checks" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Check</th><th>Watches</th><th>Alerts when</th></tr></thead><tbody><tr><td><code>disk</code></td><td>Every local filesystem</td><td>≥80% warn, ≥90% critical</td></tr><tr><td><code>app_disk</code></td><td>Apps with a <a href="/docs/limits#disk">soft disk limit</a></td><td>≥90% of the limit, then over it</td></tr><tr><td><code>ssl</code></td><td>Let's Encrypt certificates</td><td>≤14 days to expiry, or expired</td></tr><tr><td><code>services</code></td><td>Nginx, databases, PHP-FPM, Valkey, Supervisor, Fail2ban…</td><td>Any unit not active</td></tr><tr><td><code>workers</code></td><td>Queue workers and Horizon</td><td>A process not running</td></tr><tr><td><code>http_5xx</code></td><td>New lines in each app's access log</td><td>≥20 errors <strong>and</strong> ≥5% of requests</td></tr><tr><td><code>fs</code></td><td><code>/etc/cipi</code>, <code>/var/log/cipi</code></td><td>No longer writable (read-only remount)</td></tr><tr><td><code>load</code></td><td>1-minute load</td><td>Above 4× the cores for 2 runs in a row</td></tr><tr><td><code>tunnel</code></td><td>The <a href="/docs/zero-trust#monitor">Cloudflare Tunnel</a>, when Zero Trust is on (5.16.0+)</td><td>Degraded (warn); cloudflared stopped, or Cloudflare sees the tunnel down or inactive (critical)</td></tr></tbody></table></div>
 <p>Tune any threshold: <code>--ssl --days=21</code>, <code>http_5xx --count=50 --ratio=10</code>, <code>load --factor=6 --runs=3</code>, <code>app_disk --minutes=30</code>.</p>
 <h2 id="noise">Alerts without noise<a class="anchor" href="#noise" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>State change</th><th>Message</th></tr></thead><tbody><tr><td>ok → warn/critical</td><td>One alert</td></tr><tr><td>warn ↔ critical</td><td>One escalation</td></tr><tr><td>Still failing</td><td>A reminder every 4 hours (<code>set reminder --minutes=N</code>, min 15)</td></tr><tr><td>failing → ok</td><td>One recovery, with how long it lasted</td></tr></tbody></table></div>
@@ -228,7 +229,7 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#checks">Eight checks, on by default</a></li>
+<li><a class="l2" href="#checks">The checks, on by default</a></li>
 <li><a class="l2" href="#noise">Alerts without noise</a></li>
 <li><a class="l2" href="#in-the-panel">In the web panel</a></li>
 <li><a class="l2" href="#problems">Common problems</a></li>

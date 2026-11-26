@@ -4,7 +4,7 @@ description: Create a Hetzner Cloud server step by step (location, Ubuntu image,
 category: providers
 order: 4
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: laravel hetzner, deploy laravel hetzner cloud, hetzner ubuntu laravel, cheap laravel vps europe
 related:
@@ -94,6 +94,8 @@ $ sudo cipi backup destination test
 ```
 
 Full setup: [backups to S3](/guides/backup-vps-s3).
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **Hetzner** connector lists your servers with each Cipi server named, creates them with your SSH key and cloud-init, and manages firewalls, volumes, floating and primary IPs, snapshots and DNS. See [Connectors](/docs/gui-connectors#hetzner).
 
 ## Troubleshooting {#troubleshooting}
 

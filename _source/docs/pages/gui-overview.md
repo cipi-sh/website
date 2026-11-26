@@ -37,13 +37,15 @@ cipi CLI | does the work, as on SSH
 | Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](/docs/notifications#events) — everything, or *Urgent* and the categories you choose (Cipi 5.15.0+); every trigger on or off by category ([notifications](/docs/notifications#panel), Cipi 5.12.0+) |
-| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor, Zero Trust status |
+| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor |
+| Zero Trust | The server's [Cloudflare Tunnel](/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet (Cipi 5.16.0+) |
 | Packages | The [optional packages](/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
 | Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](/docs/nginx#real-ip-panel) on, refreshed or off (Cipi 5.15.0+); SSH, 80 and 443 always stay open ([firewall](/docs/firewall#panel), Cipi 5.14.0+) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
+| Infrastructure | [28 connectors](/docs/gui-connectors) for the providers around your servers (admins): clouds and VPS — DigitalOcean, Hetzner, AWS, Google Cloud, Azure, OVHcloud, Vultr, Akamai, Scaleway, Contabo, UpCloud — Cloudflare and the registrars, with DNS records [pointed at a server by its name](/docs/gui-connectors#servers); S3, R2, Spaces, B2, Wasabi and Johnny with [keys for one bucket](/docs/gui-connectors#bucket-keys); Postmark, Mailgun, Resend and SES with their DNS [published on Cloudflare](/docs/gui-connectors#publish-dns); Sentry, Oh Dear, Better Stack, Datadog, CloudWatch, Boogle; Aikido and Hackly (panel 4.8.0+) |
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
-| Sign-in | Password with TOTP, optional or [required for every account](/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](/docs/gui-sso) over OpenID Connect |
+| Sign-in | Password with TOTP, optional or [required for every account](/docs/gui-install#two-factor-required) (panel 4.6.0+); [passkeys](/docs/gui-install#passkeys) — Face ID, Touch ID, Windows Hello, a phone or a security key — alone or as the second step (panel 4.8.0+); or [single sign-on](/docs/gui-sso) over OpenID Connect |
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs — never which release has it (panel 4.7.0+).
 
@@ -236,6 +238,58 @@ Every channel of the server and which events reach it. Secrets never come back t
 
 UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order with *Kept open* on SSH, 80 and 443 and the Cipi feature that owns each one, blocked addresses, everything banned right now with *Unban*, the SSH login threshold and CrowdSec with its allowlist. Viewing needs a level on the server, changing needs Manage. See [firewall](/docs/firewall#panel).
 
+### Zero Trust
+
+The server's Cloudflare Tunnel as the CLI set it up (Cipi 5.16.0+, cipi/api 1.46): healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it. Read-only: every change stays on `cipi zt`. See [Zero Trust](/docs/zero-trust#panel).
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-zero-trust-light.webp" width="1440" height="797" alt="Zero Trust tab: tunnel healthy, two connectors, 80/443 and 22 closed, hostnames with Access, service tokens and purge after deploy" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-zero-trust.webp" width="1440" height="797" alt="Zero Trust tab: tunnel healthy, two connectors, 80/443 and 22 closed, hostnames with Access, service tokens and purge after deploy" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Zero Trust: a tunnel on two servers, no inbound port open, Access on <code>/admin</code> and <code>/horizon</code> only, a preview of a branch, the API for service tokens only, MySQL for one person, SSH with short-lived certificates.</figcaption>
+</figure>
+
+### Infrastructure
+
+The providers around your servers, from the same panel: [28 connectors](/docs/gui-connectors), with any number of accounts each. Every address that is a server of the panel says which one; a DNS record takes a server's name and is saved with its IP.
+
+<div class="gui-shot-grid">
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/infra-cloudflare-dns-light.webp" width="1440" height="1123" alt="Cloudflare DNS records with addresses shown as servers of the panel" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/infra-cloudflare-dns.webp" width="1440" height="1123" alt="Cloudflare DNS records with addresses shown as servers of the panel" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Cloudflare: a zone&rsquo;s records, <code>203.0.113.24 → production</code>.</figcaption>
+</figure>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/infra-digitalocean-light.webp" width="1440" height="900" alt="DigitalOcean Droplets with the servers of the panel named" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/infra-digitalocean.webp" width="1440" height="900" alt="DigitalOcean Droplets with the servers of the panel named" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>DigitalOcean: Droplets, power, snapshots, resize, a new one.</figcaption>
+</figure>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/infra-aws-ec2-light.webp" width="1440" height="900" alt="AWS EC2 instances in Frankfurt" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/infra-aws-ec2.webp" width="1440" height="900" alt="AWS EC2 instances in Frankfurt" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>AWS: EC2 by region, and Lightsail, RDS, S3, Route 53, SES, CloudWatch.</figcaption>
+</figure>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/infra-sentry-light.webp" width="1440" height="900" alt="Sentry unresolved issues" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/infra-sentry.webp" width="1440" height="900" alt="Sentry unresolved issues" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Sentry: issues to resolve, ignore or reopen.</figcaption>
+</figure>
+</div>
+
 ### Connections and security
 
 <div class="gui-shot-grid">
@@ -252,6 +306,22 @@ UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order wi
 <img src="/img/gui/settings-2fa.webp" width="1440" height="1040" alt="Settings page with the panel settings and two-factor setup" loading="lazy" decoding="async">
 </div>
 <figcaption>Panel settings (admins), profile with its time zone, password and TOTP two-factor setup.</figcaption>
+</figure>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/passkeys-light.webp" width="760" height="460" alt="Settings, Passkeys: a MacBook, an iPhone and a YubiKey with rename and remove" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/passkeys.webp" width="760" height="460" alt="Settings, Passkeys: a MacBook, an iPhone and a YubiKey with rename and remove" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Passkeys (panel 4.8.0+): added, renamed, removed; synced ones say so.</figcaption>
+</figure>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/login-passkey-light.webp" width="640" height="722" alt="Login page with Sign in with a passkey" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/login-passkey.webp" width="640" height="722" alt="Login page with Sign in with a passkey" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>The login page: a passkey alone, no password and no code.</figcaption>
 </figure>
 </div>
 
