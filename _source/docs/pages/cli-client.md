@@ -66,7 +66,7 @@ $ cipi-cli staging apps list       # an explicit prefix still wins
 | `apps artisan <app> <cmd>` | Artisan as an async job |
 | `apps run <app> <cmd>` | Allowlisted binaries (`cipi-cli run-commands`) |
 | `apps env show|set <app>` | Read `.env` in file order, or `--set KEY=VALUE` / `--unset KEY` / `--order K1,K2,…` |
-| `apps env order <app> KEY… [--after K / --before K]` | Move keys, the others keep their place (Cipi 5.13.0+, API 1.43+) |
+| `apps env order <app> KEY… [--after K / --before K]` | Move keys, the others keep their place |
 | `apps auth show|create|update|delete <app>` | Composer `auth.json` |
 | `apps basicauth status|enable|disable <app>` | HTTP Basic Auth: status with users and cipi/agent routes |
 | `apps node status|restart <app>` | Node status, blue/green restart |
@@ -122,7 +122,7 @@ $ cipi-cli domains
 | --- | --- |
 | `deploy <app>` | Zero-downtime deploy, waits for the job |
 | `deploy rollback <app> [-y]` | Previous release |
-| `deploy status <app> [--tail N]` | Running, queued, interrupted or idle, the last run, and a [paused commit](/docs/deploying#paused) (5.13.0+) |
+| `deploy status <app> [--tail N]` | Running, queued, interrupted or idle, the last run, and a [paused commit](/docs/deploying#paused) |
 | `deploy unlock <app>` | Clear a stuck lock now; resume a paused commit |
 | `deploy config show|set <app>` | `deploy.php` options: `--optimize`, `--storage-link`, `--queue-restart`, `--horizon-terminate`, `--predeploy-snapshot`, `--node-build`, `--extra-artisan` |
 | `deploy audit <app> [--days N]` | [Deploy ledger](/docs/deploy-audit): origin, operator, IP, commit |
@@ -194,7 +194,29 @@ $ cipi-cli nginx show shop > shop.nginx.conf
 $ cipi-cli prod nginx set shop --file shop.nginx.conf
 ```
 
-The server tests every change with `nginx -t`; a refused text changes nothing, its reasons are printed line by line and `edit` offers the editor again. From the API [a subset of Nginx's language](/docs/nginx#custom-api) is accepted. Needs Cipi 5.14.0+, cipi/api 1.44+ and the `nginx-view` / `nginx-manage` abilities.
+The server tests every change with `nginx -t`; a refused text changes nothing, its reasons are printed line by line and `edit` offers the editor again. From the API [a subset of Nginx's language](/docs/nginx#custom-api) is accepted. Needs the `nginx-view` / `nginx-manage` abilities.
+
+## `cache` {#cache}
+
+The [page cache](/docs/page-cache) of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP. Not OPcache, which is always on.
+
+| Command | Does |
+| --- | --- |
+| `cache` | Every app: on or off, how long pages are kept, pages and bytes on disk |
+| `cache show <app>` | One app, with the command that empties it on the server |
+| `cache on <app> [--ttl 10m] [--size 256m] [--exclude '/cart*,/feed'] [--deploy-clear=false]` | Turn it on, or change it when it is on |
+| `cache ttl <app> <time>` | How long a page is kept: `30s`, `10m`, `1h`, `7d` |
+| `cache exclude <app> [add\|remove\|set <path>…]` | The app's [own paths that are never cached](/docs/page-cache#exclude): the list, more, fewer (`remove --all` for none), exactly these |
+| `cache clear <app>` | Delete the cached pages now |
+| `cache off <app>` | Every request runs PHP again |
+
+```bash
+$ cipi-cli cache on blog --ttl 1h
+$ cipi-cli cache exclude blog add '/wishlist*' /feed
+$ cipi-cli cache clear blog
+```
+
+Cipi empties the cache after every deploy by itself. Needs the `nginx-view` / `nginx-manage` abilities.
 
 @section cli-aliases
 
@@ -246,7 +268,7 @@ Flags: `--email`, `--url` (when the app redirects, redirects are never followed)
 | `backup`, `backup status` | Destinations, profiles, last runs, what no profile covers |
 | `backup runs [--profile P]` | Runs each destination holds |
 | `backup run [profile]`, `backup verify [profile]` | Start a run in the background; check that the newest run opens |
-| `backup profile add <name> --dest local,s3 [flags]`, `edit <name> [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths` (5.13.0+), `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
+| `backup profile add <name> --dest local,s3 [flags]`, `edit <name> [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths`, `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
 | `backup profile enable|disable|remove <name>` | |
 | `backup destination test [name]` | Reach each S3 destination with its credentials |
 
@@ -266,6 +288,25 @@ Destinations are added on the server (`cipi backup destination add`): an S3 secr
 
 Switching the default and removing versions stay on the server (`cipi php switch|remove`).
 
+## `octane` {#octane}
+
+The [PHP of an Octane app](/docs/octane#octane-php): the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.
+
+| Command | Does |
+| --- | --- |
+| `octane show <app>` | Both PHP, the build, and — when they are two versions — the command that puts them on one |
+| `octane php <app> <version>` | Both on that version, by its number (async job): Octane is checked, and the previous build returns if it doesn't answer |
+| `octane restart <app>` | Restart Octane on its build and check it |
+| `octane builds` | The FrankenPHP build of every Octane app |
+| `octane upgrade [app]` | The newest build on the app's own PHP — never another version |
+
+```bash
+$ cipi-cli octane show shop
+$ cipi-cli octane php shop 8.6
+```
+
+Needs the `php-view` / `php-manage` abilities.
+
 @section cli-services
 
 ## `services` and `ssh-keys` {#services}
@@ -277,6 +318,20 @@ Switching the default and removing versions stay on the server (`cipi php switch
 | `ssh-keys list` | Authorized keys of the `cipi` user, with ids |
 | `ssh-keys add [key] [--file F]` | Add a public key |
 | `ssh-keys remove <id>` | Remove one |
+
+## `valkey` {#valkey}
+
+[Valkey per app](/docs/valkey#manage), for the whole server:
+
+| Command | Does |
+| --- | --- |
+| `valkey` | Every Laravel app with what it uses: its own instance, or the shared one |
+| `valkey isolate <app>` / `--all` | Give an app, or every app still on the shared instance, its own (`--no-copy` to start empty; `-y` skips the question) |
+| `valkey share <app>` | Move it back and remove its instance |
+| `valkey restart <app>` | Restart an app's instance |
+| `valkey flush-shared` | Once nobody uses it: empty the shared instance and change its password |
+
+No password travels through the API: the new shared one stays on the server (`cipi credentials`). Needs the `services-view` / `services-manage` abilities.
 
 @section cli-smtp
 
@@ -321,7 +376,7 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
 
-[Optional packages](/docs/packages) are installed and removed too (Cipi 5.14.0+, API 1.44+, `packages-manage`; jobs the CLI waits for):
+[Optional packages](/docs/packages) are installed and removed too (`packages-manage`; jobs the CLI waits for):
 
 ```bash
 $ cipi-cli packages                              # the catalog: status, what each brings
@@ -330,7 +385,7 @@ $ cipi-cli packages install sec-nuclei           # a pinned upstream release; ag
 $ cipi-cli prod packages remove ffmpeg -y
 ```
 
-[Metrics](/docs/metrics) (API 1.41+), with sparklines in the terminal:
+[Metrics](/docs/metrics), with sparklines in the terminal:
 
 ```bash
 $ cipi-cli metrics                               # server and apps now
@@ -343,7 +398,7 @@ $ cipi-cli metrics heartbeat set https://hc-ping.com/<uuid>
 
 ## Notifications {#notifications}
 
-Every channel and trigger ([notifications](/docs/notifications), API 1.42+):
+Every channel and trigger ([notifications](/docs/notifications)):
 
 ```bash
 $ cipi-cli notifications                         # channels and how many triggers are on
@@ -352,6 +407,9 @@ $ cipi-cli notifications update oncall --chat-id -1009999    # secrets left out 
 $ cipi-cli notifications test all                # exits 1 when a channel refuses it
 $ cipi-cli notifications triggers off deploy_success ssh_login
 $ cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,health_fail
+$ cipi-cli notifications timezone Europe/Rome    # the Time line of every notification
+$ cipi-cli notifications server-name production  # "production (vmi12334)" instead of the hostname
+$ cipi-cli notifications settings                # what they are now
 ```
 
 @section cli-status
@@ -361,8 +419,8 @@ $ cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,healt
 ```bash
 $ cipi-cli status
  NAME      IP             CPU   RAM          HDD          APPS  SVC     CIPI
- prod*     203.0.113.10   12%   48% (3840M)  42G/80G 53%  3     8/8 ok  5.11.0
- staging   203.0.113.20    4%   31% (2048M)  18G/40G 45%  1     8/8 ok  5.11.0
+ prod*     203.0.113.10   12%   48% (3840M)  42G/80G 53%  3     8/8 ok  5.17.0
+ staging   203.0.113.20    4%   31% (2048M)  18G/40G 45%  1     8/8 ok  5.17.0
 
 $ cipi-cli status prod      # full detail for one server
 ```
@@ -431,7 +489,9 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `deploy`, `deploy audit` | `deploy-manage` |
 | `yml` | `yml-view`, `yml-manage` |
 | `ssl`, `www`, `aliases`, `redirect`, `proxies` | `ssl-manage`, `www-manage`, `aliases-*`, `redirects-*`, `proxies-*` |
-| `nginx` | `nginx-view`, `nginx-manage` |
+| `nginx`, `cache` | `nginx-view`, `nginx-manage` |
+| `octane` | `php-view`, `php-manage` |
+| `valkey` | `services-view`, `services-manage` |
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
 | `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |

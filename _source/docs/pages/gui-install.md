@@ -82,7 +82,7 @@ Session login with **TOTP** (Google Authenticator, 1Password, Aegis…) or a [pa
 
 ### Required for every account {#two-factor-required}
 
-For policies that ask it of every account (ISO 27001, NIS2), an admin turns on **Team → Two-factor authentication** (panel 4.6.0+, setting `enforce_2fa`, off by default). Nothing changes on the servers.
+For policies that ask it of every account (ISO 27001, NIS2), an admin turns on **Team → Two-factor authentication** (setting `enforce_2fa`, off by default). Nothing changes on the servers.
 
 | Who | What happens |
 | --- | --- |
@@ -96,7 +96,7 @@ An admin can turn it on only once their own session passes it (2FA set up, or si
 
 ### Passkeys {#passkeys}
 
-Face ID, Touch ID, Windows Hello, a phone or a security key (panel 4.8.0+). A passkey is two factors in one — the device, and the face, finger or PIN that unlocks it — so it is used two ways:
+Face ID, Touch ID, Windows Hello, a phone or a security key. A passkey is two factors in one — the device, and the face, finger or PIN that unlocks it — so it is used two ways:
 
 - **alone**, from the login page: *Sign in with a passkey*, also offered by the browser as the email field is filled. No password, no code after it;
 - **as the second step** after the password, instead of the authenticator's code. An account with both is offered both.
@@ -133,4 +133,4 @@ The panel checks WebAuthn itself, with no library: a challenge used once and val
 
 ### Lost a second factor {#two-factor-reset}
 
-An admin clicks **Reset 2FA** on the account in Team (panel 4.6.0+; not for your own account): it removes the authenticator and, from panel 4.8.0, the account's passkeys. From the server, [`cipi gui reset-user`](/docs/gui-maintenance) rewrites an account and removes the enrolment, passkeys included from Cipi 5.16.0. With 2FA required, the account sets it up again at its next sign-in.
+An admin clicks **Reset 2FA** on the account in Team (not for your own account): it removes the authenticator and the account's passkeys. From the server, [`cipi gui reset-user`](/docs/gui-maintenance) rewrites an account and removes the enrolment, passkeys included. With 2FA required, the account sets it up again at its next sign-in.

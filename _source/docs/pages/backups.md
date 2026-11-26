@@ -73,7 +73,7 @@ Apps can declare their own profiles in [cipi.yml](/docs/yml) (named `<app>` or `
 
 ### Leave big folders out {#exclude-paths}
 
-A terabyte of uploads is better kept with `rsync` (or on object storage) than archived every night. Since 5.13.0 a profile can leave paths out of the app archives:
+A terabyte of uploads is better kept with `rsync` (or on object storage) than archived every night. A profile can leave paths out of the app archives:
 
 ```bash
 $ cipi backup profile edit nightly --exclude-paths='storage/app/uploads,*.mp4'

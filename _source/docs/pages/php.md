@@ -51,7 +51,7 @@ $ cipi php upgrade      # patch now and print the patch level
 | `END OF LIFE` | No more fixes from PHP: move apps off it |
 | `prerelease` | Release candidate, not compared |
 
-[Octane](/docs/octane) apps run the PHP inside their FrankenPHP binary, which apt never touches; `cipi php upgrade` lists them too and `cipi frankenphp upgrade` fixes them.
+[Octane](/docs/octane) apps run the PHP inside their FrankenPHP binary, which apt never touches; `cipi php upgrade` lists them too and `cipi frankenphp upgrade` fixes them. To put an Octane app on **another PHP version**, say which: `cipi frankenphp php myapp 8.6` (or `cipi app edit myapp --php=8.6`) moves Octane and the server's PHP together ([switch by version](/docs/octane#octane-php)).
 
 ## Hardening {#hardening}
 

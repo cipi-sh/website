@@ -25,18 +25,18 @@ $ cipi zt access enable --gui
 $ cipi zt ssh enable --hostname=ssh.example.com
 $ cipi zt lock http --yes                          # 80/443 closed or Cloudflare-only
 $ cipi zt lock ssh --yes                           # port 22 closed
-$ cipi zt lockdown                                 # 5.16.0: everything on the tunnel, no inbound port
+$ cipi zt lockdown                                 # everything on the tunnel, no inbound port
 $ cipi zt status                                   # --json for the whole picture
 ```
 
-Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). Since 5.16.0, for what you use: Account · Access: Service Tokens: Edit ([service tokens](#service-tokens)), Account · Access: SSH Auditing: Edit ([SSH certificates](#ssh-cert)), Zone · Cache Purge: Purge ([purges](#purge)). A token made for 5.15 keeps working; a command that needs more names the permission it misses. The token is stored root-only, separate from the DNS token used for certificates and from the Cloudflare token of the [web panel's connector](/docs/gui-connectors#cloudflare).
+Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). For what you use: Account · Access: Service Tokens: Edit ([service tokens](#service-tokens)), Account · Access: SSH Auditing: Edit ([SSH certificates](#ssh-cert)), Zone · Cache Purge: Purge ([purges](#purge)). A token without these keeps working; a command that needs more names the permission it misses. The token is stored root-only, separate from the DNS token used for certificates and from the Cloudflare token of the [web panel's connector](/docs/gui-connectors#cloudflare).
 
 ## What each step does {#steps}
 
 | Command | Effect | Reversible with |
 | --- | --- | --- |
 | `enable` | Installs `cloudflared`, a locally-managed tunnel, Nginx real-IP from Cloudflare's ranges (refreshed daily); Fail2ban/CrowdSec learn the ranges. **No port is closed** | `disable` |
-| `hostname add <app\|--gui\|--api>` | DNS CNAME to the tunnel, ingress to Nginx; `--api` for the [REST API](/docs/api) (5.16.0) | `hostname remove` |
+| `hostname add <app\|--gui\|--api>` | DNS CNAME to the tunnel, ingress to Nginx; `--api` for the [REST API](/docs/api) | `hostname remove` |
 | `access enable <app\|--gui\|--api>` | Cloudflare Access login in front: the whole site or [some paths, for some people](#access); `/cipi/webhook` bypassed so pushes still deploy | `access disable` |
 | `service-token create <name> --for=…` | A [token for machines](#service-tokens): CI, monitors, the panel | `service-token revoke` |
 | `tcp add <service> --hostname=…` | A [database or Valkey](#tcp) reachable from your laptop, behind Access | `tcp remove` |
@@ -61,7 +61,7 @@ Host ssh.example.com
 
 ## Access on some paths, for some people {#access}
 
-`access enable` alone asks anyone who signs in with your identity provider. Two options narrow it (5.16.0+):
+`access enable` alone asks anyone who signs in with your identity provider. Two options narrow it:
 
 ```bash
 $ cipi zt access enable shop --path=/admin,/horizon,/pulse      # only these paths; the rest stays public
@@ -90,7 +90,7 @@ Cipi creates the token and a Service Auth policy on the target's Access applicat
 $ curl -H "CF-Access-Client-Id: 3f2a….access" -H "CF-Access-Client-Secret: …" https://shop.example.com/health
 ```
 
-For a server whose API is behind Access (`cipi zt access enable --api --allow=none`), the [web panel](/docs/gui-overview) sends the token with every call: **Connections → the server → Behind Cloudflare Access**, with the id and the secret (panel 4.8.0+). The secret is stored encrypted, never shown again, and kept when the field is left empty.
+For a server whose API is behind Access (`cipi zt access enable --api --allow=none`), the [web panel](/docs/gui-overview) sends the token with every call: **Connections → the server → Behind Cloudflare Access**, with the id and the secret. The secret is stored encrypted, never shown again, and kept when the field is left empty.
 
 ## Databases and Valkey from your laptop {#tcp}
 
@@ -111,7 +111,7 @@ then TablePlus, DBeaver or `mysql -h 127.0.0.1 -P 13306` on that address, with t
 
 ## SSH with short-lived certificates {#ssh-cert}
 
-Instead of keys to hand out and take back, Cloudflare signs a certificate at every sign-in (5.16.0+):
+Instead of keys to hand out and take back, Cloudflare signs a certificate at every sign-in:
 
 ```bash
 $ cipi zt ssh cert enable --principals=andrea,mario          # for the cipi user
@@ -170,11 +170,11 @@ Purge by hostname works on every Cloudflare plan. With `--on-deploy=on`, `cipi d
 
 ## The tunnel in the monitor {#monitor}
 
-With Zero Trust on, the [monitor](/docs/monitor) runs a `tunnel` check every 5 minutes (5.16.0+): critical when cloudflared stops or Cloudflare sees the tunnel down or inactive, a warning when it is degraded (fewer connections: a network problem, or a replica down). Trigger `monitor_tunnel`, urgent, with recovery and reminders like every check. With 80/443 closed it is the one outage a server can still report: notifications go out, not through the tunnel. Outbound port 7844 (TCP and UDP) must stay open.
+With Zero Trust on, the [monitor](/docs/monitor) runs a `tunnel` check every 5 minutes: critical when cloudflared stops or Cloudflare sees the tunnel down or inactive, a warning when it is degraded (fewer connections: a network problem, or a replica down). Trigger `monitor_tunnel`, urgent, with recovery and reminders like every check. With 80/443 closed it is the one outage a server can still report: notifications go out, not through the tunnel. Outbound port 7844 (TCP and UDP) must stay open.
 
 ## In the web panel {#panel}
 
-The server's **Zero Trust** tab (panel 4.8.0+, cipi/api 1.46, Cipi 5.16.0) shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Read-only: every change stays on `cipi zt`. The [API](/docs/api) gives the same as `details` on `GET /api/zt`.
+The server's **Zero Trust** tab shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Read-only: every change stays on `cipi zt`. The [API](/docs/api) gives the same as `details` on `GET /api/zt`.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">

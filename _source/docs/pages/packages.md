@@ -1,6 +1,6 @@
 @section cli-package
 
-Tools and libraries some Laravel packages need on the host, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask. Most come from Ubuntu's own repositories; a few, which Ubuntu doesn't ship, are [upstream releases](#upstream) pinned by version and SHA-256. Since 5.14.0 the catalog has twenty entries, Browsershot's and the [security scanners](#sec) of Hackly included, and the [web panel](#panel) installs and removes them too.
+Tools and libraries some Laravel packages need on the host, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask. Most come from Ubuntu's own repositories; a few, which Ubuntu doesn't ship, are [upstream releases](#upstream) pinned by version and SHA-256. The catalog has twenty entries, Browsershot's and the [security scanners](#sec) of Hackly included, and the [web panel](#panel) installs and removes them too.
 
 ## Commands {#commands}
 
@@ -10,7 +10,7 @@ $ cipi package install browsershot
 $ cipi package install libreoffice
 $ cipi package install webp            # one apt package of a group
 $ cipi package remove ffmpeg
-$ cipi package remove pandoc --yes     # no prompt; required without a terminal (5.14.0+)
+$ cipi package remove pandoc --yes     # no prompt; required without a terminal
 ```
 
 ## Available packages {#available}
@@ -18,16 +18,16 @@ $ cipi package remove pandoc --yes     # no prompt; required without a terminal 
 | Package | Installs | For |
 | --- | --- | --- |
 | `image-optimizers` | jpegoptim, optipng, pngquant, gifsicle, webp | `spatie/laravel-image-optimizer` |
-| `avif` | `avifenc` | AVIF in `spatie/laravel-image-optimizer` (5.14.0+) |
+| `avif` | `avifenc` | AVIF in `spatie/laravel-image-optimizer` |
 | `ffmpeg` | `ffmpeg`, `ffprobe` | `pbmedia/laravel-ffmpeg` (run it in a queue worker, never in a request) |
 | `imagemagick` | `convert` / `magick` CLI | Code that shells out to ImageMagick (the PHP extension is already installed) |
 | `poppler-utils` | `pdftotext`, `pdftoppm` | `spatie/pdf-to-text`, feeding PDFs to search |
-| `browsershot` | The libraries and fonts Chrome needs to start | `spatie/browsershot`, `spatie/laravel-pdf` with Browsershot (5.14.0+, [below](#browsershot)) |
-| `fonts-cjk` | Noto CJK fonts | Chinese, Japanese and Korean text in PDFs and images (5.14.0+) |
-| `pdftk` | `pdftk` (pdftk-java) | `mikehaertl/php-pdftk`: fill forms, merge, split (pulls a headless Java runtime; 5.14.0+) |
-| `libreoffice` | `soffice`, Writer and Calc without a GUI | DOCX, XLSX and ODT to PDF with `soffice --headless --convert-to pdf` (5.14.0+) |
-| `pandoc` | `pandoc` | `ueberdosis/pandoc`: Markdown, HTML, DOCX, ODT, EPUB (5.14.0+) |
-| `tesseract` | `tesseract`, English, Italian, German, French and Spanish | `thiagoalessio/tesseract_ocr` (5.14.0+) |
+| `browsershot` | The libraries and fonts Chrome needs to start | `spatie/browsershot`, `spatie/laravel-pdf` with Browsershot ([below](#browsershot)) |
+| `fonts-cjk` | Noto CJK fonts | Chinese, Japanese and Korean text in PDFs and images |
+| `pdftk` | `pdftk` (pdftk-java) | `mikehaertl/php-pdftk`: fill forms, merge, split (pulls a headless Java runtime) |
+| `libreoffice` | `soffice`, Writer and Calc without a GUI | DOCX, XLSX and ODT to PDF with `soffice --headless --convert-to pdf` |
+| `pandoc` | `pandoc` | `ueberdosis/pandoc`: Markdown, HTML, DOCX, ODT, EPUB |
+| `tesseract` | `tesseract`, English, Italian, German, French and Spanish | `thiagoalessio/tesseract_ocr` |
 
 `cipi package list` marks each entry installed, **partial** (some apt packages missing — `install` completes it) or not installed; `--json` adds what each brings (`binaries`), whether it is tools or libraries (`kind`) and what a partial install lacks (`missing`). Install shows what apt will do (packages, disk space) and asks first; afterwards Cipi checks each binary is on the `PATH`. It refuses to start with less than 1 GB free.
 
@@ -105,6 +105,6 @@ For a library entry (`browsershot`, `fonts-cjk`) the libraries are often shared:
 
 ## From the panel {#panel}
 
-The server page of the [web panel](/docs/gui-overview) has a **Packages** tab: the whole catalog, each entry with what it brings (`ffmpeg, ffprobe`, or *Libraries*), what a partial install lacks, the pinned version of an *Upstream* entry (and **Update to x.y.z** when an older one is installed), and since panel 4.6.0 ([API](/docs/api#endpoints-packages) 1.44, Cipi 5.14.0 on the server) **Install**, **Complete install** and **Remove**, confirmed and run as jobs.
+The server page of the [web panel](/docs/gui-overview) has a **Packages** tab: the whole catalog, each entry with what it brings (`ffmpeg, ffprobe`, or *Libraries*), what a partial install lacks, the pinned version of an *Upstream* entry (and **Update to x.y.z** when an older one is installed), and **Install**, **Complete install** and **Remove**, confirmed and run as jobs over the [API](/docs/api#endpoints-packages).
 
 Changing needs **Manage** on the server, and the token the `packages-manage` ability. The panel takes only ids the page lists, and the server's catalog is closed whatever is sent: the panel passes `--yes`, its `--force` and `--autoremove` are ignored and the disk check holds. The [MCP server](/docs/mcp) lists the catalog but doesn't install or remove.

@@ -104,7 +104,7 @@ if ($access && $access['status'] !== 'ok') {      // ok, nobranch or denied
 ```php
 $cipi->wait($cipi->deploys()->start('shop'));
 $cipi->deploys()->rollback('shop');
-$cipi->deploys()->unlock('shop');               // also resumes a paused commit (Cipi 5.13.0+)
+$cipi->deploys()->unlock('shop');               // also resumes a paused commit
 $cipi->deploys()->audit('shop', days: 30);
 $cipi->deploys()->status('shop', tail: 50);   // running, queued, interrupted, idle; paused_commit
 $cipi->deploys()->history('shop', limit: 10);
@@ -153,7 +153,17 @@ $cipi->nginx()->update('shop', "client_max_body_size 512M;\n");     // sync: ngi
 $cipi->nginx()->reset('shop');
 ```
 
-`nginx()` reads and replaces [an app's own Nginx directives](/docs/nginx#custom) (API 1.44+, Cipi 5.14+). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
+`nginx()` reads and replaces [an app's own Nginx directives](/docs/nginx#custom). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
+
+```php
+$cipi->cache()->enable('blog', ttl: '1h', size: '1g');   // nginx's page cache: sync, nginx -t first
+$cipi->cache()->show('blog')['data'];                    // enabled, ttl, files, bytes, clear_command, …
+$cipi->cache()->exclude('blog', ['/wishlist*', '/feed']);  // its own paths never cached: the whole list, [] for none
+$cipi->cache()->clear('blog')['data']['cleared'];        // pages deleted
+$cipi->cache()->disable('blog');
+```
+
+`cache()` is the [page cache](/docs/page-cache) of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call `clear()` when content changes without one. `exclude()` sets the [paths of its own](/docs/page-cache#exclude) an app keeps out — `*` is anything — and `enable()` takes the same list as `exclude:`.
 
 @section sdk-data
 
@@ -161,7 +171,7 @@ $cipi->nginx()->reset('shop');
 
 ```php
 $cipi->env()->update('shop', ['APP_ENV' => 'production'], ['TELESCOPE_ENABLED']);  // merge, unset
-$cipi->env()->reorder('shop', $keysInOrder);   // every key once (API 1.43+, Cipi 5.13.0+)
+$cipi->env()->reorder('shop', $keysInOrder);   // every key once
 $cipi->authJson()->replace('shop', ['http-basic' => ['repo.example.com' => ['username' => 'token', 'password' => $secret]]]);
 
 $cipi->wait($cipi->databases()->create('shop_reports', 'pgsql', app: 'shop'));
@@ -177,7 +187,7 @@ $cipi->wait($cipi->databases()->restoreLocal('shop', __DIR__.'/shop.sql.gz'));  
 ```php
 $cipi->backups()->createProfile('nightly', [
     'scope' => 'all', 'every' => '1d', 'destinations' => ['s3'], 'keep_days' => 14, 'encrypt' => true,
-    'exclude_paths' => ['storage/app/uploads'],    // API 1.43+, Cipi 5.13.0+
+    'exclude_paths' => ['storage/app/uploads'],
 ]);
 $cipi->backups()->status()['data']['uncovered'];   // what no enabled profile takes
 $cipi->backups()->run('nightly');                  // starts and returns, not a job
@@ -201,14 +211,29 @@ $cipi->disk()->usage();
 $cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d');   // ~240 points of [ts, avg, max]
 $cipi->metrics()->uptime('shop', '30d');
 $cipi->metrics()->setHeartbeat('https://hc-ping.com/<uuid>', every: 1);
-$cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' => '-1001234', 'test' => true]);   // 1.9+
+$cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' => '-1001234', 'test' => true]);
 $cipi->notifications()->update('oncall', ['chat_id' => '-1009999']);   // the token is kept
 $cipi->notifications()->setTriggers(['deploy_success' => false]);
 $cipi->wait($cipi->node()->upgrade(24, restart: true));
-$cipi->wait($cipi->packages()->install('browsershot'));   // API 1.44+, Cipi 5.14+
+$cipi->wait($cipi->packages()->install('browsershot'));
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet
 ```
+
+```php
+$o = $cipi->octane()->show('shop')['data'];           // php, octane_php, state, available_php, fix
+$cipi->wait($cipi->octane()->php('shop', '8.6'));     // Octane and the server's PHP on 8.6, by its number
+$cipi->wait($cipi->octane()->restart('shop'));
+
+$cipi->valkey()->list()['data']['shared'];            // apps still on the shared Valkey
+$cipi->wait($cipi->valkey()->isolateAll());           // each its own instance
+$cipi->valkey()->flushShared();                       // then: empty the shared one, change its password
+
+$cipi->notifications()->setTimezone('Europe/Rome');   // the Time line of every notification
+$cipi->notifications()->setServerName('production');  // "production (vmi12334)"
+```
+
+`octane()` is [the PHP of an Octane app](/docs/octane#octane-php), `valkey()` is [Valkey per app](/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](/docs/notifications#written).
 
 Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
 

@@ -12,7 +12,7 @@ $ cipi metrics events --source=deploy      # what changed, when
 $ cipi metrics status                      # collector, size, retention
 ```
 
-Every command takes `--json`. Requires Cipi 5.11.0. What each number means and how to read them together to find a cause: [Cipi metrics explained](/guides/cipi-metrics-server-app-uptime).
+Every command takes `--json`. What each number means and how to read them together to find a cause: [Cipi metrics explained](/guides/cipi-metrics-server-app-uptime).
 
 ## What is recorded {#collected}
 
@@ -76,7 +76,7 @@ Names carry their unit: `cipi_host_cpu_percent`, `cipi_app_requests_per_minute{a
 
 ## In the web panel {#in-the-panel}
 
-The **Metrics** tab of each server and of each app (panel 4.3.0+): charts over 1 hour to 30 days with every deploy and incident marked on them, a tooltip on hover, 30-day uptime bars per app, the events timeline, and — for server managers — retention, probe and heartbeat. While the tab is open it refreshes every 30 seconds.
+The **Metrics** tab of each server and of each app: charts over 1 hour to 30 days with every deploy and incident marked on them, a tooltip on hover, 30-day uptime bars per app, the events timeline, and — for server managers — retention, probe and heartbeat. While the tab is open it refreshes every 30 seconds.
 
 <cipi-clips name="metrics"></cipi-clips>
 
@@ -154,7 +154,7 @@ Server managers see the settings card at the bottom of the server tab: how big t
 
 | Interface | What |
 | --- | --- |
-| [REST API](/docs/api) 1.41 | `GET /api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `GET\|PUT /api/metrics/settings`, `PUT\|DELETE /api/metrics/heartbeat` — abilities `metrics-view`, `metrics-manage` |
+| [REST API](/docs/api) | `GET /api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `GET\|PUT /api/metrics/settings`, `PUT\|DELETE /api/metrics/heartbeat` — abilities `metrics-view`, `metrics-manage` |
 | [MCP](/docs/mcp) | `MetricsOverview`, `MetricsSeries`, `MetricsUptime`, `MetricsEvents`, `MetricsSettingsShow`, `MetricsSettingsUpdate` — ask an assistant "when did the 5xx on shop start?" |
 | [PHP SDK](/docs/php-sdk) 1.8 | `$cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d')` |
 | [cipi-cli](/docs/cli-client) | `cipi-cli metrics`, `metrics show --app shop`, `metrics uptime`, `metrics heartbeat set …` |
@@ -176,5 +176,5 @@ $ cipi metrics reset --yes    # delete the history
 | Is "memory of an app" exact? | It is the sum of the resident memory of its processes; pages PHP-FPM children share count once per child, so it is an upper bound. Watch the trend. |
 | Where do requests and 5xx come from? | The app's Nginx access log, read from where the previous minute stopped, so log rotation is followed. |
 | My app is behind basic auth and the health check fails | The healthcheck URL gets 401 like any visitor. The [cipi/agent routes](/docs/basic-auth#agent) stay public; for the health check use a URL outside the protected app or turn the per-minute probe off. |
-| The Metrics tab says *sudo: I'm sorry www-data. I'm afraid I can't do that* | The panel API runs `cipi` through a sudo whitelist (`/etc/sudoers.d/cipi-api`) that did not contain the metrics commands. On Ubuntu 26.04, whose `sudo` is sudo-rs, a single rule with more than about 127 commands is refused as a whole, so 5.11.0 and 5.11.1 could not write the new list there. Run `sudo cipi self-update` to 5.11.2 or later: the list is split into rules of 40 and checked with `visudo` before it replaces the old one. Check with `sudo -l -U www-data \| grep -c 'cipi metrics'` (more than 0). |
-| Does it need anything installed? | The `sqlite3` CLI, installed by the 5.11.0 update (`apt-get install -y sqlite3` if apt could not). |
+| The Metrics tab says *sudo: I'm sorry www-data. I'm afraid I can't do that* | The panel API runs `cipi` through a sudo whitelist (`/etc/sudoers.d/cipi-api`) that does not contain the metrics commands: it was written by an old Cipi release. On Ubuntu 26.04, whose `sudo` is sudo-rs, a single rule with more than about 127 commands is refused as a whole, which is how a list could fail to be written there. Run `sudo cipi self-update`: the list is split into rules of 40 and checked with `visudo` before it replaces the old one. Check with `sudo -l -U www-data \| grep -c 'cipi metrics'` (more than 0). |
+| Does it need anything installed? | The `sqlite3` CLI, which Cipi installs by itself (`apt-get install -y sqlite3` if apt could not). |

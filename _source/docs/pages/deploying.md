@@ -23,7 +23,7 @@ Restart & verify | workers, health check
 
 Deployer and Composer always use **the app's PHP version**, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a [front-end build](/docs/manage-apps#edit) run it before the swap.
 
-Workers are not stopped before the swap (since 5.13.0): the deploy never waits for a long job, and jobs keep running on the previous release until it is live. Write migrations the previous release can live with for a minute — add columns before using them, drop them a release later — as you would for any zero-downtime deploy. See [workers during deploys](/docs/workers#deploys).
+Workers are not stopped before the swap: the deploy never waits for a long job, and jobs keep running on the previous release until it is live. Write migrations the previous release can live with for a minute — add columns before using them, drop them a release later — as you would for any zero-downtime deploy. See [workers during deploys](/docs/workers#deploys).
 
 ## Commands {#commands}
 
@@ -65,7 +65,7 @@ The success notice is sent only **after** the post-deploy health check, so it ne
 
 `--status` also shows **Paused** when a commit's automatic deploy failed ([below](#paused)); `--status --json` has it as `paused_commit`.
 
-A failed deploy releases its own lock, and since 5.13.0 the lock of an interrupted one is removed by the next deploy, automatic or by hand, when no deploy of the app is alive (the deploy log says so). `--unlock` is only for clearing it right away.
+A failed deploy releases its own lock, and the lock of an interrupted one is removed by the next deploy, automatic or by hand, when no deploy of the app is alive (the deploy log says so). `--unlock` is only for clearing it right away.
 
 ## Pushes during a deploy {#queue}
 

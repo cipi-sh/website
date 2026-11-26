@@ -19,7 +19,7 @@ myapp@server:~$ ll ~/releases/
 
 The app's shell has `ll`, `deploy` and `composer` shortcuts.
 
-With the [web panel](/docs/gui-overview) (4.6.0+), the app page shows the user, the server's IP and this `ssh` command, each copied with a click.
+In the [web panel](/docs/gui-overview), the app page shows the user, the server's IP and this `ssh` command, each copied with a click.
 
 ## Control access {#access}
 

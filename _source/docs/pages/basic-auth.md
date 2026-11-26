@@ -7,7 +7,7 @@ Put any app behind a username and password at the Nginx level: staging sites, in
 ```bash
 $ cipi basicauth enable myapp                          # generates credentials, shown once
 $ cipi basicauth enable myapp --user=client --password='…'
-$ cipi basicauth status myapp [--json]       # --json: enabled, users, agent (5.13.0+)
+$ cipi basicauth status myapp [--json]       # --json: enabled, users, agent
 $ cipi basicauth disable myapp
 $ cipi basicauth agent myapp protected     # keep cipi/agent behind it too (default: public)
 ```
@@ -23,7 +23,7 @@ $ cipi basicauth agent myapp protected     # keep cipi/agent behind it too (defa
 
 ## cipi/agent stays reachable {#agent}
 
-The [Cipi Agent](/docs/agent-install) routes — `/cipi/webhook`, `/cipi/health`, `/cipi/mcp`, the anonymizer — check their own tokens, and the services that call them (a Git provider's push webhook, an MCP client, the panel) can't send your site's password. So since Cipi 5.11.0, while basic auth is on and **the live release has `cipi/agent`**, its prefix is left out of basic auth:
+The [Cipi Agent](/docs/agent-install) routes — `/cipi/webhook`, `/cipi/health`, `/cipi/mcp`, the anonymizer — check their own tokens, and the services that call them (a Git provider's push webhook, an MCP client, the panel) can't send your site's password. So, while basic auth is on and **the live release has `cipi/agent`**, its prefix is left out of basic auth:
 
 | | |
 | --- | --- |
@@ -45,4 +45,4 @@ Not to be confused with `cipi auth`, which manages Composer credentials for priv
 | Does the health check pass behind basic auth? | No: the healthcheck URL gets 401 like any visitor. Point it at a public URL, or remove it while the site is protected. |
 | Can I keep it in the repository? | Yes, in [cipi.yml](/docs/yml) under `app.basic_auth`, with names or bcrypt hashes, never plain passwords. |
 | Where do I see the generated password? | It's shown once by `enable`. Run `enable` again with `--user` and `--password` to set new ones. |
-| The panel's Access tab shows `[1mBasic auth — app[0m ━━━ Status …` | Cipi 5.11–5.12 exited with an error after printing the status of an app without cipi/agent, and the API passed the raw output on. Fixed in Cipi 5.13.0 (`sudo cipi self-update`); panel 4.5 also reads it right from an older server. |
+| The panel's Access tab shows `[1mBasic auth — app[0m ━━━ Status …` | An old Cipi release exited with an error after printing the status of an app without cipi/agent, and the API passed the raw output on. Update the server (`sudo cipi self-update`); an up-to-date panel also reads it right from a server that isn't. |

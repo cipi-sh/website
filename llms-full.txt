@@ -459,6 +459,8 @@ The PHP an Octane app runs is the one compiled into its FrankenPHP binary. Cipi 
 $ cipi frankenphp                      # each app's build and PHP, patched or not
 $ cipi frankenphp upgrade myapp        # newest build on the same PHP minor
 $ cipi frankenphp upgrade --all
+$ cipi frankenphp php myapp 8.6        # another PHP version: Octane and the rest together
+$ cipi frankenphp restart myapp        # restart Octane on its build, checked
 $ cipi frankenphp use myapp            # pin a specific build
 $ cipi frankenphp import ./frankenphp  # a build you compiled (other PHP minor)
 $ cipi frankenphp adopt myapp          # pin the binary Octane downloaded
@@ -473,7 +475,47 @@ $ cipi frankenphp prune                # remove unused builds
 | Apps on different PHP minors use different builds | 8.5 and 8.6 coexist |
 | Nightly patches via `cipi autoupdate` (component `frankenphp`) | Security fixes without manual work |
 
-To move an app to a new PHP minor: `cipi app edit myapp --php=8.6`, then `cipi frankenphp upgrade myapp`.
+## One app, two PHP: switch by version 
+
+An Octane app runs **two PHP**. The one built into its FrankenPHP binary answers the requests; the server's `php8.5` runs everything else — `composer install` at a deploy, `artisan`, the scheduler, the queue workers. They should be the same version, and they drift when a FrankenPHP release carries a newer PHP than the app was created with. `cipi pending` and `cipi php` then say so:
+
+```text
+gameportal is on PHP 8.5, but Octane answers requests on PHP 8.6.0 (FrankenPHP build 1.14.0-php8.6.0-…),
+while Composer, artisan, cron and the workers run PHP 8.5
+  → cipi frankenphp php gameportal 8.5
+```
+
+You say **which PHP**, by its number, as for any other app — not "upgrade" and see what arrives:
+
+```bash
+$ cipi frankenphp php myapp            # what answers requests, what runs the rest
+$ cipi frankenphp php myapp 8.5        # both on PHP 8.5
+$ cipi frankenphp php myapp 8.6        # or both on 8.6
+$ cipi app edit myapp --php=8.6        # the same thing, from the app's side
+$ cipi frankenphp restart myapp        # restart Octane on its build, and check it
+```
+
+```flow
+Find the build | PHP 8.5 inside
+> The newest FrankenPHP build on the server that carries that PHP. When there is none, the latest release is fetched from FrankenPHP's releases and checked against its digest.
+Start Octane on it | must answer
+> Octane restarts on the new build and has to answer on its port.
+Did not answer | previous build back
+> When it doesn't, the previous build comes back and nothing else has changed.
+Move the rest | Composer, artisan, cron, workers
+> Then the server's PHP of the app moves: the CLI, the crontab, the workers, `composer install` at the next deploy.
+```
+
+| | |
+| --- | --- |
+| **The PHP must be installed** | `cipi php install 8.6` first: Composer, artisan and the workers need the server's `php8.6` |
+| **A release carries one PHP** | FrankenPHP publishes one binary per release, with one PHP inside. When no release carries the version you ask for, Cipi says which exist, and how to [import a build](#cli-frankenphp) of your own |
+| **`upgrade` never changes version** | `cipi frankenphp upgrade` stays on the app's PHP minor: it is for security fixes of that PHP. Another version is `cipi frankenphp php` |
+| **Isolated per app** | Each Octane app has its own pinned build: moving one never touches another, and apps on 8.5 and 8.6 run side by side |
+
+### From the panel 
+
+An Octane app has an **Octane** tab in the [web panel](https://cipi.sh/docs/gui-overview): the PHP that answers the requests next to the PHP that runs the rest, a warning when they are two versions with a button that puts them on one, **Switch PHP** among the versions installed on the server, **Restart Octane** and **Update the build**. It takes *Edit* on the app. The same through the [API](https://cipi.sh/docs/api#endpoints-octane) (`GET /api/apps/{name}/octane`, `PUT …/octane/php`, `POST …/octane/restart`), the [PHP SDK](https://cipi.sh/docs/php-sdk) (`$cipi->octane()->php('myapp', '8.6')`) and [cipi-cli](https://cipi.sh/docs/cli-client) (`cipi-cli octane php myapp 8.6`).
 
 > [!tip] Octane serves HTTP only. Run long jobs on [queue workers or Horizon](https://cipi.sh/docs/workers) and WebSockets on [Reverb](https://cipi.sh/docs/reverb).
 
@@ -481,6 +523,7 @@ To move an app to a new PHP minor: `cipi app edit myapp --php=8.6`, then `cipi f
 
 | Problem | Fix |
 | --- | --- |
+| *Octane answers on PHP 8.6, the app is on 8.5* | Two PHP in one app: `cipi frankenphp php myapp 8.5` (or `8.6`) — [switch by version](#octane-php) |
 | 502 after converting | Octane not running: `cipi worker list myapp`, logs with `--type=worker` |
 | Users see others' data | A state leak in long-lived objects: see the [Octane guide](https://cipi.sh/guides/laravel-octane-frankenphp#state) |
 
@@ -489,6 +532,8 @@ To move an app to a new PHP minor: `cipi app edit myapp --php=8.6`, then `cipi f
 | Question | Answer |
 | --- | --- |
 | Can I go back to PHP-FPM? | Yes: `cipi app convert myapp --to=fpm`. |
+| How do I change PHP version? | `cipi frankenphp php myapp 8.6` — or `cipi app edit myapp --php=8.6`, or the app's Octane tab in the panel. Octane and the server's PHP move together. |
+| Octane and the page cache together? | Yes: [`cipi cache myapp on`](https://cipi.sh/docs/page-cache) puts Nginx's cache in front of Octane for the pages that can be kept. |
 | How many workers? | Start with one per CPU core: `cipi app limits myapp --octane-workers=4`. |
 
 
@@ -524,6 +569,194 @@ $ cipi app jit myapp --json                          # current state
 A value forced with [cipi ini](https://cipi.sh/docs/php#cli-ini) wins. `cipi app convert` resets JIT. Panel API: `GET|PUT /api/apps/{name}/jit`.
 
 > [!tip] Measure before and after on your real workload; keep JIT only where it pays.
+
+> [!note] JIT and OPcache make PHP run faster. For pages that are the same for every visitor there is something quicker than running PHP: not running it — the [page cache](https://cipi.sh/docs/page-cache).
+
+
+## Page cache
+
+URL: https://cipi.sh/docs/page-cache
+
+The page cache is Nginx's: it keeps the page PHP made and answers the next visitors with it, **without running PHP at all**. One command turns it on for an app. It's built for WordPress and for any site whose pages are the same for everyone who isn't signed in.
+
+```bash
+$ cipi cache blog on                 # pages kept 10 minutes, up to 256 MB on disk
+$ cipi cache blog on --ttl=1h --size=1g
+$ cipi cache blog ttl 30m            # how long a page is kept
+$ cipi cache blog clear              # delete the cached pages now
+$ cipi cache blog exclude add '/feed'   # a path of your own that is never cached
+$ cipi cache blog off                # every request runs PHP again
+$ cipi cache blog                    # on or off, pages and bytes now   (--json)
+$ cipi cache                         # every app
+```
+
+## OPcache is already on. This is the other cache 
+
+Every PHP on a Cipi server runs with **OPcache** on, and there is nothing to enable: OPcache keeps PHP's *compiled code* in memory, so PHP doesn't read and parse its files at every request.
+
+But with OPcache **PHP still runs**. For every visitor the framework boots, WordPress loads its plugins and theme, the database answers its queries and the same page is built again. That work is what takes the time.
+
+The page cache keeps **the page itself**. Nginx answers from its disk and PHP never starts. The two add up: OPcache makes building a page quicker, the page cache makes every visit after the first one free.
+
+| | OPcache | Page cache |
+| --- | --- | --- |
+| **Keeps** | PHP's compiled code, in memory | The finished HTML page, on disk |
+| **PHP runs** | At every request | Only when a page isn't kept (or has expired) |
+| **The database is asked** | At every request | Only then, too |
+| **On a Cipi server** | Always on | Off until `cipi cache  on` |
+| **Who it helps** | Every PHP app | Pages that are the same for every visitor |
+| **Needs emptying** | No: a deploy reloads it | Yes, when the content changes — [Cipi does it after a deploy](#clear) |
+
+## What you get 
+
+| | |
+| --- | --- |
+| **WordPress, WooCommerce, blogs, catalogues, landing pages** | A page comes back in about a millisecond instead of a few hundred |
+| **Traffic peaks** | A newsletter, an ad campaign, a post that goes around: a small server holds what would have filled its PHP workers, because most visitors never reach PHP |
+| **A safety net** | While PHP or the database is slow or down, Nginx keeps answering with the page it has (stale pages are served on errors and timeouts) |
+| **Nothing to install in the app** | No cache plugin, no change to the code; turning it off is one command |
+
+It does nothing for pages that differ per visitor — a dashboard, an account page — and it isn't asked to: those are [never cached](#never).
+
+## What is never cached 
+
+Every rule fails towards *not cached* — a page that is slower, never a private page shown to someone else.
+
+| Never cached | Why |
+| --- | --- |
+| Anything but `GET` and `HEAD` | A form, a checkout, an API write must reach PHP |
+| A visitor with a session or login cookie | WordPress and WooCommerce (`wordpress_logged_in_`, the cart, a password-protected post), PHP's `PHPSESSID`, Laravel's `_session` and `remember_web_` |
+| A request with an `Authorization` header | API tokens, basic auth |
+| `/wp-admin`, `wp-login.php`, `wp-cron.php`, `xmlrpc.php`, `/wp-json` | Back offices and what must run every time |
+| A URL with a query string | Searches, filters, previews. Tracking parameters alone (`utm_*`, `fbclid`, `gclid`…) don't count: the link a newsletter sends to everybody is cached |
+| A response that sets a cookie, or says `Cache-Control: private`, `no-cache` or `no-store` | The app's own headers are respected: what it marks private stays private |
+| The paths the app adds itself | What none of the rules above can see — [paths of your own](#exclude) |
+
+The time you set is for pages that say nothing themselves: a response with its own `Cache-Control: max-age` is kept that long instead. A page that isn't there (404) is kept for a minute at most.
+
+> [!note] **Laravel chooses its pages.** Laravel marks every response `no-cache, private`, and a route of the `web` group starts a session — so nothing is cached until a route says so. Give the pages that are the same for everyone a route without session and cookies, and mark it public: `->middleware('cache.headers:public;max_age=600')`. WordPress needs nothing: its public pages carry no such header.
+
+### Paths of your own 
+
+The rules above read cookies and headers. A page they can't tell from a public one is a path you add: a page that differs per visitor with no cookie or header saying so (a wishlist kept in the browser, a price by country), a feed that must always be fresh, a page with a counter.
+
+```bash
+$ cipi cache shop exclude add '/wishlist*' '/feed'
+$ cipi cache shop exclude                       # the list: Cipi's own rules and the app's   (--json)
+$ cipi cache shop exclude remove '/feed'        # --all for none of its own
+$ cipi cache shop exclude set '/wishlist*,/feed,/sitemap*.xml'   # exactly these
+$ cipi cache shop on --exclude='/wishlist*,/feed'   # with the rest, when turning it on
+```
+
+| Path | What it keeps out |
+| --- | --- |
+| `/cart*` | Everything that starts so — `/cart`, `/cart/`, `/cart/items`. `*` stands for anything, slashes included |
+| `/feed` | The path itself, with or without its last slash and whatever its query string — not `/feed/atom` |
+| `/shop/*/reviews` | A `*` in the middle |
+| `/sitemap*.xml` | `/sitemap.xml`, `/sitemap_index.xml` |
+
+Upper and lower case are the same. A path is made of letters, digits, `. _ ~ % - /` and `*` — a path with other characters is written as the browser sends it (`/caff%C3%A8`) — and an app has 50 at most. `/*` is refused: every page is `cipi cache  off`. Quote a path with a `*`, or the shell expands it. With the cache off the list is kept, and applies when it is turned on. An excluded page answers `X-Cache-Status: BYPASS`.
+
+> [!tip] WooCommerce's cart, checkout and account stay out already, whatever their address: by their cookies and by the `no-cache` headers WooCommerce sends on those pages. Adding their paths as well costs nothing, and no longer depends on a plugin or a theme leaving those headers alone — with your shop's own addresses if they are translated: `cipi cache shop exclude add '/cart*' '/checkout*' '/my-account*'`.
+
+### Check a page 
+
+Every response says what happened in the `X-Cache-Status` header:
+
+```bash
+$ curl -sI https://blog.example.com/ | grep -i x-cache-status
+X-Cache-Status: HIT
+```
+
+| Value | Meaning |
+| --- | --- |
+| `MISS` | Not kept yet: PHP made it, and it is kept now |
+| `HIT` | Answered from the cache; PHP didn't run |
+| `BYPASS` | One of the rules above: a cookie, a query string, an admin path, a [path of your own](#exclude) |
+| `EXPIRED` | Its time was up: PHP made it again |
+| `STALE`, `UPDATING` | The old page was served while a new one is made, or because PHP didn't answer |
+
+## When the content changes 
+
+A cached page is the old page until it expires or the cache is emptied.
+
+| Situation | What to do |
+| --- | --- |
+| **A deploy run by Cipi** — `cipi deploy`, the Git webhook, the panel's Deploy button, a rollback | **Nothing.** Cipi empties the cache after every successful deploy and rollback, and the notification says how many pages went |
+| **By hand** | `cipi cache blog clear`, or **Empty the cache now** in the [panel](#panel) |
+| **A deploy recipe of your own, a CI job, a cron, the app's code** | One command, as the app's own user — below |
+| **Nothing at all** | With pages kept 10 minutes, an edit shows up by itself within 10 minutes |
+
+### In a deploy recipe or a script 
+
+The cached files belong to Nginx, so the app's user can't delete them. It may ask root for exactly one thing — no password, and only for its own app:
+
+```bash
+$ sudo /usr/local/bin/cipi-cache-clear blog
+Page cache of 'blog' emptied — 128 page(s)
+```
+
+In a Deployer recipe of your own ([customize the pipeline](https://cipi.sh/docs/deploy-script)), after the new release is live:
+
+```php
+// deploy.php
+after('deploy:symlink', function () {
+    run('sudo /usr/local/bin/cipi-cache-clear blog');
+});
+```
+
+From a CI job or a script over SSH:
+
+```bash
+$ ssh blog@your-server 'sudo /usr/local/bin/cipi-cache-clear blog'
+```
+
+In WordPress, when a post is saved — a must-use plugin of five lines:
+
+```php
+ /dev/null 2>&1 &');
+});
+```
+
+> [!tip] You don't need this with Cipi's own deploys: adding it to a recipe Cipi runs only empties the cache twice. To keep the cache across deploys instead — a site whose deploys never change its pages — `cipi cache blog on --no-deploy-clear`.
+
+## How it's set up 
+
+| | |
+| --- | --- |
+| **PHP-FPM apps** (Laravel, WordPress, any PHP app) | `fastcgi_cache` in the app's vhost |
+| **Octane apps** | `proxy_cache`, in front of Octane |
+| **Node apps** | Not available: their pages come from their own server |
+| **Where the pages are** | `/var/cache/nginx/cipi/`, one zone per app — no app reads another's |
+| **Size** | `--size` (16m to 100g, default 256m): past it Nginx drops the pages asked for least |
+| **Time** | `--ttl` or `cipi cache  ttl` — `30s`, `10m`, `1h`, `7d`, thirty days at most |
+| **Paths of its own** | A `map` per app next to its zone, named in both `*_cache_bypass` and `*_no_cache`: an excluded page is neither read from the cache nor written to it |
+| **Concurrency** | One request builds a missing page; the others wait for it instead of all hitting PHP |
+
+`nginx -t` runs before the reload: if Nginx refuses, the vhost goes back to what it was and you get its reason. The setting lives with the app, so it follows [`cipi sync`](https://cipi.sh/docs/sync); a suspended app keeps it and gets it back when unsuspended. Turning the cache on or off notifies `app_cache`.
+
+## From the panel, the API, the SDK and cipi-cli 
+
+The app's **Page cache** tab in the [web panel](https://cipi.sh/docs/gui-overview) turns it on and off, sets the time and the size, shows the pages kept now and has **Empty the cache now**. **Paths that are never cached** takes the [paths of your own](#exclude), one per line, checked before they are saved. It also says what this page says — what OPcache already does, what the page cache adds, what is never cached — and shows the command for a recipe of your own with the app's name in it, ready to copy. Turning it on or off takes *Edit* on the app; emptying it comes with *Deploy* too.
+
+| | |
+| --- | --- |
+| **API** | `GET` and `PUT /api/apps/{name}/cache`, `PUT /api/apps/{name}/cache/exclude`, `POST /api/apps/{name}/cache/clear`, `GET /api/cache` — abilities `nginx-view`, `nginx-manage` ([endpoints](https://cipi.sh/docs/api#endpoints-cache)) |
+| **PHP SDK** | `$cipi->cache()->enable('blog', ttl: '1h')`, `->exclude('blog', ['/feed'])`, `->clear('blog')`, `->disable('blog')` |
+| **cipi-cli** | `cipi-cli cache on blog --ttl 1h`, `cipi-cli cache exclude blog add '/feed'`, `cipi-cli cache clear blog` |
+| **MCP** | `PageCacheShow`, `PageCacheUpdate`, `PageCacheClear` |
+
+## Questions 
+
+| Question | Answer |
+| --- | --- |
+| Is it the cache of RunCloud Hub, RunCache or a WordPress cache plugin? | The same engine — Nginx's FastCGI cache — with the other way of keeping it fresh. Those keep a page for hours and rely on a WordPress plugin to delete it when its post changes. Cipi keeps a page 10 minutes and needs nothing inside WordPress: an edit shows up by itself. For the first way, give pages a long time (`cipi cache blog ttl 8h`) and add the [five lines that empty the cache when a post is saved](#recipe) — the whole cache of the app, not the single page. |
+| Do I still need a WordPress cache plugin? | Not for page caching: Nginx does it before PHP starts, which a plugin can't. An object cache (queries, in [Valkey](https://cipi.sh/docs/valkey)) is a different thing and still helps the pages that do reach PHP. |
+| A visitor signs in: does he see a cached page? | No. A session or login cookie bypasses the cache, in both directions: nothing is read from it and nothing is stored. |
+| Is it safe with WooCommerce? | The cart, the checkout and the account are never cached (cookies and `POST`). Catalogue pages are, for visitors with an empty cart. |
+| I changed a page and still see the old one | Wait for its time, or `cipi cache  clear`. Check with `X-Cache-Status`. |
+| Does it work behind Cloudflare? | Yes: they are two caches in a row, and Cloudflare's is emptied on its side — `cipi zt purge  --on-deploy=on` does it after every deploy ([Cloudflare's cache](https://cipi.sh/docs/zero-trust#purge)). |
+| Does it replace Octane? | No. Octane makes PHP answer faster for every request; the page cache skips PHP for the pages that can be kept. An Octane app can have both. |
 
 
 ## Node apps
@@ -773,7 +1006,7 @@ $ cipi app env myapp --show [--json]
 $ cipi app env myapp --get=APP_URL
 $ cipi app env myapp --set=APP_DEBUG=false
 $ cipi app env myapp --unset=LEGACY_KEY
-$ cipi app env myapp --order=APP_NAME,APP_ENV,…   # every key once (5.13.0+)
+$ cipi app env myapp --order=APP_NAME,APP_ENV,…   # every key once
 $ cipi worker restart myapp                   # after changing queue or cache drivers
 ```
 
@@ -781,7 +1014,7 @@ Deploys cache the config, so rebuild it after a change: `cipi app artisan myapp 
 
 ## Reorder 
 
-`--order` puts the keys in the order you list (Cipi 5.13.0+). The list names **every key once**; anything else is refused and the file is left as it was. It runs after `--set`/`--unset` in the same call, so a new key can go straight where it belongs:
+`--order` puts the keys in the order you list. The list names **every key once**; anything else is refused and the file is left as it was. It runs after `--set`/`--unset` in the same call, so a new key can go straight where it belongs:
 
 ```bash
 $ cipi app env myapp --set=SENTRY_DSN=… --order=APP_NAME,…,LOG_CHANNEL,SENTRY_DSN,…
@@ -819,9 +1052,9 @@ Your own keys (Stripe, mail, APIs) go anywhere in the file and are never overwri
 
 ## In the web panel 
 
-Edit the `.env` with secrets masked and changes tracked, and drag rows by their handle (or use ↑/↓ on it) to reorder them: the new order is saved with your other changes (panel 4.5+, Cipi 5.13.0+).
+Edit the `.env` with secrets masked and changes tracked, and drag rows by their handle (or use ↑/↓ on it) to reorder them: the new order is saved with your other changes.
 
-Variables that arrive as a block — from a README, a chat, another `.env` — don't have to be typed row by row (panel 4.6.0+). **Paste variables** takes `KEY=value` lines and splits them into the list: known keys take the new value, new ones are added, nothing is removed. **Edit as text** shows the whole list as text to edit by hand; what you apply replaces the list, so a line you take out removes that key. Quotes, `export`, comments and blank lines are understood; a value has to stay on one line. Either way nothing is sent until you press **Save .env**. The [web panel](https://cipi.sh/docs/gui) is optional; everything here also works from the CLI.
+Variables that arrive as a block — from a README, a chat, another `.env` — don't have to be typed row by row. **Paste variables** takes `KEY=value` lines and splits them into the list: known keys take the new value, new ones are added, nothing is removed. **Edit as text** shows the whole list as text to edit by hand; what you apply replaces the list, so a line you take out removes that key. Quotes, `export`, comments and blank lines are understood; a value has to stay on one line. Either way nothing is sent until you press **Save .env**. The [web panel](https://cipi.sh/docs/gui) is optional; everything here also works from the CLI.
 
 ## Common problems 
 
@@ -895,7 +1128,7 @@ Restart workers | after the job in hand
 > Horizon and the queue workers get SIGTERM: each finishes the job it is running and exits, and Supervisor starts it again on the new release. Octane and Reverb are restarted; a program that was not running is started.
 ```
 
-Since 5.13.0 nothing stops before the swap: before, a deploy waited for every running job and could fail after 300 seconds with Horizon left in `STOPPING` ([#536](https://github.com/cipi-sh/cipi/issues/536)). The flip side is that jobs taken before the swap run on the previous release, also after the migrations: keep migrations backward compatible for one release (add a column, deploy, then use it). Supervisor restarts a worker after any exit. Workers can also be declared in [cipi.yml](https://cipi.sh/docs/yml).
+Nothing stops before the swap, so a deploy never waits for a running job. The flip side is that jobs taken before the swap run on the previous release, also after the migrations: keep migrations backward compatible for one release (add a column, deploy, then use it). Supervisor restarts a worker after any exit. Workers can also be declared in [cipi.yml](https://cipi.sh/docs/yml).
 
 ## As the app user 
 
@@ -913,7 +1146,7 @@ $ sudo cipi-worker restart myapp
 | Jobs never run | No worker on that queue, or `QUEUE_CONNECTION=redis` without Horizon |
 | Job killed after 60 s | Set `public $timeout` on the job and raise `retry_after` |
 | Workers run old code | A long job started before the deploy finishes on the old release; the worker then restarts on the new one. Otherwise `cipi worker restart myapp` |
-| Horizon stuck in `STOPPING` after a deploy | Cipi before 5.13.0: `sudo cipi self-update`; deploys no longer wait for running jobs |
+| Horizon stuck in `STOPPING` after a deploy | An old Cipi release, whose deploys waited for running jobs: `sudo cipi self-update` |
 
 ## Questions 
 
@@ -1146,7 +1379,7 @@ Put any app behind a username and password at the Nginx level: staging sites, in
 ```bash
 $ cipi basicauth enable myapp                          # generates credentials, shown once
 $ cipi basicauth enable myapp --user=client --password='…'
-$ cipi basicauth status myapp [--json]       # --json: enabled, users, agent (5.13.0+)
+$ cipi basicauth status myapp [--json]       # --json: enabled, users, agent
 $ cipi basicauth disable myapp
 $ cipi basicauth agent myapp protected     # keep cipi/agent behind it too (default: public)
 ```
@@ -1162,7 +1395,7 @@ $ cipi basicauth agent myapp protected     # keep cipi/agent behind it too (defa
 
 ## cipi/agent stays reachable 
 
-The [Cipi Agent](https://cipi.sh/docs/agent-install) routes — `/cipi/webhook`, `/cipi/health`, `/cipi/mcp`, the anonymizer — check their own tokens, and the services that call them (a Git provider's push webhook, an MCP client, the panel) can't send your site's password. So since Cipi 5.11.0, while basic auth is on and **the live release has `cipi/agent`**, its prefix is left out of basic auth:
+The [Cipi Agent](https://cipi.sh/docs/agent-install) routes — `/cipi/webhook`, `/cipi/health`, `/cipi/mcp`, the anonymizer — check their own tokens, and the services that call them (a Git provider's push webhook, an MCP client, the panel) can't send your site's password. So, while basic auth is on and **the live release has `cipi/agent`**, its prefix is left out of basic auth:
 
 | | |
 | --- | --- |
@@ -1184,7 +1417,7 @@ Not to be confused with `cipi auth`, which manages Composer credentials for priv
 | Does the health check pass behind basic auth? | No: the healthcheck URL gets 401 like any visitor. Point it at a public URL, or remove it while the site is protected. |
 | Can I keep it in the repository? | Yes, in [cipi.yml](https://cipi.sh/docs/yml) under `app.basic_auth`, with names or bcrypt hashes, never plain passwords. |
 | Where do I see the generated password? | It's shown once by `enable`. Run `enable` again with `--user` and `--password` to set new ones. |
-| The panel's Access tab shows `[1mBasic auth — app[0m ━━━ Status …` | Cipi 5.11–5.12 exited with an error after printing the status of an app without cipi/agent, and the API passed the raw output on. Fixed in Cipi 5.13.0 (`sudo cipi self-update`); panel 4.5 also reads it right from an older server. |
+| The panel's Access tab shows `[1mBasic auth — app[0m ━━━ Status …` | An old Cipi release exited with an error after printing the status of an app without cipi/agent, and the API passed the raw output on. Update the server (`sudo cipi self-update`); an up-to-date panel also reads it right from a server that isn't. |
 
 
 ## Artisan, commands & logs
@@ -1254,7 +1487,7 @@ myapp@server:~$ ll ~/releases/
 
 The app's shell has `ll`, `deploy` and `composer` shortcuts.
 
-With the [web panel](https://cipi.sh/docs/gui-overview) (4.6.0+), the app page shows the user, the server's IP and this `ssh` command, each copied with a click.
+In the [web panel](https://cipi.sh/docs/gui-overview), the app page shows the user, the server's IP and this `ssh` command, each copied with a click.
 
 ## Control access 
 
@@ -1427,7 +1660,7 @@ Restart & verify | workers, health check
 
 Deployer and Composer always use **the app's PHP version**, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a [front-end build](https://cipi.sh/docs/manage-apps#edit) run it before the swap.
 
-Workers are not stopped before the swap (since 5.13.0): the deploy never waits for a long job, and jobs keep running on the previous release until it is live. Write migrations the previous release can live with for a minute — add columns before using them, drop them a release later — as you would for any zero-downtime deploy. See [workers during deploys](https://cipi.sh/docs/workers#deploys).
+Workers are not stopped before the swap: the deploy never waits for a long job, and jobs keep running on the previous release until it is live. Write migrations the previous release can live with for a minute — add columns before using them, drop them a release later — as you would for any zero-downtime deploy. See [workers during deploys](https://cipi.sh/docs/workers#deploys).
 
 ## Commands 
 
@@ -1469,7 +1702,7 @@ The success notice is sent only **after** the post-deploy health check, so it ne
 
 `--status` also shows **Paused** when a commit's automatic deploy failed ([below](#paused)); `--status --json` has it as `paused_commit`.
 
-A failed deploy releases its own lock, and since 5.13.0 the lock of an interrupted one is removed by the next deploy, automatic or by hand, when no deploy of the app is alive (the deploy log says so). `--unlock` is only for clearing it right away.
+A failed deploy releases its own lock, and the lock of an interrupted one is removed by the next deploy, automatic or by hand, when no deploy of the app is alive (the deploy log says so). `--unlock` is only for clearing it right away.
 
 ## Pushes during a deploy 
 
@@ -2204,7 +2437,7 @@ cipi-cli eu deploy shop && cipi-cli us deploy shop
 | `Host key verification failed` | `SERVER_KNOWN_HOSTS` is empty or from another server | Save it again with `ssh-keyscan` and compare the fingerprint |
 | `sudo: a terminal is required` | The SSH user isn't `cipi` | Connect as `cipi@…`, the user allowed to run `sudo cipi` without a password |
 | Every push deploys twice | The webhook is still active | [Turn it off](#webhook-off) |
-| *A deploy of 'shop' is running* | Two pipelines at once, or a webhook deploy in flight | Add a concurrency limit and keep one trigger per app; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
+| *A deploy of 'shop' is running* | Two pipelines at once, or a webhook deploy in flight | Add a concurrency limit and keep one trigger per app; a lock left by an interrupted deploy is removed by the next deploy |
 | `401` or `403` from the API | Token expired, wrong ability, or IP not allowed | `cipi api token list`; ability `deploy-manage`; `cipi api ip-whitelist show` |
 | cipi-cli "timed out after polling" | The build takes more than about nine minutes | The deploy continues on the server: `cipi-cli prod deploy status shop` |
 | Azure task fails on a good deploy | `failOnStdErr` is on | Set `failOnStdErr: false` |
@@ -2412,7 +2645,7 @@ A rollback switches code only: database migrations stay as they are. See [Deploy
 | `Permission denied (publickey)` | The CI key isn't authorized on the server | `sudo cipi ssh add ""` |
 | Deploy stage skipped | Not a Multibranch job, so `branch 'main'` never matches | Use a Multibranch Pipeline, or remove the `when` line |
 | Two deploys per push | The Cipi webhook is still active | [Turn it off](#webhook-off) |
-| *A deploy of 'shop' is running* | Two builds at once, or a webhook deploy in flight | Keep `disableConcurrentBuilds()`; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
+| *A deploy of 'shop' is running* | Two builds at once, or a webhook deploy in flight | Keep `disableConcurrentBuilds()`; a lock left by an interrupted deploy is removed by the next deploy |
 
 ## Questions 
 
@@ -2682,7 +2915,7 @@ backup:
   profiles:                        # names: myapp or myapp-*
     - { name: myapp-db, scope: db, every: 30m, keep: 48, destinations: [local] }
     - { name: myapp-nightly, scope: all, cron: "0 2 * * *", keep_days: 14, destinations: [s3], encrypt: true }
-    - { name: myapp-files, scope: files, every: 6h, keep: 8, destinations: [s3], exclude_paths: [storage/app/uploads] }  # 5.13.0+
+    - { name: myapp-files, scope: files, every: 6h, keep: 8, destinations: [s3], exclude_paths: [storage/app/uploads] }
 ```
 
 | Section | Same as | Notes |
@@ -2698,7 +2931,7 @@ backup:
 | `ssl.force_https` | `cipi ssl force` | Can only be turned on from the file |
 | `env.required` | | A missing variable blocks the plan |
 | `crons` | | Allowlisted runners only; your other cron lines are untouched |
-| `backup.profiles` | [cipi backup](https://cipi.sh/docs/backups) | The file owns the profiles it created; `exclude_paths` ([5.13.0+](https://cipi.sh/docs/backups#exclude-paths)) is validated like `--exclude-paths` |
+| `backup.profiles` | [cipi backup](https://cipi.sh/docs/backups) | The file owns the profiles it created; [`exclude_paths`](https://cipi.sh/docs/backups#exclude-paths) is validated like `--exclude-paths` |
 
 ## Routes: www, basic auth, redirects, proxies 
 
@@ -2837,9 +3070,11 @@ after('artisan:migrate', 'app:warm');
 | `after('deploy:shared', …)` | Builds that need `.env` (e.g. Vite reads `VITE_*`) |
 | `after('artisan:migrate', …)` | Seeders, cache warm-up |
 | `before('deploy:symlink', …)` | Last checks before going live |
-| `after('deploy:symlink', …)` | Notifications, cache purges |
+| `after('deploy:symlink', …)` | Notifications, cache purges — e.g. [emptying the page cache](https://cipi.sh/docs/page-cache#recipe) from a recipe of your own (a deploy run by Cipi empties it by itself) |
 
 The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → **symlink** → restart workers → cleanup.
+
+**Each step runs once.** A Laravel deploy runs `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` one time each — the deploy log shows one `artisan:migrate` and one `artisan:optimize` — and a step turned off with `--no-migrate` or `--no-optimize` is really skipped. A log that shows them twice comes from a recipe written by an old release: `cipi self-update` rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.
 
 > [!warning] Changing PHP or branch with `cipi app edit` regenerates `deploy.php`. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer `deploy-config` and [cipi.yml](https://cipi.sh/docs/yml), which are never lost.
 
@@ -2960,7 +3195,7 @@ The app's deploy recipe calls a root-owned helper at each outcome. Root **verifi
 
 The panel shows the ledger on each app's Deploy tab; the API serves it at `GET /api/apps/{name}/deploy/audit`.
 
-`cipi deploy myapp --audit --json` (and so the API and the panel) adds a `subject` to each record: the first line of the commit's message, read from the app's own Git clone when you ask (Cipi 5.14.0+). It is **not** in the ledger and no hash covers it: the record proves which commit went live, the clone says what it's called. A commit the clone no longer has gets none.
+`cipi deploy myapp --audit --json` (and so the API and the panel) adds a `subject` to each record: the first line of the commit's message, read from the app's own Git clone when you ask. It is **not** in the ledger and no hash covers it: the record proves which commit went live, the clone says what it's called. A commit the clone no longer has gets none.
 
 > [!note] The chain proves nothing older than the newest record was changed. Root could still rewrite the whole file, which is why the syslog copy matters. File edits over SFTP are not deploys; [malware scan](https://cipi.sh/docs/malware-scan) integrity covers those.
 
@@ -3443,7 +3678,7 @@ See [cipi.yml](https://cipi.sh/docs/yml) for every key.
 | Option | Works with | Note |
 | --- | --- | --- |
 | [Cloudflare Zero Trust](https://cipi.sh/docs/zero-trust) | Both update modes | Login with your company accounts; `/cipi/webhook` stays reachable |
-| [`cipi zt preview create`](https://cipi.sh/docs/zero-trust#previews) | One branch by hand, no script (Cipi 5.16.0+) | The preview on the tunnel, behind Access, on `feature-cart-shop.example.com`; `cipi deploy` updates it, `cipi zt preview remove` deletes it with its database |
+| [`cipi zt preview create`](https://cipi.sh/docs/zero-trust#previews) | One branch by hand, no script | The preview on the tunnel, behind Access, on `feature-cart-shop.example.com`; `cipi deploy` updates it, `cipi zt preview remove` deletes it with its database |
 | Basic auth (`app.basic_auth` in `cipi-preview.yml`, or `cipi basicauth enable`) | `PREVIEW_MODE=deploy` only | Blocks the Git webhook too |
 | Unguessable names only | Both | The ID in the address is not a secret: search engines and link scanners can still find a preview |
 
@@ -3490,7 +3725,7 @@ The why and the team workflows: [What preview environments can do for your team]
 
 URL: https://cipi.sh/docs/deploy-notifications
 
-Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included — on every channel that takes them since 5.15.0 (before, a deploy through the webhook reached e-mail only).
+Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included, on every channel that takes them.
 
 ## From the server (recommended) 
 
@@ -3498,7 +3733,7 @@ Know about every deploy, success or failure, without watching logs. The simplest
 $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
 $ cipi notification add telegram team --token= --chat-id=
 $ cipi notification test
-$ cipi notification events team deploy        # 5.15.0: only deploys to the team's chat
+$ cipi notification events team deploy        # only deploys to the team's chat
 ```
 
 | Event | Sent when |
@@ -3507,7 +3742,7 @@ $ cipi notification events team deploy        # 5.15.0: only deploys to the team
 | `deploy_fail` | The deploy failed; the live release is unchanged |
 | `deploy_rollback` | A rollback ran (manual or automatic) |
 
-Messages include app, branch, release, commit and author, duration and health verdict. Channels: email (SMTP, Resend, SES), Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, signed webhook. See [Notifications](https://cipi.sh/docs/notifications).
+Messages include app, branch, release, commit and author, duration and health verdict — for a deploy through the Git webhook too: the branch and the commit are read from the recipe and the release. The time is in the server's time zone, or in the one you choose, and the server can go by a name of yours: [the server's name and the time zone](https://cipi.sh/docs/notifications#written). With the [page cache](https://cipi.sh/docs/page-cache) on, the message also says how many cached pages the deploy emptied. Channels: email (SMTP, Resend, SES), Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, signed webhook. See [Notifications](https://cipi.sh/docs/notifications).
 
 ## From CI 
 
@@ -3795,7 +4030,7 @@ Let's Encrypt is the safer default: it keeps working if you ever switch a record
 
 Behind the orange cloud every request comes from a Cloudflare IP. Left as is, Nginx logs, Fail2ban, CrowdSec and Laravel (`$request->ip()`, rate limiting, login throttling) see the same few addresses for every visitor.
 
-1. **Nginx**: [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) sets Nginx's real IP from Cloudflare's ranges (refreshed every night) and teaches Fail2ban and CrowdSec the same ranges. No token and no tunnel (Cipi 5.14.0+; with a [Zero Trust](https://cipi.sh/docs/zero-trust) tunnel, `cipi zt enable` does the same). From here `$request->ip()` is already the visitor's.
+1. **Nginx**: [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) sets Nginx's real IP from Cloudflare's ranges (refreshed every night) and teaches Fail2ban and CrowdSec the same ranges. No token and no tunnel (with a [Zero Trust](https://cipi.sh/docs/zero-trust) tunnel, `cipi zt enable` does the same). From here `$request->ip()` is already the visitor's.
 2. **Laravel**: trust the proxy in `bootstrap/app.php`, so the scheme and host Cloudflare forwards are believed too:
 
 ```php
@@ -3952,7 +4187,7 @@ Changes fire `redirect_change` / `proxy_change` [notifications](https://cipi.sh/
 
 URL: https://cipi.sh/docs/nginx
 
-Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives.
+Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives. The cache of whole pages — Nginx answering without running PHP — has [a page of its own](https://cipi.sh/docs/page-cache).
 
 ## Security report 
 
@@ -4000,7 +4235,7 @@ On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty r
 
 ## Behind Cloudflare: the visitor's real IP 
 
-A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+), or one button in the [panel](#real-ip-panel) (5.15.0+):
+A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server, or one button in the [panel](#real-ip-panel):
 
 ```bash
 $ cipi nginx real-ip cloudflare     # on
@@ -4022,7 +4257,7 @@ $ cipi nginx real-ip off            # back to the address of each connection
 
 ### From the panel 
 
-The server's [Firewall tab](https://cipi.sh/docs/firewall#panel) has a **Cloudflare real IP** card (panel 4.7.0, cipi/api 1.45, Cipi 5.15.0): **Turn on**, **Fetch the ranges again** and **Turn off**, with the ranges trusted, when they were fetched and who keeps it on. It takes **Manage** on the server.
+The server's [Firewall tab](https://cipi.sh/docs/firewall#panel) has a **Cloudflare real IP** card: **Turn on**, **Fetch the ranges again** and **Turn off**, with the ranges trusted, when they were fetched and who keeps it on. It takes **Manage** on the server.
 
 | | |
 | --- | --- |
@@ -4058,7 +4293,7 @@ location ~* \.(?:woff2?|ttf)$ {
 | | |
 | --- | --- |
 | **Where it lives** | In the app's settings, so it follows [`cipi sync`](https://cipi.sh/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
-| **What it's for** | Headers, caching, upload size, timeouts, rewrites, `location` blocks of your own |
+| **What it's for** | Headers, browser caching, upload size, timeouts, rewrites, `location` blocks of your own. For caching whole pages in Nginx use [`cipi cache`](https://cipi.sh/docs/page-cache), which writes and maintains it |
 | **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`cipi proxy` and `cipi redirect`](https://cipi.sh/docs/redirects-proxies) |
 | **Limits** | 32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend |
 
@@ -4075,7 +4310,7 @@ Refused | everything back
 
 ### From the panel, the API, the SDK and cipi-cli 
 
-The same text can be read and replaced from the [web panel](https://cipi.sh/docs/gui-overview) — the app's **Routing** tab, *Nginx directives*, for whoever has Manage on the server (panel 4.6.0+) — through the [API](https://cipi.sh/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](https://cipi.sh/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](https://cipi.sh/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor). In the panel a refused text is listed with its reasons and stays in the form to fix.
+The same text can be read and replaced from the [web panel](https://cipi.sh/docs/gui-overview) — the app's **Routing** tab, *Nginx directives*, for whoever has Manage on the server — through the [API](https://cipi.sh/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](https://cipi.sh/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](https://cipi.sh/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor). In the panel a refused text is listed with its reasons and stays in the form to fix.
 
 > [!security] Through the API — so from the panel, the SDK and cipi-cli too — **a subset of Nginx's language** is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an `access_log` or `error_log` path and reads an `include` as root, `server_name` takes another app's domain, `listen` opens a port, a `*_pass` reaches another app's PHP socket or a database on the loopback.
 
@@ -4139,7 +4374,7 @@ $ cipi php upgrade      # patch now and print the patch level
 | `END OF LIFE` | No more fixes from PHP: move apps off it |
 | `prerelease` | Release candidate, not compared |
 
-[Octane](https://cipi.sh/docs/octane) apps run the PHP inside their FrankenPHP binary, which apt never touches; `cipi php upgrade` lists them too and `cipi frankenphp upgrade` fixes them.
+[Octane](https://cipi.sh/docs/octane) apps run the PHP inside their FrankenPHP binary, which apt never touches; `cipi php upgrade` lists them too and `cipi frankenphp upgrade` fixes them. To put an Octane app on **another PHP version**, say which: `cipi frankenphp php myapp 8.6` (or `cipi app edit myapp --php=8.6`) moves Octane and the server's PHP together ([switch by version](https://cipi.sh/docs/octane#octane-php)).
 
 ## Hardening 
 
@@ -4215,7 +4450,7 @@ $ cipi node remove 20             # refused while in use
 | Per Laravel app (`cipi app edit myapp --node-version=24`) | That app's builds only |
 | Per Node app (`--node-version`) | That app's runtime |
 
-Runtimes live in `/opt/cipi/node/` behind an atomic symlink per major, so `cipi node upgrade` moves every app on that major at once. Files you installed yourself in `/usr/local/bin` are never overwritten. The panel can install, upgrade and remove runtimes and choose the server default too (Cipi 5.9.0+, ability `node-runtimes-manage`), and restart Node apps.
+Runtimes live in `/opt/cipi/node/` behind an atomic symlink per major, so `cipi node upgrade` moves every app on that major at once. Files you installed yourself in `/usr/local/bin` are never overwritten. The panel can install, upgrade and remove runtimes and choose the server default too (ability `node-runtimes-manage`), and restart Node apps.
 
 
 ## Databases
@@ -4242,7 +4477,7 @@ $ cipi db uninstall pgsql           # destroys its data: asks first
 
 ## MySQL instead of MariaDB 
 
-MariaDB stays the default. Since 5.13.0, a server can run **MySQL** on port 3306 instead — only as an explicit choice, from the command line, and **only on a server with no databases on 3306 yet**:
+MariaDB stays the default. A server can run **MySQL** on port 3306 instead — only as an explicit choice, from the command line, and **only on a server with no databases on 3306 yet**:
 
 ```bash
 $ cipi db switch mysql            # asks first (--yes in scripts)
@@ -4256,9 +4491,9 @@ $ cipi db switch mariadb          # back, on the same terms
 | Which MySQL | From the Ubuntu archive: 8.0 on 24.04 (security fixes backported by Ubuntu), 8.4 LTS on 26.04. No extra repository or key |
 | Checked first | A `mysql-server` package is available, and removing MariaDB would remove nothing but its own packages and client libraries. Otherwise nothing changes |
 | What it does | Stops MariaDB, keeps its data directory aside (`/var/lib/mysql.mariadb-`), purges it, installs MySQL with the same root password (`caching_sha2_password`) and Cipi's tuning (`/etc/mysql/mysql.conf.d/99-cipi.cnf`). If the install fails, MariaDB comes back with its data |
-| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. At the terminal the messages of `cipi db` say `mysql` (5.14.0+), a name `--engine=` accepts too. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
-| Not in the panel or API | Replacing a database server is an operator decision; the [panel](https://cipi.sh/docs/gui) shows *MySQL* where it runs — in the list, and since panel 4.7.0 in the engine filter, its card and the page's intro too (*MariaDB / MySQL* across servers that run both). A `db_switch` [notification](https://cipi.sh/docs/notifications) is sent |
-| The root password | Reaches `mysql`, `mariadb` and `mysqldump` in an option file read from a pipe, never on their command line (5.15.0+), on MariaDB too. On the command line it sat in the process list, which every user of the server reads; MySQL's client warned about it at every call — *Using a password on the command line interface can be insecure* — and `cipi db list` showed that warning as a database |
+| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. At the terminal the messages of `cipi db` say `mysql`, a name `--engine=` accepts too. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
+| Not in the panel or API | Replacing a database server is an operator decision; the [panel](https://cipi.sh/docs/gui) shows *MySQL* where it runs — in the list, the engine filter, its card and the page's intro (*MariaDB / MySQL* across servers that run both). A `db_switch` [notification](https://cipi.sh/docs/notifications) is sent |
+| The root password | Reaches `mysql`, `mariadb` and `mysqldump` in an option file read from a pipe, never on their command line, on MariaDB too. On the command line it would sit in the process list, which every user of the server reads, and MySQL's client would warn about it at every call (*Using a password on the command line interface can be insecure*) |
 
 Step by step, with what to check in your code first: [Run Laravel on MySQL instead of MariaDB](https://cipi.sh/guides/laravel-mysql-instead-of-mariadb).
 
@@ -4374,6 +4609,16 @@ Back online | seconds later
 
 If the copy fails, the app stays exactly where it was. Apps whose Redis points elsewhere are left alone. Clones and synced apps get their own instance. `cipi pending` lists apps still on the shared instance.
 
+### From the panel 
+
+The server's **Services** tab in the [web panel](https://cipi.sh/docs/gui-overview) has a **Valkey per app** card: every Laravel app with what it uses — its own instance (port, memory, keys) or the shared one — and how many are still sharing. **Isolate** one app or all of them, **Share again**, **Restart** an instance, and, once no app uses the shared instance, **Empty the shared instance**. It takes *Manage* on the server.
+
+| | |
+| --- | --- |
+| **API** | `GET /api/valkey`, `POST /api/valkey/isolate`, `/share`, `/{app}/restart`, `/flush-shared` — abilities `services-view`, `services-manage` ([endpoints](https://cipi.sh/docs/api#endpoints-valkey)) |
+| **PHP SDK / cipi-cli** | `$cipi->valkey()->isolateAll()` · `cipi-cli valkey isolate --all` |
+| **Passwords** | None travels through the API or the panel. The new shared password after *Empty the shared instance* stays on the server: `cipi credentials` |
+
 > [!note] `cipi app create --valkey=shared` keeps one app on the server-wide instance. Valkey is excluded from unattended upgrades; patch it with [stack upgrades](https://cipi.sh/docs/stack-upgrades).
 
 
@@ -4484,7 +4729,7 @@ Prefer the narrowest restart: one app's workers before Supervisor, one PHP versi
 
 URL: https://cipi.sh/docs/packages
 
-Tools and libraries some Laravel packages need on the host, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask. Most come from Ubuntu's own repositories; a few, which Ubuntu doesn't ship, are [upstream releases](#upstream) pinned by version and SHA-256. Since 5.14.0 the catalog has twenty entries, Browsershot's and the [security scanners](#sec) of Hackly included, and the [web panel](#panel) installs and removes them too.
+Tools and libraries some Laravel packages need on the host, through a **closed allowlist**: never a root apt shell. Nothing is installed until you ask. Most come from Ubuntu's own repositories; a few, which Ubuntu doesn't ship, are [upstream releases](#upstream) pinned by version and SHA-256. The catalog has twenty entries, Browsershot's and the [security scanners](#sec) of Hackly included, and the [web panel](#panel) installs and removes them too.
 
 ## Commands 
 
@@ -4494,7 +4739,7 @@ $ cipi package install browsershot
 $ cipi package install libreoffice
 $ cipi package install webp            # one apt package of a group
 $ cipi package remove ffmpeg
-$ cipi package remove pandoc --yes     # no prompt; required without a terminal (5.14.0+)
+$ cipi package remove pandoc --yes     # no prompt; required without a terminal
 ```
 
 ## Available packages 
@@ -4502,16 +4747,16 @@ $ cipi package remove pandoc --yes     # no prompt; required without a terminal 
 | Package | Installs | For |
 | --- | --- | --- |
 | `image-optimizers` | jpegoptim, optipng, pngquant, gifsicle, webp | `spatie/laravel-image-optimizer` |
-| `avif` | `avifenc` | AVIF in `spatie/laravel-image-optimizer` (5.14.0+) |
+| `avif` | `avifenc` | AVIF in `spatie/laravel-image-optimizer` |
 | `ffmpeg` | `ffmpeg`, `ffprobe` | `pbmedia/laravel-ffmpeg` (run it in a queue worker, never in a request) |
 | `imagemagick` | `convert` / `magick` CLI | Code that shells out to ImageMagick (the PHP extension is already installed) |
 | `poppler-utils` | `pdftotext`, `pdftoppm` | `spatie/pdf-to-text`, feeding PDFs to search |
-| `browsershot` | The libraries and fonts Chrome needs to start | `spatie/browsershot`, `spatie/laravel-pdf` with Browsershot (5.14.0+, [below](#browsershot)) |
-| `fonts-cjk` | Noto CJK fonts | Chinese, Japanese and Korean text in PDFs and images (5.14.0+) |
-| `pdftk` | `pdftk` (pdftk-java) | `mikehaertl/php-pdftk`: fill forms, merge, split (pulls a headless Java runtime; 5.14.0+) |
-| `libreoffice` | `soffice`, Writer and Calc without a GUI | DOCX, XLSX and ODT to PDF with `soffice --headless --convert-to pdf` (5.14.0+) |
-| `pandoc` | `pandoc` | `ueberdosis/pandoc`: Markdown, HTML, DOCX, ODT, EPUB (5.14.0+) |
-| `tesseract` | `tesseract`, English, Italian, German, French and Spanish | `thiagoalessio/tesseract_ocr` (5.14.0+) |
+| `browsershot` | The libraries and fonts Chrome needs to start | `spatie/browsershot`, `spatie/laravel-pdf` with Browsershot ([below](#browsershot)) |
+| `fonts-cjk` | Noto CJK fonts | Chinese, Japanese and Korean text in PDFs and images |
+| `pdftk` | `pdftk` (pdftk-java) | `mikehaertl/php-pdftk`: fill forms, merge, split (pulls a headless Java runtime) |
+| `libreoffice` | `soffice`, Writer and Calc without a GUI | DOCX, XLSX and ODT to PDF with `soffice --headless --convert-to pdf` |
+| `pandoc` | `pandoc` | `ueberdosis/pandoc`: Markdown, HTML, DOCX, ODT, EPUB |
+| `tesseract` | `tesseract`, English, Italian, German, French and Spanish | `thiagoalessio/tesseract_ocr` |
 
 `cipi package list` marks each entry installed, **partial** (some apt packages missing — `install` completes it) or not installed; `--json` adds what each brings (`binaries`), whether it is tools or libraries (`kind`) and what a partial install lacks (`missing`). Install shows what apt will do (packages, disk space) and asks first; afterwards Cipi checks each binary is on the `PATH`. It refuses to start with less than 1 GB free.
 
@@ -4589,7 +4834,7 @@ For a library entry (`browsershot`, `fonts-cjk`) the libraries are often shared:
 
 ## From the panel 
 
-The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Packages** tab: the whole catalog, each entry with what it brings (`ffmpeg, ffprobe`, or *Libraries*), what a partial install lacks, the pinned version of an *Upstream* entry (and **Update to x.y.z** when an older one is installed), and since panel 4.6.0 ([API](https://cipi.sh/docs/api#endpoints-packages) 1.44, Cipi 5.14.0 on the server) **Install**, **Complete install** and **Remove**, confirmed and run as jobs.
+The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Packages** tab: the whole catalog, each entry with what it brings (`ffmpeg, ffprobe`, or *Libraries*), what a partial install lacks, the pinned version of an *Upstream* entry (and **Update to x.y.z** when an older one is installed), and **Install**, **Complete install** and **Remove**, confirmed and run as jobs over the [API](https://cipi.sh/docs/api#endpoints-packages).
 
 Changing needs **Manage** on the server, and the token the `packages-manage` ability. The panel takes only ids the page lists, and the server's catalog is closed whatever is sent: the panel passes `--yes`, its `--force` and `--autoremove` are ignored and the disk check holds. The [MCP server](https://cipi.sh/docs/mcp) lists the catalog but doesn't install or remove.
 
@@ -4868,7 +5113,7 @@ Apps can declare their own profiles in [cipi.yml](https://cipi.sh/docs/yml) (nam
 
 ### Leave big folders out 
 
-A terabyte of uploads is better kept with `rsync` (or on object storage) than archived every night. Since 5.13.0 a profile can leave paths out of the app archives:
+A terabyte of uploads is better kept with `rsync` (or on object storage) than archived every night. A profile can leave paths out of the app archives:
 
 ```bash
 $ cipi backup profile edit nightly --exclude-paths='storage/app/uploads,*.mp4'
@@ -5087,7 +5332,7 @@ Also in [cipi.yml](https://cipi.sh/docs/yml) (`health:`), the REST API and the p
 
 ## Uptime history 
 
-Since Cipi 5.11.0 the URL is also probed **every minute** by the [metrics](https://cipi.sh/docs/metrics) collector, which keeps the status and response time: uptime over 24 hours, 7 and 30 days, minutes down, incidents and uptime per day.
+The URL is also probed **every minute** by the [metrics](https://cipi.sh/docs/metrics) collector, which keeps the status and response time: uptime over 24 hours, 7 and 30 days, minutes down, incidents and uptime per day.
 
 ```bash
 $ cipi metrics uptime myapp --range=30d
@@ -5122,7 +5367,7 @@ $ cipi monitor test               # sample alert to every channel
 | `http_5xx` | New lines in each app's access log | ≥20 errors **and** ≥5% of requests |
 | `fs` | `/etc/cipi`, `/var/log/cipi` | No longer writable (read-only remount) |
 | `load` | 1-minute load | Above 4× the cores for 2 runs in a row |
-| `tunnel` | The [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#monitor), when Zero Trust is on (5.16.0+) | Degraded (warn); cloudflared stopped, or Cloudflare sees the tunnel down or inactive (critical) |
+| `tunnel` | The [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#monitor), when Zero Trust is on | Degraded (warn); cloudflared stopped, or Cloudflare sees the tunnel down or inactive (critical) |
 
 Tune any threshold: `--ssl --days=21`, `http_5xx --count=50 --ratio=10`, `load --factor=6 --runs=3`, `app_disk --minutes=30`.
 
@@ -5171,7 +5416,7 @@ $ cipi metrics events --source=deploy      # what changed, when
 $ cipi metrics status                      # collector, size, retention
 ```
 
-Every command takes `--json`. Requires Cipi 5.11.0. What each number means and how to read them together to find a cause: [Cipi metrics explained](https://cipi.sh/guides/cipi-metrics-server-app-uptime).
+Every command takes `--json`. What each number means and how to read them together to find a cause: [Cipi metrics explained](https://cipi.sh/guides/cipi-metrics-server-app-uptime).
 
 ## What is recorded 
 
@@ -5235,7 +5480,7 @@ Names carry their unit: `cipi_host_cpu_percent`, `cipi_app_requests_per_minute{a
 
 ## In the web panel 
 
-The **Metrics** tab of each server and of each app (panel 4.3.0+): charts over 1 hour to 30 days with every deploy and incident marked on them, a tooltip on hover, 30-day uptime bars per app, the events timeline, and — for server managers — retention, probe and heartbeat. While the tab is open it refreshes every 30 seconds.
+The **Metrics** tab of each server and of each app: charts over 1 hour to 30 days with every deploy and incident marked on them, a tooltip on hover, 30-day uptime bars per app, the events timeline, and — for server managers — retention, probe and heartbeat. While the tab is open it refreshes every 30 seconds.
 
 ### Reading a chart 
 
@@ -5257,7 +5502,7 @@ Server managers see the settings card at the bottom of the server tab: how big t
 
 | Interface | What |
 | --- | --- |
-| [REST API](https://cipi.sh/docs/api) 1.41 | `GET /api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `GET\|PUT /api/metrics/settings`, `PUT\|DELETE /api/metrics/heartbeat` — abilities `metrics-view`, `metrics-manage` |
+| [REST API](https://cipi.sh/docs/api) | `GET /api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `GET\|PUT /api/metrics/settings`, `PUT\|DELETE /api/metrics/heartbeat` — abilities `metrics-view`, `metrics-manage` |
 | [MCP](https://cipi.sh/docs/mcp) | `MetricsOverview`, `MetricsSeries`, `MetricsUptime`, `MetricsEvents`, `MetricsSettingsShow`, `MetricsSettingsUpdate` — ask an assistant "when did the 5xx on shop start?" |
 | [PHP SDK](https://cipi.sh/docs/php-sdk) 1.8 | `$cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d')` |
 | [cipi-cli](https://cipi.sh/docs/cli-client) | `cipi-cli metrics`, `metrics show --app shop`, `metrics uptime`, `metrics heartbeat set …` |
@@ -5279,8 +5524,8 @@ $ cipi metrics reset --yes    # delete the history
 | Is "memory of an app" exact? | It is the sum of the resident memory of its processes; pages PHP-FPM children share count once per child, so it is an upper bound. Watch the trend. |
 | Where do requests and 5xx come from? | The app's Nginx access log, read from where the previous minute stopped, so log rotation is followed. |
 | My app is behind basic auth and the health check fails | The healthcheck URL gets 401 like any visitor. The [cipi/agent routes](https://cipi.sh/docs/basic-auth#agent) stay public; for the health check use a URL outside the protected app or turn the per-minute probe off. |
-| The Metrics tab says *sudo: I'm sorry www-data. I'm afraid I can't do that* | The panel API runs `cipi` through a sudo whitelist (`/etc/sudoers.d/cipi-api`) that did not contain the metrics commands. On Ubuntu 26.04, whose `sudo` is sudo-rs, a single rule with more than about 127 commands is refused as a whole, so 5.11.0 and 5.11.1 could not write the new list there. Run `sudo cipi self-update` to 5.11.2 or later: the list is split into rules of 40 and checked with `visudo` before it replaces the old one. Check with `sudo -l -U www-data \| grep -c 'cipi metrics'` (more than 0). |
-| Does it need anything installed? | The `sqlite3` CLI, installed by the 5.11.0 update (`apt-get install -y sqlite3` if apt could not). |
+| The Metrics tab says *sudo: I'm sorry www-data. I'm afraid I can't do that* | The panel API runs `cipi` through a sudo whitelist (`/etc/sudoers.d/cipi-api`) that does not contain the metrics commands: it was written by an old Cipi release. On Ubuntu 26.04, whose `sudo` is sudo-rs, a single rule with more than about 127 commands is refused as a whole, which is how a list could fail to be written there. Run `sudo cipi self-update`: the list is split into rules of 40 and checked with `visudo` before it replaces the old one. Check with `sudo -l -U www-data \| grep -c 'cipi metrics'` (more than 0). |
+| Does it need anything installed? | The `sqlite3` CLI, which Cipi installs by itself (`apt-get install -y sqlite3` if apt could not). |
 
 
 ## Disk usage
@@ -5338,7 +5583,7 @@ $ cipi disk --json       # for scripts (also: cipi disk db --json)
 
 URL: https://cipi.sh/docs/notifications
 
-Cipi tells you when something happens that you should know about: failed deploys and backups, health and monitor alerts, security events (SSH logins, sudo, key changes), patches applied. One command manages where messages go: an enabled trigger reaches every enabled channel — or, since 5.15.0, only the channels that take it ([what each channel receives](#events)): every notification to one, the alarms alone to another, the deploys to a third.
+Cipi tells you when something happens that you should know about: failed deploys and backups, health and monitor alerts, security events (SSH logins, sudo, key changes), patches applied. One command manages where messages go: an enabled trigger reaches every enabled channel — or only the channels that take it ([what each channel receives](#events)): every notification to one, the alarms alone to another, the deploys to a third.
 
 ```bash
 $ cipi notification                     # channels and active triggers (no secrets shown)
@@ -5346,8 +5591,8 @@ $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
 $ cipi notification test all
 $ cipi notification triggers            # which events notify
 $ cipi notification triggers disable monitor_load
-$ cipi notification update ops --url=https://hooks.slack.com/services/…   # 5.12.0
-$ cipi notification events oncall urgent       # 5.15.0: only failures and security events to oncall
+$ cipi notification update ops --url=https://hooks.slack.com/services/…
+$ cipi notification events oncall urgent       # only failures and security events to oncall
 ```
 
 ## Channels 
@@ -5397,13 +5642,13 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Config | `ini_set`, `app_jit`, `yml_apply`, `yml_fail`, `yml_post_fail`, `node_default` |
 | Other | SSL, PHP, database (`db_switch` when [MariaDB and MySQL](https://cipi.sh/docs/databases#mysql) are swapped), workers, services, search, packages, sync, API and password-reset events |
 
-`cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. Since 5.12.0, `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
+`cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
 
-`cipi notification test ` exits 1, with the reason, when the channel refuses the request (5.12.0); a disabled channel can be tested before it is turned on.
+`cipi notification test ` exits 1, with the reason, when the channel refuses the request; a disabled channel can be tested before it is turned on.
 
 ## What each channel receives 
 
-A channel takes **everything** — the default, and how every channel worked before 5.15.0 — or only the events you give it:
+A channel takes **everything** — the default — or only the events you give it:
 
 ```bash
 $ cipi notification events                   # what each channel takes (--json)
@@ -5418,7 +5663,7 @@ $ cipi notification add slack team --url=… --events=deploy
 | Selector | Lets through |
 | --- | --- |
 | `all` | Everything (the same as no list) |
-| `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, the Cloudflare Tunnel down (5.16.0), an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
+| `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, the Cloudflare Tunnel down, an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
 | A category | Every trigger of it, as an id: `apps`, `domains`, `deploy`, `health`, `monitor`, `ssl`, `php`, `updates`, `services`, `database`, `security`, `backup`, `cron`, `cipi-yml`, `basic-auth`, `ssh-keys`… (`cipi notification events --json` lists them with how many triggers each holds) |
 | A trigger | That one: `backup_fail`, `deploy_success`, `ssh_login`… — mixed with categories as you like (`security,ssh_login`) |
 
@@ -5430,13 +5675,41 @@ $ cipi notification add slack team --url=… --events=deploy
 - `cipi notification test ` and `cipi monitor test` reach a channel whatever it takes: they have no trigger.
 - `cipi notification --json` gives each channel its `events` (`null` for everything) and lists the `categories`.
 
-Since 5.15.0 the alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su` (through PAM), [your own cron jobs](#security) and deploys through the Git webhook — reach every channel that takes them too. Before, they were sent by e-mail only.
+The alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su` (through PAM), [your own cron jobs](#security) and deploys through the Git webhook — reach every channel that takes them too, not e-mail alone.
+
+## The server's name and the time zone 
+
+Every notification names the server and the time. By default that is the machine's hostname (`vmi12334`) and the server's own time zone — UTC on most servers. Both are yours to set:
+
+```bash
+$ cipi notification timezone                # what it is now
+$ cipi notification timezone Europe/Rome    # the Time line of every notification
+$ cipi notification timezone server         # back to the server's own
+$ cipi notification server-name production  # "production (vmi12334)" instead of "vmi12334"
+$ cipi notification server-name --clear     # back to the hostname
+```
+
+```text
+Server: production (vmi12334)
+App: shop
+Branch: main
+Time: 2026-11-26 16:04:05 CET
+```
+
+| | |
+| --- | --- |
+| **Time zone** | An IANA name (`Europe/Rome`, `America/New_York`, `UTC`; `timedatectl list-timezones` has them all). For notifications **only**: the server's clock, cron and logs don't change. Every message — deploys, backups, SSH logins, your own cron jobs — follows it |
+| **Server name** | Letters, digits, spaces, dots, dashes and underscores, 40 at most. The subject carries the name, the body `name (hostname)`: the machine is still there to grep for |
+| **Webhook channel** | The JSON keeps `server` (the hostname) and gains `server_name` — `null` when none is set |
+| **Why not change the server's time zone?** | You can (`timedatectl set-timezone`), but cron schedules, logs and every app's default follow it. This setting touches only how Cipi writes its messages |
+
+In the [panel](#panel) it is the **Written as** card of the Notifications tab: the server name — with one click to use the name the server has in the panel, so a notification and the panel say the same — and the time zone, with how the next notification reads. Over the API: `GET|PUT /api/notifications/settings` ([endpoint](https://cipi.sh/docs/api#endpoints-notification-settings)); `$cipi->notifications()->setTimezone('Europe/Rome')`; `cipi-cli notifications timezone Europe/Rome`.
 
 ## In the web panel 
 
-The **Notifications** tab of each server (panel 4.4+, Cipi 5.12.0+, cipi/api 1.42+) manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. The list says what each channel **receives**, and the channel's form chooses it — *Everything* or *Only some events*: **Urgent** and the categories of the server (panel 4.7.0, Cipi 5.15.0, cipi/api 1.45). Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
+The **Notifications** tab of each server manages all of the above: add a channel with a type picker that shows only its fields, edit it — secrets are never sent back to the panel, and an empty secret keeps the stored one — pause, test (a refused test shows the channel's reason on its row) or remove it. The list says what each channel **receives**, and the channel's form chooses it — *Everything* or *Only some events*: **Urgent** and the categories of the server. Below, every trigger by category with a switch, a filter, *all* / *none* per category, and one **Save** for every change.
 
-Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/channels[/{id}]`, `POST …/{id}/enable|disable|test`, `GET|PUT /api/notifications/triggers` ([REST API](https://cipi.sh/docs/api#endpoints-server); a channel's `events` with API 1.45+); from code, `$cipi->notifications()` ([PHP SDK](https://cipi.sh/docs/php-sdk)) and `cipi-cli notifications` ([cipi-cli](https://cipi.sh/docs/cli-client#notifications)); for an assistant, the MCP tools `NotificationsShow`, `NotificationChannelSave`, `NotificationChannelTest`, `NotificationChannelRemove`, `NotificationTriggersUpdate`. Servers older than 5.12.0 keep the SMTP form in the panel.
+Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/channels[/{id}]`, `POST …/{id}/enable|disable|test`, `GET|PUT /api/notifications/triggers` ([REST API](https://cipi.sh/docs/api#endpoints-server)); from code, `$cipi->notifications()` ([PHP SDK](https://cipi.sh/docs/php-sdk)) and `cipi-cli notifications` ([cipi-cli](https://cipi.sh/docs/cli-client#notifications)); for an assistant, the MCP tools `NotificationsShow`, `NotificationChannelSave`, `NotificationChannelTest`, `NotificationChannelRemove`, `NotificationTriggersUpdate`.
 
 ## Security alerts 
 
@@ -5446,7 +5719,7 @@ Over the API: `GET /api/notifications`, `POST|PUT|DELETE /api/notifications/chan
 | `sudo` / `su` | Who, target user, TTY, key, IP |
 | SSH key added, removed, renamed | Fingerprint, comment, remaining keys |
 
-They run in the background through PAM, so they never slow a login, and since 5.15.0 they reach every channel that takes them (before, e-mail only). Wrap your own cron jobs with `cipi-cron-notify` to be alerted when they exit non-zero.
+They run in the background through PAM, so they never slow a login, and they reach every channel that takes them. Wrap your own cron jobs with `cipi-cron-notify` to be alerted when they exit non-zero.
 
 ## Common problems 
 
@@ -5460,9 +5733,11 @@ They run in the background through PAM, so they never slow a login, and since 5.
 | Question | Answer |
 | --- | --- |
 | Which channels? | E-mail, Slack, Mattermost, Google Chat, Discord, Telegram, ntfy, Pushover, signed webhooks. |
-| Can one channel get only the alarms? | Yes (5.15.0+): `cipi notification events  urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events  deploy` ([what each channel receives](#events)). |
-| Can I manage them from the panel? | Yes, every channel and trigger, with Cipi 5.12.0+ and cipi/api 1.42+ ([In the web panel](#panel)). |
-| The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist predates 5.12.0: `sudo cipi self-update` rewrites it. |
+| Can one channel get only the alarms? | Yes: `cipi notification events  urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events  deploy` ([what each channel receives](#events)). |
+| The time in a notification is UTC | That's the server's time zone. `cipi notification timezone Europe/Rome` writes notifications in yours and leaves the server alone ([details](#written)). |
+| A notification says `vmi12334`: which server is it? | The machine's hostname. `cipi notification server-name production` gives it a name of yours; the panel shows each server's hostname next to its name and sets it in one click ([details](#written)). |
+| Can I manage them from the panel? | Yes, every channel and trigger ([In the web panel](#panel)). |
+| The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist was written by an old Cipi release: `sudo cipi self-update` rewrites it. |
 | Step by step? | [Notifications and alerts guide](https://cipi.sh/guides/notifications-alerts). |
 
 
@@ -5493,6 +5768,13 @@ Logs are rotated daily and compressed from the second day. Laravel apps write a 
 | PHP-FPM | `cipi app logs myapp --type=php` |
 | Workers | `cipi app logs myapp --type=worker` |
 | Deploys | `cipi app logs myapp --type=deploy` |
+
+## Common problems 
+
+| Problem | Fix |
+| --- | --- |
+| `cipi pending` says *logrotate reports a problem with a Cipi rule: skipping "/var/log/auth.log" because parent directory has insecure permissions* (also `fail2ban.log`, `ufw.log`) | A false alarm of an old Cipi release: `/var/log` belongs to group `syslog` on Ubuntu, and logrotate wants a `su` line for it. The nightly rotation always had one (from `/etc/logrotate.conf`), but the check ran each rule on its own, where it was missing. **`cipi self-update`** writes `su root adm` into Cipi's rules and the message goes; `cipi app fix-permissions` does the same on demand. Logs were rotated all along |
+| What does logrotate itself say? | `logrotate -d /etc/logrotate.d/cipi-*` prints what it would do, without doing it |
 
 
 ## Security model
@@ -5550,17 +5832,17 @@ If one app is compromised (a vulnerable plugin, a leaked `.env`), the attacker g
 
 URL: https://cipi.sh/docs/firewall
 
-UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time. Since 5.14.0 the [web panel](#panel) shows all of it, CrowdSec included, and changes what is safe to change from a browser.
+UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans addresses that keep failing SSH logins, longer each time. The [web panel](#panel) shows all of it, CrowdSec included, and changes what is safe to change from a browser.
 
 ## Ports 
 
 ```bash
-$ cipi firewall status [--json]                    # UFW, fail2ban and CrowdSec at a glance (5.14.0+)
+$ cipi firewall status [--json]                    # UFW, fail2ban and CrowdSec at a glance
 $ cipi firewall list [--json]
 $ cipi firewall allow 3306 --from=10.0.0.5         # one address
 $ cipi firewall allow 3306 --from=10.0.0.0/24      # a private subnet
-$ cipi firewall allow 8000:8100 --proto=udp        # a range, UDP (5.14.0+)
-$ cipi firewall remove 3306 --from=10.0.0.5        # drop what allow made (5.14.0+)
+$ cipi firewall allow 8000:8100 --proto=udp        # a range, UDP
+$ cipi firewall remove 3306 --from=10.0.0.5        # drop what allow made
 $ cipi firewall deny 8080                          # ahead of every allow
 $ cipi firewall attempts [5|default]               # failed logins before a ban
 ```
@@ -5574,7 +5856,7 @@ $ cipi firewall attempts [5|default]               # failed logins before a ban
 
 The threshold is written to a drop-in that updates never reset, validated with `fail2ban-client -t` before reload (a rejected value changes nothing). Need a database port? Open it **to specific addresses only**, or better, connect over SSH with the `mariadb+ssh://` URL.
 
-To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). Since 5.14.0 it goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny added after an allow of the same port used to change nothing.
+To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). It goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny placed after an allow of the same port would change nothing.
 
 > [!tip] Behind Cloudflare, [cipi zt](https://cipi.sh/docs/zero-trust) can close 80/443 to everyone but Cloudflare, and close 22 entirely.
 
@@ -5590,7 +5872,7 @@ A block refuses **every port** to an address or a range, ahead of every allow, u
 
 ## What stays open 
 
-Since 5.14.0 the firewall commands refuse what would cut the server off:
+The firewall commands refuse what would cut the server off:
 
 | Refused | Why |
 | --- | --- |
@@ -5610,11 +5892,11 @@ $ cipi ban unban 203.0.113.42     # from every jail at once
 $ cipi ban unban 203.0.113.0/24   # a CrowdSec range decision
 ```
 
-The address is matched whole (before 5.14.0, `unban 1.2.3.4` could also lift a ban on `11.2.3.45`), and `ban unban` takes nothing but an address or a CIDR. Locked out a colleague or a CI runner by mistake? Unban from another session, the provider's console or the [panel](#panel). For CI, use a dedicated key (key logins don't fail).
+The address is matched whole (`unban 1.2.3.4` never lifts a ban on `11.2.3.45`), and `ban unban` takes nothing but an address or a CIDR. Locked out a colleague or a CI runner by mistake? Unban from another session, the provider's console or the [panel](#panel). For CI, use a dedicated key (key logins don't fail).
 
 ## From the panel 
 
-The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Firewall** tab (panel 4.6.0, [API](https://cipi.sh/docs/api#endpoints-firewall) 1.44, Cipi 5.14.0 on the server):
+The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Firewall** tab (over the [API](https://cipi.sh/docs/api#endpoints-firewall)):
 
 | Section | What it shows and does |
 | --- | --- |
@@ -5624,7 +5906,7 @@ The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Fi
 | Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
 | SSH login attempts | The threshold, back to the default, and a warning when fail2ban still runs an older value or isn't running |
 | CrowdSec | [Enable](https://cipi.sh/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
-| Cloudflare real IP | [The visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it (panel 4.7.0, Cipi 5.15.0) |
+| Cloudflare real IP | [The visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it |
 
 Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](https://cipi.sh/docs/crowdsec#rescue) stays at the server.
 
@@ -5733,14 +6015,14 @@ CrowdSec reads your Nginx logs, recognises attack patterns (scanners, credential
 
 ```bash
 $ cipi crowdsec enable                 # engine + firewall bouncer
-$ cipi crowdsec enable --allow=203.0.113.7   # and never ban this address (5.14.0+)
+$ cipi crowdsec enable --allow=203.0.113.7   # and never ban this address
 $ cipi crowdsec status                 # engine, bouncer, rescue listener, decisions
 $ cipi crowdsec allow 203.0.113.42     # never ban this address
 $ cipi crowdsec unallow 203.0.113.42
 $ cipi crowdsec disable                # flush rules first, then remove
 ```
 
-The [web panel](https://cipi.sh/docs/firewall#panel) does the same from a server's Firewall tab (panel 4.6.0, Cipi 5.14.0): enable and disable run as jobs, the allowlist is edited in place, and CrowdSec's decisions sit next to Fail2ban's bans, each with *Unban*. What would stop `enable` (too little RAM, a reverse proxy without real-IP config) is shown before you try.
+The [web panel](https://cipi.sh/docs/firewall#panel) does the same from a server's Firewall tab: enable and disable run as jobs, the allowlist is edited in place, and CrowdSec's decisions sit next to Fail2ban's bans, each with *Unban*. What would stop `enable` (too little RAM, a reverse proxy without real-IP config) is shown before you try.
 
 ## Safe by construction 
 
@@ -5748,7 +6030,7 @@ The [web panel](https://cipi.sh/docs/firewall#panel) does the same from a server
 | --- | --- |
 | Banning yourself | Your current SSH session is allowlisted before banning starts |
 | Banning the panel | Enabled from the [panel](https://cipi.sh/docs/firewall#panel), the panel's own address is allowlisted (`--allow`); there is no SSH session to allowlist, and the RAM and real-IP checks always apply (`--force` is ignored from the panel) |
-| Banning your CDN | Refused behind a proxy without real-IP config. Behind Cloudflare, [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) writes it — or the panel's Firewall tab, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel) (5.15.0+), or `cipi zt enable`, with a tunnel |
+| Banning your CDN | Refused behind a proxy without real-IP config. Behind Cloudflare, [`cipi nginx real-ip cloudflare`](https://cipi.sh/docs/nginx#real-ip) writes it — or the panel's Firewall tab, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel), or `cipi zt enable`, with a tunnel |
 | Banning your Git provider | GitHub and Bitbucket webhook ranges allowlisted (refreshed, fail-open); GitLab ranges included |
 | Breaking renewals | Let's Encrypt validation, localhost and private ranges allowlisted |
 | Too little RAM | Refused below 512 MB available |
@@ -5797,18 +6079,18 @@ $ cipi zt access enable --gui
 $ cipi zt ssh enable --hostname=ssh.example.com
 $ cipi zt lock http --yes                          # 80/443 closed or Cloudflare-only
 $ cipi zt lock ssh --yes                           # port 22 closed
-$ cipi zt lockdown                                 # 5.16.0: everything on the tunnel, no inbound port
+$ cipi zt lockdown                                 # everything on the tunnel, no inbound port
 $ cipi zt status                                   # --json for the whole picture
 ```
 
-Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). Since 5.16.0, for what you use: Account · Access: Service Tokens: Edit ([service tokens](#service-tokens)), Account · Access: SSH Auditing: Edit ([SSH certificates](#ssh-cert)), Zone · Cache Purge: Purge ([purges](#purge)). A token made for 5.15 keeps working; a command that needs more names the permission it misses. The token is stored root-only, separate from the DNS token used for certificates and from the Cloudflare token of the [web panel's connector](https://cipi.sh/docs/gui-connectors#cloudflare).
+Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). For what you use: Account · Access: Service Tokens: Edit ([service tokens](#service-tokens)), Account · Access: SSH Auditing: Edit ([SSH certificates](#ssh-cert)), Zone · Cache Purge: Purge ([purges](#purge)). A token without these keeps working; a command that needs more names the permission it misses. The token is stored root-only, separate from the DNS token used for certificates and from the Cloudflare token of the [web panel's connector](https://cipi.sh/docs/gui-connectors#cloudflare).
 
 ## What each step does 
 
 | Command | Effect | Reversible with |
 | --- | --- | --- |
 | `enable` | Installs `cloudflared`, a locally-managed tunnel, Nginx real-IP from Cloudflare's ranges (refreshed daily); Fail2ban/CrowdSec learn the ranges. **No port is closed** | `disable` |
-| `hostname add ` | DNS CNAME to the tunnel, ingress to Nginx; `--api` for the [REST API](https://cipi.sh/docs/api) (5.16.0) | `hostname remove` |
+| `hostname add ` | DNS CNAME to the tunnel, ingress to Nginx; `--api` for the [REST API](https://cipi.sh/docs/api) | `hostname remove` |
 | `access enable ` | Cloudflare Access login in front: the whole site or [some paths, for some people](#access); `/cipi/webhook` bypassed so pushes still deploy | `access disable` |
 | `service-token create  --for=…` | A [token for machines](#service-tokens): CI, monitors, the panel | `service-token revoke` |
 | `tcp add  --hostname=…` | A [database or Valkey](#tcp) reachable from your laptop, behind Access | `tcp remove` |
@@ -5833,7 +6115,7 @@ Host ssh.example.com
 
 ## Access on some paths, for some people 
 
-`access enable` alone asks anyone who signs in with your identity provider. Two options narrow it (5.16.0+):
+`access enable` alone asks anyone who signs in with your identity provider. Two options narrow it:
 
 ```bash
 $ cipi zt access enable shop --path=/admin,/horizon,/pulse      # only these paths; the rest stays public
@@ -5862,7 +6144,7 @@ Cipi creates the token and a Service Auth policy on the target's Access applicat
 $ curl -H "CF-Access-Client-Id: 3f2a….access" -H "CF-Access-Client-Secret: …" https://shop.example.com/health
 ```
 
-For a server whose API is behind Access (`cipi zt access enable --api --allow=none`), the [web panel](https://cipi.sh/docs/gui-overview) sends the token with every call: **Connections → the server → Behind Cloudflare Access**, with the id and the secret (panel 4.8.0+). The secret is stored encrypted, never shown again, and kept when the field is left empty.
+For a server whose API is behind Access (`cipi zt access enable --api --allow=none`), the [web panel](https://cipi.sh/docs/gui-overview) sends the token with every call: **Connections → the server → Behind Cloudflare Access**, with the id and the secret. The secret is stored encrypted, never shown again, and kept when the field is left empty.
 
 ## Databases and Valkey from your laptop 
 
@@ -5883,7 +6165,7 @@ then TablePlus, DBeaver or `mysql -h 127.0.0.1 -P 13306` on that address, with t
 
 ## SSH with short-lived certificates 
 
-Instead of keys to hand out and take back, Cloudflare signs a certificate at every sign-in (5.16.0+):
+Instead of keys to hand out and take back, Cloudflare signs a certificate at every sign-in:
 
 ```bash
 $ cipi zt ssh cert enable --principals=andrea,mario          # for the cipi user
@@ -5942,11 +6224,11 @@ Purge by hostname works on every Cloudflare plan. With `--on-deploy=on`, `cipi d
 
 ## The tunnel in the monitor 
 
-With Zero Trust on, the [monitor](https://cipi.sh/docs/monitor) runs a `tunnel` check every 5 minutes (5.16.0+): critical when cloudflared stops or Cloudflare sees the tunnel down or inactive, a warning when it is degraded (fewer connections: a network problem, or a replica down). Trigger `monitor_tunnel`, urgent, with recovery and reminders like every check. With 80/443 closed it is the one outage a server can still report: notifications go out, not through the tunnel. Outbound port 7844 (TCP and UDP) must stay open.
+With Zero Trust on, the [monitor](https://cipi.sh/docs/monitor) runs a `tunnel` check every 5 minutes: critical when cloudflared stops or Cloudflare sees the tunnel down or inactive, a warning when it is degraded (fewer connections: a network problem, or a replica down). Trigger `monitor_tunnel`, urgent, with recovery and reminders like every check. With 80/443 closed it is the one outage a server can still report: notifications go out, not through the tunnel. Outbound port 7844 (TCP and UDP) must stay open.
 
 ## In the web panel 
 
-The server's **Zero Trust** tab (panel 4.8.0+, cipi/api 1.46, Cipi 5.16.0) shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Read-only: every change stays on `cipi zt`. The [API](https://cipi.sh/docs/api) gives the same as `details` on `GET /api/zt`.
+The server's **Zero Trust** tab shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Read-only: every change stays on `cipi zt`. The [API](https://cipi.sh/docs/api) gives the same as `details` on `GET /api/zt`.
 
 The zones and DNS records of your Cloudflare accounts are in the panel's [Cloudflare connector](https://cipi.sh/docs/gui-connectors#cloudflare), with a token saved in the panel.
 
@@ -6028,7 +6310,7 @@ $ cipi compliance controls            # mapping to ISO 27001:2022 Annex A and SO
 | `firewall`, `intrusion`, `kernel` | UFW default deny; Fail2ban/CrowdSec; network sysctls |
 | `patching`, `time` | Security updates, reboots pending; NTP |
 | `tls` | Protocols, HSTS, certificate expiry and key type |
-| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts: [required](https://cipi.sh/docs/gui-install#two-factor-required) with everyone enrolled passes, required with accounts still to enrol warns and names them (5.14.0+) |
+| `api_tokens`, `gui_2fa` | Token expiry, scope, IP allowlists; two-factor on panel accounts: [required](https://cipi.sh/docs/gui-install#two-factor-required) with everyone enrolled passes, required with accounts still to enrol warns and names them |
 | `secrets` | Encrypted, root-only configuration |
 | `deploys` | [Deploy audit](https://cipi.sh/docs/deploy-audit) chain intact, hooks present, no unaudited releases |
 | `backups` | Freshness, off-site copy, encryption |
@@ -6649,25 +6931,27 @@ cipi CLI | does the work, as on SSH
 | Area | From the panel |
 | --- | --- |
 | Apps | Create, edit, suspend, delete Laravel (FPM or Octane), Node (SPA, static, SSR with framework presets) and custom apps; environment label; aliases, www ↔ apex, SSL, basic auth |
-| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](https://cipi.sh/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys* (Cipi 5.13.0+); the hash-chained [deploy audit](https://cipi.sh/docs/deploy-audit) with durations and each commit's title (Cipi 5.14.0+); a log per deploy |
+| Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](https://cipi.sh/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys*; the hash-chained [deploy audit](https://cipi.sh/docs/deploy-audit) with durations and each commit's title; a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
-| Routing | Whole-app and path redirects, prefix reverse proxies; for server managers, the app's [own Nginx directives](https://cipi.sh/docs/nginx#custom) — headers, caching, limits, `location` blocks — tested with `nginx -t` before the reload (Cipi 5.14.0+) |
-| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](https://cipi.sh/docs/environment#order) (Cipi 5.13.0+), a block of variables pasted or [edited as text](https://cipi.sh/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
+| Routing | Whole-app and path redirects, prefix reverse proxies; for server managers, the app's [own Nginx directives](https://cipi.sh/docs/nginx#custom) — headers, caching, limits, `location` blocks — tested with `nginx -t` before the reload |
+| Page cache | An app's [Nginx page cache](https://cipi.sh/docs/page-cache#panel): on and off, how long a page is kept, how much disk, the [paths that are never cached](https://cipi.sh/docs/page-cache#exclude), **Empty the cache now** — with what it is next to OPcache (which is on already), what it gives WordPress and content sites, what is never cached, and the command for a deploy recipe of your own, ready to copy |
+| Octane | For an Octane app: the PHP that answers the requests next to the PHP that runs Composer, artisan, cron and the workers, a warning when they are two versions, [**Switch PHP** by its number](https://cipi.sh/docs/octane#octane-panel), restart, update the FrankenPHP build |
+| App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](https://cipi.sh/docs/environment#order), a block of variables pasted or [edited as text](https://cipi.sh/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](https://cipi.sh/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations |
-| Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
-| Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](https://cipi.sh/docs/notifications#events) — everything, or *Urgent* and the categories you choose (Cipi 5.15.0+); every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
-| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor |
-| Zero Trust | The server's [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet (Cipi 5.16.0+) |
-| Packages | The [optional packages](https://cipi.sh/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](https://cipi.sh/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
-| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel) on, refreshed or off (Cipi 5.15.0+); SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel), Cipi 5.14.0+) |
-| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
+| Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics)) |
+| Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](https://cipi.sh/docs/notifications#events) — everything, or *Urgent* and the categories you choose; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel)); *Written as* — the [server's name and the time zone](https://cipi.sh/docs/notifications#written) of every notification, the panel's own name in one click |
+| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor; [Valkey per app](https://cipi.sh/docs/valkey#panel) — who shares the server's instance, *Isolate* one app or all, empty the shared one; the machine's **hostname** next to the name the server has in the panel, in Connections, the dashboard and the switcher: it is what a notification calls it |
+| Zero Trust | The server's [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet |
+| Packages | The [optional packages](https://cipi.sh/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](https://cipi.sh/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs |
+| Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel) on, refreshed or off; SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel)) |
+| Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs, colour-coded; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
-| Infrastructure | [28 connectors](https://cipi.sh/docs/gui-connectors) for the providers around your servers (admins): clouds and VPS — DigitalOcean, Hetzner, AWS, Google Cloud, Azure, OVHcloud, Vultr, Akamai, Scaleway, Contabo, UpCloud — Cloudflare and the registrars, with DNS records [pointed at a server by its name](https://cipi.sh/docs/gui-connectors#servers); S3, R2, Spaces, B2, Wasabi and Johnny with [keys for one bucket](https://cipi.sh/docs/gui-connectors#bucket-keys); Postmark, Mailgun, Resend and SES with their DNS [published on Cloudflare](https://cipi.sh/docs/gui-connectors#publish-dns); Sentry, Oh Dear, Better Stack, Datadog, CloudWatch, Boogle; Aikido and Hackly (panel 4.8.0+) |
+| Infrastructure | [28 connectors](https://cipi.sh/docs/gui-connectors) for the providers around your servers (admins): clouds and VPS — DigitalOcean, Hetzner, AWS, Google Cloud, Azure, OVHcloud, Vultr, Akamai, Scaleway, Contabo, UpCloud — Cloudflare and the registrars, with DNS records [pointed at a server by its name](https://cipi.sh/docs/gui-connectors#servers); S3, R2, Spaces, B2, Wasabi and Johnny with [keys for one bucket](https://cipi.sh/docs/gui-connectors#bucket-keys); Postmark, Mailgun, Resend and SES with their DNS [published on Cloudflare](https://cipi.sh/docs/gui-connectors#publish-dns); Sentry, Oh Dear, Better Stack, Datadog, CloudWatch, Boogle; Aikido and Hackly |
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
-| Sign-in | Password with TOTP, optional or [required for every account](https://cipi.sh/docs/gui-install#two-factor-required) (panel 4.6.0+); [passkeys](https://cipi.sh/docs/gui-install#passkeys) — Face ID, Touch ID, Windows Hello, a phone or a security key — alone or as the second step (panel 4.8.0+); or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
+| Sign-in | Password with TOTP, optional or [required for every account](https://cipi.sh/docs/gui-install#two-factor-required); [passkeys](https://cipi.sh/docs/gui-install#passkeys) — Face ID, Touch ID, Windows Hello, a phone or a security key — alone or as the second step; or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
 
-Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs — never which release has it (panel 4.7.0+).
+Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs.
 
 > [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](https://cipi.sh/docs/design-decisions#packages), monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
@@ -6685,7 +6969,7 @@ Creating an app starts with its type. Node presets (Next.js, Nuxt, SvelteKit, As
 
 A header with status, type, runtime, the server and its IP, and actions, then one tab per area. Tabs live in the URL (`?tab=deploy`), so they can be bookmarked.
 
-The Overview's details say where to connect and as whom (panel 4.6.0+): the app's Linux **user** — the one that signs in over [SSH and SFTP](https://cipi.sh/docs/app-ssh), named after the app — the **server's IP** and the `ssh shop@203.0.113.24` command made of the two. A click copies each. The IP is the one the panel keeps for the server, typed on Connections or read from its status, so this works with any Cipi version; the command uses the default SSH port.
+The Overview's details say where to connect and as whom: the app's Linux **user** — the one that signs in over [SSH and SFTP](https://cipi.sh/docs/app-ssh), named after the app — the **server's IP** and the `ssh shop@203.0.113.24` command made of the two. A click copies each. The IP is the one the panel keeps for the server, typed on Connections or read from its status, so this works with any Cipi version; the command uses the default SSH port.
 
 ### Jobs
 
@@ -6707,7 +6991,7 @@ UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order wi
 
 ### Zero Trust
 
-The server's Cloudflare Tunnel as the CLI set it up (Cipi 5.16.0+, cipi/api 1.46): healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it. Read-only: every change stays on `cipi zt`. See [Zero Trust](https://cipi.sh/docs/zero-trust#panel).
+The server's Cloudflare Tunnel as the CLI set it up: healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it. Read-only: every change stays on `cipi zt`. See [Zero Trust](https://cipi.sh/docs/zero-trust#panel).
 
 ### Infrastructure
 
@@ -6796,7 +7080,7 @@ Session login with **TOTP** (Google Authenticator, 1Password, Aegis…) or a [pa
 
 ### Required for every account 
 
-For policies that ask it of every account (ISO 27001, NIS2), an admin turns on **Team → Two-factor authentication** (panel 4.6.0+, setting `enforce_2fa`, off by default). Nothing changes on the servers.
+For policies that ask it of every account (ISO 27001, NIS2), an admin turns on **Team → Two-factor authentication** (setting `enforce_2fa`, off by default). Nothing changes on the servers.
 
 | Who | What happens |
 | --- | --- |
@@ -6810,7 +7094,7 @@ An admin can turn it on only once their own session passes it (2FA set up, or si
 
 ### Passkeys 
 
-Face ID, Touch ID, Windows Hello, a phone or a security key (panel 4.8.0+). A passkey is two factors in one — the device, and the face, finger or PIN that unlocks it — so it is used two ways:
+Face ID, Touch ID, Windows Hello, a phone or a security key. A passkey is two factors in one — the device, and the face, finger or PIN that unlocks it — so it is used two ways:
 
 - **alone**, from the login page: *Sign in with a passkey*, also offered by the browser as the email field is filled. No password, no code after it;
 - **as the second step** after the password, instead of the authenticator's code. An account with both is offered both.
@@ -6828,14 +7112,14 @@ The panel checks WebAuthn itself, with no library: a challenge used once and val
 
 ### Lost a second factor 
 
-An admin clicks **Reset 2FA** on the account in Team (panel 4.6.0+; not for your own account): it removes the authenticator and, from panel 4.8.0, the account's passkeys. From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites an account and removes the enrolment, passkeys included from Cipi 5.16.0. With 2FA required, the account sets it up again at its next sign-in.
+An admin clicks **Reset 2FA** on the account in Team (not for your own account): it removes the authenticator and the account's passkeys. From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites an account and removes the enrolment, passkeys included. With 2FA required, the account sets it up again at its next sign-in.
 
 
 ## Connectors
 
 URL: https://cipi.sh/docs/gui-connectors
 
-The providers around your servers, driven from the panel: **28 connectors** for clouds and VPS, domains and DNS, object storage, email, monitoring and security scanners (cipi/gui 4.8.0+). Create a Droplet or an EC2 instance, point a DNS record at a server **by its name**, publish the DNS a mail domain asks for on Cloudflare, make a bucket and a key an app can use on that bucket only, resolve a Sentry issue, snooze an Oh Dear check, ignore an Aikido finding — without opening twenty dashboards.
+The providers around your servers, driven from the panel: **28 connectors** for clouds and VPS, domains and DNS, object storage, email, monitoring and security scanners. Create a Droplet or an EC2 instance, point a DNS record at a server **by its name**, publish the DNS a mail domain asks for on Cloudflare, make a bucket and a key an app can use on that bucket only, resolve a Sentry issue, snooze an Oh Dear check, ignore an Aikido finding — without opening twenty dashboards.
 
 > [!tip] **Admins only, and optional.** Connectors are a page of the panel, not of Cipi: the calls go from the panel to the provider with credentials saved in the panel. The Cipi servers, their API and the CLI are not involved, and nothing changes on a server unless you change it from there yourself.
 
@@ -7527,8 +7811,8 @@ The panel is a standard **Laravel** application distributed as the `cipi/gui` pa
 | Install path | `/opt/cipi/gui` |
 | Config | `/etc/cipi/gui.json` |
 | Isolation | Own FPM pool, `open_basedir` limited to its own directories |
-| Auth | Session login, optional TOTP or [passkeys](https://cipi.sh/docs/gui-install#passkeys) (WebAuthn checked by the panel itself, 4.8.0+), optional OpenID Connect SSO |
-| Connectors | Providers' APIs called from the panel over HTTPS (4.8.0+); credentials encrypted with `APP_KEY` in `cipi_connector_accounts`, never sent back to the page |
+| Auth | Session login, optional TOTP or [passkeys](https://cipi.sh/docs/gui-install#passkeys) (WebAuthn checked by the panel itself), optional OpenID Connect SSO |
+| Connectors | Providers' APIs called from the panel over HTTPS; credentials encrypted with `APP_KEY` in `cipi_connector_accounts`, never sent back to the page |
 | Jobs | No local queue worker: remote jobs polled through each server's API |
 
 ```stack
@@ -7542,7 +7826,7 @@ cipi CLI via sudoers | the same code path as SSH
 
 | Area | Endpoints used |
 | --- | --- |
-| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove, API 1.44+), monitor, Zero Trust (`GET /api/zt` with `details`, API 1.46+), `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
+| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove), monitor, Zero Trust (`GET /api/zt` with `details`), `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
 | Apps | CRUD, suspend, fix-permissions, basic auth, logs, `.env`, `auth.json`, Artisan, app commands; create with `engine`, `octane`, Node options; webhook rotation; per-app health check |
 | Deploy | Deploy, rollback, unlock, `deploy/audit`, `deploy/history`, `GET /api/deploys/last`, `deploy-config` |
 | `cipi.yml` | `GET /api/apps/{name}/yml`, `POST …/yml/apply`, `…/yml/auto/enable|disable` |
@@ -7552,7 +7836,7 @@ cipi CLI via sudoers | the same code path as SSH
 | Search | `GET /api/search`, per-app enable/disable |
 | Databases | List, create, back up, restore (with chunked upload), rotate password, link to apps; deletion stays on the host CLI |
 | Backups | `/api/backups…` profiles, runs, destinations test |
-| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](https://cipi.sh/docs/firewall#panel), API 1.44+), Cloudflare real IP (`/api/firewall/real-ip`, API 1.45+) |
+| Firewall | `/api/firewall…`: rules, blocks, bans, the SSH login threshold, CrowdSec on/off and allowlist ([firewall](https://cipi.sh/docs/firewall#panel)), Cloudflare real IP (`/api/firewall/real-ip`) |
 | Jobs | Status, output and parsed `result` (credentials, backup file, webhook token) |
 
 A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall deny`, the CrowdSec rescue, disk limits and DNS accounts are changed on the host.
@@ -7649,13 +7933,13 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Deploy | `deploy-manage` (deploy, rollback, unlock, audit, status) |
 | `cipi.yml` | `yml-view`, `yml-manage` |
 | Domains and SSL | `aliases-view`, `aliases-create`, `aliases-delete`, `www-manage`, `ssl-manage` |
-| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` |
+| Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` (an app's directives and its [page cache](https://cipi.sh/docs/page-cache)) |
 | Node | `node-view`, `node-manage` (SSR restart), `node-runtimes-manage` |
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
 | Backups | `backups-view` (never keys), `backups-manage` |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
-| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) — 1.44+ |
-| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) — manage 1.44+ |
+| Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) |
+| Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) |
 | Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
@@ -7663,9 +7947,13 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 `php artisan cipi:token-abilities` (or the `cipi api token create` checklist) shows the canonical list.
 
+Some routes have no ability of their own and sit under an area's: `nginx-*` for the [page cache](#endpoints-cache), `php-*` for the [PHP of an Octane app](#endpoints-octane), `services-*` for [Valkey per app](#endpoints-valkey), `notifications-*` for the [time zone and server name](#endpoints-notification-settings) of notifications. A token made for one of those areas can use them.
+
 ## REST endpoints 
 
-Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second (1.44+) — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+
+The API and the server's Cipi are updated separately (`cipi api update`, `cipi self-update`). A route whose command the server's Cipi doesn't have yet answers `503` and says so: update the server.
 
 A server whose API is [behind Cloudflare Access](https://cipi.sh/docs/zero-trust#service-tokens) (`cipi zt access enable --api --allow=none`) also needs the headers of a service token: `CF-Access-Client-Id` and `CF-Access-Client-Secret` (`cipi zt service-token create  --for=api`).
 
@@ -7691,7 +7979,7 @@ A server whose API is [behind Cloudflare Access](https://cipi.sh/docs/zero-trust
 
 `POST /api/apps` takes `domain`, `repository`, `branch`, `php`, `env`, `engine` (`mariadb`/`pgsql`), `octane`, `node_build`, `custom` + `docroot` (repository optional for SFTP-only sites), or Node fields (`node`: `spa|static|ssr`, `framework`, `node_version`, `build`, `start`, `output`, `health_path`). The same rules as [`cipi app create`](https://cipi.sh/docs/create-app) apply. `PUT` forwards only fields that changed; a `domain` already used elsewhere answers `409`. App objects return `type` (`laravel`, `custom`, `node`), `env`, `suspended`, `basic_auth`, `octane`, `redirects`, `proxies` and `databases`.
 
-`PUT /api/apps/{name}/env` takes `set` (keys and values), `unset` (keys) and, with Cipi 5.13.0+ and API 1.43+, `order`: every key of the file after `set`/`unset`, each once, in the order they should be in (comments above a key move with it; an `order` alone is enough). It answers `vars` in file order. `GET /api/apps/{name}/basicauth` returns `enabled`, `users` and, from API 1.43, `agent` (`mode`, `public_prefix`).
+`PUT /api/apps/{name}/env` takes `set` (keys and values), `unset` (keys) and `order`: every key of the file after `set`/`unset`, each once, in the order they should be in (comments above a key move with it; an `order` alone is enough). It answers `vars` in file order. `GET /api/apps/{name}/basicauth` returns `enabled`, `users` and `agent` (`mode`, `public_prefix`).
 
 ### Deploy and cipi.yml 
 
@@ -7705,7 +7993,7 @@ A server whose API is [behind Cloudflare Access](https://cipi.sh/docs/zero-trust
 | `POST` | `/api/apps/{name}/yml/apply` (job) | `yml-manage` |
 | `POST` | `/api/apps/{name}/yml/auto/enable`, `/disable` | `yml-manage` |
 
-`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. With Cipi 5.13.0+ it also returns `paused_commit`: the commit whose automatic deploy failed, which the webhook does not deploy again ([paused commit](https://cipi.sh/docs/deploying#paused)); `deploy/unlock` resumes it, and its job result says `resumed` and `resumed_commit`. `deploy/audit` returns the [hash-chained ledger](https://cipi.sh/docs/deploy-audit).
+`deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. It also returns `paused_commit`: the commit whose automatic deploy failed, which the webhook does not deploy again ([paused commit](https://cipi.sh/docs/deploying#paused)); `deploy/unlock` resumes it, and its job result says `resumed` and `resumed_commit`. `deploy/audit` returns the [hash-chained ledger](https://cipi.sh/docs/deploy-audit).
 
 GET /api/apps/{name}/yml is cipi yml plan &lt;app&gt; --json: the file of the live release, env, auto, valid and errors, in_sync, warnings, changes (kind, token, summary), blockers and notes. See cipi.yml.
 
@@ -7737,7 +8025,7 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `GET` | `/api/backups`, `/api/backups/runs` | `backups-view` |
 | `POST`, `PUT`, `DELETE` | `/api/backups/run`, `/verify`, `/destinations/test`, `/profiles[/{name}]`, `…/enable`, `…/disable` | `backups-manage` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default` and, from API 1.43, `server` and `label`: where [`cipi db switch mysql`](https://cipi.sh/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` (Cipi 5.13.0+, API 1.43+; [paths left out](https://cipi.sh/docs/backups#exclude-paths)). **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](https://cipi.sh/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](https://cipi.sh/docs/backups#exclude-paths)). **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
 
 ### Server 
 
@@ -7745,27 +8033,31 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | --- | --- | --- |
 | `GET` | `/api/status` (same JSON as `cipi status`) | `status-view` |
 | `GET`, `POST` | `/api/php`, `/api/php/install` | `php-view` / `php-manage` |
+| `GET`, `POST` | `/api/frankenphp`, `/api/frankenphp/upgrade` (the FrankenPHP build of each Octane app) | `php-view` / `php-manage` |
+| `GET`, `PUT`, `POST` | `/api/apps/{name}/octane`, `/octane/php`, `/octane/restart` ([the PHP of an Octane app](#endpoints-octane)) | `php-view` / `php-manage` |
 | `GET`, `POST`, `DELETE` | `/api/ssh/keys[/{n}]` | `ssh-view` / `ssh-manage` |
 | `GET`, `POST` | `/api/services`, `/services/{name}/restart` | `services-view` / `services-manage` |
+| `GET`, `POST` | `/api/valkey`, `/valkey/isolate`, `/valkey/share`, `/valkey/{app}/restart`, `/valkey/flush-shared` ([Valkey per app](#endpoints-valkey)) | `services-view` / `services-manage` |
 | `GET`, `PUT`, `DELETE`, `POST` | `/api/smtp`, `/smtp/enable`, `/disable`, `/test` | `smtp-view` / `smtp-manage` |
-| `GET` | `/api/notifications`, `/api/notifications/triggers` ([notifications](https://cipi.sh/docs/notifications#panel), 1.42+) | `notifications-view` or `smtp-view` |
-| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]` (with `events`: what the channel receives, 1.45+), `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
+| `GET` | `/api/notifications`, `/api/notifications/triggers` ([notifications](https://cipi.sh/docs/notifications#panel)) | `notifications-view` or `smtp-view` |
+| `POST`, `PUT`, `DELETE` | `/api/notifications/channels[/{id}]` (with `events`: what the channel receives), `/channels/{id}/enable`, `/disable`, `/test`, `/api/notifications/triggers`, `/triggers/reset` | `notifications-manage` or `smtp-manage` |
+| `GET`, `PUT` | `/api/notifications/settings` ([time zone and server name](#endpoints-notification-settings)) | `notifications-view` / `notifications-manage`, or the `smtp-*` pair |
 | `GET` | `/api/health` | `health-view` |
 | `GET`, `POST`, `PUT`, `DELETE` | `/api/node`, `/node/install`, `/node/upgrade`, `/node/default`, `/node/{major}` | `node-view` / `node-runtimes-manage` |
 | `GET`, `POST` | `/api/apps/{name}/node`, `/node/restart` (blue/green) | `node-view` / `node-manage` |
 | `GET`, `POST` | `/api/search`, `/api/apps/{name}/search/enable`, `/disable` | `search-view` / `search-manage` |
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
 | `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
-| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
-| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](https://cipi.sh/docs/zero-trust#panel) picture: 1.46+, Cipi 5.16.0+) | `monitor-view`, `zt-view` |
-| `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](https://cipi.sh/docs/metrics), 1.41+) | `metrics-view` |
+| `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`) | `packages-manage` |
+| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](https://cipi.sh/docs/zero-trust#panel) picture) | `monitor-view`, `zt-view` |
+| `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](https://cipi.sh/docs/metrics)) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](https://cipi.sh/docs/basic-auth#agent)) | `apps-basicauth` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
 
 ### Firewall 
 
-API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [panel's Firewall tab](https://cipi.sh/docs/firewall#panel) uses.
+What the [panel's Firewall tab](https://cipi.sh/docs/firewall#panel) uses.
 
 | Method | Path | Ability |
 | --- | --- | --- |
@@ -7776,16 +8068,16 @@ API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). What the [pa
 | `DELETE` | `/api/firewall/bans` (`address`: Fail2ban and CrowdSec at once) | `firewall-manage` |
 | `POST`, `DELETE` | `/api/firewall/crowdsec/allowlist` (`address`) | `firewall-manage` |
 | `POST` | `/api/firewall/crowdsec/enable`, `/disable` (jobs `crowdsec-enable`, `crowdsec-disable`) | `firewall-manage` |
-| `PUT`, `DELETE` | `/api/firewall/real-ip` (on, or the ranges fetched again; off) — 1.45+, Cipi 5.15.0+ | `firewall-manage` |
-| `POST` | `/api/firewall/real-ip/refresh` (Cloudflare's ranges fetched again) — 1.45+ | `firewall-manage` |
+| `PUT`, `DELETE` | `/api/firewall/real-ip` (on, or the ranges fetched again; off) | `firewall-manage` |
+| `POST` | `/api/firewall/real-ip/refresh` (Cloudflare's ranges fetched again) | `firewall-manage` |
 
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](https://cipi.sh/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
 
-From Cipi 5.15.0 `GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` on an older core. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
+`GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` when the server's Cipi doesn't have it yet. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
 
 ### Notification channels: events 
 
-`POST /api/notifications/channels` and `PUT /api/notifications/channels/{id}` take `events` (API 1.45+, Cipi 5.15.0+): `null` for [everything](https://cipi.sh/docs/notifications#events), or a list of categories (`security`, `deploy`, `backup`…), single triggers (`backup_fail`) and `urgent`. Alone, it changes only what the channel receives (for SMTP: no new settings, no test). `GET /api/notifications` gives every channel its `events` and lists the server's `categories` (`id`, `label`, `triggers`). An older core refuses a request with `events` (`503`) rather than saving the channel without them.
+`POST /api/notifications/channels` and `PUT /api/notifications/channels/{id}` take `events`: `null` for [everything](https://cipi.sh/docs/notifications#events), or a list of categories (`security`, `deploy`, `backup`…), single triggers (`backup_fail`) and `urgent`. Alone, it changes only what the channel receives (for SMTP: no new settings, no test). `GET /api/notifications` gives every channel its `events` and lists the server's `categories` (`id`, `label`, `triggers`). A server whose Cipi doesn't know `events` yet refuses the request (`503`) rather than saving the channel without them.
 
 ```bash
 $ curl -X PUT https://api.example.com/api/notifications/channels/oncall \
@@ -7797,13 +8089,69 @@ $ curl -X PUT https://api.example.com/api/notifications/channels/oncall \
 
 `GET /api/apps/{name}/nginx` answers `{app, config, bytes, max_bytes, active, suspended}`: `config` is the text an app adds to [its own server block](https://cipi.sh/docs/nginx#custom), empty when it has none. `PUT` with `{"config": "…"}` replaces it (an empty one removes it), `DELETE` removes it. Both are **synchronous**: `nginx -t` runs before Nginx reloads.
 
-A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](https://cipi.sh/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home. Needs Cipi 5.14.0+ (`503` before).
+A text that is refused changes nothing and answers `422` with `reasons`, one per line — `line 2: unknown directive "boom"` from Nginx, or the directive the API doesn't take. From the API only [a subset of Nginx's language](https://cipi.sh/docs/nginx#custom-api) is accepted: no log path, `include`, `listen`, `server_name`, `*_pass` or certificates, `root` and `alias` under the app's home.
+
+### Page cache 
+
+The [page cache](https://cipi.sh/docs/page-cache) of an app: Nginx answers with the page PHP made, without running PHP — not OPcache, which is always on.
+
+| Method | Path | Ability |
+| --- | --- | --- |
+| `GET` | `/api/apps/{name}/cache`, `/api/cache` (every app) | `nginx-view` |
+| `PUT` | `/api/apps/{name}/cache` — `{enabled, ttl?, size?, clear_on_deploy?, exclude?}` | `nginx-manage` |
+| `PUT` | `/api/apps/{name}/cache/exclude` — `{exclude: ["/cart*", "/feed"]}` | `nginx-manage` |
+| `POST` | `/api/apps/{name}/cache/clear` | `nginx-manage` |
+
+`GET` answers `supported` (false for a Node app), `kind` (`fastcgi`, `proxy`), `enabled`, `active`, `ttl`, `ttl_seconds`, `size`, `clear_on_deploy`, `exclude` (the app's [own paths that are never cached](https://cipi.sh/docs/page-cache#exclude)), `files` and `bytes` on disk now, `path`, `suspended` and `clear_command` — what [a recipe of your own](https://cipi.sh/docs/page-cache#recipe) runs to empty it. `PUT` with `enabled: true` changes what is given and leaves the rest (`ttl`, `size`, `clear_on_deploy` and `exclude` with `enabled: false` are a `422`). `…/cache/exclude` sets the whole list, with the cache on or off; an empty one keeps none, and a path that isn't one (letters, digits, `. _ ~ % - /` and `*`, 50 at most) is a `422` before anything runs. `clear` answers the cache after it, with `cleared`. Synchronous: `nginx -t` runs before the reload, and a refusal is a `422` with the server's words.
+
+```bash
+$ curl -X PUT https://api.example.com/api/apps/blog/cache \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"enabled": true, "ttl": "1h"}'
+$ curl -X POST https://api.example.com/api/apps/blog/cache/clear -H "Authorization: Bearer $TOKEN"
+```
+
+### The PHP of an Octane app 
+
+An [Octane app runs two PHP](https://cipi.sh/docs/octane#octane-php): the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.
+
+| Method | Path | |
+| --- | --- | --- |
+| `GET` | `/api/apps/{name}/octane` | `php`, `octane_php`, `build`, `frankenphp`, `state` (`ok`, `mismatch`, `vulnerable`, `unpinned`, `missing`), `restart_pending`, `available_php`, and for a mismatch `fix: {command, why}` |
+| `PUT` | `/api/apps/{name}/octane/php` — `{"php": "8.5"}` | Job `octane-php`: both on that version, by its number |
+| `POST` | `/api/apps/{name}/octane/restart` | Job `octane-restart`: restarted on its build, and checked |
+
+An app that isn't on Octane answers `422`. The job fails, with nothing changed, when no FrankenPHP release carries the PHP asked for or when Octane doesn't answer on the new build.
+
+### Valkey per app 
+
+[Who shares the server's Valkey](https://cipi.sh/docs/valkey#manage) and who has an instance of its own.
+
+| Method | Path | |
+| --- | --- | --- |
+| `GET` | `/api/valkey` | `shared_port`, `apps` (`app`, `uses`: `own`, `shared`, `external`, `none`; `port`, `instance`, `memory`, `keys`), `shared` (the apps still on the shared instance), `isolated` |
+| `POST` | `/api/valkey/isolate` — `{"app": "shop"}` or `{"all": true}`; `copy: false` to start empty | Job `valkey-isolate`; `result` has `moved`, `left`, `shared_can_be_flushed` |
+| `POST` | `/api/valkey/share` — `{"app": "shop"}` | Job `valkey-share` |
+| `POST` | `/api/valkey/{app}/restart` | Synchronous; the list after it |
+| `POST` | `/api/valkey/flush-shared` | Empties the shared instance and changes its password; `409` while an app uses it |
+
+> [!security] **No password leaves the server through these routes.** The list has none, and the new shared password that `cipi valkey flush-shared` prints once is neither returned nor put in an error: it stays in `cipi credentials`.
+
+### Notification settings 
+
+`GET /api/notifications/settings` answers `timezone` (`null`: the server's own), `server_timezone`, `server_name` (`null`: the hostname), `hostname` and `now` — the time as a notification would write it at this moment. `PUT` takes `timezone`, `server_name` or both; `null` puts the server's own back. The same object is in `GET /api/notifications` as `settings`. See [how notifications are written](https://cipi.sh/docs/notifications#written).
+
+```bash
+$ curl -X PUT https://api.example.com/api/notifications/settings \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"timezone": "Europe/Rome", "server_name": "production"}'
+```
 
 ### Optional packages 
 
-`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, and on Cipi 5.14.0+ `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](https://cipi.sh/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
+`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](https://cipi.sh/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
 
-`POST /api/packages/{id}` installs an entry of the server's [closed catalog](https://cipi.sh/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](https://cipi.sh/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes — and need API 1.44+ with Cipi 5.14.0+ on the server (`503` on an older core). An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](https://cipi.sh/docs/packages#panel) uses.
+`POST /api/packages/{id}` installs an entry of the server's [closed catalog](https://cipi.sh/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](https://cipi.sh/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes. An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](https://cipi.sh/docs/packages#panel) uses.
 
 > [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](https://cipi.sh/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
@@ -7844,7 +8192,7 @@ The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, a
 | --- | --- |
 | HTTP 500 on `/docs` or `/mcp` after an update | `cipi api fix-permissions`, then `cipi api status` |
 | `sudo: a terminal is required` | `cipi self-update` regenerates the allowlist |
-| `sudo: I'm sorry www-data. I'm afraid I can't do that` on new endpoints (e.g. metrics) | The allowlist is older than the command. `sudo cipi self-update` (5.11.2+) rewrites it, split into rules of 40 commands for sudo-rs on Ubuntu 26.04 and validated with `visudo` first; check with `sudo -l -U www-data` |
+| `sudo: I'm sorry www-data. I'm afraid I can't do that` on new endpoints (e.g. metrics) | The allowlist is older than the command. `sudo cipi self-update` rewrites it, split into rules of 40 commands for sudo-rs on Ubuntu 26.04 and validated with `visudo` first; check with `sudo -l -U www-data` |
 | Panel says backups aren't configured | Compare `ls -l /etc/cipi/backup.json` with `sudo -u www-data sudo -n /usr/local/bin/cipi backup status --json` |
 
 ## IP allowlist 
@@ -7862,7 +8210,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server 
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), the page cache of an app (`PageCacheShow`, `PageCacheUpdate`, `PageCacheClear`), the PHP of an Octane app (`OctanePhpShow`, `OctanePhpSwitch`), Valkey per app (read-only: `ValkeyList`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \
@@ -7949,7 +8297,7 @@ $ cipi-cli staging apps list       # an explicit prefix still wins
 | `apps artisan  ` | Artisan as an async job |
 | `apps run  ` | Allowlisted binaries (`cipi-cli run-commands`) |
 | `apps env show|set ` | Read `.env` in file order, or `--set KEY=VALUE` / `--unset KEY` / `--order K1,K2,…` |
-| `apps env order  KEY… [--after K / --before K]` | Move keys, the others keep their place (Cipi 5.13.0+, API 1.43+) |
+| `apps env order  KEY… [--after K / --before K]` | Move keys, the others keep their place |
 | `apps auth show|create|update|delete ` | Composer `auth.json` |
 | `apps basicauth status|enable|disable ` | HTTP Basic Auth: status with users and cipi/agent routes |
 | `apps node status|restart ` | Node status, blue/green restart |
@@ -8001,7 +8349,7 @@ $ cipi-cli domains
 | --- | --- |
 | `deploy ` | Zero-downtime deploy, waits for the job |
 | `deploy rollback  [-y]` | Previous release |
-| `deploy status  [--tail N]` | Running, queued, interrupted or idle, the last run, and a [paused commit](https://cipi.sh/docs/deploying#paused) (5.13.0+) |
+| `deploy status  [--tail N]` | Running, queued, interrupted or idle, the last run, and a [paused commit](https://cipi.sh/docs/deploying#paused) |
 | `deploy unlock ` | Clear a stuck lock now; resume a paused commit |
 | `deploy config show|set ` | `deploy.php` options: `--optimize`, `--storage-link`, `--queue-restart`, `--horizon-terminate`, `--predeploy-snapshot`, `--node-build`, `--extra-artisan` |
 | `deploy audit  [--days N]` | [Deploy ledger](https://cipi.sh/docs/deploy-audit): origin, operator, IP, commit |
@@ -8067,7 +8415,29 @@ $ cipi-cli nginx show shop > shop.nginx.conf
 $ cipi-cli prod nginx set shop --file shop.nginx.conf
 ```
 
-The server tests every change with `nginx -t`; a refused text changes nothing, its reasons are printed line by line and `edit` offers the editor again. From the API [a subset of Nginx's language](https://cipi.sh/docs/nginx#custom-api) is accepted. Needs Cipi 5.14.0+, cipi/api 1.44+ and the `nginx-view` / `nginx-manage` abilities.
+The server tests every change with `nginx -t`; a refused text changes nothing, its reasons are printed line by line and `edit` offers the editor again. From the API [a subset of Nginx's language](https://cipi.sh/docs/nginx#custom-api) is accepted. Needs the `nginx-view` / `nginx-manage` abilities.
+
+## `cache` 
+
+The [page cache](https://cipi.sh/docs/page-cache) of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP. Not OPcache, which is always on.
+
+| Command | Does |
+| --- | --- |
+| `cache` | Every app: on or off, how long pages are kept, pages and bytes on disk |
+| `cache show ` | One app, with the command that empties it on the server |
+| `cache on  [--ttl 10m] [--size 256m] [--exclude '/cart*,/feed'] [--deploy-clear=false]` | Turn it on, or change it when it is on |
+| `cache ttl  ` | How long a page is kept: `30s`, `10m`, `1h`, `7d` |
+| `cache exclude  [add\|remove\|set …]` | The app's [own paths that are never cached](https://cipi.sh/docs/page-cache#exclude): the list, more, fewer (`remove --all` for none), exactly these |
+| `cache clear ` | Delete the cached pages now |
+| `cache off ` | Every request runs PHP again |
+
+```bash
+$ cipi-cli cache on blog --ttl 1h
+$ cipi-cli cache exclude blog add '/wishlist*' /feed
+$ cipi-cli cache clear blog
+```
+
+Cipi empties the cache after every deploy by itself. Needs the `nginx-view` / `nginx-manage` abilities.
 
 ## `aliases` 
 
@@ -8113,7 +8483,7 @@ Flags: `--email`, `--url` (when the app redirects, redirects are never followed)
 | `backup`, `backup status` | Destinations, profiles, last runs, what no profile covers |
 | `backup runs [--profile P]` | Runs each destination holds |
 | `backup run [profile]`, `backup verify [profile]` | Start a run in the background; check that the newest run opens |
-| `backup profile add  --dest local,s3 [flags]`, `edit  [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths` (5.13.0+), `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
+| `backup profile add  --dest local,s3 [flags]`, `edit  [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths`, `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
 | `backup profile enable|disable|remove ` | |
 | `backup destination test [name]` | Reach each S3 destination with its credentials |
 
@@ -8133,6 +8503,25 @@ Destinations are added on the server (`cipi backup destination add`): an S3 secr
 
 Switching the default and removing versions stay on the server (`cipi php switch|remove`).
 
+## `octane` 
+
+The [PHP of an Octane app](https://cipi.sh/docs/octane#octane-php): the one inside its FrankenPHP build answers the requests, the server's runs Composer, artisan, cron and the workers.
+
+| Command | Does |
+| --- | --- |
+| `octane show ` | Both PHP, the build, and — when they are two versions — the command that puts them on one |
+| `octane php  ` | Both on that version, by its number (async job): Octane is checked, and the previous build returns if it doesn't answer |
+| `octane restart ` | Restart Octane on its build and check it |
+| `octane builds` | The FrankenPHP build of every Octane app |
+| `octane upgrade [app]` | The newest build on the app's own PHP — never another version |
+
+```bash
+$ cipi-cli octane show shop
+$ cipi-cli octane php shop 8.6
+```
+
+Needs the `php-view` / `php-manage` abilities.
+
 ## `services` and `ssh-keys` 
 
 | Command | Does |
@@ -8142,6 +8531,20 @@ Switching the default and removing versions stay on the server (`cipi php switch
 | `ssh-keys list` | Authorized keys of the `cipi` user, with ids |
 | `ssh-keys add [key] [--file F]` | Add a public key |
 | `ssh-keys remove ` | Remove one |
+
+## `valkey` 
+
+[Valkey per app](https://cipi.sh/docs/valkey#manage), for the whole server:
+
+| Command | Does |
+| --- | --- |
+| `valkey` | Every Laravel app with what it uses: its own instance, or the shared one |
+| `valkey isolate ` / `--all` | Give an app, or every app still on the shared instance, its own (`--no-copy` to start empty; `-y` skips the question) |
+| `valkey share ` | Move it back and remove its instance |
+| `valkey restart ` | Restart an app's instance |
+| `valkey flush-shared` | Once nobody uses it: empty the shared instance and change its password |
+
+No password travels through the API: the new shared one stays on the server (`cipi credentials`). Needs the `services-view` / `services-manage` abilities.
 
 ## `smtp` 
 
@@ -8178,7 +8581,7 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
 
-[Optional packages](https://cipi.sh/docs/packages) are installed and removed too (Cipi 5.14.0+, API 1.44+, `packages-manage`; jobs the CLI waits for):
+[Optional packages](https://cipi.sh/docs/packages) are installed and removed too (`packages-manage`; jobs the CLI waits for):
 
 ```bash
 $ cipi-cli packages                              # the catalog: status, what each brings
@@ -8187,7 +8590,7 @@ $ cipi-cli packages install sec-nuclei           # a pinned upstream release; ag
 $ cipi-cli prod packages remove ffmpeg -y
 ```
 
-[Metrics](https://cipi.sh/docs/metrics) (API 1.41+), with sparklines in the terminal:
+[Metrics](https://cipi.sh/docs/metrics), with sparklines in the terminal:
 
 ```bash
 $ cipi-cli metrics                               # server and apps now
@@ -8200,7 +8603,7 @@ $ cipi-cli metrics heartbeat set https://hc-ping.com/
 
 ## Notifications 
 
-Every channel and trigger ([notifications](https://cipi.sh/docs/notifications), API 1.42+):
+Every channel and trigger ([notifications](https://cipi.sh/docs/notifications)):
 
 ```bash
 $ cipi-cli notifications                         # channels and how many triggers are on
@@ -8209,6 +8612,9 @@ $ cipi-cli notifications update oncall --chat-id -1009999    # secrets left out 
 $ cipi-cli notifications test all                # exits 1 when a channel refuses it
 $ cipi-cli notifications triggers off deploy_success ssh_login
 $ cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,health_fail
+$ cipi-cli notifications timezone Europe/Rome    # the Time line of every notification
+$ cipi-cli notifications server-name production  # "production (vmi12334)" instead of the hostname
+$ cipi-cli notifications settings                # what they are now
 ```
 
 ## `status` 
@@ -8216,8 +8622,8 @@ $ cipi-cli notifications triggers all-off --except deploy_fail,backup_fail,healt
 ```bash
 $ cipi-cli status
  NAME      IP             CPU   RAM          HDD          APPS  SVC     CIPI
- prod*     203.0.113.10   12%   48% (3840M)  42G/80G 53%  3     8/8 ok  5.11.0
- staging   203.0.113.20    4%   31% (2048M)  18G/40G 45%  1     8/8 ok  5.11.0
+ prod*     203.0.113.10   12%   48% (3840M)  42G/80G 53%  3     8/8 ok  5.17.0
+ staging   203.0.113.20    4%   31% (2048M)  18G/40G 45%  1     8/8 ok  5.17.0
 
 $ cipi-cli status prod      # full detail for one server
 ```
@@ -8274,7 +8680,9 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `deploy`, `deploy audit` | `deploy-manage` |
 | `yml` | `yml-view`, `yml-manage` |
 | `ssl`, `www`, `aliases`, `redirect`, `proxies` | `ssl-manage`, `www-manage`, `aliases-*`, `redirects-*`, `proxies-*` |
-| `nginx` | `nginx-view`, `nginx-manage` |
+| `nginx`, `cache` | `nginx-view`, `nginx-manage` |
+| `octane` | `php-view`, `php-manage` |
+| `valkey` | `services-view`, `services-manage` |
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
 | `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |
@@ -8383,7 +8791,7 @@ if ($access && $access['status'] !== 'ok') {      // ok, nobranch or denied
 ```php
 $cipi->wait($cipi->deploys()->start('shop'));
 $cipi->deploys()->rollback('shop');
-$cipi->deploys()->unlock('shop');               // also resumes a paused commit (Cipi 5.13.0+)
+$cipi->deploys()->unlock('shop');               // also resumes a paused commit
 $cipi->deploys()->audit('shop', days: 30);
 $cipi->deploys()->status('shop', tail: 50);   // running, queued, interrupted, idle; paused_commit
 $cipi->deploys()->history('shop', limit: 10);
@@ -8430,13 +8838,23 @@ $cipi->nginx()->update('shop', "client_max_body_size 512M;\n");     // sync: ngi
 $cipi->nginx()->reset('shop');
 ```
 
-`nginx()` reads and replaces [an app's own Nginx directives](https://cipi.sh/docs/nginx#custom) (API 1.44+, Cipi 5.14+). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](https://cipi.sh/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
+`nginx()` reads and replaces [an app's own Nginx directives](https://cipi.sh/docs/nginx#custom). A refused text is a `ValidationException` (422) and changes nothing; from the API [a subset of the language](https://cipi.sh/docs/nginx#custom-api) is accepted. Node apps: `node()->status($app)`, `node()->restart($app)`.
+
+```php
+$cipi->cache()->enable('blog', ttl: '1h', size: '1g');   // nginx's page cache: sync, nginx -t first
+$cipi->cache()->show('blog')['data'];                    // enabled, ttl, files, bytes, clear_command, …
+$cipi->cache()->exclude('blog', ['/wishlist*', '/feed']);  // its own paths never cached: the whole list, [] for none
+$cipi->cache()->clear('blog')['data']['cleared'];        // pages deleted
+$cipi->cache()->disable('blog');
+```
+
+`cache()` is the [page cache](https://cipi.sh/docs/page-cache) of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call `clear()` when content changes without one. `exclude()` sets the [paths of its own](https://cipi.sh/docs/page-cache#exclude) an app keeps out — `*` is anything — and `enable()` takes the same list as `exclude:`.
 
 ## Env, databases and backups 
 
 ```php
 $cipi->env()->update('shop', ['APP_ENV' => 'production'], ['TELESCOPE_ENABLED']);  // merge, unset
-$cipi->env()->reorder('shop', $keysInOrder);   // every key once (API 1.43+, Cipi 5.13.0+)
+$cipi->env()->reorder('shop', $keysInOrder);   // every key once
 $cipi->authJson()->replace('shop', ['http-basic' => ['repo.example.com' => ['username' => 'token', 'password' => $secret]]]);
 
 $cipi->wait($cipi->databases()->create('shop_reports', 'pgsql', app: 'shop'));
@@ -8452,7 +8870,7 @@ $cipi->wait($cipi->databases()->restoreLocal('shop', __DIR__.'/shop.sql.gz'));  
 ```php
 $cipi->backups()->createProfile('nightly', [
     'scope' => 'all', 'every' => '1d', 'destinations' => ['s3'], 'keep_days' => 14, 'encrypt' => true,
-    'exclude_paths' => ['storage/app/uploads'],    // API 1.43+, Cipi 5.13.0+
+    'exclude_paths' => ['storage/app/uploads'],
 ]);
 $cipi->backups()->status()['data']['uncovered'];   // what no enabled profile takes
 $cipi->backups()->run('nightly');                  // starts and returns, not a job
@@ -8474,14 +8892,29 @@ $cipi->disk()->usage();
 $cipi->metrics()->series('shop', ['req', 'http_5xx'], '7d');   // ~240 points of [ts, avg, max]
 $cipi->metrics()->uptime('shop', '30d');
 $cipi->metrics()->setHeartbeat('https://hc-ping.com/', every: 1);
-$cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' => '-1001234', 'test' => true]);   // 1.9+
+$cipi->notifications()->add('telegram', 'oncall', ['token' => $bot, 'chat_id' => '-1001234', 'test' => true]);
 $cipi->notifications()->update('oncall', ['chat_id' => '-1009999']);   // the token is kept
 $cipi->notifications()->setTriggers(['deploy_success' => false]);
 $cipi->wait($cipi->node()->upgrade(24, restart: true));
-$cipi->wait($cipi->packages()->install('browsershot'));   // API 1.44+, Cipi 5.14+
+$cipi->wait($cipi->packages()->install('browsershot'));
 $cipi->ipWhitelist()->replace(['203.0.113.10'], ensureClientIp: true);
 $cipi->request('GET', '/apps/shop');               // any endpoint not wrapped yet
 ```
+
+```php
+$o = $cipi->octane()->show('shop')['data'];           // php, octane_php, state, available_php, fix
+$cipi->wait($cipi->octane()->php('shop', '8.6'));     // Octane and the server's PHP on 8.6, by its number
+$cipi->wait($cipi->octane()->restart('shop'));
+
+$cipi->valkey()->list()['data']['shared'];            // apps still on the shared Valkey
+$cipi->wait($cipi->valkey()->isolateAll());           // each its own instance
+$cipi->valkey()->flushShared();                       // then: empty the shared one, change its password
+
+$cipi->notifications()->setTimezone('Europe/Rome');   // the Time line of every notification
+$cipi->notifications()->setServerName('production');  // "production (vmi12334)"
+```
+
+`octane()` is [the PHP of an Octane app](https://cipi.sh/docs/octane#octane-php), `valkey()` is [Valkey per app](https://cipi.sh/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](https://cipi.sh/docs/notifications#written).
 
 Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](https://cipi.sh/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
 
@@ -8775,7 +9208,7 @@ Some Laravel packages call a program on the host: Browsershot needs the librarie
 
 Chromium is the rejection that shows why the rules matter. On Ubuntu 24.04 `chromium-browser` installs the snap, with `snapd`: a daemon, and a Chrome that isn't the one Puppeteer was tested with. So the `browsershot` entry installs the libraries and fonts, and Chrome comes with Puppeteer, per app. `wkhtmltopdf` is out too: archived upstream, its WebKit unpatched.
 
-**Because the set is closed, the panel and the API may install and remove entries** (Cipi 5.14.0), the pinned upstream ones included. The worst a stolen session or token can do is install `ffmpeg` or a scanner whose bytes Cipi pinned, or remove it, and a removal takes only what no other package needs. A pinned version is also why an upstream entry isn't patched unattended: a newer one comes with a Cipi release, and the operator installs it. `--force`, `--autoremove` and anything outside the catalog stay at the server's shell. The [MCP server](https://cipi.sh/docs/mcp) only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the [firewall](https://cipi.sh/docs/firewall#panel).
+**Because the set is closed, the panel and the API may install and remove entries**, the pinned upstream ones included. The worst a stolen session or token can do is install `ffmpeg` or a scanner whose bytes Cipi pinned, or remove it, and a removal takes only what no other package needs. A pinned version is also why an upstream entry isn't patched unattended: a newer one comes with a Cipi release, and the operator installs it. `--force`, `--autoremove` and anything outside the catalog stay at the server's shell. The [MCP server](https://cipi.sh/docs/mcp) only lists the catalog: what is installed on the host changes when a person asks, in the panel or at the CLI, as with the [firewall](https://cipi.sh/docs/firewall#panel).
 
 ## Why MariaDB by default? 
 
@@ -8789,7 +9222,7 @@ MariaDB (port `3306`) is the default because it fits most Laravel apps with zero
 | Simple licensing | GPL community server, no enterprise feature gates, no Oracle dual-licensing to navigate |
 | Native packaging | Installed from MariaDB.org or Ubuntu; Cipi adds users, backups and vault credentials on top |
 
-Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? Since 5.13.0, `cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](https://cipi.sh/docs/databases#mysql)).
+Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? `cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](https://cipi.sh/docs/databases#mysql)).
 
 ## Why PostgreSQL as an option? 
 
@@ -17279,7 +17712,23 @@ app:
 
 Or from the CLI: `sudo cipi app edit blog --php=8.4`. Check plugin compatibility before moving to a newer PHP.
 
-## 6. Back it up
+## 6. Make it fast: the page cache
+
+OPcache is already on, so PHP doesn't parse its files at every request — but WordPress still boots, loads its plugins and asks the database for every visitor. Turn on Nginx's page cache and public pages are answered **without running PHP at all**:
+
+```bash
+$ sudo cipi cache blog on                # pages kept 10 minutes
+$ sudo cipi cache blog on --ttl=1h       # or longer
+$ curl -sI https://blog.example.com/ | grep -i x-cache-status    # MISS, then HIT
+```
+
+Signed-in users, `/wp-admin`, previews, searches, comments being posted and carts are never cached, so the dashboard works as before and no cache plugin is needed. A post you edit shows up when its page expires; to publish at once, empty the cache — `sudo cipi cache blog clear`, the button in the web panel, or automatically from WordPress with a five-line must-use plugin ([the recipe](https://cipi.sh/docs/page-cache#recipe)). A deploy run by Cipi empties it by itself.
+
+A page of your own that must never be kept — one a plugin makes different for each visitor without a cookie, a feed — is a path you add: `sudo cipi cache blog exclude add '/wishlist*' '/feed'` ([paths of your own](https://cipi.sh/docs/page-cache#exclude)).
+
+What the page cache is next to OPcache, what it never caches and how to check a page: [Page cache](https://cipi.sh/docs/page-cache).
+
+## 7. Back it up
 
 ```bash
 $ sudo cipi backup profile add blog-nightly --scope=all --cron='0 3 * * *' --keep-days=14 --dest=s3 --encrypt
@@ -17592,7 +18041,7 @@ Install an SMTP plugin (WP Mail SMTP, FluentSMTP…) and enter your provider's S
 | Layer | What to do |
 | --- | --- |
 | PHP | OPcache is on by default. Keep PHP current: Cipi patches it every night |
-| Page cache | A plugin that writes static HTML (cart, checkout and account pages excluded) |
+| Page cache | `sudo cipi cache shop on`: Nginx answers catalogue pages without running PHP. The cart, checkout, account and signed-in visitors are never cached (to pin their addresses as well: `sudo cipi cache shop exclude add '/cart*' '/checkout*' '/my-account*'`); after a price or stock change, `sudo cipi cache shop clear` or wait for the pages to expire ([page cache](https://cipi.sh/docs/page-cache)) |
 | Images | Serve WebP; the optional `image-optimizers` host package adds `cwebp`, `jpegoptim`, `pngquant` (`sudo cipi package install image-optimizers`) |
 | CDN | Cloudflare in front (orange cloud) with SSL mode **Full (strict)** |
 | Database | Keep `wp_options` autoload small; delete old transients |

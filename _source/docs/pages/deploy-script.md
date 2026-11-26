@@ -46,9 +46,11 @@ after('artisan:migrate', 'app:warm');
 | `after('deploy:shared', …)` | Builds that need `.env` (e.g. Vite reads `VITE_*`) |
 | `after('artisan:migrate', …)` | Seeders, cache warm-up |
 | `before('deploy:symlink', …)` | Last checks before going live |
-| `after('deploy:symlink', …)` | Notifications, cache purges |
+| `after('deploy:symlink', …)` | Notifications, cache purges — e.g. [emptying the page cache](/docs/page-cache#recipe) from a recipe of your own (a deploy run by Cipi empties it by itself) |
 
 The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → **symlink** → restart workers → cleanup.
+
+**Each step runs once.** A Laravel deploy runs `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` one time each — the deploy log shows one `artisan:migrate` and one `artisan:optimize` — and a step turned off with `--no-migrate` or `--no-optimize` is really skipped. A log that shows them twice comes from a recipe written by an old release: `cipi self-update` rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.
 
 > [!warning] Changing PHP or branch with `cipi app edit` regenerates `deploy.php`. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer `deploy-config` and [cipi.yml](/docs/yml), which are never lost.
 

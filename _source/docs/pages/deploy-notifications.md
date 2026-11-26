@@ -1,6 +1,6 @@
 @section deploy-notifications
 
-Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included — on every channel that takes them since 5.15.0 (before, a deploy through the webhook reached e-mail only).
+Know about every deploy, success or failure, without watching logs. The simplest way is the server itself: it notifies for **every** trigger, webhook deploys included, on every channel that takes them.
 
 ## From the server (recommended) {#server}
 
@@ -8,7 +8,7 @@ Know about every deploy, success or failure, without watching logs. The simplest
 $ cipi notification add slack ops --url=https://hooks.slack.com/services/…
 $ cipi notification add telegram team --token=<bot-token> --chat-id=<chat-id>
 $ cipi notification test
-$ cipi notification events team deploy        # 5.15.0: only deploys to the team's chat
+$ cipi notification events team deploy        # only deploys to the team's chat
 ```
 
 | Event | Sent when |
@@ -17,7 +17,7 @@ $ cipi notification events team deploy        # 5.15.0: only deploys to the team
 | `deploy_fail` | The deploy failed; the live release is unchanged |
 | `deploy_rollback` | A rollback ran (manual or automatic) |
 
-Messages include app, branch, release, commit and author, duration and health verdict. Channels: email (SMTP, Resend, SES), Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, signed webhook. See [Notifications](/docs/notifications).
+Messages include app, branch, release, commit and author, duration and health verdict — for a deploy through the Git webhook too: the branch and the commit are read from the recipe and the release. The time is in the server's time zone, or in the one you choose, and the server can go by a name of yours: [the server's name and the time zone](/docs/notifications#written). With the [page cache](/docs/page-cache) on, the message also says how many cached pages the deploy emptied. Channels: email (SMTP, Resend, SES), Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, signed webhook. See [Notifications](/docs/notifications).
 
 ## From CI {#ci}
 

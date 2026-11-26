@@ -1,6 +1,6 @@
 @section cli-nginx
 
-Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives.
+Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched. This page covers the security report, upgrades, the default server, the visitor's address behind Cloudflare and an app's own directives. The cache of whole pages — Nginx answering without running PHP — has [a page of its own](/docs/page-cache).
 
 <cipi-term name="nginx-security"></cipi-term>
 
@@ -50,7 +50,7 @@ On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty r
 
 ## Behind Cloudflare: the visitor's real IP {#real-ip}
 
-A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server (Cipi 5.14.0+), or one button in the [panel](#real-ip-panel) (5.15.0+):
+A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server, or one button in the [panel](#real-ip-panel):
 
 ```bash
 $ cipi nginx real-ip cloudflare     # on
@@ -72,7 +72,7 @@ $ cipi nginx real-ip off            # back to the address of each connection
 
 ### From the panel {#real-ip-panel}
 
-The server's [Firewall tab](/docs/firewall#panel) has a **Cloudflare real IP** card (panel 4.7.0, cipi/api 1.45, Cipi 5.15.0): **Turn on**, **Fetch the ranges again** and **Turn off**, with the ranges trusted, when they were fetched and who keeps it on. It takes **Manage** on the server.
+The server's [Firewall tab](/docs/firewall#panel) has a **Cloudflare real IP** card: **Turn on**, **Fetch the ranges again** and **Turn off**, with the ranges trusted, when they were fetched and who keeps it on. It takes **Manage** on the server.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
@@ -119,7 +119,7 @@ location ~* \.(?:woff2?|ttf)$ {
 | | |
 | --- | --- |
 | **Where it lives** | In the app's settings, so it follows [`cipi sync`](/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
-| **What it's for** | Headers, caching, upload size, timeouts, rewrites, `location` blocks of your own |
+| **What it's for** | Headers, browser caching, upload size, timeouts, rewrites, `location` blocks of your own. For caching whole pages in Nginx use [`cipi cache`](/docs/page-cache), which writes and maintains it |
 | **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`cipi proxy` and `cipi redirect`](/docs/redirects-proxies) |
 | **Limits** | 32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend |
 
@@ -136,7 +136,7 @@ Refused | everything back
 
 ### From the panel, the API, the SDK and cipi-cli {#custom-api}
 
-The same text can be read and replaced from the [web panel](/docs/gui-overview) — the app's **Routing** tab, *Nginx directives*, for whoever has Manage on the server (panel 4.6.0+) — through the [API](/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor). In the panel a refused text is listed with its reasons and stays in the form to fix.
+The same text can be read and replaced from the [web panel](/docs/gui-overview) — the app's **Routing** tab, *Nginx directives*, for whoever has Manage on the server — through the [API](/docs/api#endpoints-nginx) (`GET`, `PUT`, `DELETE /api/apps/{name}/nginx`), the [PHP SDK](/docs/php-sdk#domains) (`$cipi->nginx()`) and [cipi-cli](/docs/cli-client#nginx) from your laptop (`cipi-cli nginx edit myapp` opens your own editor). In the panel a refused text is listed with its reasons and stays in the form to fix.
 
 > [!security] Through the API — so from the panel, the SDK and cipi-cli too — **a subset of Nginx's language** is accepted, and the server decides, not the client. With the whole language a token would be root: Nginx opens an `access_log` or `error_log` path and reads an `include` as root, `server_name` takes another app's domain, `listen` opens a port, a `*_pass` reaches another app's PHP socket or a database on the loopback.
 

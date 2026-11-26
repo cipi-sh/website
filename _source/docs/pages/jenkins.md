@@ -186,7 +186,7 @@ A rollback switches code only: database migrations stay as they are. See [Deploy
 | `Permission denied (publickey)` | The CI key isn't authorized on the server | `sudo cipi ssh add "<public key>"` |
 | Deploy stage skipped | Not a Multibranch job, so `branch 'main'` never matches | Use a Multibranch Pipeline, or remove the `when` line |
 | Two deploys per push | The Cipi webhook is still active | [Turn it off](#webhook-off) |
-| *A deploy of 'shop' is running* | Two builds at once, or a webhook deploy in flight | Keep `disableConcurrentBuilds()`; a lock left by an interrupted deploy is removed by the next deploy (Cipi 5.13.0+) |
+| *A deploy of 'shop' is running* | Two builds at once, or a webhook deploy in flight | Keep `disableConcurrentBuilds()`; a lock left by an interrupted deploy is removed by the next deploy |
 
 ## Questions {#questions}
 

@@ -22,7 +22,7 @@ $ cipi db uninstall pgsql           # destroys its data: asks first
 
 ## MySQL instead of MariaDB {#mysql}
 
-MariaDB stays the default. Since 5.13.0, a server can run **MySQL** on port 3306 instead — only as an explicit choice, from the command line, and **only on a server with no databases on 3306 yet**:
+MariaDB stays the default. A server can run **MySQL** on port 3306 instead — only as an explicit choice, from the command line, and **only on a server with no databases on 3306 yet**:
 
 ```bash
 $ cipi db switch mysql            # asks first (--yes in scripts)
@@ -36,9 +36,9 @@ $ cipi db switch mariadb          # back, on the same terms
 | Which MySQL | From the Ubuntu archive: 8.0 on 24.04 (security fixes backported by Ubuntu), 8.4 LTS on 26.04. No extra repository or key |
 | Checked first | A `mysql-server` package is available, and removing MariaDB would remove nothing but its own packages and client libraries. Otherwise nothing changes |
 | What it does | Stops MariaDB, keeps its data directory aside (`/var/lib/mysql.mariadb-<time>`), purges it, installs MySQL with the same root password (`caching_sha2_password`) and Cipi's tuning (`/etc/mysql/mysql.conf.d/99-cipi.cnf`). If the install fails, MariaDB comes back with its data |
-| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. At the terminal the messages of `cipi db` say `mysql` (5.14.0+), a name `--engine=` accepts too. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
-| Not in the panel or API | Replacing a database server is an operator decision; the [panel](/docs/gui) shows *MySQL* where it runs — in the list, and since panel 4.7.0 in the engine filter, its card and the page's intro too (*MariaDB / MySQL* across servers that run both). A `db_switch` [notification](/docs/notifications) is sent |
-| The root password | Reaches `mysql`, `mariadb` and `mysqldump` in an option file read from a pipe, never on their command line (5.15.0+), on MariaDB too. On the command line it sat in the process list, which every user of the server reads; MySQL's client warned about it at every call — *Using a password on the command line interface can be insecure* — and `cipi db list` showed that warning as a database |
+| What stays the same | The engine is still called `mariadb` (`--engine=mariadb`, `cipi.yml`, backups, API) and apps keep `DB_CONNECTION=mysql`. At the terminal the messages of `cipi db` say `mysql`, a name `--engine=` accepts too. `cipi db upgrade`, autoupdate, `cipi service`, `cipi monitor`, credentials and labels follow the server that runs |
+| Not in the panel or API | Replacing a database server is an operator decision; the [panel](/docs/gui) shows *MySQL* where it runs — in the list, the engine filter, its card and the page's intro (*MariaDB / MySQL* across servers that run both). A `db_switch` [notification](/docs/notifications) is sent |
+| The root password | Reaches `mysql`, `mariadb` and `mysqldump` in an option file read from a pipe, never on their command line, on MariaDB too. On the command line it would sit in the process list, which every user of the server reads, and MySQL's client would warn about it at every call (*Using a password on the command line interface can be insecure*) |
 
 Step by step, with what to check in your code first: [Run Laravel on MySQL instead of MariaDB](/guides/laravel-mysql-instead-of-mariadb).
 

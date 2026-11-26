@@ -23,3 +23,11 @@ Logs are rotated daily and compressed from the second day. Laravel apps write a 
 | PHP-FPM | `cipi app logs myapp --type=php` |
 | Workers | `cipi app logs myapp --type=worker` |
 | Deploys | `cipi app logs myapp --type=deploy` |
+
+## Common problems {#problems}
+
+| Problem | Fix |
+| --- | --- |
+| `cipi pending` says *logrotate reports a problem with a Cipi rule: skipping "/var/log/auth.log" because parent directory has insecure permissions* (also `fail2ban.log`, `ufw.log`) | A false alarm of an old Cipi release: `/var/log` belongs to group `syslog` on Ubuntu, and logrotate wants a `su` line for it. The nightly rotation always had one (from `/etc/logrotate.conf`), but the check ran each rule on its own, where it was missing. **`cipi self-update`** writes `su root adm` into Cipi's rules and the message goes; `cipi app fix-permissions` does the same on demand. Logs were rotated all along |
+| What does logrotate itself say? | `logrotate -d /etc/logrotate.d/cipi-*` prints what it would do, without doing it |
+

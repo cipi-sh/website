@@ -61,7 +61,7 @@ Also in [cipi.yml](/docs/yml) (`health:`), the REST API and the panel. To watch 
 
 ## Uptime history {#history}
 
-Since Cipi 5.11.0 the URL is also probed **every minute** by the [metrics](/docs/metrics) collector, which keeps the status and response time: uptime over 24 hours, 7 and 30 days, minutes down, incidents and uptime per day.
+The URL is also probed **every minute** by the [metrics](/docs/metrics) collector, which keeps the status and response time: uptime over 24 hours, 7 and 30 days, minutes down, incidents and uptime per day.
 
 ```bash
 $ cipi metrics uptime myapp --range=30d
