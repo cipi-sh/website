@@ -488,6 +488,7 @@ See [cipi.yml](/docs/yml) for every key.
 | Option | Works with | Note |
 | --- | --- | --- |
 | [Cloudflare Zero Trust](/docs/zero-trust) | Both update modes | Login with your company accounts; `/cipi/webhook` stays reachable |
+| [`cipi zt preview create`](/docs/zero-trust#previews) | One branch by hand, no script (Cipi 5.16.0+) | The preview on the tunnel, behind Access, on `feature-cart-shop.example.com`; `cipi deploy` updates it, `cipi zt preview remove` deletes it with its database |
 | Basic auth (`app.basic_auth` in `cipi-preview.yml`, or `cipi basicauth enable`) | `PREVIEW_MODE=deploy` only | Blocks the Git webhook too |
 | Unguessable names only | Both | The ID in the address is not a secret: search engines and link scanners can still find a preview |
 

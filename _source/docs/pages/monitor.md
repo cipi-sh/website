@@ -12,7 +12,7 @@ $ cipi monitor disable load
 $ cipi monitor test               # sample alert to every channel
 ```
 
-## Eight checks, on by default {#checks}
+## The checks, on by default {#checks}
 
 | Check | Watches | Alerts when |
 | --- | --- | --- |
@@ -24,6 +24,7 @@ $ cipi monitor test               # sample alert to every channel
 | `http_5xx` | New lines in each app's access log | ≥20 errors **and** ≥5% of requests |
 | `fs` | `/etc/cipi`, `/var/log/cipi` | No longer writable (read-only remount) |
 | `load` | 1-minute load | Above 4× the cores for 2 runs in a row |
+| `tunnel` | The [Cloudflare Tunnel](/docs/zero-trust#monitor), when Zero Trust is on (5.16.0+) | Degraded (warn); cloudflared stopped, or Cloudflare sees the tunnel down or inactive (critical) |
 
 Tune any threshold: `--ssl --days=21`, `http_5xx --count=50 --ratio=10`, `load --factor=6 --runs=3`, `app_disk --minutes=30`.
 

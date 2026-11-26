@@ -3443,6 +3443,7 @@ See [cipi.yml](https://cipi.sh/docs/yml) for every key.
 | Option | Works with | Note |
 | --- | --- | --- |
 | [Cloudflare Zero Trust](https://cipi.sh/docs/zero-trust) | Both update modes | Login with your company accounts; `/cipi/webhook` stays reachable |
+| [`cipi zt preview create`](https://cipi.sh/docs/zero-trust#previews) | One branch by hand, no script (Cipi 5.16.0+) | The preview on the tunnel, behind Access, on `feature-cart-shop.example.com`; `cipi deploy` updates it, `cipi zt preview remove` deletes it with its database |
 | Basic auth (`app.basic_auth` in `cipi-preview.yml`, or `cipi basicauth enable`) | `PREVIEW_MODE=deploy` only | Blocks the Git webhook too |
 | Unguessable names only | Both | The ID in the address is not a secret: search engines and link scanners can still find a preview |
 
@@ -5109,7 +5110,7 @@ $ cipi monitor disable load
 $ cipi monitor test               # sample alert to every channel
 ```
 
-## Eight checks, on by default 
+## The checks, on by default 
 
 | Check | Watches | Alerts when |
 | --- | --- | --- |
@@ -5121,6 +5122,7 @@ $ cipi monitor test               # sample alert to every channel
 | `http_5xx` | New lines in each app's access log | ≥20 errors **and** ≥5% of requests |
 | `fs` | `/etc/cipi`, `/var/log/cipi` | No longer writable (read-only remount) |
 | `load` | 1-minute load | Above 4× the cores for 2 runs in a row |
+| `tunnel` | The [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#monitor), when Zero Trust is on (5.16.0+) | Degraded (warn); cloudflared stopped, or Cloudflare sees the tunnel down or inactive (critical) |
 
 Tune any threshold: `--ssl --days=21`, `http_5xx --count=50 --ratio=10`, `load --factor=6 --runs=3`, `app_disk --minutes=30`.
 
@@ -5387,7 +5389,7 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Category | Triggers |
 | --- | --- |
 | Deploy | `deploy_success`, `deploy_fail`, `deploy_rollback`, `deploy_snapshot_fail`, `deploy_health_fail` |
-| Health & monitor | `health_fail`, `monitor_disk`, `monitor_app_disk`, `monitor_ssl`, `monitor_services`, `monitor_workers`, `monitor_http_5xx`, `monitor_fs`, `monitor_load`, `monitor_ok` |
+| Health & monitor | `health_fail`, `monitor_disk`, `monitor_app_disk`, `monitor_ssl`, `monitor_services`, `monitor_workers`, `monitor_http_5xx`, `monitor_fs`, `monitor_load`, `monitor_tunnel`, `monitor_ok` |
 | Backups & cron | `backup_fail`, `backup_stale`, `cron_fail` |
 | Security | `ssh_login`, `sudo`, `su`, `ssh_key_add`, `ssh_key_remove`, `ssh_key_rename`, `credentials_show`, `zt_*` |
 | Apps & domains | `app_create`, `app_edit`, `app_delete`, `app_suspend`, `alias_*`, `www_*`, `redirect_change`, `proxy_change`, `basicauth_*` |
@@ -5416,7 +5418,7 @@ $ cipi notification add slack team --url=… --events=deploy
 | Selector | Lets through |
 | --- | --- |
 | `all` | Everything (the same as no list) |
-| `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
+| `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, the Cloudflare Tunnel down (5.16.0), an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
 | A category | Every trigger of it, as an id: `apps`, `domains`, `deploy`, `health`, `monitor`, `ssl`, `php`, `updates`, `services`, `database`, `security`, `backup`, `cron`, `cipi-yml`, `basic-auth`, `ssh-keys`… (`cipi notification events --json` lists them with how many triggers each holds) |
 | A trigger | That one: `backup_fail`, `deploy_success`, `ssh_login`… — mixed with categories as you like (`security,ssh_login`) |
 
@@ -5770,7 +5772,7 @@ It grants nothing but the ability to connect again. The port is kept open ahead 
 
 URL: https://cipi.sh/docs/zero-trust
 
-Put your server behind Cloudflare: visitors reach apps through a Cloudflare Tunnel (with CDN and WAF), staging sites, the panel and SSH sit behind Cloudflare Access, and finally the origin closes its ports. Every step that could lock you out is a separate, explicit command. Off until you enable it.
+Put your server behind Cloudflare: visitors reach apps through a Cloudflare Tunnel (with CDN and WAF), staging sites, admin paths, the panel, the API, databases and SSH sit behind Cloudflare Access, and finally the origin closes its ports — all of them, if you like. Every step that could lock you out is a separate, explicit command. Off until you enable it.
 
 ```flow
 Token | Tunnel, Access, DNS
@@ -5778,37 +5780,46 @@ Token | Tunnel, Access, DNS
 Enable | tunnel + real IP; ports still open
 > `cipi zt enable` creates the tunnel and makes apps see visitors' real IPs. Ports stay open for now, so nothing can break yet.
 Route | hostnames, Access, SSH
-> Route each hostname through the tunnel, add Access rules where you want a login wall, and SSH through Access.
+> Route each hostname through the tunnel, add Access where you want a login wall — a whole site, some paths, some people — and SSH through Access.
 Test | from your laptop
 > From your laptop, check every site and SSH through the tunnel. Don't skip this.
 Lock | 80/443 and 22 closed
-> `cipi zt lock` closes 80, 443 and 22 to the internet. Only the tunnel reaches the server now.
+> `cipi zt lock` closes 80, 443 and 22 to the internet, or `cipi zt lockdown` does all of it at once. Only the tunnel reaches the server now.
 ```
 
 ```bash
 $ cipi zt token set --token=CF_API_TOKEN --account=ACCOUNT_ID
 $ cipi zt enable
-$ cipi zt hostname add myapp           # public, through CDN/WAF
-$ cipi zt access enable staging        # login required (Cloudflare Access)
+$ cipi zt hostname add myapp                       # public, through CDN/WAF
+$ cipi zt access enable staging                    # login required (Cloudflare Access)
+$ cipi zt access enable myapp --path=/admin,/horizon --allow=@example.com
 $ cipi zt access enable --gui
 $ cipi zt ssh enable --hostname=ssh.example.com
-$ cipi zt lock http --yes              # 80/443 closed or Cloudflare-only
-$ cipi zt lock ssh --yes               # port 22 closed
-$ cipi zt status
+$ cipi zt lock http --yes                          # 80/443 closed or Cloudflare-only
+$ cipi zt lock ssh --yes                           # port 22 closed
+$ cipi zt lockdown                                 # 5.16.0: everything on the tunnel, no inbound port
+$ cipi zt status                                   # --json for the whole picture
 ```
 
-Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). It is stored root-only, separate from the DNS token used for certificates.
+Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). Since 5.16.0, for what you use: Account · Access: Service Tokens: Edit ([service tokens](#service-tokens)), Account · Access: SSH Auditing: Edit ([SSH certificates](#ssh-cert)), Zone · Cache Purge: Purge ([purges](#purge)). A token made for 5.15 keeps working; a command that needs more names the permission it misses. The token is stored root-only, separate from the DNS token used for certificates and from the Cloudflare token of the [web panel's connector](https://cipi.sh/docs/gui-connectors#cloudflare).
 
 ## What each step does 
 
 | Command | Effect | Reversible with |
 | --- | --- | --- |
 | `enable` | Installs `cloudflared`, a locally-managed tunnel, Nginx real-IP from Cloudflare's ranges (refreshed daily); Fail2ban/CrowdSec learn the ranges. **No port is closed** | `disable` |
-| `hostname add ` | DNS CNAME to the tunnel, ingress to Nginx | `hostname remove` |
-| `access enable ` | Cloudflare Access login in front; `/cipi/webhook` bypassed so pushes still deploy | `access disable` |
+| `hostname add ` | DNS CNAME to the tunnel, ingress to Nginx; `--api` for the [REST API](https://cipi.sh/docs/api) (5.16.0) | `hostname remove` |
+| `access enable ` | Cloudflare Access login in front: the whole site or [some paths, for some people](#access); `/cipi/webhook` bypassed so pushes still deploy | `access disable` |
+| `service-token create  --for=…` | A [token for machines](#service-tokens): CI, monitors, the panel | `service-token revoke` |
+| `tcp add  --hostname=…` | A [database or Valkey](#tcp) reachable from your laptop, behind Access | `tcp remove` |
 | `ssh enable` | SSH through the tunnel + Access; prints your `~/.ssh/config` | `ssh disable` |
+| `ssh cert enable --principals=…` | SSH with [short-lived certificates](#ssh-cert) instead of keys | `ssh cert disable` |
 | `lock http` | 80/443 closed when everything is on the tunnel, else allowed from Cloudflare only | `unlock http` |
 | `lock ssh` | Port 22 closed (only if the tunnel already carries SSH) | `ssh unlock` |
+| `lockdown` | [Every app, the panel and the API on the tunnel](#lockdown), then 80/443 and 22 closed | `unlock http`, `ssh unlock` |
+| `preview create  --branch=…` | A [preview of a branch](#previews) on its own hostname | `preview remove` |
+| `replica export` / `join` | [The same tunnel on another server](#replicas) | `replica leave` |
+| `purge ` | [Cloudflare's cache](#purge) of the app, now or after every deploy | `purge  --on-deploy=off` |
 
 ```text
 # ~/.ssh/config on your laptop
@@ -5819,6 +5830,125 @@ Host ssh.example.com
 ```
 
 > [!warning] Lock SSH only after `ssh ssh.example.com` works through the tunnel from your machine, and keep your provider's web console at hand. Deploys are unaffected (they use `localhost`).
+
+## Access on some paths, for some people 
+
+`access enable` alone asks anyone who signs in with your identity provider. Two options narrow it (5.16.0+):
+
+```bash
+$ cipi zt access enable shop --path=/admin,/horizon,/pulse      # only these paths; the rest stays public
+$ cipi zt access enable shop --allow=me@example.com,@example.com # these emails and domains only
+$ cipi zt access enable --api --allow=none                       # service tokens only, no people
+$ cipi zt access enable shop --path=                             # back to the whole site
+$ cipi zt access enable shop --allow=all                         # back to anyone who signs in
+```
+
+`--path=` puts Filament, Horizon, Pulse or Telescope behind single sign-on and leaves the site public. Running `access enable` again updates the same Access application and keeps what you didn't pass. The `/cipi/webhook` Bypass is created only when Access covers that path. `--gui` and `--api` take the same options.
+
+## Service tokens 
+
+Machines can't sign in with a browser. A service token is a pair of headers Access lets through:
+
+```bash
+$ cipi zt service-token create github-actions --for=shop     # or --for=gui, --for=api
+$ cipi zt service-token create panel --for=api --duration=8760h --json
+$ cipi zt service-token list
+$ cipi zt service-token revoke github-actions
+```
+
+Cipi creates the token and a Service Auth policy on the target's Access application, and prints `CF-Access-Client-Id` and `CF-Access-Client-Secret` once. Re-creating a target's Access application keeps its tokens' policies.
+
+```bash
+$ curl -H "CF-Access-Client-Id: 3f2a….access" -H "CF-Access-Client-Secret: …" https://shop.example.com/health
+```
+
+For a server whose API is behind Access (`cipi zt access enable --api --allow=none`), the [web panel](https://cipi.sh/docs/gui-overview) sends the token with every call: **Connections → the server → Behind Cloudflare Access**, with the id and the secret (panel 4.8.0+). The secret is stored encrypted, never shown again, and kept when the field is left empty.
+
+## Databases and Valkey from your laptop 
+
+```bash
+$ cipi zt tcp add mysql --hostname=db.example.com --allow=me@example.com
+$ cipi zt tcp add valkey --hostname=cache.example.com
+$ cipi zt tcp list
+$ cipi zt tcp remove db.example.com
+```
+
+`mysql`, `mariadb`, `pgsql`, `redis`, `valkey` or a port number: a hostname that reaches `127.0.0.1:` on the server, always behind Access — nothing is published if Access can't be created. The port stays closed. On your laptop:
+
+```bash
+$ cloudflared access tcp --hostname db.example.com --url 127.0.0.1:13306
+```
+
+then TablePlus, DBeaver or `mysql -h 127.0.0.1 -P 13306` on that address, with the database's own user and password.
+
+## SSH with short-lived certificates 
+
+Instead of keys to hand out and take back, Cloudflare signs a certificate at every sign-in (5.16.0+):
+
+```bash
+$ cipi zt ssh cert enable --principals=andrea,mario          # for the cipi user
+$ cipi zt ssh cert enable --user=deploy --principals=ci
+$ cipi zt ssh cert status
+$ cipi zt ssh cert disable
+```
+
+sshd trusts the CA of the SSH Access application (`TrustedUserCAKeys`) and accepts, for each Unix user, the principals listed for it (`AuthorizedPrincipalsFile`): the part of the email before the @ — `andrea` for andrea@example.com. `sshd -t` checks the drop-in before the reload; keys in `authorized_keys` keep working. `cipi zt ssh enable` takes `--allow=` too. On your laptop, once:
+
+```bash
+$ cloudflared access ssh-config --hostname ssh.example.com --short-lived-cert >> ~/.ssh/config
+$ ssh cipi@ssh.example.com          # the browser asks you to sign in, no key needed
+```
+
+## No inbound port: lockdown 
+
+```bash
+$ cipi zt lockdown            # asks first; --yes to skip, --force to accept an HTTP-01 renewal failing
+```
+
+Every app, the panel and the API go on the tunnel, then 80/443 close and, when SSH runs through the tunnel, port 22: the shape of a server behind NAT with no port forwarding. It stops at the first step that fails, and it still refuses to close port 80 while a certificate renews over HTTP-01 (see [certificates](#cli-zt-origin-cert)). At the end it prints the inbound ports still open — none, if SSH was on the tunnel.
+
+## Previews of a branch 
+
+```bash
+$ cipi zt preview create shop --branch=feature/login          # behind Access
+$ cipi zt preview create shop --branch=feature/login --public --hostname=login.example.com
+$ cipi zt preview list
+$ cipi deploy shopfeaturelogin                                # update it
+$ cipi zt preview remove shopfeaturelogin
+```
+
+An app of its own — the same repository and PHP, its own database and `.env`, environment `preview` — on `feature-login-shop.example.com`, one level below the zone so Cloudflare's Universal certificate covers it, through the tunnel, behind Access (anyone who signs in, or the people of `--allow=`) unless `--public`, and deployed once (`--no-deploy` to skip). `remove` deletes the app, its database and its hostname. See also [preview environments](https://cipi.sh/docs/preview-environments).
+
+## The same tunnel on more servers 
+
+```bash
+$ cipi zt replica export                  # on the server with the tunnel: prints a bundle
+$ cipi zt replica join cipi-zt1:…         # on another server with the same apps
+$ cipi zt replica list                    # connectors, and which one is this server
+$ cipi zt replica leave                   # stop the connector here; tunnel, DNS and Access stay
+```
+
+The bundle holds the tunnel's credentials and routes: treat it as a password. Cloudflare then sends requests to either server. To move a server without touching DNS (the records point at the tunnel): join the new one, check it, `replica leave` on the old one. `cipi zt disable` refuses on a replica, or while other servers run the tunnel (`--delete-tunnel` deletes it for everyone).
+
+## Cloudflare's cache 
+
+```bash
+$ cipi zt purge shop                     # the app's hostnames
+$ cipi zt purge shop --everything        # the whole zone
+$ cipi zt purge shop --on-deploy=on      # after every successful deploy
+```
+
+Purge by hostname works on every Cloudflare plan. With `--on-deploy=on`, `cipi deploy` and the webhook alike purge after a successful deploy, and the [deploy notification](https://cipi.sh/docs/deploy-notifications) says how it went.
+
+## The tunnel in the monitor 
+
+With Zero Trust on, the [monitor](https://cipi.sh/docs/monitor) runs a `tunnel` check every 5 minutes (5.16.0+): critical when cloudflared stops or Cloudflare sees the tunnel down or inactive, a warning when it is degraded (fewer connections: a network problem, or a replica down). Trigger `monitor_tunnel`, urgent, with recovery and reminders like every check. With 80/443 closed it is the one outage a server can still report: notifications go out, not through the tunnel. Outbound port 7844 (TCP and UDP) must stay open.
+
+## In the web panel 
+
+The server's **Zero Trust** tab (panel 4.8.0+, cipi/api 1.46, Cipi 5.16.0) shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Read-only: every change stays on `cipi zt`. The [API](https://cipi.sh/docs/api) gives the same as `details` on `GET /api/zt`.
+
+The zones and DNS records of your Cloudflare accounts are in the panel's [Cloudflare connector](https://cipi.sh/docs/gui-connectors#cloudflare), with a token saved in the panel.
 
 ## Certificates 
 
@@ -6527,13 +6657,15 @@ cipi CLI | does the work, as on SSH
 | Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics), Cipi 5.11.0+; 5.11.2+ on Ubuntu 26.04) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](https://cipi.sh/docs/notifications#events) — everything, or *Urgent* and the categories you choose (Cipi 5.15.0+); every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel), Cipi 5.12.0+) |
-| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor, Zero Trust status |
+| Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor |
+| Zero Trust | The server's [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet (Cipi 5.16.0+) |
 | Packages | The [optional packages](https://cipi.sh/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](https://cipi.sh/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs (Cipi 5.14.0+) |
 | Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel) on, refreshed or off (Cipi 5.15.0+); SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel), Cipi 5.14.0+) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs (cipi/api 1.44+), colour-coded; one-time credentials with copy buttons |
 | Fleet | Many servers under one login, all apps and databases in one list with a server filter |
+| Infrastructure | [28 connectors](https://cipi.sh/docs/gui-connectors) for the providers around your servers (admins): clouds and VPS — DigitalOcean, Hetzner, AWS, Google Cloud, Azure, OVHcloud, Vultr, Akamai, Scaleway, Contabo, UpCloud — Cloudflare and the registrars, with DNS records [pointed at a server by its name](https://cipi.sh/docs/gui-connectors#servers); S3, R2, Spaces, B2, Wasabi and Johnny with [keys for one bucket](https://cipi.sh/docs/gui-connectors#bucket-keys); Postmark, Mailgun, Resend and SES with their DNS [published on Cloudflare](https://cipi.sh/docs/gui-connectors#publish-dns); Sentry, Oh Dear, Better Stack, Datadog, CloudWatch, Boogle; Aikido and Hackly (panel 4.8.0+) |
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
-| Sign-in | Password with TOTP, optional or [required for every account](https://cipi.sh/docs/gui-install#two-factor-required) (panel 4.6.0+), or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
+| Sign-in | Password with TOTP, optional or [required for every account](https://cipi.sh/docs/gui-install#two-factor-required) (panel 4.6.0+); [passkeys](https://cipi.sh/docs/gui-install#passkeys) — Face ID, Touch ID, Windows Hello, a phone or a security key — alone or as the second step (panel 4.8.0+); or [single sign-on](https://cipi.sh/docs/gui-sso) over OpenID Connect |
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs — never which release has it (panel 4.7.0+).
 
@@ -6572,6 +6704,14 @@ Every channel of the server and which events reach it. Secrets never come back t
 ### Firewall
 
 UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order with *Kept open* on SSH, 80 and 443 and the Cipi feature that owns each one, blocked addresses, everything banned right now with *Unban*, the SSH login threshold and CrowdSec with its allowlist. Viewing needs a level on the server, changing needs Manage. See [firewall](https://cipi.sh/docs/firewall#panel).
+
+### Zero Trust
+
+The server's Cloudflare Tunnel as the CLI set it up (Cipi 5.16.0+, cipi/api 1.46): healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it. Read-only: every change stays on `cipi zt`. See [Zero Trust](https://cipi.sh/docs/zero-trust#panel).
+
+### Infrastructure
+
+The providers around your servers, from the same panel: [28 connectors](https://cipi.sh/docs/gui-connectors), with any number of accounts each. Every address that is a server of the panel says which one; a DNS record takes a server's name and is saved with its IP.
 
 ### Connections and security
 
@@ -6652,7 +6792,7 @@ Managed servers need no change: the panel calls their API URLs, and their allowl
 
 ## Two-factor authentication 
 
-Session login with **TOTP** (Google Authenticator, 1Password, Aegis…), enrolled from Settings: optional per user by default, or required for every account. With [single sign-on](https://cipi.sh/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
+Session login with **TOTP** (Google Authenticator, 1Password, Aegis…) or a [passkey](#passkeys), enrolled from Settings: optional per user by default, or required for every account. With [single sign-on](https://cipi.sh/docs/gui-sso), MFA is the identity provider's job and the TOTP step is skipped for SSO sign-ins.
 
 ### Required for every account 
 
@@ -6668,9 +6808,601 @@ For policies that ask it of every account (ISO 27001, NIS2), an admin turns on *
 
 An admin can turn it on only once their own session passes it (2FA set up, or signed in through SSO). Team then shows who still has to set it up (*Setup pending*; *Via SSO* for linked accounts). [`cipi compliance`](https://cipi.sh/docs/compliance#controls), control `gui_2fa`, reads the policy: required with everyone enrolled is a pass.
 
+### Passkeys 
+
+Face ID, Touch ID, Windows Hello, a phone or a security key (panel 4.8.0+). A passkey is two factors in one — the device, and the face, finger or PIN that unlocks it — so it is used two ways:
+
+- **alone**, from the login page: *Sign in with a passkey*, also offered by the browser as the email field is filled. No password, no code after it;
+- **as the second step** after the password, instead of the authenticator's code. An account with both is offered both.
+
+Each person adds, renames and removes their own in **Settings → Passkeys**, named after the device; synced passkeys (iCloud Keychain, Google Password Manager, 1Password) say so. Where an admin [requires 2FA](#two-factor-required), a passkey can be set up instead of an authenticator app and counts as 2FA: on Team, for the policy and for [`cipi compliance`](https://cipi.sh/docs/compliance#controls). The last one can't be removed while it is the account's only second factor under that policy.
+
+The panel checks WebAuthn itself, with no library: a challenge used once and valid for five minutes, the origin, the relying party, user presence and verification, the signature and its counter; ES256 and RS256, no attestation asked. The private key never leaves the device; the panel keeps the public one.
+
+| Setting (the panel's `.env`, `/opt/cipi/gui/.env`) | Effect |
+| --- | --- |
+| `CIPI_GUI_PASSKEYS=false` | Passkeys off: the button, Settings → Passkeys and the second step. On by default; off anyway where [SSO is the only way in](https://cipi.sh/docs/gui-sso) |
+| `CIPI_GUI_PASSKEYS_RP_ID=example.com` | The relying party: by default the panel's host. A parent domain shares passkeys with its subdomains |
+
+> [!note] A passkey belongs to the panel's domain. After [`cipi gui move`](#move) to another one, each person signs in with the password (and the authenticator's code) and adds a passkey again — unless `CIPI_GUI_PASSKEYS_RP_ID` names a parent domain of both. After changing the `.env`: `sudo -u www-data php /opt/cipi/gui/artisan config:clear`.
+
 ### Lost a second factor 
 
-An admin clicks **Reset 2FA** on the account in Team (panel 4.6.0+; not for your own account). From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites an account and removes the enrolment. With 2FA required, the account sets it up again at its next sign-in.
+An admin clicks **Reset 2FA** on the account in Team (panel 4.6.0+; not for your own account): it removes the authenticator and, from panel 4.8.0, the account's passkeys. From the server, [`cipi gui reset-user`](https://cipi.sh/docs/gui-maintenance) rewrites an account and removes the enrolment, passkeys included from Cipi 5.16.0. With 2FA required, the account sets it up again at its next sign-in.
+
+
+## Connectors
+
+URL: https://cipi.sh/docs/gui-connectors
+
+The providers around your servers, driven from the panel: **28 connectors** for clouds and VPS, domains and DNS, object storage, email, monitoring and security scanners (cipi/gui 4.8.0+). Create a Droplet or an EC2 instance, point a DNS record at a server **by its name**, publish the DNS a mail domain asks for on Cloudflare, make a bucket and a key an app can use on that bucket only, resolve a Sentry issue, snooze an Oh Dear check, ignore an Aikido finding — without opening twenty dashboards.
+
+> [!tip] **Admins only, and optional.** Connectors are a page of the panel, not of Cipi: the calls go from the panel to the provider with credentials saved in the panel. The Cipi servers, their API and the CLI are not involved, and nothing changes on a server unless you change it from there yourself.
+
+## Every connector 
+
+AWS, Cloudflare and DigitalOcean appear in more than one group: their S3, SES and CloudWatch, R2 and Spaces sit where you'd look for them. Each name links to what the panel does with it and **how to make its credentials**, with the permissions they need — the same steps Settings → Connectors shows next to the form.
+
+### Clouds and servers 
+
+| Connector | What the panel does with it |
+| --- | --- |
+| [DigitalOcean](#digitalocean) | Droplets, domains and DNS, firewalls, volumes, reserved IPs, databases, App Platform, Kubernetes and Spaces, one team per account. |
+| [Hetzner](#hetzner) | Hetzner Cloud servers, firewalls, volumes, IPs, networks, load balancers, snapshots and DNS, one project per account. |
+| [AWS](#aws) | EC2 (instances, key pairs, security groups, Elastic IPs, volumes, AMIs), all of Lightsail, RDS, S3 with its objects and app keys, Route 53, CloudFront, SES and CloudWatch, one AWS account per access key. |
+| [Google Cloud](#gcp) | Compute Engine instances, firewall rules, static addresses, disks and snapshots, Cloud DNS, Cloud SQL and Storage buckets of a project. |
+| [Microsoft Azure](#azure) | Virtual machines, resource groups, public IP addresses, network security groups, DNS zones and storage accounts of a subscription. |
+| [OVHcloud](#ovh) | VPS, dedicated servers, Public Cloud instances, DNS zones and records. |
+| [Vultr](#vultr) | Instances, SSH keys, DNS domains, firewall groups, snapshots, block storage and reserved IPs. |
+| [Akamai (Linode)](#linode) | Linodes, domains and records, Cloud Firewalls, volumes, NodeBalancers, Object Storage buckets and SSH keys. |
+| [Scaleway](#scaleway) | Instances, flexible IPs, security groups, DNS zones and records, managed databases and load balancers. |
+| [Contabo](#contabo) | VPS and VDS instances (power, rename), their snapshots, object storages and SSH keys. New servers are ordered in the Control Panel. |
+| [UpCloud](#upcloud) | Cloud servers (create with an SSH key, power, delete) and their firewall, storages and backups, IP addresses and reverse DNS. |
+
+### Domains and DNS 
+
+| Connector | What the panel does with it |
+| --- | --- |
+| [Cloudflare](#cloudflare) | Zones, DNS records (to a server of the panel by its name), proxy, cache purge, SSL and security settings, IP access rules, Workers, Pages, R2 buckets and tunnels. |
+| [Porkbun](#porkbun) | Domains with their expiry and nameservers (by hand, or to their Cloudflare zone), DNS records pointed at a server of the panel by its name. |
+| [Gandi](#gandi) | Domains with expiry and auto-renewal, nameservers (by hand, or to their Cloudflare zone), LiveDNS records pointed at a server of the panel by its name. |
+| [Namecheap](#namecheap) | Domains with expiry and auto-renewal, nameservers (Namecheap's, custom, or their Cloudflare zone), host records pointed at a server of the panel by its name. |
+
+### Object storage 
+
+| Connector | What the panel does with it |
+| --- | --- |
+| [Johnny](#johnny) | Your own S3 (johnny.web.ap.it): buckets with quotas, CORS and expiry, scoped keys, a bucket and its key for an app in one go, imports, exports and syncs with other providers. |
+| [Backblaze B2](#backblaze) | Buckets public or private, their files with links that expire, application keys per bucket with the .env of an app on B2's S3 endpoint. |
+| [Wasabi](#wasabi) | Buckets in every region, their objects with links that expire, CORS, and keys for one bucket each with the .env of the app. |
+| [Cloudflare](#cloudflare) | R2: buckets, custom domains, the public r2.dev address, CORS and expiry rules. |
+| [DigitalOcean](#digitalocean) | Spaces: buckets by region, their files with links that expire, CORS, and Spaces keys scoped to a bucket. |
+| [AWS](#aws) | S3: buckets, their objects with links that expire, CORS, and keys an app can use on one bucket only. |
+
+### Email 
+
+| Connector | What the panel does with it |
+| --- | --- |
+| [Postmark](#postmark) | Servers with the .env of each app, outbound figures and bounces; domains with their DKIM and Return-Path published on Cloudflare; sender signatures. |
+| [Mailgun](#mailgun) | Sending domains with their DNS published on Cloudflare, 30-day figures, a sending key and the .env of each app; bounces, complaints and unsubscribes. |
+| [Resend](#resend) | Domains with their DNS published on Cloudflare, verification and tracking; sending keys per domain with the .env of each app. |
+| [AWS](#aws) | SES: domains and addresses, their DKIM records published on Cloudflare, sending quota, suppressed addresses. |
+
+### Monitoring and errors 
+
+| Connector | What the panel does with it |
+| --- | --- |
+| [Boogle](#boogle) | Your errors and uptime (boogle.web.ap.it): projects with the .env of the client, uptime on or off, exceptions to read, fix and close. |
+| [Oh Dear](#ohdear) | Monitors and every check (uptime, certificates, broken links, DNS, scheduled tasks), runs on demand, snoozes, maintenance windows, 30-day uptime, status page updates. |
+| [Better Stack](#betterstack) | Uptime monitors (pause, resume, 30-day availability), heartbeats for cron jobs and queues, incidents to acknowledge and resolve, status pages. |
+| [Sentry](#sentry) | Issues by project and state to resolve, ignore or reopen; projects with the DSN of each app; releases and deploys. |
+| [Datadog](#datadog) | Monitors and their state, muted for a while with a downtime and back; downtimes; hosts reporting and muted; dashboards; SLOs. |
+| [AWS](#aws) | CloudWatch: alarms (mute, test, delete), log groups and their retention, recent log events. |
+
+### Security 
+
+| Connector | What the panel does with it |
+| --- | --- |
+| [Aikido](#aikido) | Open issues by severity with how to fix them, ignore or snooze; repositories and their scans; containers; domains scanned from outside; Zen firewall apps. |
+| [Hackly](#hackly) | Your scanner (hackly.web.ap.it): posture score, targets with their ownership TXT published on Cloudflare, repositories, scans with reports, findings to triage. |
+
+## Add an account 
+
+**Settings → Connectors** lists every provider by group. Open one, give the account a name (*Acme*, *Client X*, *EU*) and paste what it asks for. Any number of accounts per provider: a list shows one account at a time, with the others one click away.
+
+> [!security] An account is **checked with the provider before it is saved** (a wrong key never lands in the database), stored **encrypted** with the panel's `APP_KEY` and **never sent back to the page**: editing an account shows its secret fields empty, and an empty secret keeps the stored one. What a list reads is cached for two minutes, encrypted too, and forgotten after anything done from that page. Every action is written to the panel's log as `cipi-gui.infrastructure`, with who did it.
+
+Give each connector the narrowest credentials that do what you need: the steps below name the permissions, and a read-only token works where the provider has one — the actions that change something then answer with the provider's refusal.
+
+## The Infrastructure pages 
+
+A provider with an account appears under **Infrastructure** in the sidebar. Its page has the provider's resources as tabs (grouped where there are many: AWS has *EC2*, *Lightsail*, *Databases*, *Storage & CDN*, *Route 53*, *SES*, *CloudWatch*), a search, filters (a region, a project, a CloudWatch log search), the actions of each row in its menu and the forms to create. A destructive action asks first. What is shown once — a secret key, a DSN, the `.env` of an app — is shown once, with a copy button.
+
+## Servers by their name 
+
+The panel already knows your servers and their addresses (Connections). Connectors use that:
+
+- **A DNS record can point at a server by its name.** In the record form, the value suggests the servers of the panel: type `production` and the record is saved with its IP. An A record takes a server with an IPv4, an AAAA one with an IPv6; the wrong family is refused, and so is a server's name as a CNAME. This works in every DNS the panel drives — Cloudflare, DigitalOcean, Hetzner, Route 53, Cloud DNS, Azure, OVHcloud, Vultr, Akamai, Scaleway, Porkbun, Gandi and Namecheap.
+- **Every address says which server it is.** In every list of records, and in the public addresses of Droplets, EC2 and Lightsail instances, Hetzner servers and every VPS list: `203.0.113.24 → production`. Also in Cloudflare's IP access rules.
+
+A new server from a provider is a fresh Ubuntu machine: install Cipi on it (`wget -O - https://cipi.sh/setup.sh | bash`, or as the cloud-init of DigitalOcean, Hetzner, EC2 and Lightsail), then add it on Connections. See [installation](https://cipi.sh/docs/installation).
+
+## DNS for email, on Cloudflare 
+
+A mail domain on Postmark, Mailgun, Resend or Amazon SES, a target to verify on Hackly: each asks for DNS records. **Publish DNS on Cloudflare** writes them into the Cloudflare zone of the domain, on whichever Cloudflare account of the panel has it. Records already there are kept; a CNAME that points elsewhere is reported, never overwritten. The outcome lists what was added and what was already there.
+
+On the registrars — Porkbun, Gandi and Namecheap — **Point to Cloudflare** sets a domain's nameservers to the ones Cloudflare assigned to its zone (add the zone on Cloudflare first, from the panel too). Nameservers can also be set by hand.
+
+## A bucket and its key for an app 
+
+On AWS S3, Wasabi, DigitalOcean Spaces, Backblaze B2 and Johnny, **Key for an app** makes a key that opens **that bucket only** — read and write, or read only — and shows the lines of the app's `.env`:
+
+```bash
+AWS_ACCESS_KEY_ID=AKIA…
+AWS_SECRET_ACCESS_KEY=…
+AWS_DEFAULT_REGION=eu-central-1
+AWS_BUCKET=shop-uploads
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+# The secret is shown once. The key opens shop-uploads only (user cipi-shop-uploads-…).
+```
+
+Paste them in the app's [environment](https://cipi.sh/docs/environment) and Laravel's `s3` disk works. On AWS and Wasabi the key is an IAM user under the path `/cipi/` with a policy for that bucket, listed under *App keys* and revoked from there. Buckets themselves: created private, browsed folder by folder with links that expire, CORS for a site (`https://app.example.com`), expiry rules where the provider has them. Postmark, Mailgun, Resend, Sentry and Boogle give the `.env` of an app the same way: a server token, a sending key, a DSN.
+
+## Errors, uptime and security 
+
+What breaks, next to where it runs. Sentry's unresolved issues with their events and users, resolved (now or in the next release), ignored or reopened, with the latest event's stack; Oh Dear and Better Stack monitors with every check; Aikido's findings by severity with how to fix them.
+
+## Clouds and servers 
+
+### DigitalOcean 
+
+Droplets, domains and DNS, firewalls, volumes, reserved IPs, databases, App Platform, Kubernetes and Spaces, one team per account.
+
+In the panel: Overview · Droplets · Domains · SSH keys · Firewalls · Volumes · Snapshots · Reserved IPs · Load balancers · Databases · App Platform · Kubernetes · Spaces · Spaces keys.
+
+Also under *Object storage*: Spaces: buckets by region, their files with links that expire, CORS, and Spaces keys scoped to a bucket.
+
+The account asks for **Personal access token**, **Spaces access key** (optional), **Spaces secret key** (optional).
+
+1. cloud.digitalocean.com → API → Tokens → Generate New Token.
+2. Scopes: Full Access, or Custom Scopes with read and the actions you use: droplet, domain, firewall, ssh_key, snapshot, volume, reserved_ip, load_balancer, database, app, kubernetes, spaces_key.
+3. A token belongs to one team: add an account per team. Set an expiry and renew it here when it ends.
+4. Spaces: the token manages the Spaces keys (scope spaces_key). Buckets and their files speak S3, with a Spaces key: make one with full access in the Spaces keys tab, or Spaces Object Storage → Access Keys, and paste it in the two Spaces fields.
+
+- **Personal access token** — API → Tokens → Generate New Token, with read and write scope (or full access) for the team.
+- **Spaces access key** — Only to browse Spaces buckets: a Spaces key with full access (the Spaces keys tab makes one). The token alone manages the keys.
+
+DigitalOcean's own guide: [docs.digitalocean.com](https://docs.digitalocean.com/reference/api/create-personal-access-token/).
+
+### Hetzner 
+
+Hetzner Cloud servers, firewalls, volumes, IPs, networks, load balancers, snapshots and DNS, one project per account.
+
+In the panel: Servers · SSH keys · Firewalls · Volumes · Floating IPs · Primary IPs · Networks · Load balancers · Snapshots & backups · Certificates · DNS zones.
+
+The account asks for **API token**.
+
+1. console.hetzner.com → the project → Security → API tokens → Generate API token.
+2. Permission: Read & Write (Read alone shows the lists; every action then answers 403).
+3. A token reaches one project — its servers, firewalls, volumes, networks, load balancers and DNS zones: add an account per project.
+
+- **API token** — Hetzner Console → the project → Security → API tokens, with Read & Write. A token belongs to one project: add one account per project.
+
+Hetzner's own guide: [docs.hetzner.com](https://docs.hetzner.com/cloud/api/getting-started/generating-api-token/).
+
+### AWS 
+
+EC2 (instances, key pairs, security groups, Elastic IPs, volumes, AMIs), all of Lightsail, RDS, S3 with its objects and app keys, Route 53, CloudFront, SES and CloudWatch, one AWS account per access key.
+
+In the panel: **Account**: Overview; **EC2**: EC2 instances, Key pairs, Security groups, Elastic IPs, EBS volumes, Images (AMI); **Lightsail**: Instances, Instance snapshots, Static IPs, Disks, Disk snapshots, Key pairs, Databases, Load balancers, Container services, Buckets, DNS zones, Distributions (CDN), Certificates, Alarms, Operations; **Databases**: RDS; **Storage & CDN**: S3 buckets, App keys, CloudFront; **Route 53**; **SES**: SES identities, SES sending, SES suppressed; **CloudWatch**: Alarms, Log groups.
+
+Also under *Object storage*: S3: buckets, their objects with links that expire, CORS, and keys an app can use on one bucket only.
+
+Also under *Email*: SES: domains and addresses, their DKIM records published on Cloudflare, sending quota, suppressed addresses.
+
+Also under *Monitoring and errors*: CloudWatch: alarms (mute, test, delete), log groups and their retention, recent log events.
+
+The account asks for **Access key ID**, **Secret access key**, **Default region**, **Session token** (optional).
+
+1. AWS console → IAM → Users → Create user (no console access), e.g. cipi-panel.
+2. Permissions → Attach policies directly: AmazonEC2FullAccess, AmazonLightsailFullAccess, AmazonRDSFullAccess, AmazonS3FullAccess, AmazonRoute53FullAccess, CloudFrontFullAccess, AmazonSESFullAccess, CloudWatchFullAccess and AWSBillingReadOnlyAccess (or their ReadOnly counterparts for a read-only panel).
+3. "Key for an app" on a bucket makes an IAM user under `/cipi/` with a policy for that bucket only: it needs IAMFullAccess, or a policy allowing iam:CreateUser, PutUserPolicy, CreateAccessKey, ListUsers, ListAccessKeys, DeleteAccessKey, DeleteUserPolicy and DeleteUser on `arn:aws:iam::*:user/cipi/*`.
+4. The user → Security credentials → Create access key → "Application running outside AWS": the key ID and the secret, shown once.
+5. The region here is the default one; EC2, Lightsail and RDS pages pick another from their filter.
+
+- **Session token** — Only for temporary credentials. Prefer an IAM user of its own with the policies the panel needs (EC2, Lightsail, RDS, S3, Route 53, CloudFront, SES, CloudWatch).
+
+AWS's own guide: [docs.aws.amazon.com](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html).
+
+### Google Cloud 
+
+Compute Engine instances, firewall rules, static addresses, disks and snapshots, Cloud DNS, Cloud SQL and Storage buckets of a project.
+
+In the panel: VM instances · Firewall rules · Static addresses · Disks · Snapshots · Cloud DNS · Cloud SQL · Storage buckets.
+
+The account asks for **Service account key (JSON)**, **Project ID** (optional).
+
+1. console.cloud.google.com → the project → APIs & Services: enable Compute Engine API, Cloud DNS API and Cloud SQL Admin API.
+2. IAM & Admin → Service accounts → Create service account (cipi-panel).
+3. Roles: Compute Admin, DNS Administrator, Cloud SQL Viewer (Cloud SQL Admin to restart), Storage Admin — or their Viewer roles for a read-only panel.
+4. The account → Keys → Add key → Create new key → JSON: paste the whole file here.
+5. One account per project; a key reaches others only where the service account has a role.
+
+- **Service account key (JSON)** — The whole JSON file Google downloads: the panel keeps it encrypted and never shows it again.
+- **Project ID** — Empty: the project of the key.
+
+Google Cloud's own guide: [cloud.google.com](https://cloud.google.com/iam/docs/keys-create-delete).
+
+### Microsoft Azure 
+
+Virtual machines, resource groups, public IP addresses, network security groups, DNS zones and storage accounts of a subscription.
+
+In the panel: Virtual machines · Resource groups · Public IP addresses · Network security groups · DNS zones · Storage accounts.
+
+The account asks for **Tenant ID**, **Application (client) ID**, **Client secret**, **Subscription ID**.
+
+1. portal.azure.com → Microsoft Entra ID → App registrations → New registration (cipi-panel, single tenant): its Application (client) ID and the Tenant ID are on its overview.
+2. The app → Certificates & secrets → New client secret: copy its Value now, it is shown once.
+3. Subscriptions → the subscription → Access control (IAM) → Add role assignment → Contributor (or Reader, plus Virtual Machine Contributor, Network Contributor and DNS Zone Contributor) → Members: the app.
+4. One account per subscription.
+
+- **Tenant ID** — Microsoft Entra ID → Overview → Tenant ID (or the tenant domain)
+- **Client secret** — The secret's Value, not its ID
+
+Microsoft Azure's own guide: [learn.microsoft.com](https://learn.microsoft.com/entra/identity-platform/howto-create-service-principal-portal).
+
+### OVHcloud 
+
+VPS, dedicated servers, Public Cloud instances, DNS zones and records.
+
+In the panel: VPS · Dedicated servers · Public Cloud · DNS zones.
+
+The account asks for **Region**, **Application key**, **Application secret**, **Consumer key**.
+
+1. Europe: eu.api.ovh.com/createToken — Canada: ca.api.ovh.com/createToken — US: api.us.ovhcloud.com/createToken. Sign in with the account that owns the services.
+2. Rights: GET /*, POST /*, PUT /*, DELETE /* for the whole account — or narrower, e.g. GET /vps*, POST /vps/*/reboot, GET /domain/zone*, POST /domain/zone/*, PUT /domain/zone/*, DELETE /domain/zone/*, GET /cloud/*, POST /cloud/*.
+3. Validity: unlimited, or a date to renew it here. The page shows the application key, the application secret and the consumer key at once: paste the three.
+
+OVHcloud's own guide: [help.ovhcloud.com](https://help.ovhcloud.com/csm/en-gb-api-getting-started-ovhcloud-api?id=kb_article_view&sysparm_article=KB0042784).
+
+### Vultr 
+
+Instances, SSH keys, DNS domains, firewall groups, snapshots, block storage and reserved IPs.
+
+In the panel: Instances · SSH keys · DNS · Firewall groups · Snapshots · Block storage · Reserved IPs.
+
+The account asks for **API key**.
+
+1. my.vultr.com → Account → API → Enable API: the Personal Access Token.
+2. Access Control: add the panel server's address (Vultr refuses the key from any other one), or "Allow all IPv4" and "Allow all IPv6".
+3. The key has every permission of the user: for a smaller one, a sub-user with the permissions you want (Account → Users) and its own key.
+
+Vultr's own guide: [www.vultr.com](https://www.vultr.com/api/#section/Authentication).
+
+### Akamai (Linode) 
+
+Linodes, domains and records, Cloud Firewalls, volumes, NodeBalancers, Object Storage buckets and SSH keys.
+
+In the panel: Linodes · Domains · Cloud Firewalls · Volumes · NodeBalancers · Object Storage · SSH keys.
+
+The account asks for **Personal access token**.
+
+1. cloud.linode.com → the profile menu → API Tokens → Create a Personal Access Token.
+2. Access: Read/Write for Linodes, Domains, Firewalls, Volumes, NodeBalancers, Object Storage and IPs; Read Only for Account (the name and balance). Expiry: as you like — renew it here.
+
+Akamai (Linode)'s own guide: [techdocs.akamai.com](https://techdocs.akamai.com/cloud-computing/docs/manage-personal-access-tokens).
+
+### Scaleway 
+
+Instances, flexible IPs, security groups, DNS zones and records, managed databases and load balancers.
+
+In the panel: Instances · Flexible IPs · Security groups · DNS zones · Databases · Load balancers.
+
+The account asks for **Secret key**.
+
+1. console.scaleway.com → IAM → Applications → Create application (cipi-panel), then a policy for it: InstancesFullAccess, DomainsDNSFullAccess, RelationalDatabasesReadOnly, LoadBalancersReadOnly (or the FullAccess ones) on the project.
+2. The application → API keys → Generate API key: paste the secret key, shown once (the access key is not needed).
+3. Instances, IPs, security groups and load balancers have a zone filter, databases a region filter.
+
+Scaleway's own guide: [www.scaleway.com](https://www.scaleway.com/en/docs/iam/how-to/create-api-keys/).
+
+### Contabo 
+
+VPS and VDS instances (power, rename), their snapshots, object storages and SSH keys. New servers are ordered in the Control Panel.
+
+In the panel: Instances · Object storage · SSH keys and passwords.
+
+The account asks for **Client ID**, **Client secret**, **API user**, **API password**.
+
+1. my.contabo.com → API: the Client ID, the Client Secret and the API User (your email).
+2. API Password: set it from the same page ("Send link"): it is not the password of the Control Panel.
+
+Contabo's own guide: [contabo.com](https://contabo.com/blog/kb/103000270527-how-can-i-access-the-contabo-api).
+
+### UpCloud 
+
+Cloud servers (create with an SSH key, power, delete) and their firewall, storages and backups, IP addresses and reverse DNS.
+
+In the panel: Servers · Storages · IP addresses.
+
+The account asks for **API token** (optional), **Subaccount** (optional), **Subaccount password** (optional).
+
+1. hub.upcloud.com → Account → API tokens → Create token: it starts with ucat_. Set an expiry and, for safety, the panel server's address as the only allowed range.
+2. Or People → Create subaccount with "API connections" allowed (and from the panel server's address): its username and password go in the two fields below the token.
+
+- **API token** — Or a subaccount with API access, below.
+
+UpCloud's own guide: [upcloud.com](https://upcloud.com/docs/guides/managing-api-tokens/).
+
+## Domains and DNS 
+
+### Cloudflare 
+
+Zones, DNS records (to a server of the panel by its name), proxy, cache purge, SSL and security settings, IP access rules, Workers, Pages, R2 buckets and tunnels.
+
+In the panel: Zones · Workers · Pages · R2 buckets · Tunnels.
+
+Also under *Object storage*: R2: buckets, custom domains, the public r2.dev address, CORS and expiry rules.
+
+The account asks for **API token**.
+
+1. dash.cloudflare.com → My Profile → API Tokens → Create Token → Create Custom Token.
+2. Zone permissions: Zone — Edit (add, pause, delete zones), DNS — Edit, Zone Settings — Edit, Cache Purge — Purge, Firewall Services — Edit (IP access rules).
+3. Account permissions, for what you use: Account Settings — Read (the account names), Workers Scripts — Edit, Cloudflare Pages — Edit, Workers R2 Storage — Edit, Cloudflare Tunnel — Read.
+4. Zone Resources: All zones (or the account or the zones the panel manages). Client IP filtering: the panel server's address, if you want it tighter.
+5. Read-only is possible: the same permissions as Read; the actions that change something then answer 403.
+6. The servers' Zero Trust token (`cipi zt token set`) is a different one: it lives on each server, this one in the panel.
+
+- **API token** — An API token, not the Global API Key. One token can reach several Cloudflare accounts: each is a filter of the page.
+
+Cloudflare's own guide: [developers.cloudflare.com](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/).
+
+### Porkbun 
+
+Domains with their expiry and nameservers (by hand, or to their Cloudflare zone), DNS records pointed at a server of the panel by its name.
+
+In the panel: Domains.
+
+The account asks for **API key**, **Secret API key**.
+
+1. porkbun.com → Account → API Access → Create API Key: the API key and the secret, shown once.
+2. Domain Management → each domain → Details → API Access: on. Without it Porkbun answers that the domain is not opted in.
+
+Porkbun's own guide: [kb.porkbun.com](https://kb.porkbun.com/article/190-getting-started-with-the-porkbun-api).
+
+### Gandi 
+
+Domains with expiry and auto-renewal, nameservers (by hand, or to their Cloudflare zone), LiveDNS records pointed at a server of the panel by its name.
+
+In the panel: Domains.
+
+The account asks for **Personal access token**.
+
+1. admin.gandi.net → Organizations → your organization → Personal Access Tokens → Create a token.
+2. Permissions: Domains — "See and renew domain names" and "Manage domain name technical configurations" (nameservers, LiveDNS); restrict it to the domains you want, and set an expiry.
+
+Gandi's own guide: [api.gandi.net](https://api.gandi.net/docs/authentication/).
+
+### Namecheap 
+
+Domains with expiry and auto-renewal, nameservers (Namecheap's, custom, or their Cloudflare zone), host records pointed at a server of the panel by its name.
+
+In the panel: Domains.
+
+The account asks for **API user**, **API key**, **Panel address (IPv4)**, **Sandbox (api.sandbox.namecheap.com)** (optional).
+
+1. namecheap.com → Profile → Tools → Business & Dev Tools → Namecheap API Access → ON (the account needs $50 of balance, 20 domains or $50 spent in the last two years).
+2. Whitelisted IPs: add the public IPv4 of the server the panel runs on, and type the same one here.
+3. The API key is on the same page; the API user is your username.
+
+- **API user** — Your Namecheap username.
+- **Panel address (IPv4)** — The public IPv4 the panel calls from: Namecheap answers only allowlisted addresses.
+
+Namecheap's own guide: [www.namecheap.com](https://www.namecheap.com/support/api/intro/).
+
+## Object storage 
+
+### Johnny 
+
+Your own S3 (johnny.web.ap.it): buckets with quotas, CORS and expiry, scoped keys, a bucket and its key for an app in one go, imports, exports and syncs with other providers.
+
+In the panel: Buckets · Access keys · Connections · Transfers · Scheduled syncs.
+
+The account asks for **Panel address**, **Panel API token**.
+
+1. Johnny panel → Settings → Panel API tokens → New token (e.g. cipi-panel), or on its server: sudo -u www-data php /opt/johnny/panel/artisan johnny:api-token you@example.com --name=cipi-panel.
+2. The token acts as the user it belongs to: one of the panel's users, with its password and 2FA, is enough.
+3. The panel address is the one you open in the browser, with https://.
+
+- **Panel address** — Where the Johnny panel answers; the API is under /api.
+
+Johnny's own guide: [github.com](https://github.com/andreapollastri/johnny#panel-api).
+
+### Backblaze B2 
+
+Buckets public or private, their files with links that expire, application keys per bucket with the .env of an app on B2's S3 endpoint.
+
+In the panel: Buckets · Application keys.
+
+The account asks for **Key ID**, **Application key**.
+
+1. secure.backblaze.com → Application Keys → Add a New Application Key.
+2. Allow access to: All buckets, Type of access: Read and Write, and tick "Allow List All Bucket Names". The panel then lists buckets and makes keys for apps.
+3. Creating and removing keys needs the master application key, or a key with the writeKeys capability (B2 CLI: b2 key create --all-capabilities).
+4. The key ID and the key are shown once: paste both here.
+
+Backblaze B2's own guide: [www.backblaze.com](https://www.backblaze.com/docs/cloud-storage-application-keys).
+
+### Wasabi 
+
+Buckets in every region, their objects with links that expire, CORS, and keys for one bucket each with the .env of the app.
+
+In the panel: Buckets · App keys.
+
+The account asks for **Access key**, **Secret key**, **Default region**.
+
+1. console.wasabisys.com → Users → Create User, e.g. cipi-panel, with "Programmatic (create API key)".
+2. Policies: WasabiFullAccess, or AmazonS3FullAccess plus IAMFullAccess (IAM is what the "Key for an app" of a bucket uses).
+3. Download the access key and the secret key: Wasabi shows the secret once.
+4. The region is where new buckets go unless you pick another; the list shows the buckets of every region.
+
+Wasabi's own guide: [docs.wasabi.com](https://docs.wasabi.com/docs/creating-a-user-account-and-access-key).
+
+## Email 
+
+### Postmark 
+
+Servers with the .env of each app, outbound figures and bounces; domains with their DKIM and Return-Path published on Cloudflare; sender signatures.
+
+In the panel: Servers · Domains · Sender signatures.
+
+The account asks for **Account API token**.
+
+1. account.postmarkapp.com → Account → API Tokens: the Account API token (only account owners and admins see it).
+2. A server token opens one server only and is not enough here: the panel reads each server's token from the account when it needs it.
+
+- **Account API token** — The account token, not a server token: it reaches every server and domain.
+
+Postmark's own guide: [postmarkapp.com](https://postmarkapp.com/developer/api/overview#authentication).
+
+### Mailgun 
+
+Sending domains with their DNS published on Cloudflare, 30-day figures, a sending key and the .env of each app; bounces, complaints and unsubscribes.
+
+In the panel: Domains.
+
+The account asks for **Private API key**, **Region**.
+
+1. app.mailgun.com → your name → API Security → Add new key: a private key with the Admin or Developer role (a domain sending key only sends).
+2. The region is where the domains live: EU domains are on api.eu.mailgun.net, the others on api.mailgun.net. Domains of both regions need two accounts here.
+3. IP allowlist (API Security): add the panel server's address if you use one.
+
+Mailgun's own guide: [help.mailgun.com](https://help.mailgun.com/hc/en-us/articles/203380100-Where-can-I-find-my-API-keys-and-SMTP-credentials).
+
+### Resend 
+
+Domains with their DNS published on Cloudflare, verification and tracking; sending keys per domain with the .env of each app.
+
+In the panel: Domains · API keys.
+
+The account asks for **API key**.
+
+1. resend.com → API Keys → Create API Key, permission Full access (a Sending access key cannot read domains).
+2. The key is shown once. The apps get keys of their own, sending only, from the API keys tab here.
+
+Resend's own guide: [resend.com](https://resend.com/docs/dashboard/api-keys/introduction).
+
+## Monitoring and errors 
+
+### Boogle 
+
+Your errors and uptime (boogle.web.ap.it): projects with the .env of the client, uptime on or off, exceptions to read, fix and close.
+
+In the panel: Projects · Open exceptions · Groups.
+
+The account asks for **Boogle address**, **API token**.
+
+1. Boogle → Profile → API tokens → New token. The admin API answers admin users only: make the token as one.
+2. The address is the one you open in the browser, with https://; the panel calls /api/admin under it.
+
+- **API token** — An admin user's token: Boogle → Profile → API tokens.
+
+Boogle's own guide: [github.com](https://github.com/andreapollastri/boogle#admin-api).
+
+### Oh Dear 
+
+Monitors and every check (uptime, certificates, broken links, DNS, scheduled tasks), runs on demand, snoozes, maintenance windows, 30-day uptime, status page updates.
+
+In the panel: Monitors · Status pages.
+
+The account asks for **API token**.
+
+1. ohdear.app → your avatar → API tokens → Create token. The token reaches every team you are in.
+2. New monitors go to a team: the form asks which one.
+
+Oh Dear's own guide: [ohdear.app](https://ohdear.app/docs/api/introduction).
+
+### Better Stack 
+
+Uptime monitors (pause, resume, 30-day availability), heartbeats for cron jobs and queues, incidents to acknowledge and resolve, status pages.
+
+In the panel: Monitors · Heartbeats · Incidents · Status pages.
+
+The account asks for **Uptime API token**.
+
+1. betterstack.com → Uptime → Settings (the team) → API tokens → Create API token: a team token reaches that team's monitors.
+2. A global token reaches every team but needs a team name on each new monitor: prefer a team token, one account per team.
+
+Better Stack's own guide: [betterstack.com](https://betterstack.com/docs/uptime/api/getting-started-with-uptime-api/).
+
+### Sentry 
+
+Issues by project and state to resolve, ignore or reopen; projects with the DSN of each app; releases and deploys.
+
+In the panel: Issues · Projects · Releases.
+
+The account asks for **Sentry** (optional), **Self-hosted address** (optional), **Organization slug**, **Personal token**.
+
+1. Sentry → User settings → Personal Tokens → Create New Token.
+2. Scopes: org:read, team:read, project:read, project:write, project:releases, event:read, event:write (event:admin to delete issues).
+3. An organization token (Settings → Developer Settings → Organization Tokens) only reads and makes releases: it cannot resolve issues.
+4. EU organizations live on de.sentry.io: pick it, or the calls answer 404.
+
+- **Sentry** — Self-hosted: type its address in "Self-hosted address" instead.
+- **Organization slug** — In the address of Sentry: /organizations//.
+
+Sentry's own guide: [docs.sentry.io](https://docs.sentry.io/api/auth/).
+
+### Datadog 
+
+Monitors and their state, muted for a while with a downtime and back; downtimes; hosts reporting and muted; dashboards; SLOs.
+
+In the panel: Monitors · Downtimes · Hosts · Dashboards · SLOs.
+
+The account asks for **Site**, **API key**, **Application key**.
+
+1. Datadog → Organization Settings → API Keys → New Key: the API key.
+2. Organization Settings → Application Keys → New Key, with scopes monitors_read, monitors_write, monitors_downtime, hosts_read, dashboards_read, slos_read (or no scope: the key gets your permissions).
+3. The site is the one in the address of Datadog: app.datadoghq.eu is EU, us5.datadoghq.com is US5.
+
+Datadog's own guide: [docs.datadoghq.com](https://docs.datadoghq.com/account_management/api-app-keys/).
+
+## Security 
+
+### Aikido 
+
+Open issues by severity with how to fix them, ignore or snooze; repositories and their scans; containers; domains scanned from outside; Zen firewall apps.
+
+In the panel: Overview · Issues · Repositories · Containers · Domains · Zen firewall.
+
+The account asks for **Region**, **Client ID**, **Client secret**.
+
+1. Aikido → Settings → Integrations → Public REST API → Add client (workspace admins only; the plan must include the REST API).
+2. Scopes: basics:read, issues:read, issues:write, repositories:read, repositories:write, domains:read, domains:write, firewall:read, firewall:write.
+3. The region is the one in the address of Aikido: app.aikido.dev is Europe, app.us.aikido.dev the US.
+
+Aikido's own guide: [apidocs.aikido.dev](https://apidocs.aikido.dev/reference/authorization).
+
+### Hackly 
+
+Your scanner (hackly.web.ap.it): posture score, targets with their ownership TXT published on Cloudflare, repositories, scans with reports, findings to triage.
+
+In the panel: Posture · Targets · Repositories · Findings · Scans.
+
+The account asks for **Hackly address**, **API token**.
+
+1. Hackly → Profile → API tokens → New token with the ability "*" (or "write": scans and triage; "read" only lists), or on its server: php artisan hackly:token.
+2. The address is the one you open in the browser, with https://; the panel calls /api/v1 under it.
+3. Targets need their ownership TXT record before Hackly scans them: with a Cloudflare account in the panel, "Publish DNS on Cloudflare" writes it.
+
+Hackly's own guide: [hackly.web.ap.it](https://hackly.web.ap.it/#docs).
+
+## What stays out 
+
+- **Not for users.** Connectors are for admins; the team's other accounts do not see them.
+- **Not on the servers.** The Cloudflare token of the panel is not the one of [Zero Trust](https://cipi.sh/docs/zero-trust) (`cipi zt token set`), which lives on each server; DNS for [certificates](https://cipi.sh/docs/ssl) keeps its own as well.
+- **Not a billing console.** Accounts, plans and payment methods stay on each provider; Contabo's servers are ordered in its Control Panel.
 
 
 ## Single sign-on
@@ -6784,7 +7516,7 @@ Removes the vhost, FPM pool, scheduler, app, config and the panel's certificate 
 
 URL: https://cipi.sh/docs/gui-architecture
 
-The panel is a standard **Laravel** application distributed as the `cipi/gui` package ([cipi-sh/gui](https://github.com/cipi-sh/gui)). It holds **no state about your infrastructure**: it authenticates to each server's API, submits jobs and polls them. Tear it down and rebuild it elsewhere without touching a managed server.
+The panel is a standard **Laravel** application distributed as the `cipi/gui` package ([cipi-sh/gui](https://github.com/cipi-sh/gui)). It holds **no state about your servers**: it authenticates to each server's API, submits jobs and polls them. Tear it down and rebuild it elsewhere without touching a managed server. What it keeps of its own are accounts, roles, server connections and, for admins who use them, the credentials of [connectors](https://cipi.sh/docs/gui-connectors).
 
 ## Components 
 
@@ -6795,7 +7527,8 @@ The panel is a standard **Laravel** application distributed as the `cipi/gui` pa
 | Install path | `/opt/cipi/gui` |
 | Config | `/etc/cipi/gui.json` |
 | Isolation | Own FPM pool, `open_basedir` limited to its own directories |
-| Auth | Session login, optional TOTP, optional OpenID Connect SSO |
+| Auth | Session login, optional TOTP or [passkeys](https://cipi.sh/docs/gui-install#passkeys) (WebAuthn checked by the panel itself, 4.8.0+), optional OpenID Connect SSO |
+| Connectors | Providers' APIs called from the panel over HTTPS (4.8.0+); credentials encrypted with `APP_KEY` in `cipi_connector_accounts`, never sent back to the page |
 | Jobs | No local queue worker: remote jobs polled through each server's API |
 
 ```stack
@@ -6809,7 +7542,7 @@ cipi CLI via sudoers | the same code path as SSH
 
 | Area | Endpoints used |
 | --- | --- |
-| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove, API 1.44+), monitor, Zero Trust, `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
+| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove, API 1.44+), monitor, Zero Trust (`GET /api/zt` with `details`, API 1.46+), `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
 | Apps | CRUD, suspend, fix-permissions, basic auth, logs, `.env`, `auth.json`, Artisan, app commands; create with `engine`, `octane`, Node options; webhook rotation; per-app health check |
 | Deploy | Deploy, rollback, unlock, `deploy/audit`, `deploy/history`, `GET /api/deploys/last`, `deploy-config` |
 | `cipi.yml` | `GET /api/apps/{name}/yml`, `POST …/yml/apply`, `…/yml/auto/enable|disable` |
@@ -6823,6 +7556,16 @@ cipi CLI via sudoers | the same code path as SSH
 | Jobs | Status, output and parsed `result` (credentials, backup file, webhook token) |
 
 A server with an older API keeps every page it supports; a missing tab says what it needs. Disk sizes are measured when the tab opens, with their own timeout (`CIPI_GUI_HTTP_DISK_TIMEOUT`, 180 s). `cipi ssh apps`, `cipi firewall deny`, the CrowdSec rescue, disk limits and DNS accounts are changed on the host.
+
+## Connectors 
+
+The [connectors](https://cipi.sh/docs/gui-connectors) are the one part of the panel that doesn't go through a Cipi server: Cloudflare, DigitalOcean, AWS, Sentry and the rest are called **from the panel's server**, with the account an admin saved. Requests leave from its IP — the address to allow where a provider filters by IP (Namecheap requires it; Cloudflare tokens can). A server behind [Cloudflare Access](https://cipi.sh/docs/zero-trust#service-tokens) is still called through its API, with the service token saved on Connections.
+
+```stack
+Panel (cipi/gui) | Infrastructure pages, admins
+HTTPS + the account's credentials | encrypted at rest
+Provider API | Cloudflare, AWS, DigitalOcean, Sentry…
+```
 
 > [!info] Prefer the terminal? The [CLI client](https://cipi.sh/docs/cli-client) does the same over the API, and the [WHMCS module](https://cipi.sh/docs/whmcs) automates it for hosting providers.
 
@@ -6924,6 +7667,8 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 
 Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second (1.44+) — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
+A server whose API is [behind Cloudflare Access](https://cipi.sh/docs/zero-trust#service-tokens) (`cipi zt access enable --api --allow=none`) also needs the headers of a service token: `CF-Access-Client-Id` and `CF-Access-Client-Secret` (`cipi zt service-token create  --for=api`).
+
 ### Apps 
 
 | Method | Path | Ability |
@@ -7012,7 +7757,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
 | `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
 | `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`; 1.44+) | `packages-manage` |
-| `GET` | `/api/monitor`, `/api/zt` | `monitor-view`, `zt-view` |
+| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](https://cipi.sh/docs/zero-trust#panel) picture: 1.46+, Cipi 5.16.0+) | `monitor-view`, `zt-view` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](https://cipi.sh/docs/metrics), 1.41+) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](https://cipi.sh/docs/basic-auth#agent)) | `apps-basicauth` |
@@ -9457,6 +10202,8 @@ Create an `A` record (Route 53 or your DNS provider) for your domain to the Elas
 
 > [!tip] Outbound port 25 is restricted on EC2 by default. Use SES or another provider on port 587 for app mail and for Cipi's [notifications](https://cipi.sh/docs/notifications).
 
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **AWS** connector covers EC2 by region (each Cipi server named), Lightsail, RDS, S3 with keys an app can use on one bucket only, Route 53, CloudFront, SES and CloudWatch, with the IAM permissions it needs spelled out. See [Connectors](https://cipi.sh/docs/gui-connectors#aws).
+
 ## Troubleshooting 
 
 | Problem | Fix |
@@ -9529,6 +10276,8 @@ Point an `A` record at the static IP (Lightsail DNS zones work), then create and
 | You need VPC, autoscaling groups, RDS in private subnets | Move to [EC2](https://cipi.sh/guides/cipi-aws-ec2) |
 
 > [!note] Lightsail's own snapshots copy the whole disk. Keep Cipi's [S3 backups](https://cipi.sh/guides/backup-vps-s3) too: they're per app, encrypted and restorable on any server.
+
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **AWS** connector covers every kind of Lightsail resource — instances with each Cipi server named, static IPs, firewall ports, snapshots, disks, DNS zones — next to EC2, S3, Route 53, SES and CloudWatch. See [Connectors](https://cipi.sh/docs/gui-connectors#aws).
 
 ## Troubleshooting 
 
@@ -9618,6 +10367,8 @@ $ sudo cipi backup destination test
 
 [Full backup guide](https://cipi.sh/guides/backup-vps-s3).
 
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **DigitalOcean** connector lists your Droplets with each Cipi server named (`203.0.113.24 → production`), creates, resizes, snapshots and powers them, and manages domains, firewalls, reserved IPs, Spaces and Spaces keys scoped to a bucket, with the app's `.env`. See [Connectors](https://cipi.sh/docs/gui-connectors#digitalocean).
+
 ## Troubleshooting 
 
 | Problem | Fix |
@@ -9704,6 +10455,8 @@ $ sudo cipi backup destination test
 
 Full setup: [backups to S3](https://cipi.sh/guides/backup-vps-s3).
 
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **Hetzner** connector lists your servers with each Cipi server named, creates them with your SSH key and cloud-init, and manages firewalls, volumes, floating and primary IPs, snapshots and DNS. See [Connectors](https://cipi.sh/docs/gui-connectors#hetzner).
+
 ## Troubleshooting 
 
 | Problem | Fix |
@@ -9763,6 +10516,8 @@ Then log in as `cipi` and follow [the main guide](https://cipi.sh/guides/deploy-
 | Reverse DNS set to your hostname | Helps deliverability of notification e-mail |
 | Outbound 25 often blocked | Send mail through an SMTP provider on 587 |
 | A second region or provider for backups | Point `cipi backup` at an S3-compatible bucket elsewhere |
+
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **Vultr**, **Akamai (Linode)** and **OVHcloud** connectors (and Scaleway, Contabo, UpCloud) list your servers with each Cipi server named, with their power actions, firewalls, snapshots, IPs and DNS. See [Connectors](https://cipi.sh/docs/gui-connectors#vultr).
 
 ## Troubleshooting 
 
@@ -14214,6 +14969,23 @@ $ sudo cipi zt status
 
 > [!warning] Lock SSH last, only after `ssh ssh.example.com` works from your machine, and keep your provider's web console open in another tab. Cipi refuses to close 22 if the tunnel doesn't carry SSH yet.
 
+Since Cipi 5.16.0, `sudo cipi zt lockdown` does this section in one go: every app, the panel and the API onto the tunnel, then 80/443 closed and, when SSH already runs through the tunnel, port 22. It stops at the first step that fails.
+
+## 7. Go further (Cipi 5.16.0) 
+
+| You want | Command |
+| --- | --- |
+| Single sign-on on `/admin` and `/horizon` only, the rest of the site public | `sudo cipi zt access enable shop --path=/admin,/horizon` |
+| Only your company, or a few people | `sudo cipi zt access enable shop --allow=@example.com,mario@agency.dev` |
+| CI, monitors or the panel through Access | `sudo cipi zt service-token create ci --for=shop` (or `--for=api`, `--for=gui`) |
+| MySQL, PostgreSQL or Valkey from your laptop, port closed | `sudo cipi zt tcp add mysql --hostname=db.example.com` |
+| SSH without handing out keys | `sudo cipi zt ssh cert enable --principals=andrea,mario` |
+| A branch to show a client, behind Access | `sudo cipi zt preview create shop --branch=feature/login` |
+| A second server on the same tunnel, or a move without touching DNS | `sudo cipi zt replica export`, then `replica join` on the other |
+| Cloudflare's cache purged after every deploy | `sudo cipi zt purge shop --on-deploy=on` |
+
+The monitor checks the tunnel every five minutes (`monitor_tunnel`), and the [web panel](https://cipi.sh/web-panel)'s Zero Trust tab shows all of it, read-only. Every command is in the [Zero Trust docs](https://cipi.sh/docs/zero-trust).
+
 ## Undo any step 
 
 | Step | Undo |
@@ -14223,6 +14995,10 @@ $ sudo cipi zt status
 | `access enable` | `sudo cipi zt access disable ` |
 | `hostname add` | `sudo cipi zt hostname remove ` |
 | `ssh enable` | `sudo cipi zt ssh disable` |
+| `lockdown` | `sudo cipi zt unlock http`, `sudo cipi zt ssh unlock` |
+| `service-token create` | `sudo cipi zt service-token revoke ` |
+| `tcp add` | `sudo cipi zt tcp remove ` |
+| `preview create` | `sudo cipi zt preview remove ` |
 | Everything | `sudo cipi zt disable` (reopens 22/80/443, removes what Cipi created in Cloudflare) |
 
 Locked out? Log in through your provider's web console as `cipi` and run the unlock commands.
@@ -14512,6 +15288,8 @@ Before big releases | deep scan on staging
 Every night | Cipi patches the server
 > PHP and services patched by Cipi; Hackly covers what's yours: code, config, dependencies.
 ```
+
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **Hackly** connector shows the posture score, adds targets and publishes their ownership TXT on Cloudflare, starts scans, and triages findings — acknowledged, fixed or false positive, as Markdown or a prompt for an AI. See [Connectors](https://cipi.sh/docs/gui-connectors#hackly).
 
 ## Troubleshooting 
 
@@ -14931,6 +15709,8 @@ Keyboard shortcuts move through the list; bulk actions handle noisy days. Share 
 | **Boogle** | Exceptions inside the code, and uptime from outside | Bugs and outages |
 
 Use all three: they answer different questions. Cipi's alerts go to Telegram, Slack and more ([notifications](https://cipi.sh/guides/notifications-alerts)); Boogle's go by e-mail.
+
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **Boogle** connector lists your projects with the client's `.env`, turns uptime checks on and off, and lets you read, fix and close exceptions next to the apps that throw them. See [Connectors](https://cipi.sh/docs/gui-connectors#boogle).
 
 ## Troubleshooting 
 
@@ -15358,6 +16138,8 @@ After a deploy, Vite's hashed file names make purging unnecessary.
 | Skip rule | Let your CI and uptime monitors through, if challenged |
 
 Git webhooks hit `/cipi/webhook` on your domain: don't challenge that path.
+
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **Cloudflare** connector manages zones and DNS records — a record's value can be the name of a Cipi server, saved as its IP — proxy, cache purge, SSL/TLS and security settings, IP access rules, Workers, Pages, R2 and tunnels, with a token saved in the panel. See [Connectors](https://cipi.sh/docs/gui-connectors#cloudflare).
 
 ## Troubleshooting 
 
@@ -15892,6 +16674,8 @@ Every night at 03:00 Johnny copies every bucket to the SFTP targets in `/etc/joh
 | Two-factor on the panel | The panel can create keys |
 | An SFTP backup target in another place | Disk or server failure |
 | Expiring share links | Links to private files expire in an hour, a day or a week |
+
+> [!tip] **From the web panel.** With the optional [web panel](https://cipi.sh/web-panel) (cipi/gui 4.8.0+), the **Johnny** connector drives your Johnny panel's API: buckets with quotas, CORS and expiry rules, scoped keys, a bucket and its key for an app in one call with the `.env` Laravel reads, connections, imports, exports and scheduled syncs. See [Connectors](https://cipi.sh/docs/gui-connectors#johnny).
 
 ## Troubleshooting 
 

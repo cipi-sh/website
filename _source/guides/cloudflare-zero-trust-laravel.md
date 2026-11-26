@@ -4,7 +4,7 @@ description: From zero to a server with no open ports: what a Cloudflare Tunnel 
 category: security
 order: 2
 published: 2026-09-02
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: cloudflare tunnel laravel, cloudflare access laravel staging, close ports server cloudflare, zero trust ssh, cloudflared laravel, protect staging cloudflare access
 related:
@@ -21,6 +21,8 @@ faq:
   - Do Git webhooks still deploy? | Yes. When you protect an app with Access, Cipi bypasses `/cipi/webhook` automatically, so pushes still deploy.
   - What if Cloudflare is down? | Traffic through the tunnel stops. Keep a break-glass path: your provider's web console can always reach the server, and `cipi zt unlock http` / `cipi zt ssh unlock` reopen the ports.
   - Do deploys still work with port 22 closed? | Yes. Deploys run on the server itself. Your CI can deploy through the tunnel (`cloudflared access ssh`) or with [cipi-cli](/docs/cli-client) over the API.
+  - Can a CI job or a monitor get through Access? | Yes, since Cipi 5.16.0: `cipi zt service-token create ci --for=shop` prints a pair of headers (`CF-Access-Client-Id`, `CF-Access-Client-Secret`) that Access lets through. The web panel uses one to reach a server's API behind Access.
+  - Can I still open the database from my laptop? | Yes, since Cipi 5.16.0: `cipi zt tcp add mysql --hostname=db.example.com` puts it behind Access, and `cloudflared access tcp` gives you a local port for TablePlus or DBeaver. Port 3306 stays closed.
   - Is it free? | Cloudflare Tunnel is free, and Cloudflare Zero Trust is free for small teams (check Cloudflare's current limits). Cipi is free.
   - Can I undo it? | Every step has its undo, and `cipi zt disable` reopens 22/80/443 and removes everything Cipi created in your Cloudflare account. Let's Encrypt certificates are left alone.
   - How is this different from just the orange cloud? | The orange cloud hides your IP but the server's ports stay open, so attackers who find the IP can bypass Cloudflare. With a tunnel and locked ports, there's nothing to reach.
@@ -158,6 +160,23 @@ $ sudo cipi zt status
 
 > [!warning] Lock SSH last, only after `ssh ssh.example.com` works from your machine, and keep your provider's web console open in another tab. Cipi refuses to close 22 if the tunnel doesn't carry SSH yet.
 
+Since Cipi 5.16.0, `sudo cipi zt lockdown` does this section in one go: every app, the panel and the API onto the tunnel, then 80/443 closed and, when SSH already runs through the tunnel, port 22. It stops at the first step that fails.
+
+## 7. Go further (Cipi 5.16.0) {#further}
+
+| You want | Command |
+| --- | --- |
+| Single sign-on on `/admin` and `/horizon` only, the rest of the site public | `sudo cipi zt access enable shop --path=/admin,/horizon` |
+| Only your company, or a few people | `sudo cipi zt access enable shop --allow=@example.com,mario@agency.dev` |
+| CI, monitors or the panel through Access | `sudo cipi zt service-token create ci --for=shop` (or `--for=api`, `--for=gui`) |
+| MySQL, PostgreSQL or Valkey from your laptop, port closed | `sudo cipi zt tcp add mysql --hostname=db.example.com` |
+| SSH without handing out keys | `sudo cipi zt ssh cert enable --principals=andrea,mario` |
+| A branch to show a client, behind Access | `sudo cipi zt preview create shop --branch=feature/login` |
+| A second server on the same tunnel, or a move without touching DNS | `sudo cipi zt replica export`, then `replica join` on the other |
+| Cloudflare's cache purged after every deploy | `sudo cipi zt purge shop --on-deploy=on` |
+
+The monitor checks the tunnel every five minutes (`monitor_tunnel`), and the [web panel](/web-panel)'s Zero Trust tab shows all of it, read-only. Every command is in the [Zero Trust docs](/docs/zero-trust).
+
 ## Undo any step {#undo}
 
 | Step | Undo |
@@ -167,6 +186,10 @@ $ sudo cipi zt status
 | `access enable` | `sudo cipi zt access disable <app>` |
 | `hostname add` | `sudo cipi zt hostname remove <app>` |
 | `ssh enable` | `sudo cipi zt ssh disable` |
+| `lockdown` | `sudo cipi zt unlock http`, `sudo cipi zt ssh unlock` |
+| `service-token create` | `sudo cipi zt service-token revoke <name>` |
+| `tcp add` | `sudo cipi zt tcp remove <hostname>` |
+| `preview create` | `sudo cipi zt preview remove <preview app>` |
 | Everything | `sudo cipi zt disable` (reopens 22/80/443, removes what Cipi created in Cloudflare) |
 
 Locked out? Log in through your provider's web console as `cipi` and run the unlock commands.

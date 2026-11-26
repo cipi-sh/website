@@ -4,7 +4,7 @@ description: Set up Johnny, free self-hosted S3-compatible object storage, on it
 category: ops
 order: 7
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: self-hosted s3 laravel, s3 compatible storage vps, laravel filesystem s3 self hosted, garage s3 laravel, johnny s3, minio alternative
 docs:
@@ -169,6 +169,8 @@ Every night at 03:00 Johnny copies every bucket to the SFTP targets in `/etc/joh
 | Two-factor on the panel | The panel can create keys |
 | An SFTP backup target in another place | Disk or server failure |
 | Expiring share links | Links to private files expire in an hour, a day or a week |
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **Johnny** connector drives your Johnny panel's API: buckets with quotas, CORS and expiry rules, scoped keys, a bucket and its key for an app in one call with the `.env` Laravel reads, connections, imports, exports and scheduled syncs. See [Connectors](/docs/gui-connectors#johnny).
 
 ## Troubleshooting {#troubleshooting}
 

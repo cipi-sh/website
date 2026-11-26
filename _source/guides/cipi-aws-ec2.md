@@ -4,7 +4,7 @@ description: Launch an AWS EC2 instance for Laravel step by step (Ubuntu AMI, in
 category: providers
 order: 1
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: laravel aws ec2, deploy laravel ec2, ec2 ubuntu laravel server, laravel forge alternative aws
 related:
@@ -105,6 +105,8 @@ Create an `A` record (Route 53 or your DNS provider) for your domain to the Elas
 | Snapshots of the whole disk | EBS snapshots, on top of Cipi's database and file backups |
 
 > [!tip] Outbound port 25 is restricted on EC2 by default. Use SES or another provider on port 587 for app mail and for Cipi's [notifications](/docs/notifications).
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **AWS** connector covers EC2 by region (each Cipi server named), Lightsail, RDS, S3 with keys an app can use on one bucket only, Route 53, CloudFront, SES and CloudWatch, with the IAM permissions it needs spelled out. See [Connectors](/docs/gui-connectors#aws).
 
 ## Troubleshooting {#troubleshooting}
 

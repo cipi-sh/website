@@ -4,7 +4,7 @@ description: Create a DigitalOcean Droplet for Laravel step by step (image, size
 category: providers
 order: 3
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: laravel digitalocean, deploy laravel droplet, digitalocean ubuntu 24.04 laravel, laravel forge digitalocean alternative
 related:
@@ -96,6 +96,8 @@ $ sudo cipi backup destination test
 ```
 
 [Full backup guide](/guides/backup-vps-s3).
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **DigitalOcean** connector lists your Droplets with each Cipi server named (`203.0.113.24 → production`), creates, resizes, snapshots and powers them, and manages domains, firewalls, reserved IPs, Spaces and Spaces keys scoped to a bucket, with the app's `.env`. See [Connectors](/docs/gui-connectors#digitalocean).
 
 ## Troubleshooting {#troubleshooting}
 

@@ -4,7 +4,7 @@ description: Install Hackly, a free open-source security scanning platform, as a
 category: security
 order: 4
 published: 2026-11-23
-updated: 2026-11-23
+updated: 2026-11-26
 howto: yes
 keywords: laravel security scanner self-hosted, dast sast laravel open source, nuclei zap laravel, hackly, laravel penetration test tool, vulnerability scanning laravel
 docs:
@@ -203,6 +203,8 @@ Before big releases | deep scan on staging
 Every night | Cipi patches the server
 > PHP and services patched by Cipi; Hackly covers what's yours: code, config, dependencies.
 ```
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **Hackly** connector shows the posture score, adds targets and publishes their ownership TXT on Cloudflare, starts scans, and triages findings — acknowledged, fixed or false positive, as Markdown or a prompt for an AI. See [Connectors](/docs/gui-connectors#hackly).
 
 ## Troubleshooting {#troubleshooting}
 

@@ -4,7 +4,7 @@ description: Put a Laravel app on Cipi behind Cloudflare without redirect loops 
 category: ops
 order: 8
 published: 2026-11-23
-updated: 2026-11-25
+updated: 2026-11-26
 howto: yes
 keywords: cloudflare laravel setup, cloudflare full strict laravel, too many redirects cloudflare laravel, cloudflare wildcard certificate laravel, cloudflare proxy real ip laravel, cloudflare dns-01 lets encrypt
 docs:
@@ -169,6 +169,8 @@ After a deploy, Vite's hashed file names make purging unnecessary.
 | Skip rule | Let your CI and uptime monitors through, if challenged |
 
 Git webhooks hit `/cipi/webhook` on your domain: don't challenge that path.
+
+> [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **Cloudflare** connector manages zones and DNS records — a record's value can be the name of a Cipi server, saved as its IP — proxy, cache purge, SSL/TLS and security settings, IP access rules, Workers, Pages, R2 and tunnels, with a token saved in the panel. See [Connectors](/docs/gui-connectors#cloudflare).
 
 ## Troubleshooting {#troubleshooting}
 
