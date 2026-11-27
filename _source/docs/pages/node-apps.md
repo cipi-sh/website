@@ -34,6 +34,7 @@ Hashed assets (`assets/`, `_astro/`, `_nuxt/`, `_app/immutable/`) are cached as 
 | `--start` | SSR start command, a Node runner plus arguments, e.g. `node build` |
 | `--output` | Build folder for spa/static; the deploy fails if it has no `index.html` |
 | `--health-path` | SSR path that must answer below 500 before a release takes traffic (default `/`) |
+| `--db=NAME` | A new database made with the app and shown as its own ([below](#database)) |
 
 The build installs from your lockfile (`npm ci`, `pnpm install --frozen-lockfile`, `yarn install --immutable`, `bun install --frozen-lockfile`) with `NODE_ENV=production`. `shared/.env` is read at build time and by SSR servers at runtime; edit it with [cipi app env](/docs/environment).
 
@@ -66,7 +67,39 @@ $ cipi app edit web --node=static --output=dist
 
 The same settings can live in your repository in the [`node:` section of cipi.yml](/docs/yml). Push-to-deploy works without a Laravel agent: Cipi ships a hardened webhook receiver that verifies GitHub/Bitbucket signatures and GitLab/Azure tokens.
 
-> [!note] Node apps get no database by default; add one with [cipi db](/docs/databases). `cipi sync` and `cipi app clone` do not handle Node apps yet.
+## Deploy options {#deploy-options}
+
+A Node app has a release recipe like a Laravel app, without the artisan steps. Four of its options are yours to set:
+
+```bash
+$ cipi app deploy-config shop                         # show
+$ cipi app deploy-config shop --keep-releases=3
+$ cipi app deploy-config shop --build-timeout=2700    # the install and the build: 45 minutes each
+$ cipi app deploy-config shop --step-timeout=600
+$ cipi app deploy-config shop --predeploy-snapshot    # with a linked database
+```
+
+| Option | Effect | Default |
+| --- | --- | --- |
+| `--keep-releases` | Releases kept for rollback (1 to 20) | 5 |
+| `--build-timeout` | Seconds `node:install` and `node:build` may each run, 60 to 3600 | 1800 |
+| `--step-timeout` | Seconds every other command may run, 60 to 1800 | 300 |
+| `--predeploy-snapshot` | Dump every database [linked to the app](#database) before each deploy. With none linked the deploy says so and goes on | off |
+
+The build command itself is `cipi app edit shop --build="…"`. The same four live under `deploy:` in [cipi.yml](/docs/yml#cli-yml-node), in the panel's *Deploy pipeline* card, and in the API (`PUT /api/apps/{name}/deploy-config`). More on the two clocks: [how long a step may take](/docs/deploying#time-limits).
+
+## A database with the app {#database}
+
+A Node app has no database unless you ask for one. Ask while creating it:
+
+```bash
+$ cipi app create --user=shop --domain=shop.example.com \
+    --repository=git@github.com:you/shop.git --node=ssr --framework=next --db=shop
+```
+
+`--db=NAME` creates the database, a user of the same name and a password, shown once in the summary next to the app's own credentials, and links the database to the app: it is listed as the app's in `cipi db list` and in the panel, and it is what `--predeploy-snapshot` dumps before each deploy. Deleting the app leaves a linked database in place. `--db` without a name uses the app's name; `--engine=pgsql` picks the engine where more than one is installed. At a terminal, without the flag, `cipi app create` asks *New database for this app*: a name, or Enter for none. Put the credentials in `shared/.env` with [cipi app env](/docs/environment) (`DATABASE_URL=…`). Later, or for a second one: [cipi db create --app=shop](/docs/databases).
+
+> [!note] `cipi sync` and `cipi app clone` do not handle Node apps yet: create the app on the other server, and it deploys from Git.
 
 ## Common problems {#problems}
 
@@ -74,8 +107,9 @@ The same settings can live in your repository in the [`node:` section of cipi.ym
 | --- | --- |
 | Deploy fails: no index.html | `--output` points at the wrong build folder |
 | SSR release never goes live | It must answer the health path within 60 s; check `--start` and the logs |
-| Deploy stops at `node:install` or `node:build`: `exceeded the timeout of 300 seconds` | The recipe was written by an old release: `cipi self-update` gives the install and the build [30 minutes each](/docs/deploying#time-limits) |
-| The build is slow, or passes some days and not others | It is short of memory, or the server is busy: [what to check](/docs/deploying#time-limits) |
+| Deploy stops at `node:install` or `node:build`: `exceeded the timeout of 300 seconds` | The recipe was written by an old release: `cipi self-update` gives the install and the build [their own clock](/docs/deploying#time-limits), 30 minutes each |
+| The install or the build is stopped at 30 minutes | Look at [why it is slow](/docs/deploying#flaky-build), then give it more: `cipi app deploy-config shop --build-timeout=3600` |
+| The build is slow, or passes some days and not others | It is short of memory, or the server is busy: [what to check](/docs/deploying#flaky-build) |
 
 ## Questions {#questions}
 

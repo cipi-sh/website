@@ -20,7 +20,7 @@ Details per type: [Laravel Octane](/docs/octane), [Node apps](/docs/node-apps), 
 $ cipi app create
 ```
 
-The wizard asks, with the default pre-selected (Enter accepts it): app type, PHP-FPM or Octane, database engine, then name, domain, repository, branch, PHP version and an optional asset build. Before the summary it **tests the deploy key** against the repository; if it cannot read it, it offers to save a Git token and register the key for you.
+The wizard asks, with the default pre-selected (Enter accepts it): app type, PHP-FPM or Octane, database engine, then name, domain, repository, branch, PHP version and an optional asset build. For a custom or a Node app it also asks *New database for this app*: a name creates one with the app, Enter creates none. Before the summary it **tests the deploy key** against the repository; if it cannot read it, it offers to save a Git token and register the key for you.
 
 ## With flags {#flags}
 
@@ -38,6 +38,9 @@ $ cipi app create --user=api --domain=api.myapp.com \
 # A staging copy of the same repository
 $ cipi app create --user=myapp-stg --domain=staging.myapp.com \
     --repository=git@github.com:you/myapp.git --branch=develop --env=staging
+
+# WordPress: a custom app with its database, in one command
+$ cipi app create --custom --user=blog --domain=blog.example.com --db=blog
 ```
 
 | Flag | Meaning | Default |
@@ -50,8 +53,33 @@ $ cipi app create --user=myapp-stg --domain=staging.myapp.com \
 | `--octane` | Serve with Octane (FrankenPHP) instead of PHP-FPM | off |
 | `--engine` | `mariadb` or `pgsql` (after `cipi db install pgsql`) | `mariadb` |
 | `--valkey` | `shared` to use the server's Valkey instead of the app's own | own instance |
-| `--node-build` | Asset build run in every deploy (npm, npx, yarn, pnpm, bun, node), with [30 minutes](/docs/deploying#time-limits) to finish | none |
+| `--node-build` | Asset build run in every deploy (npm, npx, yarn, pnpm, bun, node), with [30 minutes](/docs/deploying#time-limits) to finish unless the app is given more | none |
+| `--db=NAME` | **Custom and Node apps**: a new database made with the app ([below](#database)). `--db` alone names it like the app; `--no-db` skips the question | none |
 | `--env` | Environment label: sets `APP_ENV` and picks `cipi-<env>.yml` | `production` |
+
+## A database with a custom or a Node app {#database}
+
+A Laravel app is created with its own database, named like the app and already written to its `.env`. A custom or a Node app has none unless you ask — and a WordPress, a Symfony or a Next.js with Prisma needs one:
+
+```bash
+$ cipi app create --custom --user=blog --domain=blog.example.com --db=blog
+$ cipi app create --custom --user=crm --domain=crm.example.com --db=crm_prod --engine=pgsql
+$ cipi app create --user=shop --domain=shop.example.com \
+    --repository=git@github.com:you/shop.git --node=ssr --framework=next --db
+```
+
+| | |
+| --- | --- |
+| What is made | The database, a user **with the same name**, and a 40-character password |
+| Where you see it | In the summary of the create, once, on the line `Database`: name, password, engine |
+| Whose it is | The app's: linked to it, so `cipi db list` and the panel show it under the app. Deleting the app leaves it in place |
+| Which engine | `--engine=mariadb\|pgsql`, else the server's default. At a terminal with both installed, you are asked |
+| The name | Lowercase letters, digits and `_`, starting with a letter, 2 to 64 characters. `--db` with no value uses the app's name |
+| Without the flag | At a terminal the wizard asks; Enter means none. Without a terminal (a script, the API) no database is made. `--no-db` never asks |
+
+The name has to be new: a database that already exists is refused before anything is created, with the command that links it instead (`cipi db link <database> <app>`). `--db` on a Laravel app is refused too — it has its own; one more is `cipi db create --name=<name> --app=<app>` afterwards.
+
+The app is not told the credentials: put them where it reads them — `wp-config.php`, or `.env` with [cipi app env](/docs/environment). The same from the [web panel](/docs/gui) (*New database* in the create form), the [REST API](/docs/api) (`db` on `POST /api/apps`), [cipi-cli](/docs/cli-client) (`apps create --db NAME`) and the [PHP SDK](/docs/php-sdk).
 
 ## After creation {#after}
 
@@ -86,6 +114,8 @@ Create an app from the browser: the same wizard, with a server picker. The [web 
 | Name refused | Lowercase letters and numbers only, unique on the server |
 | `--engine=pgsql` refused | Install PostgreSQL first: `cipi db install pgsql` |
 | Domain already used | Each hostname belongs to one app; remove it from the other app first |
+| `--db` refused: *is for custom and Node apps* | A Laravel app has its own database. One more: `cipi db create --name=<name> --app=<app>` |
+| `--db` refused: *already exists* | `--db` makes a new one. To show an existing database as the app's: `cipi db link <database> <app>` |
 
 ## Questions {#questions}
 

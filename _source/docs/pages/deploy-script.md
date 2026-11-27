@@ -12,6 +12,7 @@ $ cipi app deploy-config myapp --horizon-terminate --queue-restart
 $ cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
 $ cipi app deploy-config myapp --node-build='npm ci && npm run build'
 $ cipi app deploy-config myapp --predeploy-snapshot
+$ cipi app deploy-config myapp --build-timeout=2700 --step-timeout=600
 ```
 
 | Option | Effect | Default |
@@ -22,10 +23,14 @@ $ cipi app deploy-config myapp --predeploy-snapshot
 | `--storage-link` | `storage:link` | on |
 | `--queue-restart`, `--horizon-terminate` | Reload workers / Horizon | on |
 | `--extra-artisan` | More Artisan commands after migrations | none |
-| `--node-build` | Front-end build before the swap (npm, yarn, pnpm, bun). It may run for [30 minutes](/docs/deploying#time-limits), where every other step has 5 | none |
+| `--node-build` | Front-end build before the swap (npm, yarn, pnpm, bun) | none |
 | `--predeploy-snapshot` | Database dump before migrations | off |
+| `--build-timeout` | Seconds the front-end build may run, 60 to 3600 ([time limits](/docs/deploying#time-limits)) | 1800 |
+| `--step-timeout` | Seconds every other command of the deploy may run, 60 to 1800 | 300 |
 
 Saving regenerates `deploy.php` from Cipi's template. Also via REST (`GET|PUT /api/apps/{name}/deploy-config`), MCP and the panel's Deploy tab. The same settings can live in [cipi.yml](/docs/yml).
+
+**A [Node app](/docs/node-apps)** has a recipe too, without the artisan hooks: it takes `--keep-releases`, `--build-timeout`, `--step-timeout` and `--predeploy-snapshot` (its build command is `cipi app edit myapp --build="…"`). A custom app deploys with a `git pull` and has no recipe to configure.
 
 @section cli-deploy-script
 
@@ -50,7 +55,7 @@ after('artisan:migrate', 'app:warm');
 
 The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → **symlink** → restart workers → cleanup.
 
-**A task of your own has 5 minutes per command**, like every step but the build ([time limits](/docs/deploying#time-limits)). Give a long one its own limit, in seconds:
+**A task of your own has the time of every step but the build** — 5 minutes per command unless the app's [`--step-timeout`](/docs/deploying#change-limits) says otherwise. Give one long command its own limit, in seconds, without changing the others:
 
 ```php
 task('app:import', function () {

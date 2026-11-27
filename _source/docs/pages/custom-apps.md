@@ -7,7 +7,7 @@ Custom apps host anything that isn't Laravel or a Node build: WordPress and othe
 | | Laravel app | Custom app |
 | --- | --- | --- |
 | Deploy | Zero-downtime releases | Pull into `htdocs` |
-| Database, `.env` | Created | Add one with `cipi db create` if needed |
+| Database, `.env` | Created | A database on request: [`--db=NAME`](#database) when creating, `cipi db create` later |
 | Workers, scheduler | Yes | No |
 | Git | Required | Optional (SFTP-only works) |
 
@@ -17,10 +17,29 @@ Custom apps host anything that isn't Laravel or a Node build: WordPress and othe
 # From Git, serving the dist/ folder
 $ cipi app create --custom --user=mysite --domain=mysite.com \
     --repository=git@github.com:you/mysite.git --docroot=dist
-# SFTP only: no repository
-$ cipi app create --custom --user=blog --domain=blog.example.com
-$ cipi db create --name=blog              # e.g. for WordPress
+# SFTP only: no repository, and a database made with it (e.g. for WordPress)
+$ cipi app create --custom --user=blog --domain=blog.example.com --db=blog
 ```
+
+## A database with the app {#database}
+
+`--db=NAME` creates a database with the app: the database, a user of the same name and a password, printed once in the summary on the line `Database`, next to the SSH password. The database is linked to the app, so `cipi db list` and the panel show it as the app's own.
+
+```bash
+$ cipi app create --custom --user=blog --domain=blog.example.com --db=blog
+…
+  Database    blog / kT4…  (MariaDB)
+```
+
+| | |
+| --- | --- |
+| `--db` with no value | The database is named like the app |
+| `--engine=pgsql` | PostgreSQL instead of the server's default engine |
+| At a terminal, without `--db` | The wizard asks *New database for this app*: a name, or Enter for none. `--no-db` never asks |
+| The name exists already | Refused before the app is created. To show an existing database as this app's: `cipi db link <database> <app>` |
+| Later, or a second one | `cipi db create --name=blog_stats --app=blog` ([Databases](/docs/databases)) |
+
+The app is not told the credentials: put them in its own configuration (`wp-config.php` for WordPress: host `127.0.0.1`, the database, the user and the password above). Deleting the app leaves the database in place: `cipi db delete blog` removes it.
 
 ## Settings {#settings}
 
@@ -67,4 +86,5 @@ An app with a repository has no such page: its first `cipi deploy` brings the si
 | Can a custom app have cron jobs? | Yes, in the app user's crontab (`su - mysite`, `crontab -e`). |
 | I uploaded my site and still see *Coming soon*. | The page answers only while the document root has no `index.html` or `index.php`. Check that the files went into the document root (`~/htdocs/www` with `--docroot=www`, not `~/htdocs`): `cipi app show mysite` says which it is. |
 | My app still shows a page saying it is being deployed. | That is the `index.html` placeholder of an app created with an older Cipi, and it comes before `index.php`: delete it (`rm ~/htdocs/index.html`). New apps don't need that. |
-| Step-by-step examples? | [WordPress](/guides/deploy-wordpress-custom-app), [Symfony](/guides/deploy-symfony), [WooCommerce](/guides/woocommerce-vps). |
+| Can a custom app use the page cache? | Yes: [`cipi app cache mysite on`](/docs/page-cache) has Nginx answer anonymous visitors without running PHP. For WordPress, see [the guide](/guides/nginx-page-cache-purge). |
+| Step-by-step examples? | [WordPress](/guides/deploy-wordpress-custom-app), [WooCommerce](/guides/woocommerce-vps), [Symfony](/guides/deploy-symfony), and [plain PHP, static sites and other CMSs](/guides/custom-apps-php-static-cms). |
