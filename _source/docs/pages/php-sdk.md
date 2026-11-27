@@ -114,7 +114,7 @@ $cipi->deployConfig()->update('shop', ['keep_releases' => 5, 'migrate' => true])
 $cipi->jobs()->wait($job, timeoutSeconds: 120, intervalSeconds: 1.0);
 ```
 
-`wait()` times out after 300 s by default and throws `JobFailedException` (payload on `$e->job`) when a job fails.
+`wait()` throws `JobFailedException` (payload on `$e->job`) when a job fails, and `TimeoutException` when the job is still running at the end of the wait: an hour for a deploy — as long as the panel lets one run, since a front-end build alone may take [30 minutes](/docs/deploying#time-limits) — and 300 s for every other job, unless you pass `timeoutSeconds`. The timeout ends the wait, not the job: `wait()` on the same id picks it up again.
 
 ```php
 $plan = $cipi->yml()->status('shop')['data'];      // file, env, valid, in_sync, changes, blockers
