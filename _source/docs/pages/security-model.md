@@ -3,7 +3,7 @@
 Security on Cipi is the default, not an add-on: apps are isolated from each other, the server is hardened at install, secrets are encrypted, and every privileged action leaves a trace. This page is the map; each layer links to its details.
 
 ```stack
-Network | UFW 22/80/443, Fail2ban, CrowdSec, Zero Trust
+Network | UFW 22/80/443, Fail2ban, CrowdSec, Zero Trust (Cloudflare Tunnel, Tailscale, NetBird)
 Access | key-only admin, no root login, alerts
 Isolation | user, PHP pool, database, Valkey per app
 Secrets | AES-256 Vault, encrypted backups & sync

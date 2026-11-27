@@ -235,7 +235,40 @@ $cipi->notifications()->setServerName('production');  // "production (vmi12334)"
 
 `octane()` is [the PHP of an Octane app](/docs/octane#octane-php), `valkey()` is [Valkey per app](/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](/docs/notifications#written).
 
-Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
+Monitor, the Cloudflare side of Zero Trust and disk usage are read-only, as on the API; the [mesh network](#zero-trust) is managed. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
+
+## Zero Trust {#zero-trust}
+
+```php
+$zt = $cipi->zeroTrust()->status()['data'];   // both sides: the Cloudflare tunnel and the mesh
+$zt['enabled'];                               // the tunnel — says nothing of the mesh
+$zt['mesh'];                                  // 'tailscale', 'netbird' or null
+$zt['mesh_ip'];                               // the server's address on the network
+
+$mesh = $cipi->zeroTrust()->mesh();           // details.mesh, or null while the server is on none
+$mesh['lock']['ssh'];                         // port 22 closed to the world
+$mesh['panel']['blocked']['lock_http'];       // null, or why the server would refuse it from here
+```
+
+The [mesh network](/docs/mesh-network) — Tailscale or NetBird — is managed too, with a token that has `zt-manage`. Synchronous; each call answers Zero Trust after the change (`data`) and what the CLI said (`message`):
+
+```php
+use Cipi\Sdk\Resources\ZeroTrust;
+
+$cipi = new Cipi($url, $token, ['timeout' => 240]);   // a join installs the client and signs in
+
+$cipi->zeroTrust()->joinMesh(ZeroTrust::TAILSCALE, $authKey, ['hostname' => 'web1', 'tags' => ['cipi']]);
+$cipi->zeroTrust()->joinMesh(ZeroTrust::NETBIRD, $setupKey, ['control_url' => 'https://netbird.example.com']);
+$cipi->zeroTrust()->lockMesh('ssh');          // 22 on the mesh only
+$cipi->zeroTrust()->lockMesh('http');         // 80/443 on the mesh only
+$cipi->zeroTrust()->unlockMesh('ssh');
+$cipi->zeroTrust()->tailscaleSsh(true);
+$cipi->zeroTrust()->leaveMesh();
+```
+
+Options of `joinMesh()`: `hostname`, `control_url`, `direct`, `accept_dns`, `accept_routes`, and for Tailscale `tags`, `ssh`, `reauth`. The key is sent once and is neither stored nor returned; without one, a client already connected on the server is adopted.
+
+The server [refuses what would lock people out](/docs/mesh-network#panel-guards): a `ValidationException` whose message is the reason — nobody has signed in over the mesh yet, the node key can expire, your call reaches the API on the address the lock would close. Nothing is retried. The tunnel itself is changed with `cipi zt` on the server.
 
 @section sdk-security
 

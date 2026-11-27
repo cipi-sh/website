@@ -28,7 +28,7 @@ The threshold is written to a drop-in that updates never reset, validated with `
 
 To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). It goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny placed after an allow of the same port would change nothing.
 
-> [!tip] Behind Cloudflare, [cipi zt](/docs/zero-trust) can close 80/443 to everyone but Cloudflare, and close 22 entirely.
+> [!tip] Zero Trust closes what UFW keeps open: behind Cloudflare, [cipi zt](/docs/zero-trust) can close 80/443 to everyone but Cloudflare and close 22 entirely; on a [Tailscale or NetBird network](/docs/mesh-network), `cipi zt tailscale|netbird lock` leaves 22 and 80/443 open on the mesh only.
 
 ## Blocked addresses {#block}
 
@@ -48,7 +48,7 @@ The firewall commands refuse what would cut the server off:
 | --- | --- |
 | `deny` of the SSH port, 80 or 443 to everyone; `remove` of the rule that opens them | They are how the server is reached. The SSH ports are read from `sshd -T`, so a custom port counts. One address can still be denied with `--from=` |
 | `block` of a range that takes in the address of your SSH session | You would cut yourself off. The same holds for `deny --from=` on the SSH port |
-| `allow` to everyone of what a Zero Trust lock keeps closed | `cipi zt lock http` keeps 80/443 to Cloudflare, `cipi zt lock ssh` keeps SSH closed: the message says which `cipi zt unlock` reopens it |
+| `allow` to everyone of what a Zero Trust lock keeps closed | `cipi zt lock http` keeps 80/443 to Cloudflare, `cipi zt lock ssh` keeps SSH closed, and a [mesh network's lock](/docs/mesh-network#lock) keeps a port to the mesh: the message names who holds it and which command reopens it. `cipi firewall status` says it too |
 
 `--force` gets past these at the server's shell, when you know why. **From the panel it is ignored**, whatever the panel sends.
 
@@ -74,7 +74,7 @@ The server page of the [web panel](/docs/gui-overview) has a **Firewall** tab (o
 
 | Section | What it shows and does |
 | --- | --- |
-| At a glance | UFW and its default policy, the ports always kept open, fail2ban and its threshold, CrowdSec, how many addresses are banned; the Zero Trust locks, when there are |
+| At a glance | UFW and its default policy, the ports always kept open, fail2ban and its threshold, CrowdSec, how many addresses are banned; the Zero Trust locks, when there are — who holds each (Cloudflare, the Tailscale or NetBird network), with a link to the Zero Trust tab for the ones reopened there |
 | Rules | UFW's rules in its order (port or range, protocol, action, source, IPv4/IPv6), *Kept open* on SSH, 80 and 443, the Cipi feature that owns a rule (Zero Trust, Metrics, CrowdSec rescue); **Remove** on what may be removed; **Open a port** or a range, TCP or UDP, to everyone or to one address or range |
 | Blocked addresses | [Blocks](#block): **Block**, **Unblock** |
 | Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
@@ -82,7 +82,16 @@ The server page of the [web panel](/docs/gui-overview) has a **Firewall** tab (o
 | CrowdSec | [Enable](/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
 | Cloudflare real IP | [The visitor's address behind Cloudflare](/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it |
 
-Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](/docs/crowdsec#rescue) stays at the server.
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-firewall-light.webp" width="1440" height="1794" alt="Firewall tab: UFW active, the ports kept open, fail2ban and CrowdSec; a notice that Zero Trust keeps 80/443 to Cloudflare and SSH to the Tailscale network; the rules with the feature that owns each; open a port, block an address, banned addresses, SSH login attempts, Cloudflare real IP, CrowdSec" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-firewall.webp" width="1440" height="1794" alt="Firewall tab: UFW active, the ports kept open, fail2ban and CrowdSec; a notice that Zero Trust keeps 80/443 to Cloudflare and SSH to the Tailscale network; the rules with the feature that owns each; open a port, block an address, banned addresses, SSH login attempts, Cloudflare real IP, CrowdSec" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>The Firewall tab of a server behind Zero Trust: 80/443 answer Cloudflare only and SSH answers the tailnet only, so the notice names who holds each lock and where it is reopened.</figcaption>
+</figure>
+
+Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the Firewall tab can't close SSH, 80 or 443, undo a Zero Trust lock or block the panel's own address. Closing those three ports to the world is Zero Trust's job: the mesh network's locks have their own buttons in the [Zero Trust tab](/docs/mesh-network#panel), with [their own guards](/docs/mesh-network#panel-guards). It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](/docs/crowdsec#rescue) stays at the server.
 
 The server's API token needs `firewall-view` and `firewall-manage` (a `--full-access` token has them). On an older server the tab says what to update: `cipi self-update`, then `cipi api update`.
 

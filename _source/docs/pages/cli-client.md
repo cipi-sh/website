@@ -374,7 +374,7 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 ## Server insights {#insights}
 
-Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
+Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust: the status of both sides — the [mesh network](#zt) is managed too), `run-commands`.
 
 [Optional packages](/docs/packages) are installed and removed too (`packages-manage`; jobs the CLI waits for):
 
@@ -395,6 +395,27 @@ $ cipi-cli metrics events --source deploy
 $ cipi-cli metrics retention --raw 14 --rollup 90
 $ cipi-cli metrics heartbeat set https://hc-ping.com/<uuid>
 ```
+
+## `zt`: the mesh network {#zt}
+
+`cipi-cli zt` shows both sides of Zero Trust: the [Cloudflare tunnel](/docs/zero-trust) (read-only here) and the [mesh network](/docs/mesh-network) — Tailscale or NetBird — which is joined, locked and left from your terminal:
+
+| Command | Does |
+| --- | --- |
+| `zt` | The tunnel and its locks; the mesh: connected or not, address and name, peers, node key, the last SSH login over it, its locks, how this client reaches the server, and — on `refused` lines — what the server would not do from here, and why |
+| `zt join <tailscale\|netbird>` | Puts the server on a network. The key is asked for; `--key-file` reads it from a file, `--key` takes it on the command line, `--adopt` takes a client already connected. `--hostname`, `--tags`, `--control-url`, `--direct`, `--accept-dns`, `--accept-routes`, `--ssh`, `--reauth` |
+| `zt lock <ssh\|http>` | Closes SSH, or 80/443, to the world: open on the mesh only (`-y` skips the question) |
+| `zt unlock <ssh\|http>` | Reopens it |
+| `zt ssh <on\|off>` | Tailscale SSH |
+| `zt leave` | Takes the server off the network: what the locks closed is reopened first |
+
+```bash
+$ cipi-cli zt join tailscale --tags cipi
+$ cipi-cli zt                            # the address on the network: sign in over it once
+$ cipi-cli zt lock ssh
+```
+
+The server refuses [what would lock people out](/docs/mesh-network#panel-guards) and prints its reason. `zt lock http` is refused while this client reaches the API on the server's public address: point the profile's endpoint at the server's mesh name (or its hostname on the Cloudflare tunnel) and run it again. Needs `zt-view`; changes need `zt-manage`.
 
 ## Notifications {#notifications}
 
@@ -495,6 +516,7 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
 | `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |
+| `zt join/leave/lock/unlock/ssh` | `zt-manage` (`zt` alone: `zt-view`) |
 | `status`, `disk`, insights | `status-view`, `disk-view`, `*-view` |
 
 Simplest: `cipi api token create --name=laptop --full-access`. Keep server and API current with `cipi self-update` so every command is available.

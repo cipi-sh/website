@@ -26,6 +26,8 @@ $ cipi backup configure          # the default bucket ("s3"); leave empty for lo
 $ cipi backup destination add offsite --bucket=acme-backups --key=AKIA… --secret=… \
     --region=eu-central-1 --endpoint=https://eu-central-1.your-objectstorage.com
 $ cipi backup destination test   # reach every bucket with its own credentials
+$ cipi backup destination list   # local, s3 and every named destination
+$ cipi backup destination show offsite | edit offsite --region=… | remove offsite   # remove keeps the archives
 $ cipi backup status [--json]    # destinations, profiles, last run, overdue, uncovered
 ```
 
@@ -108,6 +110,7 @@ $ cipi backup key rotate     # new key for future runs
 $ cipi backup run [--profile=nightly] [--dry-run] [--detach]
 $ cipi backup list [--profile=nightly]
 $ cipi backup verify [--deep]               # does the newest run open?
+$ cipi backup prune [--profile=nightly] [--dry-run]   # apply the retention now
 $ cipi backup fetch nightly 2026-11-02_020000 --dest=/root/restore
 $ cipi db restore myapp /root/restore/databases/mariadb/myapp.sql.gz
 $ tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files

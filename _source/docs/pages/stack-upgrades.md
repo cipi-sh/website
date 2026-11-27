@@ -69,6 +69,7 @@ Checked every morning; mailed when the list changes, and weekly while something 
 $ cipi reboot                         # needed? since when? which kernel?
 $ cipi reboot now [--yes]
 $ cipi reboot auto on --at=04:45      # only on nights one is required
+$ cipi reboot auto off                # back to rebooting by hand
 ```
 
 Automatic reboots notify, warn two minutes ahead, and wait for the next night while a package install, dump, deploy or other `cipi` command is running.

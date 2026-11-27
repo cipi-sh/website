@@ -2,6 +2,8 @@
 
 Put your server behind Cloudflare: visitors reach apps through a Cloudflare Tunnel (with CDN and WAF), staging sites, admin paths, the panel, the API, databases and SSH sit behind Cloudflare Access, and finally the origin closes its ports — all of them, if you like. Every step that could lock you out is a separate, explicit command. Off until you enable it.
 
+> [!tip] Cloudflare publishes the sites to visitors. For the way in for **you** — SSH, the panel, the API on a private address — see [Tailscale & NetBird](/docs/mesh-network): a mesh network sits beside the tunnel, and the two know each other's locks.
+
 ```flow
 Token | Tunnel, Access, DNS
 > Create a Cloudflare API token with Tunnel, Access and DNS permissions and save it with `cipi zt token set`.
@@ -27,6 +29,8 @@ $ cipi zt lock http --yes                          # 80/443 closed or Cloudflare
 $ cipi zt lock ssh --yes                           # port 22 closed
 $ cipi zt lockdown                                 # everything on the tunnel, no inbound port
 $ cipi zt status                                   # --json for the whole picture
+$ cipi zt token show                               # is a token saved? (never the secret)
+$ cipi zt refresh                                  # fetch Cloudflare's IP ranges again (done every night too)
 ```
 
 Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). For what you use: Account · Access: Service Tokens: Edit ([service tokens](#service-tokens)), Account · Access: SSH Auditing: Edit ([SSH certificates](#ssh-cert)), Zone · Cache Purge: Purge ([purges](#purge)). A token without these keeps working; a command that needs more names the permission it misses. The token is stored root-only, separate from the DNS token used for certificates and from the Cloudflare token of the [web panel's connector](/docs/gui-connectors#cloudflare).
@@ -174,15 +178,17 @@ With Zero Trust on, the [monitor](/docs/monitor) runs a `tunnel` check every 5 m
 
 ## In the web panel {#panel}
 
-The server's **Zero Trust** tab shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Read-only: every change stays on `cipi zt`. The [API](/docs/api) gives the same as `details` on `GET /api/zt`.
+The server's **Zero Trust** tab shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Cloudflare's card is read-only: every change to the tunnel stays on `cipi zt`. The [API](/docs/api) gives the same as `details` on `GET /api/zt`.
+
+Under it, the **Mesh network** card is where a [Tailscale or NetBird network](/docs/mesh-network#panel) is joined, locked and left from the browser.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-zero-trust-light.webp" width="1440" height="797" alt="Zero Trust tab: tunnel healthy, two connectors, 80/443 and 22 closed, hostnames with Access, service tokens and purge after deploy" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-zero-trust.webp" width="1440" height="797" alt="Zero Trust tab: tunnel healthy, two connectors, 80/443 and 22 closed, hostnames with Access, service tokens and purge after deploy" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-zero-trust-light.webp" width="1440" height="1466" alt="Zero Trust tab: the Cloudflare tunnel healthy with 80/443 to Cloudflare only; the mesh network card, Tailscale connected, SSH closed to the world with Reopen, Close for 80/443, Tailscale SSH and Leave the network; the hostnames with Access, service tokens and purge after deploy" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-zero-trust.webp" width="1440" height="1466" alt="Zero Trust tab: the Cloudflare tunnel healthy with 80/443 to Cloudflare only; the mesh network card, Tailscale connected, SSH closed to the world with Reopen, Close for 80/443, Tailscale SSH and Leave the network; the hostnames with Access, service tokens and purge after deploy" class="shot-dark" loading="lazy" decoding="async">
 </div>
-<figcaption>A server after <code>cipi zt lockdown</code>, with a replica: Access on <code>/admin</code> and <code>/horizon</code>, a preview, the API for service tokens only, MySQL for one person, SSH with short-lived certificates.</figcaption>
+<figcaption>A server with both sides of Zero Trust: the sites through a Cloudflare tunnel — Access on <code>/admin</code> and <code>/horizon</code>, a preview, the API for service tokens only, MySQL for one person — and SSH closed to the world, open on a tailnet.</figcaption>
 </figure>
 
 The zones and DNS records of your Cloudflare accounts are in the panel's [Cloudflare connector](/docs/gui-connectors#cloudflare), with a token saved in the panel.

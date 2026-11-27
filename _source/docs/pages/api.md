@@ -85,6 +85,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) |
 | Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) |
 | Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
+| Zero Trust: the mesh network | `zt-manage` (join and leave a Tailscale or NetBird network, close and reopen SSH and 80/443, Tailscale SSH) — as strong as `ssh-manage` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
@@ -118,6 +119,7 @@ A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens
 | `GET`, `POST` | `/api/run-commands`, `/api/apps/{name}/run` | `apps-run` |
 | `GET`, `PUT` | `/api/apps/{name}/deploy-config` | `apps-deploy-config` |
 | `GET`, `PUT` | `/api/apps/{name}/limits` | `apps-view` / `apps-edit` |
+| `GET`, `PUT` | `/api/apps/{name}/jit` ([the OPcache JIT of one app](/docs/php-jit): `enabled`, optional `buffer`) | `apps-view` / `apps-edit` |
 | `GET`, `PUT`, `DELETE` | `/api/apps/{name}/health`, `POST …/health/check` | `health-view` / `health-manage` |
 | `GET` | `/api/apps/{name}/logs?type=&page=&per_page=` | `apps-view` |
 
@@ -180,6 +182,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/frankenphp`, `/api/frankenphp/upgrade` (the FrankenPHP build of each Octane app) | `php-view` / `php-manage` |
 | `GET`, `PUT`, `POST` | `/api/apps/{name}/octane`, `/octane/php`, `/octane/restart` ([the PHP of an Octane app](#endpoints-octane)) | `php-view` / `php-manage` |
 | `GET`, `POST`, `DELETE` | `/api/ssh/keys[/{n}]` | `ssh-view` / `ssh-manage` |
+| `GET`, `PUT`, `POST`, `DELETE` | `/api/ip-whitelist` (show; replace the list; add one; remove one), `POST /api/ip-whitelist/allow-all` ([IP allowlist](#cipi-api-ip-whitelist)) | `ip-whitelist-view` / `ip-whitelist-manage` |
 | `GET`, `POST` | `/api/services`, `/services/{name}/restart` | `services-view` / `services-manage` |
 | `GET`, `POST` | `/api/valkey`, `/valkey/isolate`, `/valkey/share`, `/valkey/{app}/restart`, `/valkey/flush-shared` ([Valkey per app](#endpoints-valkey)) | `services-view` / `services-manage` |
 | `GET`, `PUT`, `DELETE`, `POST` | `/api/smtp`, `/smtp/enable`, `/disable`, `/test` | `smtp-view` / `smtp-manage` |
@@ -193,7 +196,8 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
 | `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
 | `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`) | `packages-manage` |
-| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](/docs/zero-trust#panel) picture) | `monitor-view`, `zt-view` |
+| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](/docs/zero-trust#panel) picture: the Cloudflare tunnel and the mesh network) | `monitor-view`, `zt-view` |
+| `POST`, `DELETE`, `PUT` | `/api/zt/mesh`, `/api/zt/mesh/lock`, `/api/zt/mesh/ssh` ([the mesh network](#endpoints-zt)) | `zt-manage` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics)) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
@@ -218,6 +222,41 @@ What the [panel's Firewall tab](/docs/firewall#panel) uses.
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
 
 `GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` when the server's Cipi doesn't have it yet. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
+
+### Zero Trust: the mesh network {#endpoints-zt}
+
+A [Tailscale or NetBird network](/docs/mesh-network) joined, locked and left over the API. Synchronous: each call answers `{data, message}` — `data` is Zero Trust after the change, the same as `GET /api/zt`, and `message` what the CLI said.
+
+| Method | Path | Body | Does |
+| --- | --- | --- | --- |
+| `POST` | `/api/zt/mesh` | `provider` (`tailscale`, `netbird`), `key`, `hostname`, `control_url`, `tags`, `direct`, `accept_dns`, `accept_routes`, `ssh`, `reauth` | Joins: installs the client, signs in, lets the mesh through UFW. Closes nothing. A minute or two |
+| `DELETE` | `/api/zt/mesh` | — | Leaves: reopens what its locks closed, removes the client |
+| `POST` | `/api/zt/mesh/lock` | `port`: `ssh` or `http` | Closes the SSH port, or 80 and 443, to the world: open on the mesh only |
+| `DELETE` | `/api/zt/mesh/lock` | `port` | Reopens it |
+| `PUT` | `/api/zt/mesh/ssh` | `enabled` | Tailscale SSH on or off |
+
+`key` is a Tailscale auth key or a NetBird setup key: 8 to 512 characters, no spaces or quotes. It is passed to the CLI as a flag of a synchronous command — never a job — and is never stored or returned. Left out, a client that is already installed and connected is adopted. `tags`, `ssh` and `reauth` are Tailscale's; `control_url` is a Headscale or a self-hosted NetBird.
+
+**The server refuses what would lock people out** (`422`, the reason in `error`), and there is no `--force` over the API:
+
+| Call | Refused while |
+| --- | --- |
+| `lock` `ssh` | sshd has accepted no login that came over the mesh; the node key can expire; UFW is off; sshd doesn't listen on the mesh address; Tailscale SSH is on |
+| `lock` `http` | An app renews its certificate over HTTP-01; the caller reaches the API on the public address the lock would close |
+| `DELETE /api/zt/mesh` | The caller reaches the server over the mesh |
+
+`GET /api/zt` answers it beforehand in `details.mesh.panel`: `via` (`mesh`, `local`, `tunnel`, `public`, `unknown` — how this call reached the server), `from`, and `blocked` with `lock_ssh`, `lock_http` and `disable`, each `null` or the reason. `details.mesh.ssh.seen` is the last SSH login that came over the mesh, `details.mesh.http01_apps` the apps still on HTTP-01.
+
+A panel that runs on the server it manages reaches the API locally, but its own pages are on 80/443: it adds `client` — the address of the person's browser — to the body of a change and to `GET /api/zt?client=`, and `lock` `http` is refused while they look at the panel on the public address.
+
+```bash
+$ curl -X POST https://api.example.com/api/zt/mesh -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' -d '{"provider":"tailscale","key":"tskey-auth-…","tags":["cipi"]}'
+$ curl -X POST https://api.example.com/api/zt/mesh/lock -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' -d '{"port":"ssh"}'
+```
+
+On a server whose Cipi has no mesh yet the routes answer `503` before anything runs, saying what to update.
 
 ### Notification channels: events {#endpoints-notification-events}
 
@@ -297,7 +336,7 @@ $ curl -X PUT https://api.example.com/api/notifications/settings \
 
 `POST /api/packages/{id}` installs an entry of the server's [closed catalog](/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes. An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](/docs/packages#panel) uses.
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every change to the Cloudflare side of Zero Trust (the tunnel, hostnames, Access, its locks), `cipi firewall deny`, closing SSH, 80 or 443 from the firewall routes, and the CrowdSec rescue listener. The [mesh network](#endpoints-zt) is the one place where SSH and 80/443 are closed over the API — under an ability of its own, and with the server refusing whatever would lock people out. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
 ## Examples {#cipi-api-curl}
 

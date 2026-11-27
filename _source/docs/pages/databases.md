@@ -50,6 +50,7 @@ Step by step, with what to check in your code first: [Run Laravel on MySQL inste
 $ cipi db create --name=analytics --engine=pgsql
 $ cipi db create --name=wpblog --app=blog     # belongs to the "blog" app
 $ cipi db link wpblog blog                    # or link an existing one
+$ cipi db unlink wpblog                       # remove that link (the database stays)
 $ cipi db list [--json]                       # sizes and owning app
 $ cipi db backup myapp
 $ cipi db restore myapp backup.sql.gz

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailscale &amp; NetBird — Cipi docs</title>
+    <meta name="description" content="A private network for the people who run the server: SSH, the panel and the API over the mesh, with 22 and 80/443 closed to the world.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://cipi.sh/docs/mesh-network">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:url" content="https://cipi.sh/docs/mesh-network">
+    <meta property="og:title" content="Tailscale &amp; NetBird — Cipi docs">
+    <meta property="og:description" content="A private network for the people who run the server: SSH, the panel and the API over the mesh, with 22 and 80/443 closed to the world.">
+    <meta property="og:image" content="https://cipi.sh/img/og/home.jpg?v=067363f5">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/home.jpg?v=067363f5">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Tailscale & NetBird", "description": "A private network for the people who run the server: SSH, the panel and the API over the mesh, with 22 and 80/443 closed to the world.", "url": "https://cipi.sh/docs/mesh-network", "dateModified": "2026-11-27", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Security", "item": "https://cipi.sh/docs/security"}, {"@type": "ListItem", "position": 3, "name": "Tailscale & NetBird", "item": "https://cipi.sh/docs/mesh-network"}]}</script>
+</head>
+<body class="docs">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="sn-wide">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/ecosystem">Ecosystem</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/ecosystem">Ecosystem</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
+<div class="docs-shell">
+<aside class="docs-side" id="docsSide" aria-label="Documentation">
+<button class="side-search" type="button" data-search-open><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd class="kbd">/</kbd></button>
+<a class="side-start" href="/docs/">Documentation home</a>
+<details class="side-group"><summary>Start here</summary><ul>
+<li><a href="/docs/quickstart">Quickstart</a></li>
+<li><a href="/docs/installation">Install Cipi</a></li>
+<li><a href="/docs/how-cipi-works">How Cipi works</a></li>
+</ul></details>
+<details class="side-group"><summary>Apps</summary><ul>
+<li><a href="/docs/create-app">Create an app</a></li>
+<li><a href="/docs/octane">Laravel Octane</a></li>
+<li><a href="/docs/php-jit">PHP JIT per app</a></li>
+<li><a href="/docs/page-cache">Page cache</a></li>
+<li><a href="/docs/node-apps">Node apps</a></li>
+<li><a href="/docs/custom-apps">Custom PHP &amp; static sites</a></li>
+<li><a href="/docs/manage-apps">Manage apps</a></li>
+<li><a href="/docs/environment">Environment variables</a></li>
+<li><a href="/docs/workers">Queues &amp; Horizon</a></li>
+<li><a href="/docs/scheduler">Scheduler &amp; cron</a></li>
+<li><a href="/docs/reverb">Reverb WebSockets</a></li>
+<li><a href="/docs/limits">Limits &amp; suspension</a></li>
+<li><a href="/docs/basic-auth">Basic auth</a></li>
+<li><a href="/docs/artisan-logs">Artisan, commands &amp; logs</a></li>
+<li><a href="/docs/app-ssh">SSH as the app user</a></li>
+</ul></details>
+<details class="side-group"><summary>Deploy</summary><ul>
+<li><a href="/docs/how-deploys-work">How deploys work</a></li>
+<li><a href="/docs/deploying">Deploy &amp; roll back</a></li>
+<li><a href="/docs/git">Git providers &amp; deploy keys</a></li>
+<li><a href="/docs/auto-deploy">Auto-deploy on push</a></li>
+<li><a href="/docs/ci-pipelines">CI/CD pipelines</a></li>
+<li><a href="/docs/jenkins">Jenkins</a></li>
+<li><a href="/docs/aws-codedeploy">AWS CodeDeploy</a></li>
+<li><a href="/docs/yml">cipi.yml</a></li>
+<li><a href="/docs/deploy-script">Customize the pipeline</a></li>
+<li><a href="/docs/safe-deploy">Safe deploy &amp; DB snapshots</a></li>
+<li><a href="/docs/deploy-audit">Deploy audit ledger</a></li>
+<li><a href="/docs/preview-environments">Preview environments</a></li>
+<li><a href="/docs/deploy-notifications">Deploy notifications</a></li>
+</ul></details>
+<details class="side-group"><summary>Domains &amp; SSL</summary><ul>
+<li><a href="/docs/domains">Domains &amp; aliases</a></li>
+<li><a href="/docs/ssl">SSL certificates</a></li>
+<li><a href="/docs/wildcard-domains">Wildcard domains</a></li>
+<li><a href="/docs/redirects-proxies">Redirects &amp; proxies</a></li>
+<li><a href="/docs/nginx">Nginx</a></li>
+</ul></details>
+<details class="side-group"><summary>Server &amp; runtime</summary><ul>
+<li><a href="/docs/php">PHP versions &amp; php.ini</a></li>
+<li><a href="/docs/nodejs">Node.js</a></li>
+<li><a href="/docs/databases">Databases</a></li>
+<li><a href="/docs/valkey">Valkey</a></li>
+<li><a href="/docs/search">Search (Meilisearch)</a></li>
+<li><a href="/docs/services">Services</a></li>
+<li><a href="/docs/packages">Packages</a></li>
+<li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
+<li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/uninstall">Uninstall</a></li>
+</ul></details>
+<details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
+<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/sync">Server sync &amp; migration</a></li>
+<li><a href="/docs/health-checks">Health checks</a></li>
+<li><a href="/docs/monitor">Server monitor</a></li>
+<li><a href="/docs/metrics">Metrics &amp; uptime history</a></li>
+<li><a href="/docs/disk">Disk usage</a></li>
+<li><a href="/docs/notifications">Notifications</a></li>
+<li><a href="/docs/log-retention">Log retention</a></li>
+</ul></details>
+<details class="side-group" open><summary>Security</summary><ul>
+<li><a href="/docs/security-model">Security model</a></li>
+<li><a href="/docs/firewall">Firewall &amp; bans</a></li>
+<li><a href="/docs/ssh-keys">SSH keys</a></li>
+<li><a href="/docs/vault">Vault &amp; encryption</a></li>
+<li><a href="/docs/crowdsec">CrowdSec</a></li>
+<li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/mesh-network" aria-current="page">Tailscale &amp; NetBird</a></li>
+<li><a href="/docs/malware-scan">Malware scan</a></li>
+<li><a href="/docs/compliance">Compliance evidence</a></li>
+</ul></details>
+<details class="side-group"><summary>Cipi Agent &amp; AI</summary><ul>
+<li><a href="/docs/agent-install">Install the agent</a></li>
+<li><a href="/docs/agent-webhook">Webhook &amp; health check</a></li>
+<li><a href="/docs/mcp">MCP server</a></li>
+<li><a href="/docs/agent-yml">cipi.yml tooling</a></li>
+<li><a href="/docs/anonymizer">Database anonymizer</a></li>
+<li><a href="/docs/agent-config">Agent security &amp; ENV</a></li>
+</ul></details>
+<details class="side-group"><summary>Web panel</summary><ul>
+<li><a href="/docs/gui-overview">Panel overview</a></li>
+<li><a href="/docs/gui-install">Install the panel</a></li>
+<li><a href="/docs/gui-connectors">Connectors</a></li>
+<li><a href="/docs/gui-sso">Single sign-on</a></li>
+<li><a href="/docs/gui-maintenance">Update &amp; remove</a></li>
+<li><a href="/docs/gui-architecture">Panel architecture</a></li>
+</ul></details>
+<details class="side-group"><summary>API &amp; integrations</summary><ul>
+<li><a href="/docs/api">REST API</a></li>
+<li><a href="/docs/cli-client">CLI client (cipi-cli)</a></li>
+<li><a href="/docs/php-sdk">PHP SDK</a></li>
+<li><a href="/docs/whmcs">WHMCS module</a></li>
+</ul></details>
+<details class="side-group"><summary>About</summary><ul>
+<li><a href="/docs/vs-alternatives">Cipi vs alternatives</a></li>
+<li><a href="/docs/design-decisions">Design decisions</a></li>
+<li><a href="/docs/history">History</a></li>
+<li><a href="/docs/community">Companion tools &amp; community</a></li>
+</ul></details>
+</aside>
+<div class="docs-main">
+<main class="docs-article" id="main">
+<header>
+<ol class="crumbs"><li><a href="/docs/">Docs</a></li><li><a href="/docs/security">Security</a></li><li aria-current="page">Tailscale &amp; NetBird</li></ol>
+<h1>Tailscale &amp; NetBird</h1>
+<p class="docs-lead">A private network for the people who run the server: SSH, the panel and the API over the mesh, with 22 and 80/443 closed to the world.</p>
+<div class="docs-meta"><span>Security</span></div>
+</header>
+<div class="prose">
+<section class="doc-section" id="cli-zt-mesh">
+<p>Put the server on a private network — <strong>Tailscale</strong> or <strong>NetBird</strong> — and reach SSH, the panel, the API and the sites on an address only your own devices can route to. Then, if you like, close port 22 and 80/443 to the rest of the world. From the CLI, the <a href="#panel">web panel</a>, the <a href="#api">API</a>, <code>cipi-cli</code> and the PHP SDK. Off until you join a network.</p>
+<p>It is the other half of Zero Trust. <a href="/docs/zero-trust">Cloudflare Tunnel</a> publishes the sites to visitors; the mesh is the way in for the people who run the server. Use either, both, or neither.</p>
+<div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Join</b><span>client installed, firewall opened to the mesh</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Sign in</b><span>once, over the mesh</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Lock SSH</b><span>port 22 from the network only</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Lock HTTP</b><span>80/443 from the network only</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Join</b></div><p><code>cipi zt tailscale enable --auth-key=…</code> (or <code>netbird</code>) installs the client, signs in and lets the mesh interface through UFW. Nothing is closed.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Sign in</b></div><p>From a device of the network: <code>ssh cipi@&lt;the server's address on it&gt;</code>. That login is the proof that the way in works.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Lock SSH</b></div><p><code>cipi zt tailscale lock ssh</code>. Refused until the step before has been done.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Lock HTTP</b></div><p>Optional: <code>lock http</code>, when the sites are private or come through the Cloudflare tunnel.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi zt tailscale enable --auth-key=tskey-auth-… --tags=cipi
+<span class="p"></span>cipi zt tailscale status<span class="c">                 # address, peers, node key, locks</span>
+<span class="p"></span>ssh cipi@100.101.102.103<span class="c">                 # from your laptop, on the tailnet</span>
+<span class="p"></span>cipi zt tailscale lock ssh<span class="c">               # from that session</span>
+<span class="p"></span>cipi zt tailscale lock http<span class="c">              # optional</span></pre></div>
+<p>NetBird is the same with its own name and key: <code>cipi zt netbird enable --setup-key=…</code>. <code>ts</code> and <code>nb</code> work as short names.</p>
+<h2 id="which">Which one<a class="anchor" href="#which" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th></th><th>Tailscale</th><th>NetBird</th></tr></thead><tbody><tr><td>Run by</td><td>Tailscale (the coordination server); the traffic goes device to device</td><td>NetBird, or <strong>you</strong>: the whole of it is open source and self-hostable</td></tr><tr><td>Self-hosted</td><td>With <a href="https://headscale.net">Headscale</a> as the coordination server: <code>--login-server=</code></td><td>The management server on your own machine: <code>--management-url=</code></td></tr><tr><td>The key you join with</td><td>An <strong>auth key</strong> (admin console → Settings → Keys), or an OAuth client secret with tags</td><td>A <strong>setup key</strong> (Setup Keys)</td></tr><tr><td>Who reaches what</td><td>The tailnet's ACL</td><td>Groups and policies</td></tr><tr><td>Node key expiry</td><td>Yes, 180 days by default — <strong>not</strong> for a tagged machine</td><td>No</td></tr><tr><td>SSH without the server's keys</td><td>Tailscale SSH (<code>cipi zt tailscale ssh enable</code>)</td><td>Not turned on by Cipi: SSH is OpenSSH</td></tr><tr><td>Interface, UDP port</td><td><code>tailscale0</code>, 41641</td><td><code>wt0</code>, 51820</td></tr></tbody></table></div>
+<p>Both are WireGuard underneath. A server is on <strong>one mesh at a time</strong>: both hand out addresses in <code>100.64.0.0/10</code>, and Tailscale's Linux client drops that range when it arrives on any other interface. <code>enable</code> of the second says so and stops. Cloudflare Tunnel sits beside either one.</p>
+<p>Other tools — ZeroTier, Nebula, plain WireGuard, Twingate — are not managed by Cipi. Plain WireGuard works with what is already there: bring the interface up yourself and <code>cipi firewall allow 22 --from=10.8.0.0/24</code>.</p>
+<h2 id="join">Join a network<a class="anchor" href="#join" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi zt tailscale enable --auth-key=tskey-auth-…
+<span class="p"></span>cipi zt tailscale enable --key-file=/root/ts.key<span class="c">           # the key from a file instead of the command line</span>
+<span class="p"></span>cipi zt tailscale enable --auth-key=… --hostname=web1 --tags=cipi,prod
+<span class="p"></span>cipi zt tailscale enable --auth-key=… --login-server=https://headscale.example.com
+<span class="p"></span>cipi zt netbird enable --setup-key=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+<span class="p"></span>cipi zt netbird enable --setup-key=… --management-url=https://netbird.example.com</pre></div>
+<p><code>enable</code>:</p>
+<ol><li>installs the client from its vendor's apt repository (<code>pkgs.tailscale.com</code>, <code>pkgs.netbird.io</code>), with the vendor's signing key;</li><li>signs the server in — the key is handed to the client in a root-only file, deleted right after, and is not kept by Cipi;</li><li>lets the mesh interface through UFW (<code>allow in on tailscale0</code>), so every port that listens on the server answers the devices of the network;</li><li>writes what it did to the vault and to <code>cipi.log</code>.</li></ol>
+<p><strong>It closes nothing.</strong> Port 22 and 80/443 answer the world exactly as before, until you lock them.</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Does</th></tr></thead><tbody><tr><td><code>--auth-key=</code> / <code>--setup-key=</code></td><td>The key (<code>--key=</code> works for both). <code>--key-file=</code> reads it from a file, so it stays out of the shell's history. Left out when the client is already installed and connected: the server is <strong>adopted</strong> as it is</td></tr><tr><td><code>--hostname=</code></td><td>The machine's name on the network. Default: the server's hostname</td></tr><tr><td><code>--tags=cipi,prod</code></td><td>Tailscale: tags of the machine (the key must be allowed to give them). A tagged machine's node key never expires</td></tr><tr><td><code>--login-server=</code> / <code>--management-url=</code></td><td>The coordination server when it is not the vendor's: Headscale, a self-hosted NetBird</td></tr><tr><td><code>--direct</code></td><td>Also opens the client's UDP port (41641, 51820) to the world, so devices connect straight to the server instead of through a relay</td></tr><tr><td><code>--accept-dns</code></td><td>Lets the network set the server's DNS. Off by default: a server resolves as it always did</td></tr><tr><td><code>--accept-routes</code></td><td>Accepts the subnet routes other machines advertise. Off by default</td></tr><tr><td><code>--ssh</code></td><td>Tailscale: turn <a href="#tailscale-ssh">Tailscale SSH</a> on right away</td></tr><tr><td><code>--reauth</code></td><td>Tailscale, with a key: sign in again a machine that is already registered (an expired node key)</td></tr></tbody></table></div>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p><strong>Tailscale: give the key a tag.</strong> In the admin console, create the key with a tag (<code>tag:cipi</code>) or join with <code>--tags=cipi</code>. A tagged machine belongs to the tailnet instead of to a person, and its node key does not expire. An untagged one leaves the network after 180 days unless you disable key expiry for it in the console — and Cipi will not close port 22 behind a key that can expire.</p></div></div>
+<p>What the devices of the network may reach on the server is the network's own policy, not Cipi's: allow TCP 22, 80 and 443 to the server in the tailnet ACL or in NetBird's policies.</p>
+<h2 id="reach">What you reach, and how<a class="anchor" href="#reach" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi zt tailscale status</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">text</span><button class="code-copy-btn" type="button">Copy</button></div><pre>  tailscaled       running
+  State            connected (Running)
+  Address          100.101.102.103   fra1-prod.tail1234.ts.net
+  Network          example.com
+  Interface        tailscale0
+  Peers            4/6 online
+  Node key         does not expire
+  Tags             tag:cipi
+  Tailscale SSH    off (OpenSSH, your keys)
+  SSH over it      last login 2026-11-27T09:14:02 from 100.88.12.7
+  lock ssh         true
+  lock http        false
+  Direct port      41641/udp closed (peers reach it through relays or hole punching)
+
+  SSH over the mesh: ssh cipi@100.101.102.103</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>You want</th><th>Do</th></tr></thead><tbody><tr><td>SSH</td><td><code>ssh cipi@100.101.102.103</code>, or the MagicDNS / NetBird name. Same user, same keys as before</td></tr><tr><td>The panel, the API</td><td>Point their DNS record at the mesh address (an <code>A</code> record on <code>100.101.102.103</code> is fine in public DNS: nobody outside the network can route to it). The certificate needs <a href="/docs/ssl#validation">DNS-01</a>, since Let's Encrypt can't reach the server over HTTP once 80 is closed</td></tr><tr><td>A site that stays private</td><td>The same: its record on the mesh address, a DNS-01 certificate</td></tr><tr><td>A database from your laptop</td><td>An SSH tunnel over the mesh — TablePlus, DBeaver and Sequel Ace call it <em>over SSH</em> — to <code>127.0.0.1:3306</code>. Nothing to open</td></tr><tr><td>Deploys</td><td>Unchanged. A push still reaches the webhook over 443 unless you lock HTTP; then deploy <a href="/docs/ci-pipelines">from your pipeline over SSH</a> with the runner on the network, or publish the app through <a href="/docs/zero-trust">Cloudflare</a></td></tr></tbody></table></div>
+<p><code>cipi zt status</code> shows the mesh under Cloudflare's lines, and <code>cipi zt status --json</code> has it whole under <code>mesh</code>.</p>
+<h2 id="lock">Close the server to the world<a class="anchor" href="#lock" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi zt tailscale lock ssh<span class="c">       # port 22 answers on the mesh only</span>
+<span class="p"></span>cipi zt tailscale lock http<span class="c">      # 80 and 443 too</span>
+<span class="p"></span>cipi zt tailscale unlock ssh
+<span class="p"></span>cipi zt tailscale unlock http</pre></div>
+<p>A lock removes the rule that opens the port to everyone; the rule that lets the mesh interface through stays. <code>unlock</code> puts the first one back.</p>
+<p><strong><code>lock ssh</code> checks that you will still get in</strong>, and stops with the reason when you would not:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>It wants</th><th>Why</th></tr></thead><tbody><tr><td>The mesh connected, with an address</td><td>Nothing would reach the server over it</td></tr><tr><td>UFW active</td><td>There is nothing to close the port with</td></tr><tr><td>sshd listening on the mesh address</td><td>A <code>ListenAddress</code> limited to the public IP would answer nobody</td></tr><tr><td><strong>The session you type in to have come over the mesh</strong></td><td>The proof that SSH works that way. <code>ssh cipi@&lt;mesh address&gt;</code> first, then lock from there</td></tr><tr><td>Tailscale: a node key that does not expire</td><td>The day it expires the server leaves the network, and with 22 closed only the provider's console gets you back in</td></tr></tbody></table></div>
+<p><strong><code>lock http</code></strong> stops while an app renews its certificate over HTTP-01 (move it to <a href="/docs/ssl#validation">DNS-01</a> first: <code>cipi ssl install &lt;app&gt; --dns=cloudflare</code>), and tells you which apps those are. Everything served on 80/443 goes with it: every site, the panel, the API and the deploy webhook answer on the mesh only. For a server whose sites are public, keep HTTP open, or publish them through the <a href="/docs/zero-trust">Cloudflare tunnel</a> and lock here too.</p>
+<p><code>--force</code> skips the checks at the server's shell, when you know why. <code>--yes</code> skips the question.</p>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Keep your provider's web console at hand the first time. If the server ever falls off the network with port 22 closed, that console is the way in: <code>cipi zt tailscale unlock ssh</code> from there.</p></div></div>
+<h3 id="with-cloudflare">With Cloudflare's locks<a class="anchor" href="#with-cloudflare" aria-label="Link to this section">#</a></h3>
+<p>The two sides know each other. A port stays closed while either holds it: <code>cipi zt tailscale unlock ssh</code> with Cloudflare's own <code>lock ssh</code> still on tells you the port stays closed and which command reopens it. <code>cipi firewall allow 22</code> (or 80, 443) to everyone is refused while a lock holds the port, and the message names the lock. <code>cipi firewall status</code> says who holds each one.</p>
+<h2 id="tailscale-ssh">Tailscale SSH<a class="anchor" href="#tailscale-ssh" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi zt tailscale ssh enable
+<span class="p"></span>cipi zt tailscale ssh disable</pre></div>
+<p>With Tailscale SSH on, <code>tailscaled</code> answers port 22 <strong>of the tailnet address</strong> itself: who signs in, and as which Linux user, is decided by the <code>ssh</code> section of the tailnet's policy, and the keys in <code>authorized_keys</code> are not asked for. OpenSSH keeps answering everywhere else. It is a different trust model — the tailnet admin decides who is <code>cipi</code> on the server — so it is off unless you turn it on.</p>
+<p>NetBird has an SSH server of its own too; Cipi does not turn it on. Over NetBird, SSH is OpenSSH with the server's keys.</p>
+<h2 id="leave">Leave the network<a class="anchor" href="#leave" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi zt tailscale disable<span class="c">        # or: cipi zt netbird disable</span></pre></div>
+<p>In this order: what its locks closed is reopened to the world, its firewall rules go, and last the server leaves the network and the client, its apt source and its signing key are removed. A session that came over the mesh ends at that last step — the removal ignores the hangup and runs to its end. A client that was on the server before Cipi (adopted) is left installed and connected.</p>
+<p>The machine stays listed in the provider's console until you delete it there.</p>
+<h2 id="panel">From the panel<a class="anchor" href="#panel" aria-label="Link to this section">#</a></h2>
+<p>The server page of the <a href="/docs/gui-overview">web panel</a> has a <strong>Zero Trust</strong> tab. Under Cloudflare's card, the <strong>Mesh network</strong> card does all of the above.</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/mesh-join-light.webp" width="1168" height="697" alt="Mesh network card on a server with no mesh: network Tailscale, auth key, name on the network, tags, coordination server, direct connections, DNS, routes, Tailscale SSH, and the three steps beside it" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/mesh-join.webp" width="1168" height="697" alt="Mesh network card on a server with no mesh: network Tailscale, auth key, name on the network, tags, coordination server, direct connections, DNS, routes, Tailscale SSH, and the three steps beside it" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>A server on no mesh: choose the network, paste the key, <strong>Join the network</strong>. The options of <code>enable</code> are under <em>More options</em>.</figcaption>
+</figure>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>On the card</th><th>What it does</th></tr></thead><tbody><tr><td><strong>Join the network</strong></td><td><code>enable</code>: Tailscale or NetBird, the key (typed as a secret, sent to the server once, cleared from the form whatever the answer), and under <em>More options</em> the name, tags, coordination server, direct connections, DNS, routes, Tailscale SSH. The page waits while the server installs the client — a minute or two</td></tr><tr><td>The status</td><td>Network, connected or not and the client's own word for it, address and name, peers online, the node key's expiry, the command to SSH in, <strong>the last SSH login the server saw come over the mesh</strong>, both locks, the server's warnings, and <strong>how this panel reaches the server</strong></td></tr><tr><td><strong>SSH — Close / Reopen</strong></td><td><code>lock ssh</code> / <code>unlock ssh</code></td></tr><tr><td><strong>HTTP 80/443 — Close / Reopen</strong></td><td><code>lock http</code> / <code>unlock http</code></td></tr><tr><td><strong>Tailscale SSH — Turn on / off</strong></td><td><code>ssh enable</code> / <code>ssh disable</code> (Tailscale only)</td></tr><tr><td><strong>Leave the network</strong></td><td><code>disable</code></td></tr></tbody></table></div>
+<p>Every change asks first, saying what stops answering and for whom. Reading needs a level on the server; changing needs <strong>Manage</strong>.</p>
+<h3 id="panel-guards">What a click cannot do<a class="anchor" href="#panel-guards" aria-label="Link to this section">#</a></h3>
+<p>At the shell, <code>lock ssh</code> looks at your own session. A browser has no session to look at, so from the panel the server asks for something it can check by itself — and <strong>ignores <code>--force</code></strong>, whatever the panel sends:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Button</th><th>Refused while</th><th>What to do</th></tr></thead><tbody><tr><td>SSH — Close</td><td>sshd's log has no accepted login that came over the mesh</td><td><code>ssh cipi@&lt;mesh address&gt;</code> once, from a device of the network</td></tr><tr><td>SSH — Close</td><td>The Tailscale node key can expire</td><td>Disable key expiry for the machine, or join again with a tagged key</td></tr><tr><td>SSH — Close</td><td>Tailscale SSH is on (its sessions are not in sshd's log)</td><td>Lock at the server's shell, from a session over the network</td></tr><tr><td>HTTP — Close</td><td>An app renews its certificate over HTTP-01</td><td>Move it to DNS-01</td></tr><tr><td>HTTP — Close</td><td><strong>The panel reaches this server's API on the public address</strong> the lock would close — it could not reach it again, not even to unlock</td><td>Have the panel call the API over the mesh (the API's DNS record on the mesh address) or through the Cloudflare tunnel</td></tr><tr><td>HTTP — Close</td><td>The panel runs <strong>on this server</strong> and you are looking at it on its public address — the page would close itself</td><td>Open the panel on its mesh address, or through the tunnel, and click there</td></tr><tr><td>Leave the network</td><td>The panel reaches the server over the mesh</td><td>Do it at the server's shell</td></tr></tbody></table></div>
+<p>The button is greyed out and the server's reason is written next to it, before you click. The page decides nothing: an action sent anyway gets the same refusal back.</p>
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/mesh-joined-light.webp" width="1168" height="578" alt="Mesh network card right after joining Tailscale: connected, address 100.90.14.22, SSH and HTTP open; both Close buttons greyed out with the server's reasons — nobody has signed in over SSH through Tailscale yet, and the panel reaches the API on its public address" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/mesh-joined.webp" width="1168" height="578" alt="Mesh network card right after joining Tailscale: connected, address 100.90.14.22, SSH and HTTP open; both Close buttons greyed out with the server's reasons — nobody has signed in over SSH through Tailscale yet, and the panel reaches the API on its public address" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Right after joining: nobody has signed in over the mesh yet, and this panel calls the server on its public address — so neither port can be closed from here yet, and the card says why.</figcaption>
+</figure>
+<p>The server's API token needs <code>zt-view</code> to show the card and <strong><code>zt-manage</code></strong> to change anything. A token made from a list of abilities before this feature does not have it: create it again with the command on the panel's Connections page (a <code>--full-access</code> token has every ability). On an older server the card says what to update: <code>cipi self-update</code>, then <code>cipi api update</code>.</p>
+<div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p><code>zt-manage</code> is as strong as <code>ssh-manage</code>: whoever holds a token with it can put the server on a network of their own. Give it to the panel, and to nothing that does not need it. The join key never rests anywhere — not in the panel's database, not in a job, not in a log.</p></div></div>
+<p>Cloudflare's card on the same tab stays read-only: the tunnel is changed with <a href="/docs/zero-trust"><code>cipi zt</code></a> at the server.</p>
+<h2 id="api">API, cipi-cli and the SDK<a class="anchor" href="#api" aria-label="Link to this section">#</a></h2>
+<p>The same five changes, synchronous, each answering with Zero Trust as it is afterwards:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Route</th><th>Does</th><th>Body</th></tr></thead><tbody><tr><td><code>GET /api/zt</code></td><td>Both sides of Zero Trust; the mesh under <code>details.mesh</code></td><td>—</td></tr><tr><td><code>POST /api/zt/mesh</code></td><td>Join</td><td><code>provider</code> (<code>tailscale</code>, <code>netbird</code>), <code>key</code>, <code>hostname</code>, <code>control_url</code>, <code>tags</code>, <code>direct</code>, <code>accept_dns</code>, <code>accept_routes</code>, <code>ssh</code>, <code>reauth</code></td></tr><tr><td><code>DELETE /api/zt/mesh</code></td><td>Leave</td><td>—</td></tr><tr><td><code>POST /api/zt/mesh/lock</code></td><td>Close <code>ssh</code> or <code>http</code></td><td><code>port</code></td></tr><tr><td><code>DELETE /api/zt/mesh/lock</code></td><td>Reopen it</td><td><code>port</code></td></tr><tr><td><code>PUT /api/zt/mesh/ssh</code></td><td>Tailscale SSH</td><td><code>enabled</code></td></tr></tbody></table></div>
+<p>A refusal is a <code>422</code> with the reason in <code>error</code>. <code>GET /api/zt</code> says it beforehand: <code>details.mesh.panel.blocked</code> has <code>lock_ssh</code>, <code>lock_http</code> and <code>disable</code>, each <code>null</code> or the reason, and <code>details.mesh.panel.via</code> says how your call reached the server — <code>mesh</code>, <code>local</code>, <code>tunnel</code>, <code>public</code>. More in the <a href="/docs/api#endpoints-zt">API reference</a>.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi-cli zt join tailscale --tags cipi<span class="c">      # asks for the key</span>
+<span class="p"></span>cipi-cli zt<span class="c">                                 # status, and what the server would refuse from here</span>
+<span class="p"></span>cipi-cli zt lock ssh
+<span class="p"></span>cipi-cli zt leave</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;zeroTrust()-&gt;joinMesh('netbird', $setupKey, ['hostname' =&gt; 'web1']);
+$cipi-&gt;zeroTrust()-&gt;lockMesh('ssh');
+$cipi-&gt;zeroTrust()-&gt;mesh();                   // details.mesh, or null</pre></div>
+<p>See <a href="/docs/cli-client#zt">cipi-cli</a> and the <a href="/docs/php-sdk#zero-trust">PHP SDK</a>.</p>
+<h2 id="monitor">In the monitor<a class="anchor" href="#monitor" aria-label="Link to this section">#</a></h2>
+<p>The <a href="/docs/monitor">server monitor</a> has a <code>mesh</code> check, on only while the server is on a network:</p>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>State</th><th>When</th></tr></thead><tbody><tr><td>Critical</td><td>The client is stopped, or the server is off the network — a node key that expired, a machine removed in the console. With port 22 closed, the alert says what that means: the provider's console is the way in</td></tr><tr><td>Warning</td><td>The Tailscale node key expires within 14 days (<code>cipi monitor set mesh --days=30</code>), or the coordination server cannot be reached</td></tr></tbody></table></div>
+<p>It notifies as <code>monitor_mesh</code>, an urgent <a href="/docs/notifications#triggers">trigger</a>. Joining, leaving and every lock are notified too, with the other Zero Trust events.</p>
+<h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>I closed port 22 and the server left the network.</td><td>The provider's web console, then <code>cipi zt tailscale unlock ssh</code> (or <code>cipi zt netbird unlock ssh</code>). Then see why with <code>cipi zt tailscale status</code></td></tr><tr><td><code>lock ssh</code> says my session did not come over the mesh.</td><td>You are connected to the public address. <code>ssh cipi@&lt;mesh address&gt;</code> and run it there</td></tr><tr><td><code>lock ssh</code> says the node key expires.</td><td>In the Tailscale console: the machine → <em>Disable key expiry</em>. Or <code>cipi zt tailscale enable --auth-key=&lt;a tagged key&gt; --reauth</code></td></tr><tr><td>Do visitors need the mesh to see my sites?</td><td>Only if you <code>lock http</code>. Keep HTTP open for public sites, or publish them through the <a href="/docs/zero-trust">Cloudflare tunnel</a></td></tr><tr><td>Can I use both Tailscale and NetBird?</td><td>Not on the same server: one mesh at a time. Different servers can be on different networks</td></tr><tr><td>Tailscale and Cloudflare Tunnel together?</td><td>Yes, and it is a good pair: sites to visitors through Cloudflare, SSH and the panel to you over the mesh, no inbound port left open</td></tr><tr><td>Does the mesh slow the sites down?</td><td>Sites served on the public address are untouched. Over the mesh, traffic is WireGuard between your device and the server, direct when it can be (<code>--direct</code> helps behind strict NAT)</td></tr><tr><td>Where is the key stored?</td><td>Nowhere in Cipi. The client keeps its own node identity in <code>/var/lib/tailscale</code> or <code>/var/lib/netbird</code></td></tr><tr><td>The panel is on the same server. Can I still close 80/443?</td><td>Yes — from a browser that reaches the panel over the mesh. The server refuses it while you look at the panel on its public address</td></tr><tr><td>Certificates once 80 is closed?</td><td><a href="/docs/ssl#validation">DNS-01</a>. Cipi tells you which apps still use HTTP-01 before it closes anything</td></tr></tbody></table></div>
+</section>
+
+</div>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/zero-trust" rel="prev"><small>Previous</small><b>Cloudflare Zero Trust</b></a><a class="next" href="/docs/malware-scan" rel="next"><small>Next</small><b>Malware scan</b></a></nav>
+</main>
+<nav class="docs-toc" aria-label="On this page">
+<h2>On this page</h2><ol>
+<li><a class="l2" href="#which">Which one</a></li>
+<li><a class="l2" href="#join">Join a network</a></li>
+<li><a class="l2" href="#reach">What you reach, and how</a></li>
+<li><a class="l2" href="#lock">Close the server to the world</a></li>
+<li><a class="l3" href="#with-cloudflare">With Cloudflare&#x27;s locks</a></li>
+<li><a class="l2" href="#tailscale-ssh">Tailscale SSH</a></li>
+<li><a class="l2" href="#leave">Leave the network</a></li>
+<li><a class="l2" href="#panel">From the panel</a></li>
+<li><a class="l3" href="#panel-guards">What a click cannot do</a></li>
+<li><a class="l2" href="#api">API, cipi-cli and the SDK</a></li>
+<li><a class="l2" href="#monitor">In the monitor</a></li>
+<li><a class="l2" href="#questions">Questions</a></li>
+</ol>
+<div class="toc-tools">
+<a href="https://github.com/cipi-sh/website/edit/main/_source/docs/pages/mesh-network.md" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>
+<a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>
+<a href="#main">Back to top</a></div></nav>
+</div>
+</div>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/ecosystem">Ecosystem</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> in Italy by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+
+</body>
+</html>

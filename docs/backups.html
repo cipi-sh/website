@@ -27,7 +27,7 @@
     <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/docs.css">
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Backups to S3", "description": "Scheduled database and storage backups to any S3-compatible bucket.", "url": "https://cipi.sh/docs/backups", "dateModified": "2026-11-26", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Backups to S3", "description": "Scheduled database and storage backups to any S3-compatible bucket.", "url": "https://cipi.sh/docs/backups", "dateModified": "2026-11-27", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Backups & monitoring", "item": "https://cipi.sh/docs/operations"}, {"@type": "ListItem", "position": 3, "name": "Backups to S3", "item": "https://cipi.sh/docs/backups"}]}</script>
 </head>
 <body class="docs">
@@ -160,6 +160,7 @@
 <li><a href="/docs/vault">Vault &amp; encryption</a></li>
 <li><a href="/docs/crowdsec">CrowdSec</a></li>
 <li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/mesh-network">Tailscale &amp; NetBird</a></li>
 <li><a href="/docs/malware-scan">Malware scan</a></li>
 <li><a href="/docs/compliance">Compliance evidence</a></li>
 </ul></details>
@@ -212,6 +213,8 @@ $ cipi backup run --profile=nightly</pre><script type="application/json" class="
 <span class="p"></span>cipi backup destination add offsite --bucket=acme-backups --key=AKIA… --secret=… \
     --region=eu-central-1 --endpoint=https://eu-central-1.your-objectstorage.com
 <span class="p"></span>cipi backup destination test<span class="c">   # reach every bucket with its own credentials</span>
+<span class="p"></span>cipi backup destination list<span class="c">   # local, s3 and every named destination</span>
+<span class="p"></span>cipi backup destination show offsite | edit offsite --region=… | remove offsite<span class="c">   # remove keeps the archives</span>
 <span class="p"></span>cipi backup status [--json]<span class="c">    # destinations, profiles, last run, overdue, uncovered</span></pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Provider</th><th>Endpoint</th></tr></thead><tbody><tr><td>AWS S3</td><td>leave empty</td></tr><tr><td>Cloudflare R2</td><td><code>https://&lt;account-id&gt;.r2.cloudflarestorage.com</code></td></tr><tr><td>Hetzner Object Storage</td><td><code>https://&lt;location&gt;.your-objectstorage.com</code></td></tr><tr><td>DigitalOcean Spaces</td><td><code>https://&lt;region&gt;.digitaloceanspaces.com</code></td></tr><tr><td>Backblaze B2</td><td><code>https://s3.&lt;region&gt;.backblazeb2.com</code></td></tr><tr><td>Scaleway</td><td><code>https://s3.&lt;region&gt;.scw.cloud</code></td></tr><tr><td>MinIO</td><td><code>https://your-minio-host</code></td></tr></tbody></table></div>
 <p><code>local</code> (<code>/var/backups/cipi</code>) is always available. A profile can send each run to several destinations at once.</p>
@@ -243,6 +246,7 @@ $ cipi backup run --profile=nightly</pre><script type="application/json" class="
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi backup run [--profile=nightly] [--dry-run] [--detach]
 <span class="p"></span>cipi backup list [--profile=nightly]
 <span class="p"></span>cipi backup verify [--deep]<span class="c">               # does the newest run open?</span>
+<span class="p"></span>cipi backup prune [--profile=nightly] [--dry-run]<span class="c">   # apply the retention now</span>
 <span class="p"></span>cipi backup fetch nightly 2026-11-02_020000 --dest=/root/restore
 <span class="p"></span>cipi db restore myapp /root/restore/databases/mariadb/myapp.sql.gz
 <span class="p"></span>tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files</pre></div>

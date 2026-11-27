@@ -462,6 +462,7 @@ $ cipi frankenphp upgrade --all
 $ cipi frankenphp php myapp 8.6        # another PHP version: Octane and the rest together
 $ cipi frankenphp restart myapp        # restart Octane on its build, checked
 $ cipi frankenphp use myapp            # pin a specific build
+$ cipi frankenphp fetch [version]      # download a release into the builds (the latest by default)
 $ cipi frankenphp import ./frankenphp  # a build you compiled (other PHP minor)
 $ cipi frankenphp adopt myapp          # pin the binary Octane downloaded
 $ cipi frankenphp prune                # remove unused builds
@@ -4393,6 +4394,7 @@ Change PHP settings without hunting for the right file. Server-wide changes reac
 
 ```bash
 $ cipi ini list [--app=shop]                  # effective values and where each comes from
+$ cipi ini get memory_limit [--app=shop]      # one setting
 $ cipi ini set upload_max_filesize=50M        # server-wide
 $ cipi ini set memory_limit=512M --app=shop   # one app only (wins)
 $ cipi ini unset memory_limit --app=shop
@@ -4505,6 +4507,7 @@ Step by step, with what to check in your code first: [Run Laravel on MySQL inste
 $ cipi db create --name=analytics --engine=pgsql
 $ cipi db create --name=wpblog --app=blog     # belongs to the "blog" app
 $ cipi db link wpblog blog                    # or link an existing one
+$ cipi db unlink wpblog                       # remove that link (the database stays)
 $ cipi db list [--json]                       # sizes and owning app
 $ cipi db backup myapp
 $ cipi db restore myapp backup.sql.gz
@@ -4908,6 +4911,7 @@ Checked every morning; mailed when the list changes, and weekly while something 
 $ cipi reboot                         # needed? since when? which kernel?
 $ cipi reboot now [--yes]
 $ cipi reboot auto on --at=04:45      # only on nights one is required
+$ cipi reboot auto off                # back to rebooting by hand
 ```
 
 Automatic reboots notify, warn two minutes ahead, and wait for the next night while a package install, dump, deploy or other `cipi` command is running.
@@ -5066,6 +5070,8 @@ $ cipi backup configure          # the default bucket ("s3"); leave empty for lo
 $ cipi backup destination add offsite --bucket=acme-backups --key=AKIA… --secret=… \
     --region=eu-central-1 --endpoint=https://eu-central-1.your-objectstorage.com
 $ cipi backup destination test   # reach every bucket with its own credentials
+$ cipi backup destination list   # local, s3 and every named destination
+$ cipi backup destination show offsite | edit offsite --region=… | remove offsite   # remove keeps the archives
 $ cipi backup status [--json]    # destinations, profiles, last run, overdue, uncovered
 ```
 
@@ -5148,6 +5154,7 @@ $ cipi backup key rotate     # new key for future runs
 $ cipi backup run [--profile=nightly] [--dry-run] [--detach]
 $ cipi backup list [--profile=nightly]
 $ cipi backup verify [--deep]               # does the newest run open?
+$ cipi backup prune [--profile=nightly] [--dry-run]   # apply the retention now
 $ cipi backup fetch nightly 2026-11-02_020000 --dest=/root/restore
 $ cipi db restore myapp /root/restore/databases/mariadb/myapp.sql.gz
 $ tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files
@@ -5368,6 +5375,7 @@ $ cipi monitor test               # sample alert to every channel
 | `fs` | `/etc/cipi`, `/var/log/cipi` | No longer writable (read-only remount) |
 | `load` | 1-minute load | Above 4× the cores for 2 runs in a row |
 | `tunnel` | The [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#monitor), when Zero Trust is on | Degraded (warn); cloudflared stopped, or Cloudflare sees the tunnel down or inactive (critical) |
+| `mesh` | The [mesh network](https://cipi.sh/docs/mesh-network#monitor) — Tailscale or NetBird — while the server is on one | The node key expires within 14 days, or the coordination server can't be reached (warn); the client stopped, the server off the network, the node key expired (critical) |
 
 Tune any threshold: `--ssl --days=21`, `http_5xx --count=50 --ratio=10`, `load --factor=6 --runs=3`, `app_disk --minutes=30`.
 
@@ -5634,7 +5642,7 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Category | Triggers |
 | --- | --- |
 | Deploy | `deploy_success`, `deploy_fail`, `deploy_rollback`, `deploy_snapshot_fail`, `deploy_health_fail` |
-| Health & monitor | `health_fail`, `monitor_disk`, `monitor_app_disk`, `monitor_ssl`, `monitor_services`, `monitor_workers`, `monitor_http_5xx`, `monitor_fs`, `monitor_load`, `monitor_tunnel`, `monitor_ok` |
+| Health & monitor | `health_fail`, `monitor_disk`, `monitor_app_disk`, `monitor_ssl`, `monitor_services`, `monitor_workers`, `monitor_http_5xx`, `monitor_fs`, `monitor_load`, `monitor_tunnel`, `monitor_mesh`, `monitor_ok` |
 | Backups & cron | `backup_fail`, `backup_stale`, `cron_fail` |
 | Security | `ssh_login`, `sudo`, `su`, `ssh_key_add`, `ssh_key_remove`, `ssh_key_rename`, `credentials_show`, `zt_*` |
 | Apps & domains | `app_create`, `app_edit`, `app_delete`, `app_suspend`, `alias_*`, `www_*`, `redirect_change`, `proxy_change`, `basicauth_*` |
@@ -5784,7 +5792,7 @@ URL: https://cipi.sh/docs/security-model
 Security on Cipi is the default, not an add-on: apps are isolated from each other, the server is hardened at install, secrets are encrypted, and every privileged action leaves a trace. This page is the map; each layer links to its details.
 
 ```stack
-Network | UFW 22/80/443, Fail2ban, CrowdSec, Zero Trust
+Network | UFW 22/80/443, Fail2ban, CrowdSec, Zero Trust (Cloudflare Tunnel, Tailscale, NetBird)
 Access | key-only admin, no root login, alerts
 Isolation | user, PHP pool, database, Valkey per app
 Secrets | AES-256 Vault, encrypted backups & sync
@@ -5858,7 +5866,7 @@ The threshold is written to a drop-in that updates never reset, validated with `
 
 To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). It goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny placed after an allow of the same port would change nothing.
 
-> [!tip] Behind Cloudflare, [cipi zt](https://cipi.sh/docs/zero-trust) can close 80/443 to everyone but Cloudflare, and close 22 entirely.
+> [!tip] Zero Trust closes what UFW keeps open: behind Cloudflare, [cipi zt](https://cipi.sh/docs/zero-trust) can close 80/443 to everyone but Cloudflare and close 22 entirely; on a [Tailscale or NetBird network](https://cipi.sh/docs/mesh-network), `cipi zt tailscale|netbird lock` leaves 22 and 80/443 open on the mesh only.
 
 ## Blocked addresses 
 
@@ -5878,7 +5886,7 @@ The firewall commands refuse what would cut the server off:
 | --- | --- |
 | `deny` of the SSH port, 80 or 443 to everyone; `remove` of the rule that opens them | They are how the server is reached. The SSH ports are read from `sshd -T`, so a custom port counts. One address can still be denied with `--from=` |
 | `block` of a range that takes in the address of your SSH session | You would cut yourself off. The same holds for `deny --from=` on the SSH port |
-| `allow` to everyone of what a Zero Trust lock keeps closed | `cipi zt lock http` keeps 80/443 to Cloudflare, `cipi zt lock ssh` keeps SSH closed: the message says which `cipi zt unlock` reopens it |
+| `allow` to everyone of what a Zero Trust lock keeps closed | `cipi zt lock http` keeps 80/443 to Cloudflare, `cipi zt lock ssh` keeps SSH closed, and a [mesh network's lock](https://cipi.sh/docs/mesh-network#lock) keeps a port to the mesh: the message names who holds it and which command reopens it. `cipi firewall status` says it too |
 
 `--force` gets past these at the server's shell, when you know why. **From the panel it is ignored**, whatever the panel sends.
 
@@ -5900,7 +5908,7 @@ The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Fi
 
 | Section | What it shows and does |
 | --- | --- |
-| At a glance | UFW and its default policy, the ports always kept open, fail2ban and its threshold, CrowdSec, how many addresses are banned; the Zero Trust locks, when there are |
+| At a glance | UFW and its default policy, the ports always kept open, fail2ban and its threshold, CrowdSec, how many addresses are banned; the Zero Trust locks, when there are — who holds each (Cloudflare, the Tailscale or NetBird network), with a link to the Zero Trust tab for the ones reopened there |
 | Rules | UFW's rules in its order (port or range, protocol, action, source, IPv4/IPv6), *Kept open* on SSH, 80 and 443, the Cipi feature that owns a rule (Zero Trust, Metrics, CrowdSec rescue); **Remove** on what may be removed; **Open a port** or a range, TCP or UDP, to everyone or to one address or range |
 | Blocked addresses | [Blocks](#block): **Block**, **Unblock** |
 | Banned now | Fail2ban's jails and CrowdSec's decisions in one list, an address once; **Unban** lifts every ban on it |
@@ -5908,7 +5916,7 @@ The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Fi
 | CrowdSec | [Enable](https://cipi.sh/docs/crowdsec) (a job of a few minutes; what would stop it is said before trying), bouncer and rescue listener, the addresses it never bans, disable |
 | Cloudflare real IP | [The visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip-panel): on, the ranges fetched again, off — what Fail2ban and CrowdSec ban depends on it |
 
-Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the panel can't close SSH, 80 or 443, undo a Zero Trust lock or block its own address. It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](https://cipi.sh/docs/crowdsec#rescue) stays at the server.
+Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the Firewall tab can't close SSH, 80 or 443, undo a Zero Trust lock or block the panel's own address. Closing those three ports to the world is Zero Trust's job: the mesh network's locks have their own buttons in the [Zero Trust tab](https://cipi.sh/docs/mesh-network#panel), with [their own guards](https://cipi.sh/docs/mesh-network#panel-guards). It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](https://cipi.sh/docs/crowdsec#rescue) stays at the server.
 
 The server's API token needs `firewall-view` and `firewall-manage` (a `--full-access` token has them). On an older server the tab says what to update: `cipi self-update`, then `cipi api update`.
 
@@ -6056,6 +6064,8 @@ URL: https://cipi.sh/docs/zero-trust
 
 Put your server behind Cloudflare: visitors reach apps through a Cloudflare Tunnel (with CDN and WAF), staging sites, admin paths, the panel, the API, databases and SSH sit behind Cloudflare Access, and finally the origin closes its ports — all of them, if you like. Every step that could lock you out is a separate, explicit command. Off until you enable it.
 
+> [!tip] Cloudflare publishes the sites to visitors. For the way in for **you** — SSH, the panel, the API on a private address — see [Tailscale & NetBird](https://cipi.sh/docs/mesh-network): a mesh network sits beside the tunnel, and the two know each other's locks.
+
 ```flow
 Token | Tunnel, Access, DNS
 > Create a Cloudflare API token with Tunnel, Access and DNS permissions and save it with `cipi zt token set`.
@@ -6081,6 +6091,8 @@ $ cipi zt lock http --yes                          # 80/443 closed or Cloudflare
 $ cipi zt lock ssh --yes                           # port 22 closed
 $ cipi zt lockdown                                 # everything on the tunnel, no inbound port
 $ cipi zt status                                   # --json for the whole picture
+$ cipi zt token show                               # is a token saved? (never the secret)
+$ cipi zt refresh                                  # fetch Cloudflare's IP ranges again (done every night too)
 ```
 
 Token permissions: Account · Cloudflare Tunnel: Edit, Account · Access: Apps and Policies: Edit, Zone · DNS: Edit (plus Zone · SSL and Certificates for Origin CA). For what you use: Account · Access: Service Tokens: Edit ([service tokens](#service-tokens)), Account · Access: SSH Auditing: Edit ([SSH certificates](#ssh-cert)), Zone · Cache Purge: Purge ([purges](#purge)). A token without these keeps working; a command that needs more names the permission it misses. The token is stored root-only, separate from the DNS token used for certificates and from the Cloudflare token of the [web panel's connector](https://cipi.sh/docs/gui-connectors#cloudflare).
@@ -6228,7 +6240,9 @@ With Zero Trust on, the [monitor](https://cipi.sh/docs/monitor) runs a `tunnel` 
 
 ## In the web panel 
 
-The server's **Zero Trust** tab shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Read-only: every change stays on `cipi zt`. The [API](https://cipi.sh/docs/api) gives the same as `details` on `GET /api/zt`.
+The server's **Zero Trust** tab shows what `cipi zt status --json` knows: the tunnel as Cloudflare sees it and every connector — which one is this server, the others its replicas — what is closed, each hostname with its domains, Access paths and people, service tokens, previews and the purge setting, the panel and the API, TCP services, SSH and its certificates, and what is not on the tunnel yet. Cloudflare's card is read-only: every change to the tunnel stays on `cipi zt`. The [API](https://cipi.sh/docs/api) gives the same as `details` on `GET /api/zt`.
+
+Under it, the **Mesh network** card is where a [Tailscale or NetBird network](https://cipi.sh/docs/mesh-network#panel) is joined, locked and left from the browser.
 
 The zones and DNS records of your Cloudflare accounts are in the panel's [Cloudflare connector](https://cipi.sh/docs/gui-connectors#cloudflare), with a token saved in the panel.
 
@@ -6241,6 +6255,267 @@ $ cipi zt origin-cert myapp
 ```
 
 Apps on the tunnel skip Cipi's HTTP→HTTPS redirect automatically (the tunnel talks HTTP to the origin and Cloudflare handles HTTPS). `cipi zt disable` reopens 22/80/443 and removes everything Cipi created in your Cloudflare account; Let's Encrypt certificates are left alone.
+
+
+## Tailscale & NetBird
+
+URL: https://cipi.sh/docs/mesh-network
+
+Put the server on a private network — **Tailscale** or **NetBird** — and reach SSH, the panel, the API and the sites on an address only your own devices can route to. Then, if you like, close port 22 and 80/443 to the rest of the world. From the CLI, the [web panel](#panel), the [API](#api), `cipi-cli` and the PHP SDK. Off until you join a network.
+
+It is the other half of Zero Trust. [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust) publishes the sites to visitors; the mesh is the way in for the people who run the server. Use either, both, or neither.
+
+```flow
+Join | client installed, firewall opened to the mesh
+> `cipi zt tailscale enable --auth-key=…` (or `netbird`) installs the client, signs in and lets the mesh interface through UFW. Nothing is closed.
+Sign in | once, over the mesh
+> From a device of the network: `ssh cipi@`. That login is the proof that the way in works.
+Lock SSH | port 22 from the network only
+> `cipi zt tailscale lock ssh`. Refused until the step before has been done.
+Lock HTTP | 80/443 from the network only
+> Optional: `lock http`, when the sites are private or come through the Cloudflare tunnel.
+```
+
+```bash
+$ cipi zt tailscale enable --auth-key=tskey-auth-… --tags=cipi
+$ cipi zt tailscale status                 # address, peers, node key, locks
+$ ssh cipi@100.101.102.103                 # from your laptop, on the tailnet
+$ cipi zt tailscale lock ssh               # from that session
+$ cipi zt tailscale lock http              # optional
+```
+
+NetBird is the same with its own name and key: `cipi zt netbird enable --setup-key=…`. `ts` and `nb` work as short names.
+
+## Which one 
+
+| | Tailscale | NetBird |
+| --- | --- | --- |
+| Run by | Tailscale (the coordination server); the traffic goes device to device | NetBird, or **you**: the whole of it is open source and self-hostable |
+| Self-hosted | With [Headscale](https://headscale.net) as the coordination server: `--login-server=` | The management server on your own machine: `--management-url=` |
+| The key you join with | An **auth key** (admin console → Settings → Keys), or an OAuth client secret with tags | A **setup key** (Setup Keys) |
+| Who reaches what | The tailnet's ACL | Groups and policies |
+| Node key expiry | Yes, 180 days by default — **not** for a tagged machine | No |
+| SSH without the server's keys | Tailscale SSH (`cipi zt tailscale ssh enable`) | Not turned on by Cipi: SSH is OpenSSH |
+| Interface, UDP port | `tailscale0`, 41641 | `wt0`, 51820 |
+
+Both are WireGuard underneath. A server is on **one mesh at a time**: both hand out addresses in `100.64.0.0/10`, and Tailscale's Linux client drops that range when it arrives on any other interface. `enable` of the second says so and stops. Cloudflare Tunnel sits beside either one.
+
+Other tools — ZeroTier, Nebula, plain WireGuard, Twingate — are not managed by Cipi. Plain WireGuard works with what is already there: bring the interface up yourself and `cipi firewall allow 22 --from=10.8.0.0/24`.
+
+## Join a network 
+
+```bash
+$ cipi zt tailscale enable --auth-key=tskey-auth-…
+$ cipi zt tailscale enable --key-file=/root/ts.key           # the key from a file instead of the command line
+$ cipi zt tailscale enable --auth-key=… --hostname=web1 --tags=cipi,prod
+$ cipi zt tailscale enable --auth-key=… --login-server=https://headscale.example.com
+$ cipi zt netbird enable --setup-key=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+$ cipi zt netbird enable --setup-key=… --management-url=https://netbird.example.com
+```
+
+`enable`:
+
+1. installs the client from its vendor's apt repository (`pkgs.tailscale.com`, `pkgs.netbird.io`), with the vendor's signing key;
+2. signs the server in — the key is handed to the client in a root-only file, deleted right after, and is not kept by Cipi;
+3. lets the mesh interface through UFW (`allow in on tailscale0`), so every port that listens on the server answers the devices of the network;
+4. writes what it did to the vault and to `cipi.log`.
+
+**It closes nothing.** Port 22 and 80/443 answer the world exactly as before, until you lock them.
+
+| Flag | Does |
+| --- | --- |
+| `--auth-key=` / `--setup-key=` | The key (`--key=` works for both). `--key-file=` reads it from a file, so it stays out of the shell's history. Left out when the client is already installed and connected: the server is **adopted** as it is |
+| `--hostname=` | The machine's name on the network. Default: the server's hostname |
+| `--tags=cipi,prod` | Tailscale: tags of the machine (the key must be allowed to give them). A tagged machine's node key never expires |
+| `--login-server=` / `--management-url=` | The coordination server when it is not the vendor's: Headscale, a self-hosted NetBird |
+| `--direct` | Also opens the client's UDP port (41641, 51820) to the world, so devices connect straight to the server instead of through a relay |
+| `--accept-dns` | Lets the network set the server's DNS. Off by default: a server resolves as it always did |
+| `--accept-routes` | Accepts the subnet routes other machines advertise. Off by default |
+| `--ssh` | Tailscale: turn [Tailscale SSH](#tailscale-ssh) on right away |
+| `--reauth` | Tailscale, with a key: sign in again a machine that is already registered (an expired node key) |
+
+> [!tip] **Tailscale: give the key a tag.** In the admin console, create the key with a tag (`tag:cipi`) or join with `--tags=cipi`. A tagged machine belongs to the tailnet instead of to a person, and its node key does not expire. An untagged one leaves the network after 180 days unless you disable key expiry for it in the console — and Cipi will not close port 22 behind a key that can expire.
+
+What the devices of the network may reach on the server is the network's own policy, not Cipi's: allow TCP 22, 80 and 443 to the server in the tailnet ACL or in NetBird's policies.
+
+## What you reach, and how 
+
+```bash
+$ cipi zt tailscale status
+```
+
+```text
+  tailscaled       running
+  State            connected (Running)
+  Address          100.101.102.103   fra1-prod.tail1234.ts.net
+  Network          example.com
+  Interface        tailscale0
+  Peers            4/6 online
+  Node key         does not expire
+  Tags             tag:cipi
+  Tailscale SSH    off (OpenSSH, your keys)
+  SSH over it      last login 2026-11-27T09:14:02 from 100.88.12.7
+  lock ssh         true
+  lock http        false
+  Direct port      41641/udp closed (peers reach it through relays or hole punching)
+
+  SSH over the mesh: ssh cipi@100.101.102.103
+```
+
+| You want | Do |
+| --- | --- |
+| SSH | `ssh cipi@100.101.102.103`, or the MagicDNS / NetBird name. Same user, same keys as before |
+| The panel, the API | Point their DNS record at the mesh address (an `A` record on `100.101.102.103` is fine in public DNS: nobody outside the network can route to it). The certificate needs [DNS-01](https://cipi.sh/docs/ssl#validation), since Let's Encrypt can't reach the server over HTTP once 80 is closed |
+| A site that stays private | The same: its record on the mesh address, a DNS-01 certificate |
+| A database from your laptop | An SSH tunnel over the mesh — TablePlus, DBeaver and Sequel Ace call it *over SSH* — to `127.0.0.1:3306`. Nothing to open |
+| Deploys | Unchanged. A push still reaches the webhook over 443 unless you lock HTTP; then deploy [from your pipeline over SSH](https://cipi.sh/docs/ci-pipelines) with the runner on the network, or publish the app through [Cloudflare](https://cipi.sh/docs/zero-trust) |
+
+`cipi zt status` shows the mesh under Cloudflare's lines, and `cipi zt status --json` has it whole under `mesh`.
+
+## Close the server to the world 
+
+```bash
+$ cipi zt tailscale lock ssh       # port 22 answers on the mesh only
+$ cipi zt tailscale lock http      # 80 and 443 too
+$ cipi zt tailscale unlock ssh
+$ cipi zt tailscale unlock http
+```
+
+A lock removes the rule that opens the port to everyone; the rule that lets the mesh interface through stays. `unlock` puts the first one back.
+
+**`lock ssh` checks that you will still get in**, and stops with the reason when you would not:
+
+| It wants | Why |
+| --- | --- |
+| The mesh connected, with an address | Nothing would reach the server over it |
+| UFW active | There is nothing to close the port with |
+| sshd listening on the mesh address | A `ListenAddress` limited to the public IP would answer nobody |
+| **The session you type in to have come over the mesh** | The proof that SSH works that way. `ssh cipi@` first, then lock from there |
+| Tailscale: a node key that does not expire | The day it expires the server leaves the network, and with 22 closed only the provider's console gets you back in |
+
+**`lock http`** stops while an app renews its certificate over HTTP-01 (move it to [DNS-01](https://cipi.sh/docs/ssl#validation) first: `cipi ssl install  --dns=cloudflare`), and tells you which apps those are. Everything served on 80/443 goes with it: every site, the panel, the API and the deploy webhook answer on the mesh only. For a server whose sites are public, keep HTTP open, or publish them through the [Cloudflare tunnel](https://cipi.sh/docs/zero-trust) and lock here too.
+
+`--force` skips the checks at the server's shell, when you know why. `--yes` skips the question.
+
+> [!warning] Keep your provider's web console at hand the first time. If the server ever falls off the network with port 22 closed, that console is the way in: `cipi zt tailscale unlock ssh` from there.
+
+### With Cloudflare's locks 
+
+The two sides know each other. A port stays closed while either holds it: `cipi zt tailscale unlock ssh` with Cloudflare's own `lock ssh` still on tells you the port stays closed and which command reopens it. `cipi firewall allow 22` (or 80, 443) to everyone is refused while a lock holds the port, and the message names the lock. `cipi firewall status` says who holds each one.
+
+## Tailscale SSH 
+
+```bash
+$ cipi zt tailscale ssh enable
+$ cipi zt tailscale ssh disable
+```
+
+With Tailscale SSH on, `tailscaled` answers port 22 **of the tailnet address** itself: who signs in, and as which Linux user, is decided by the `ssh` section of the tailnet's policy, and the keys in `authorized_keys` are not asked for. OpenSSH keeps answering everywhere else. It is a different trust model — the tailnet admin decides who is `cipi` on the server — so it is off unless you turn it on.
+
+NetBird has an SSH server of its own too; Cipi does not turn it on. Over NetBird, SSH is OpenSSH with the server's keys.
+
+## Leave the network 
+
+```bash
+$ cipi zt tailscale disable        # or: cipi zt netbird disable
+```
+
+In this order: what its locks closed is reopened to the world, its firewall rules go, and last the server leaves the network and the client, its apt source and its signing key are removed. A session that came over the mesh ends at that last step — the removal ignores the hangup and runs to its end. A client that was on the server before Cipi (adopted) is left installed and connected.
+
+The machine stays listed in the provider's console until you delete it there.
+
+## From the panel 
+
+The server page of the [web panel](https://cipi.sh/docs/gui-overview) has a **Zero Trust** tab. Under Cloudflare's card, the **Mesh network** card does all of the above.
+
+| On the card | What it does |
+| --- | --- |
+| **Join the network** | `enable`: Tailscale or NetBird, the key (typed as a secret, sent to the server once, cleared from the form whatever the answer), and under *More options* the name, tags, coordination server, direct connections, DNS, routes, Tailscale SSH. The page waits while the server installs the client — a minute or two |
+| The status | Network, connected or not and the client's own word for it, address and name, peers online, the node key's expiry, the command to SSH in, **the last SSH login the server saw come over the mesh**, both locks, the server's warnings, and **how this panel reaches the server** |
+| **SSH — Close / Reopen** | `lock ssh` / `unlock ssh` |
+| **HTTP 80/443 — Close / Reopen** | `lock http` / `unlock http` |
+| **Tailscale SSH — Turn on / off** | `ssh enable` / `ssh disable` (Tailscale only) |
+| **Leave the network** | `disable` |
+
+Every change asks first, saying what stops answering and for whom. Reading needs a level on the server; changing needs **Manage**.
+
+### What a click cannot do 
+
+At the shell, `lock ssh` looks at your own session. A browser has no session to look at, so from the panel the server asks for something it can check by itself — and **ignores `--force`**, whatever the panel sends:
+
+| Button | Refused while | What to do |
+| --- | --- | --- |
+| SSH — Close | sshd's log has no accepted login that came over the mesh | `ssh cipi@` once, from a device of the network |
+| SSH — Close | The Tailscale node key can expire | Disable key expiry for the machine, or join again with a tagged key |
+| SSH — Close | Tailscale SSH is on (its sessions are not in sshd's log) | Lock at the server's shell, from a session over the network |
+| HTTP — Close | An app renews its certificate over HTTP-01 | Move it to DNS-01 |
+| HTTP — Close | **The panel reaches this server's API on the public address** the lock would close — it could not reach it again, not even to unlock | Have the panel call the API over the mesh (the API's DNS record on the mesh address) or through the Cloudflare tunnel |
+| HTTP — Close | The panel runs **on this server** and you are looking at it on its public address — the page would close itself | Open the panel on its mesh address, or through the tunnel, and click there |
+| Leave the network | The panel reaches the server over the mesh | Do it at the server's shell |
+
+The button is greyed out and the server's reason is written next to it, before you click. The page decides nothing: an action sent anyway gets the same refusal back.
+
+The server's API token needs `zt-view` to show the card and **`zt-manage`** to change anything. A token made from a list of abilities before this feature does not have it: create it again with the command on the panel's Connections page (a `--full-access` token has every ability). On an older server the card says what to update: `cipi self-update`, then `cipi api update`.
+
+> [!security] `zt-manage` is as strong as `ssh-manage`: whoever holds a token with it can put the server on a network of their own. Give it to the panel, and to nothing that does not need it. The join key never rests anywhere — not in the panel's database, not in a job, not in a log.
+
+Cloudflare's card on the same tab stays read-only: the tunnel is changed with [`cipi zt`](https://cipi.sh/docs/zero-trust) at the server.
+
+## API, cipi-cli and the SDK 
+
+The same five changes, synchronous, each answering with Zero Trust as it is afterwards:
+
+| Route | Does | Body |
+| --- | --- | --- |
+| `GET /api/zt` | Both sides of Zero Trust; the mesh under `details.mesh` | — |
+| `POST /api/zt/mesh` | Join | `provider` (`tailscale`, `netbird`), `key`, `hostname`, `control_url`, `tags`, `direct`, `accept_dns`, `accept_routes`, `ssh`, `reauth` |
+| `DELETE /api/zt/mesh` | Leave | — |
+| `POST /api/zt/mesh/lock` | Close `ssh` or `http` | `port` |
+| `DELETE /api/zt/mesh/lock` | Reopen it | `port` |
+| `PUT /api/zt/mesh/ssh` | Tailscale SSH | `enabled` |
+
+A refusal is a `422` with the reason in `error`. `GET /api/zt` says it beforehand: `details.mesh.panel.blocked` has `lock_ssh`, `lock_http` and `disable`, each `null` or the reason, and `details.mesh.panel.via` says how your call reached the server — `mesh`, `local`, `tunnel`, `public`. More in the [API reference](https://cipi.sh/docs/api#endpoints-zt).
+
+```bash
+$ cipi-cli zt join tailscale --tags cipi      # asks for the key
+$ cipi-cli zt                                 # status, and what the server would refuse from here
+$ cipi-cli zt lock ssh
+$ cipi-cli zt leave
+```
+
+```php
+$cipi->zeroTrust()->joinMesh('netbird', $setupKey, ['hostname' => 'web1']);
+$cipi->zeroTrust()->lockMesh('ssh');
+$cipi->zeroTrust()->mesh();                   // details.mesh, or null
+```
+
+See [cipi-cli](https://cipi.sh/docs/cli-client#zt) and the [PHP SDK](https://cipi.sh/docs/php-sdk#zero-trust).
+
+## In the monitor 
+
+The [server monitor](https://cipi.sh/docs/monitor) has a `mesh` check, on only while the server is on a network:
+
+| State | When |
+| --- | --- |
+| Critical | The client is stopped, or the server is off the network — a node key that expired, a machine removed in the console. With port 22 closed, the alert says what that means: the provider's console is the way in |
+| Warning | The Tailscale node key expires within 14 days (`cipi monitor set mesh --days=30`), or the coordination server cannot be reached |
+
+It notifies as `monitor_mesh`, an urgent [trigger](https://cipi.sh/docs/notifications#triggers). Joining, leaving and every lock are notified too, with the other Zero Trust events.
+
+## Questions 
+
+| Question | Answer |
+| --- | --- |
+| I closed port 22 and the server left the network. | The provider's web console, then `cipi zt tailscale unlock ssh` (or `cipi zt netbird unlock ssh`). Then see why with `cipi zt tailscale status` |
+| `lock ssh` says my session did not come over the mesh. | You are connected to the public address. `ssh cipi@` and run it there |
+| `lock ssh` says the node key expires. | In the Tailscale console: the machine → *Disable key expiry*. Or `cipi zt tailscale enable --auth-key= --reauth` |
+| Do visitors need the mesh to see my sites? | Only if you `lock http`. Keep HTTP open for public sites, or publish them through the [Cloudflare tunnel](https://cipi.sh/docs/zero-trust) |
+| Can I use both Tailscale and NetBird? | Not on the same server: one mesh at a time. Different servers can be on different networks |
+| Tailscale and Cloudflare Tunnel together? | Yes, and it is a good pair: sites to visitors through Cloudflare, SSH and the panel to you over the mesh, no inbound port left open |
+| Does the mesh slow the sites down? | Sites served on the public address are untouched. Over the mesh, traffic is WireGuard between your device and the server, direct when it can be (`--direct` helps behind strict NAT) |
+| Where is the key stored? | Nowhere in Cipi. The client keeps its own node identity in `/var/lib/tailscale` or `/var/lib/netbird` |
+| The panel is on the same server. Can I still close 80/443? | Yes — from a browser that reaches the panel over the mesh. The server refuses it while you look at the panel on its public address |
+| Certificates once 80 is closed? | [DNS-01](https://cipi.sh/docs/ssl#validation). Cipi tells you which apps still use HTTP-01 before it closes anything |
 
 
 ## Malware scan
@@ -6942,7 +7217,7 @@ cipi CLI | does the work, as on SSH
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics)) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](https://cipi.sh/docs/notifications#events) — everything, or *Urgent* and the categories you choose; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel)); *Written as* — the [server's name and the time zone](https://cipi.sh/docs/notifications#written) of every notification, the panel's own name in one click |
 | Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor; [Valkey per app](https://cipi.sh/docs/valkey#panel) — who shares the server's instance, *Isolate* one app or all, empty the shared one; the machine's **hostname** next to the name the server has in the panel, in Connections, the dashboard and the switcher: it is what a notification calls it |
-| Zero Trust | The server's [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet |
+| Zero Trust | The server's [Cloudflare Tunnel](https://cipi.sh/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet. And the [mesh network](https://cipi.sh/docs/mesh-network#panel) — Tailscale or NetBird — **managed**: join with a key, close SSH and 80/443 to the world and reopen them, Tailscale SSH, leave; what the server would refuse is greyed out with its reason |
 | Packages | The [optional packages](https://cipi.sh/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](https://cipi.sh/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs |
 | Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](https://cipi.sh/docs/nginx#real-ip-panel) on, refreshed or off; SSH, 80 and 443 always stay open ([firewall](https://cipi.sh/docs/firewall#panel)) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs, colour-coded; one-time credentials with copy buttons |
@@ -6991,7 +7266,9 @@ UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order wi
 
 ### Zero Trust
 
-The server's Cloudflare Tunnel as the CLI set it up: healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it. Read-only: every change stays on `cipi zt`. See [Zero Trust](https://cipi.sh/docs/zero-trust#panel).
+Both sides of Zero Trust on one tab. On top, the server's Cloudflare Tunnel as the CLI set it up: healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it — read-only, every change to the tunnel stays on `cipi zt`. See [Cloudflare Zero Trust](https://cipi.sh/docs/zero-trust#panel).
+
+Under it, the **mesh network** — Tailscale or NetBird — is managed from the page: join a network with its key, see the server's address on it and the last SSH login that came over it, close SSH and 80/443 to the world, turn Tailscale SSH on, leave. A button the server would refuse — nobody has signed in over the mesh yet, the panel would lose the server — is greyed out, with the server's reason beside it. See [Tailscale & NetBird](https://cipi.sh/docs/mesh-network#panel).
 
 ### Infrastructure
 
@@ -7826,7 +8103,7 @@ cipi CLI via sudoers | the same code path as SSH
 
 | Area | Endpoints used |
 | --- | --- |
-| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove), monitor, Zero Trust (`GET /api/zt` with `details`), `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
+| Server | `GET /api/status`; PHP, DB engines, Node runtimes, SSH keys, services, SMTP, search, packages (`POST`/`DELETE /api/packages/{id}` to install and remove), monitor, Zero Trust (`GET /api/zt` with `details`; the mesh network joined, locked and left with `/api/zt/mesh`), `GET /api/disk` and `/api/disk/dbs`, IP allowlist |
 | Apps | CRUD, suspend, fix-permissions, basic auth, logs, `.env`, `auth.json`, Artisan, app commands; create with `engine`, `octane`, Node options; webhook rotation; per-app health check |
 | Deploy | Deploy, rollback, unlock, `deploy/audit`, `deploy/history`, `GET /api/deploys/last`, `deploy-config` |
 | `cipi.yml` | `GET /api/apps/{name}/yml`, `POST …/yml/apply`, `…/yml/auto/enable|disable` |
@@ -7941,6 +8218,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) |
 | Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) |
 | Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
+| Zero Trust: the mesh network | `zt-manage` (join and leave a Tailscale or NetBird network, close and reopen SSH and 80/443, Tailscale SSH) — as strong as `ssh-manage` |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
@@ -7974,6 +8252,7 @@ A server whose API is [behind Cloudflare Access](https://cipi.sh/docs/zero-trust
 | `GET`, `POST` | `/api/run-commands`, `/api/apps/{name}/run` | `apps-run` |
 | `GET`, `PUT` | `/api/apps/{name}/deploy-config` | `apps-deploy-config` |
 | `GET`, `PUT` | `/api/apps/{name}/limits` | `apps-view` / `apps-edit` |
+| `GET`, `PUT` | `/api/apps/{name}/jit` ([the OPcache JIT of one app](https://cipi.sh/docs/php-jit): `enabled`, optional `buffer`) | `apps-view` / `apps-edit` |
 | `GET`, `PUT`, `DELETE` | `/api/apps/{name}/health`, `POST …/health/check` | `health-view` / `health-manage` |
 | `GET` | `/api/apps/{name}/logs?type=&page=&per_page=` | `apps-view` |
 
@@ -8036,6 +8315,7 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET`, `POST` | `/api/frankenphp`, `/api/frankenphp/upgrade` (the FrankenPHP build of each Octane app) | `php-view` / `php-manage` |
 | `GET`, `PUT`, `POST` | `/api/apps/{name}/octane`, `/octane/php`, `/octane/restart` ([the PHP of an Octane app](#endpoints-octane)) | `php-view` / `php-manage` |
 | `GET`, `POST`, `DELETE` | `/api/ssh/keys[/{n}]` | `ssh-view` / `ssh-manage` |
+| `GET`, `PUT`, `POST`, `DELETE` | `/api/ip-whitelist` (show; replace the list; add one; remove one), `POST /api/ip-whitelist/allow-all` ([IP allowlist](#cipi-api-ip-whitelist)) | `ip-whitelist-view` / `ip-whitelist-manage` |
 | `GET`, `POST` | `/api/services`, `/services/{name}/restart` | `services-view` / `services-manage` |
 | `GET`, `POST` | `/api/valkey`, `/valkey/isolate`, `/valkey/share`, `/valkey/{app}/restart`, `/valkey/flush-shared` ([Valkey per app](#endpoints-valkey)) | `services-view` / `services-manage` |
 | `GET`, `PUT`, `DELETE`, `POST` | `/api/smtp`, `/smtp/enable`, `/disable`, `/test` | `smtp-view` / `smtp-manage` |
@@ -8049,7 +8329,8 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET` | `/api/disk`, `/api/disk/dbs` | `disk-view` |
 | `GET` | `/api/packages` ([optional packages](#endpoints-packages)) | `packages-view` |
 | `POST`, `DELETE` | `/api/packages/{id}` (jobs `package-install`, `package-remove`) | `packages-manage` |
-| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](https://cipi.sh/docs/zero-trust#panel) picture) | `monitor-view`, `zt-view` |
+| `GET` | `/api/monitor`, `/api/zt` (with `details`, the whole [Zero Trust](https://cipi.sh/docs/zero-trust#panel) picture: the Cloudflare tunnel and the mesh network) | `monitor-view`, `zt-view` |
+| `POST`, `DELETE`, `PUT` | `/api/zt/mesh`, `/api/zt/mesh/lock`, `/api/zt/mesh/ssh` ([the mesh network](#endpoints-zt)) | `zt-manage` |
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](https://cipi.sh/docs/metrics)) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](https://cipi.sh/docs/basic-auth#agent)) | `apps-basicauth` |
@@ -8074,6 +8355,41 @@ What the [panel's Firewall tab](https://cipi.sh/docs/firewall#panel) uses.
 `GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](https://cipi.sh/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
 
 `GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](https://cipi.sh/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` when the server's Cipi doesn't have it yet. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
+
+### Zero Trust: the mesh network 
+
+A [Tailscale or NetBird network](https://cipi.sh/docs/mesh-network) joined, locked and left over the API. Synchronous: each call answers `{data, message}` — `data` is Zero Trust after the change, the same as `GET /api/zt`, and `message` what the CLI said.
+
+| Method | Path | Body | Does |
+| --- | --- | --- | --- |
+| `POST` | `/api/zt/mesh` | `provider` (`tailscale`, `netbird`), `key`, `hostname`, `control_url`, `tags`, `direct`, `accept_dns`, `accept_routes`, `ssh`, `reauth` | Joins: installs the client, signs in, lets the mesh through UFW. Closes nothing. A minute or two |
+| `DELETE` | `/api/zt/mesh` | — | Leaves: reopens what its locks closed, removes the client |
+| `POST` | `/api/zt/mesh/lock` | `port`: `ssh` or `http` | Closes the SSH port, or 80 and 443, to the world: open on the mesh only |
+| `DELETE` | `/api/zt/mesh/lock` | `port` | Reopens it |
+| `PUT` | `/api/zt/mesh/ssh` | `enabled` | Tailscale SSH on or off |
+
+`key` is a Tailscale auth key or a NetBird setup key: 8 to 512 characters, no spaces or quotes. It is passed to the CLI as a flag of a synchronous command — never a job — and is never stored or returned. Left out, a client that is already installed and connected is adopted. `tags`, `ssh` and `reauth` are Tailscale's; `control_url` is a Headscale or a self-hosted NetBird.
+
+**The server refuses what would lock people out** (`422`, the reason in `error`), and there is no `--force` over the API:
+
+| Call | Refused while |
+| --- | --- |
+| `lock` `ssh` | sshd has accepted no login that came over the mesh; the node key can expire; UFW is off; sshd doesn't listen on the mesh address; Tailscale SSH is on |
+| `lock` `http` | An app renews its certificate over HTTP-01; the caller reaches the API on the public address the lock would close |
+| `DELETE /api/zt/mesh` | The caller reaches the server over the mesh |
+
+`GET /api/zt` answers it beforehand in `details.mesh.panel`: `via` (`mesh`, `local`, `tunnel`, `public`, `unknown` — how this call reached the server), `from`, and `blocked` with `lock_ssh`, `lock_http` and `disable`, each `null` or the reason. `details.mesh.ssh.seen` is the last SSH login that came over the mesh, `details.mesh.http01_apps` the apps still on HTTP-01.
+
+A panel that runs on the server it manages reaches the API locally, but its own pages are on 80/443: it adds `client` — the address of the person's browser — to the body of a change and to `GET /api/zt?client=`, and `lock` `http` is refused while they look at the panel on the public address.
+
+```bash
+$ curl -X POST https://api.example.com/api/zt/mesh -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' -d '{"provider":"tailscale","key":"tskey-auth-…","tags":["cipi"]}'
+$ curl -X POST https://api.example.com/api/zt/mesh/lock -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' -d '{"port":"ssh"}'
+```
+
+On a server whose Cipi has no mesh yet the routes answer `503` before anything runs, saying what to update.
 
 ### Notification channels: events 
 
@@ -8153,7 +8469,7 @@ $ curl -X PUT https://api.example.com/api/notifications/settings \
 
 `POST /api/packages/{id}` installs an entry of the server's [closed catalog](https://cipi.sh/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](https://cipi.sh/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes. An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](https://cipi.sh/docs/packages#panel) uses.
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](https://cipi.sh/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every Zero Trust change, `cipi firewall deny`, closing SSH, 80 or 443, and the CrowdSec rescue listener. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](https://cipi.sh/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every change to the Cloudflare side of Zero Trust (the tunnel, hostnames, Access, its locks), `cipi firewall deny`, closing SSH, 80 or 443 from the firewall routes, and the CrowdSec rescue listener. The [mesh network](#endpoints-zt) is the one place where SSH and 80/443 are closed over the API — under an ability of its own, and with the server refusing whatever would lock people out. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
 ## Examples 
 
@@ -8579,7 +8895,7 @@ Your current IP is kept when tightening the list (`--no-ensure-client-ip` to ski
 
 ## Server insights 
 
-Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust), `run-commands`.
+Read-only, `--json` everywhere: `search status`, `node list`, `monitor`, `packages`, `zt` (Zero Trust: the status of both sides — the [mesh network](#zt) is managed too), `run-commands`.
 
 [Optional packages](https://cipi.sh/docs/packages) are installed and removed too (`packages-manage`; jobs the CLI waits for):
 
@@ -8600,6 +8916,27 @@ $ cipi-cli metrics events --source deploy
 $ cipi-cli metrics retention --raw 14 --rollup 90
 $ cipi-cli metrics heartbeat set https://hc-ping.com/
 ```
+
+## `zt`: the mesh network 
+
+`cipi-cli zt` shows both sides of Zero Trust: the [Cloudflare tunnel](https://cipi.sh/docs/zero-trust) (read-only here) and the [mesh network](https://cipi.sh/docs/mesh-network) — Tailscale or NetBird — which is joined, locked and left from your terminal:
+
+| Command | Does |
+| --- | --- |
+| `zt` | The tunnel and its locks; the mesh: connected or not, address and name, peers, node key, the last SSH login over it, its locks, how this client reaches the server, and — on `refused` lines — what the server would not do from here, and why |
+| `zt join ` | Puts the server on a network. The key is asked for; `--key-file` reads it from a file, `--key` takes it on the command line, `--adopt` takes a client already connected. `--hostname`, `--tags`, `--control-url`, `--direct`, `--accept-dns`, `--accept-routes`, `--ssh`, `--reauth` |
+| `zt lock ` | Closes SSH, or 80/443, to the world: open on the mesh only (`-y` skips the question) |
+| `zt unlock ` | Reopens it |
+| `zt ssh ` | Tailscale SSH |
+| `zt leave` | Takes the server off the network: what the locks closed is reopened first |
+
+```bash
+$ cipi-cli zt join tailscale --tags cipi
+$ cipi-cli zt                            # the address on the network: sign in over it once
+$ cipi-cli zt lock ssh
+```
+
+The server refuses [what would lock people out](https://cipi.sh/docs/mesh-network#panel-guards) and prints its reason. `zt lock http` is refused while this client reaches the API on the server's public address: point the profile's endpoint at the server's mesh name (or its hostname on the Cloudflare tunnel) and run it again. Needs `zt-view`; changes need `zt-manage`.
 
 ## Notifications 
 
@@ -8686,6 +9023,7 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `db` | `dbs-view`, `dbs-create`, `dbs-manage` (anonymize: `apps-view` + `apps-env`) |
 | `backup` | `backups-view` (status, runs), `backups-manage` |
 | `php`, `services`, `ssh-keys`, `smtp`, `health`, `ip-whitelist` | matching `*-view` / `*-manage` |
+| `zt join/leave/lock/unlock/ssh` | `zt-manage` (`zt` alone: `zt-view`) |
 | `status`, `disk`, insights | `status-view`, `disk-view`, `*-view` |
 
 Simplest: `cipi api token create --name=laptop --full-access`. Keep server and API current with `cipi self-update` so every command is available.
@@ -8916,7 +9254,40 @@ $cipi->notifications()->setServerName('production');  // "production (vmi12334)"
 
 `octane()` is [the PHP of an Octane app](https://cipi.sh/docs/octane#octane-php), `valkey()` is [Valkey per app](https://cipi.sh/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](https://cipi.sh/docs/notifications#written).
 
-Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](https://cipi.sh/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
+Monitor, the Cloudflare side of Zero Trust and disk usage are read-only, as on the API; the [mesh network](#zero-trust) is managed. [Optional packages](https://cipi.sh/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
+
+## Zero Trust 
+
+```php
+$zt = $cipi->zeroTrust()->status()['data'];   // both sides: the Cloudflare tunnel and the mesh
+$zt['enabled'];                               // the tunnel — says nothing of the mesh
+$zt['mesh'];                                  // 'tailscale', 'netbird' or null
+$zt['mesh_ip'];                               // the server's address on the network
+
+$mesh = $cipi->zeroTrust()->mesh();           // details.mesh, or null while the server is on none
+$mesh['lock']['ssh'];                         // port 22 closed to the world
+$mesh['panel']['blocked']['lock_http'];       // null, or why the server would refuse it from here
+```
+
+The [mesh network](https://cipi.sh/docs/mesh-network) — Tailscale or NetBird — is managed too, with a token that has `zt-manage`. Synchronous; each call answers Zero Trust after the change (`data`) and what the CLI said (`message`):
+
+```php
+use Cipi\Sdk\Resources\ZeroTrust;
+
+$cipi = new Cipi($url, $token, ['timeout' => 240]);   // a join installs the client and signs in
+
+$cipi->zeroTrust()->joinMesh(ZeroTrust::TAILSCALE, $authKey, ['hostname' => 'web1', 'tags' => ['cipi']]);
+$cipi->zeroTrust()->joinMesh(ZeroTrust::NETBIRD, $setupKey, ['control_url' => 'https://netbird.example.com']);
+$cipi->zeroTrust()->lockMesh('ssh');          // 22 on the mesh only
+$cipi->zeroTrust()->lockMesh('http');         // 80/443 on the mesh only
+$cipi->zeroTrust()->unlockMesh('ssh');
+$cipi->zeroTrust()->tailscaleSsh(true);
+$cipi->zeroTrust()->leaveMesh();
+```
+
+Options of `joinMesh()`: `hostname`, `control_url`, `direct`, `accept_dns`, `accept_routes`, and for Tailscale `tags`, `ssh`, `reauth`. The key is sent once and is neither stored nor returned; without one, a client already connected on the server is adopted.
+
+The server [refuses what would lock people out](https://cipi.sh/docs/mesh-network#panel-guards): a `ValidationException` whose message is the reason — nobody has signed in over the mesh yet, the node key can expire, your call reaches the API on the address the lock would close. Nothing is retried. The tunnel itself is changed with `cipi zt` on the server.
 
 ## Security 
 
