@@ -74,6 +74,8 @@ The same settings can live in your repository in the [`node:` section of cipi.ym
 | --- | --- |
 | Deploy fails: no index.html | `--output` points at the wrong build folder |
 | SSR release never goes live | It must answer the health path within 60 s; check `--start` and the logs |
+| Deploy stops at `node:install` or `node:build`: `exceeded the timeout of 300 seconds` | The recipe was written by an old release: `cipi self-update` gives the install and the build [30 minutes each](/docs/deploying#time-limits) |
+| The build is slow, or passes some days and not others | It is short of memory, or the server is busy: [what to check](/docs/deploying#time-limits) |
 
 ## Questions {#questions}
 

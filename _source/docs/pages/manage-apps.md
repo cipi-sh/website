@@ -20,7 +20,7 @@ Everything you do to an app after creating it: inspect, change, convert, clone, 
 | `cipi app edit myapp --branch=develop` | Deploy another branch (also updates `CIPI_DEPLOY_BRANCH`) |
 | `cipi app edit myapp --env=staging` | New environment label: `APP_ENV`, `CIPI_ENV`, and reads `cipi-staging.yml` |
 | `cipi app edit myapp --repository=git@…` | Attach or change the repository (e.g. turn an SFTP site into a Git one) |
-| `cipi app edit myapp --node-build='npm ci && npm run build'` | Front-end build in every deploy; `--no-node-build` removes it |
+| `cipi app edit myapp --node-build='npm ci && npm run build'` | Front-end build in every deploy, with [30 minutes](/docs/deploying#time-limits) to finish; `--no-node-build` removes it |
 | `cipi app edit myapp --node-version=24` | Pin Node for this app's builds; `default` follows the server |
 | `cipi app edit myapp --predeploy-snapshot` | Dump the database before every deploy ([Safe deploy](/docs/safe-deploy)) |
 | `cipi app convert myapp --to=octane\|fpm` | Switch runtime ([Laravel Octane](/docs/octane)) |

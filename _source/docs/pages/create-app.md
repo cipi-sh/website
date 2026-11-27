@@ -50,7 +50,7 @@ $ cipi app create --user=myapp-stg --domain=staging.myapp.com \
 | `--octane` | Serve with Octane (FrankenPHP) instead of PHP-FPM | off |
 | `--engine` | `mariadb` or `pgsql` (after `cipi db install pgsql`) | `mariadb` |
 | `--valkey` | `shared` to use the server's Valkey instead of the app's own | own instance |
-| `--node-build` | Asset build run in every deploy (npm, npx, yarn, pnpm, bun, node) | none |
+| `--node-build` | Asset build run in every deploy (npm, npx, yarn, pnpm, bun, node), with [30 minutes](/docs/deploying#time-limits) to finish | none |
 | `--env` | Environment label: sets `APP_ENV` and picks `cipi-<env>.yml` | `production` |
 
 ## After creation {#after}

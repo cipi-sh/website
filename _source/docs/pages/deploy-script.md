@@ -22,7 +22,7 @@ $ cipi app deploy-config myapp --predeploy-snapshot
 | `--storage-link` | `storage:link` | on |
 | `--queue-restart`, `--horizon-terminate` | Reload workers / Horizon | on |
 | `--extra-artisan` | More Artisan commands after migrations | none |
-| `--node-build` | Front-end build before the swap (npm, yarn, pnpm, bun) | none |
+| `--node-build` | Front-end build before the swap (npm, yarn, pnpm, bun). It may run for [30 minutes](/docs/deploying#time-limits), where every other step has 5 | none |
 | `--predeploy-snapshot` | Database dump before migrations | off |
 
 Saving regenerates `deploy.php` from Cipi's template. Also via REST (`GET|PUT /api/apps/{name}/deploy-config`), MCP and the panel's Deploy tab. The same settings can live in [cipi.yml](/docs/yml).
@@ -49,6 +49,14 @@ after('artisan:migrate', 'app:warm');
 | `after('deploy:symlink', …)` | Notifications, cache purges — e.g. [emptying the page cache](/docs/page-cache#recipe) from a recipe of your own (a deploy run by Cipi empties it by itself) |
 
 The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → **symlink** → restart workers → cleanup.
+
+**A task of your own has 5 minutes per command**, like every step but the build ([time limits](/docs/deploying#time-limits)). Give a long one its own limit, in seconds:
+
+```php
+task('app:import', function () {
+    run('{{bin/php}} {{release_path}}/artisan app:import-catalog', timeout: 1200);
+});
+```
 
 **Each step runs once.** A Laravel deploy runs `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` one time each — the deploy log shows one `artisan:migrate` and one `artisan:optimize` — and a step turned off with `--no-migrate` or `--no-optimize` is really skipped. A log that shows them twice comes from a recipe written by an old release: `cipi self-update` rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.
 

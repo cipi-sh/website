@@ -367,7 +367,7 @@ $ cipi app create --user=myapp-stg --domain=staging.myapp.com \
 | `--octane` | Serve with Octane (FrankenPHP) instead of PHP-FPM | off |
 | `--engine` | `mariadb` or `pgsql` (after `cipi db install pgsql`) | `mariadb` |
 | `--valkey` | `shared` to use the server's Valkey instead of the app's own | own instance |
-| `--node-build` | Asset build run in every deploy (npm, npx, yarn, pnpm, bun, node) | none |
+| `--node-build` | Asset build run in every deploy (npm, npx, yarn, pnpm, bun, node), with [30 minutes](https://cipi.sh/docs/deploying#time-limits) to finish | none |
 | `--env` | Environment label: sets `APP_ENV` and picks `cipi-.yml` | `production` |
 
 ## After creation 
@@ -837,6 +837,8 @@ The same settings can live in your repository in the [`node:` section of cipi.ym
 | --- | --- |
 | Deploy fails: no index.html | `--output` points at the wrong build folder |
 | SSR release never goes live | It must answer the health path within 60 s; check `--start` and the logs |
+| Deploy stops at `node:install` or `node:build`: `exceeded the timeout of 300 seconds` | The recipe was written by an old release: `cipi self-update` gives the install and the build [30 minutes each](https://cipi.sh/docs/deploying#time-limits) |
+| The build is slow, or passes some days and not others | It is short of memory, or the server is busy: [what to check](https://cipi.sh/docs/deploying#time-limits) |
 
 ## Questions 
 
@@ -935,7 +937,7 @@ Everything you do to an app after creating it: inspect, change, convert, clone, 
 | `cipi app edit myapp --branch=develop` | Deploy another branch (also updates `CIPI_DEPLOY_BRANCH`) |
 | `cipi app edit myapp --env=staging` | New environment label: `APP_ENV`, `CIPI_ENV`, and reads `cipi-staging.yml` |
 | `cipi app edit myapp --repository=git@…` | Attach or change the repository (e.g. turn an SFTP site into a Git one) |
-| `cipi app edit myapp --node-build='npm ci && npm run build'` | Front-end build in every deploy; `--no-node-build` removes it |
+| `cipi app edit myapp --node-build='npm ci && npm run build'` | Front-end build in every deploy, with [30 minutes](https://cipi.sh/docs/deploying#time-limits) to finish; `--no-node-build` removes it |
 | `cipi app edit myapp --node-version=24` | Pin Node for this app's builds; `default` follows the server |
 | `cipi app edit myapp --predeploy-snapshot` | Dump the database before every deploy ([Safe deploy](https://cipi.sh/docs/safe-deploy)) |
 | `cipi app convert myapp --to=octane\|fpm` | Switch runtime ([Laravel Octane](https://cipi.sh/docs/octane)) |
@@ -1677,7 +1679,7 @@ Restart & verify | workers, health check
 > Horizon and the queue workers finish the job in hand and start again on the new code; Octane and Reverb reload. With a health check set, Cipi probes the site and can roll back automatically.
 ```
 
-Deployer and Composer always use **the app's PHP version**, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a [front-end build](https://cipi.sh/docs/manage-apps#edit) run it before the swap.
+Deployer and Composer always use **the app's PHP version**, whatever started the deploy. Old releases beyond the last five are pruned. Octane apps reload Octane; apps with a [front-end build](https://cipi.sh/docs/manage-apps#edit) run it right after Composer, well before the swap, with [more time than the other steps](#time-limits).
 
 Workers are not stopped before the swap: the deploy never waits for a long job, and jobs keep running on the previous release until it is live. Write migrations the previous release can live with for a minute — add columns before using them, drop them a release later — as you would for any zero-downtime deploy. See [workers during deploys](https://cipi.sh/docs/workers#deploys).
 
@@ -1723,6 +1725,40 @@ The success notice is sent only **after** the post-deploy health check, so it ne
 
 A failed deploy releases its own lock, and the lock of an interrupted one is removed by the next deploy, automatic or by hand, when no deploy of the app is alive (the deploy log says so). `--unlock` is only for clearing it right away.
 
+## How long a step may take 
+
+Every command of a deploy runs against a clock, so one that hangs cannot hold the deploy, and its lock, for ever. The front-end build is the step that is long by nature, and has a clock of its own.
+
+| Step | May run for |
+| --- | --- |
+| Clone, Composer, migrations, `optimize`, every other command | 5 minutes each |
+| The front-end build of a Laravel app ([`--node-build`](https://cipi.sh/docs/deploy-script#options)) | **30 minutes** |
+| A [Node app](https://cipi.sh/docs/node-apps): installing the packages, and building | **30 minutes** each |
+| A deploy started from the [web panel](https://cipi.sh/docs/gui) or the [REST API](https://cipi.sh/docs/api), from start to end | 1 hour |
+
+When a step runs out of time the deploy fails like any other failed deploy: **the previous release keeps serving**, the lock is released, and `cipi deploy` says which step it was, right under `Deploy failed`:
+
+```bash
+$ cipi deploy myapp
+…
+[ERROR] Deploy failed (exit 1)
+[WARN] The step artisan:migrate was stopped after 300 seconds, the most Deployer gives a command.
+[WARN] What it was doing when it stopped: cipi deploy myapp --log
+```
+
+The log has a time on every line: the gap before the error is the step that took it.
+
+**A build that passes some days and not others** is a build that is close to its limit, and what tips it over is the server. The usual reasons, most common first:
+
+| Reason | What to do |
+| --- | --- |
+| The build needs more memory than the server has free, and the server swaps | Memory and swap at the time of the deploy are in the [metrics](https://cipi.sh/docs/metrics), and the panel marks each deploy on their charts. More RAM is the fix that lasts |
+| It runs next to something heavy: a backup, another app's deploy, a queue at full load | Deploy at another moment, or move the nightly work |
+| `npm ci` downloads every package again on each deploy, from a registry that is slow that day | Nothing to fix: it is inside the 30 minutes. A lockfile in the repository keeps the install the same every time |
+| The build asks a question and waits for an answer nobody gives | Make the script non-interactive: `CI=true` in front of it in `package.json` (Node apps are built with it already) |
+
+> [!note] The limits are fixed. A build that cannot finish in 30 minutes on the server is better done in CI, with the built assets committed to the branch Cipi deploys.
+
 ## Pushes during a deploy 
 
 A push that arrives while the app is deploying is **queued, not lost**: it deploys as soon as the running deploy is over, post-deploy steps and health check included. Several pushes in the meantime make one deploy, of the branch as it is then. `cipi deploy myapp` by hand while a deploy runs stops at once with *A deploy of 'myapp' is running* (exit 1), before touching anything.
@@ -1752,6 +1788,8 @@ Deploy, follow the release and read the audit from the browser. The [web panel](
 | *A deploy of 'myapp' is running* | One is in flight: `cipi deploy myapp --status`. A push waits in the queue by itself |
 | A push did not deploy | The same commit failed before and is [paused](#paused): push a fix, or `--unlock` to let it build again |
 | Composer fails on PHP version | Align `--php` with what `composer.lock` needs |
+| `The command "… node-build.sh …" exceeded the timeout of 300 seconds` at `cipi:node_build` | The recipe was written by an old release, which gave the build the 5 minutes of every other step: `cipi self-update` gives every app's recipe the build's [30 minutes](#time-limits). A recipe you edited by hand is left alone — `cipi deploy` then names the command that regenerates it |
+| `exceeded the timeout` at another step | That command ran for [5 minutes](#time-limits). `cipi deploy myapp --log` shows what it was doing. A migration that needs longer is better taken out of the deploy (`cipi app deploy-config myapp --no-migrate`) and run by hand once the release is live: `cipi app artisan myapp migrate --force` |
 | Migration fails | The old release keeps serving; fix the migration and deploy again |
 
 ## Questions 
@@ -1761,6 +1799,8 @@ Deploy, follow the release and read the audit from the browser. The [web panel](
 | Does a failed deploy take the site down? | No. The new release goes live only after every step succeeded. |
 | Do I have to unlock after a failure? | No. A failed deploy releases its lock, an interrupted one is cleared by the next deploy, and a new push deploys even after a failed commit. |
 | How do I go back? | `cipi deploy myapp --rollback`, instant. |
+| How long can a deploy take? | Each step has [its own limit](#time-limits): 5 minutes, 30 for the front-end build. A deploy from the panel or the API has an hour in all. |
+| My build takes more than 5 minutes. Is that a problem? | No: the build has 30. |
 | Are migrations rolled back too? | No: rollback restores code. Use a [pre-deploy snapshot](https://cipi.sh/docs/safe-deploy) for data. |
 
 
@@ -3067,7 +3107,7 @@ $ cipi app deploy-config myapp --predeploy-snapshot
 | `--storage-link` | `storage:link` | on |
 | `--queue-restart`, `--horizon-terminate` | Reload workers / Horizon | on |
 | `--extra-artisan` | More Artisan commands after migrations | none |
-| `--node-build` | Front-end build before the swap (npm, yarn, pnpm, bun) | none |
+| `--node-build` | Front-end build before the swap (npm, yarn, pnpm, bun). It may run for [30 minutes](https://cipi.sh/docs/deploying#time-limits), where every other step has 5 | none |
 | `--predeploy-snapshot` | Database dump before migrations | off |
 
 Saving regenerates `deploy.php` from Cipi's template. Also via REST (`GET|PUT /api/apps/{name}/deploy-config`), MCP and the panel's Deploy tab. The same settings can live in [cipi.yml](https://cipi.sh/docs/yml).
@@ -3092,6 +3132,14 @@ after('artisan:migrate', 'app:warm');
 | `after('deploy:symlink', …)` | Notifications, cache purges — e.g. [emptying the page cache](https://cipi.sh/docs/page-cache#recipe) from a recipe of your own (a deploy run by Cipi empties it by itself) |
 
 The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → **symlink** → restart workers → cleanup.
+
+**A task of your own has 5 minutes per command**, like every step but the build ([time limits](https://cipi.sh/docs/deploying#time-limits)). Give a long one its own limit, in seconds:
+
+```php
+task('app:import', function () {
+    run('{{bin/php}} {{release_path}}/artisan app:import-catalog', timeout: 1200);
+});
+```
 
 **Each step runs once.** A Laravel deploy runs `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` one time each — the deploy log shows one `artisan:migrate` and one `artisan:optimize` — and a step turned off with `--no-migrate` or `--no-optimize` is really skipped. A log that shows them twice comes from a recipe written by an old release: `cipi self-update` rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.
 
@@ -7270,6 +7318,8 @@ The Overview's details say where to connect and as whom: the app's Linux **user*
 
 Deploys, SSL and database operations run as async jobs. The overlay polls `GET /api/jobs/{id}`, shows elapsed time and colour-codes the output; closing it leaves the job running.
 
+A job that fails says why in one line above its output, and a failed deploy adds what to check. A deploy stopped because a step ran out of time — the front-end build has [30 minutes, every other step 5](https://cipi.sh/docs/deploying#time-limits) — names the step and how long it ran. The panel follows a deploy for up to an hour.
+
 ### Databases and server
 
 ### Metrics
@@ -8249,7 +8299,7 @@ Some routes have no ability of their own and sit under an area's: `nginx-*` for 
 
 ## REST endpoints 
 
-Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. **A job has a time limit**: an hour for a deploy (its front-end build alone may take [30 minutes](https://cipi.sh/docs/deploying#time-limits)), ten minutes for any other; one that runs out of it ends as `failed` with `exit_code` 124, the output it had, and a line that says so. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 The API and the server's Cipi are updated separately (`cipi api update`, `cipi self-update`). A route whose command the server's Cipi doesn't have yet answers `503` and says so: update the server.
 
