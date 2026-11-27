@@ -49,9 +49,11 @@ SFTP as the app user to `~/htdocs` (the credentials are in the create summary), 
 
 ```bash
 $ ssh blog@203.0.113.10
-$ cd ~/htdocs && rm -f index.html
+$ cd ~/htdocs
 $ curl -sO https://wordpress.org/latest.tar.gz && tar xzf latest.tar.gz --strip-components=1 && rm latest.tar.gz
 ```
+
+Until then the domain shows a [Coming soon page](/docs/custom-apps#coming-soon); WordPress takes its place as soon as its `index.php` is there. On an app created with an older Cipi, remove its placeholder first: `rm -f ~/htdocs/index.html`.
 
 Open `https://blog.example.com` (after step 3) and run the installer with database `blog`, user `blog` and the saved password, host `127.0.0.1`.
 
