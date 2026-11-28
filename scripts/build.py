@@ -184,25 +184,22 @@ def og_url(key: str) -> str:
     h = hashlib.sha1(open(f, "rb").read()).hexdigest()[:8]
     return f"{SITE}/img/og/{key}.jpg?v={h}"
 
-def toc_html(toc: list[tuple[int, str, str]], edit_slug: str | None) -> str:
-    items = [t for t in toc if t[0] == 2] if len(toc) > 28 else toc
-    if items and not any(t[0] == 2 for t in items):
-        items = [(2, h, x) for _, h, x in items]
-    out = ['<nav class="docs-toc" aria-label="On this page">']
-    if items:
-        out.append("<h2>On this page</h2><ol>")
-        for lvl, hid, text in items:
-            out.append(f'<li><a class="l{lvl}" href="#{hid}">{esc(text)}</a></li>')
-        out.append("</ol>")
-    out.append('<div class="toc-tools">')
+EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>'
+REPORT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.2v.3"/></svg>'
+TOP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>'
+
+
+def doc_foot(edit_slug: str | None) -> str:
+    """Edit / report / back-to-top links at the end of every docs page."""
+    out = ['<footer class="doc-foot">']
     if edit_slug:
-        out.append(f'<a href="{REPO_EDIT}{edit_slug}{src_ext(edit_slug)}" data-edit target="_blank" rel="noopener">Edit this page on GitHub</a>')
-    out.append('<a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">Report a problem</a>')
-    out.append('<a href="#main">Back to top</a></div></nav>')
-    return "\n".join(out)
+        out.append(f'<a href="{REPO_EDIT}{edit_slug}{src_ext(edit_slug)}" data-edit target="_blank" rel="noopener">{EDIT_ICON}Edit this page on GitHub</a>')
+    out.append(f'<a href="https://github.com/cipi-sh/website/issues/new" target="_blank" rel="noopener">{REPORT_ICON}Report a problem</a>')
+    out.append(f'<a class="doc-foot-top" href="#main">{TOP_ICON}Back to top</a></footer>')
+    return "".join(out)
 
 
-def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs: list[tuple[str, str]],
+def page_shell(*, slug: str, title: str, desc: str, body: str, foot: str, crumbs: list[tuple[str, str]],
                uses: set[str], extra_body_attrs: str = "", robots: str = "index, follow",
                canonical: str | None = None, pager: str = "", meta: str = "", lead: str | None = None) -> str:
     url = canonical or (f"{SITE}/docs/" if slug == "index" else f"{SITE}/docs/{slug}")
@@ -256,7 +253,7 @@ def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs:
 </head>
 <body class="docs"{extra_body_attrs}>
 <!-- site:nav -->
-{chrome("nav", wide=True)}<!-- /site:nav -->
+{chrome("nav")}<!-- /site:nav -->
 <button class="docs-menu-btn" type="button" aria-controls="docsSide" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Docs menu</button>
 <div class="docs-shell">
 {sidebar(slug)}
@@ -272,8 +269,8 @@ def page_shell(*, slug: str, title: str, desc: str, body: str, toc: str, crumbs:
 {body}
 </div>
 {pager}
+{foot}
 </main>
-{toc}
 </div>
 </div>
 <!-- site:footer -->
@@ -352,15 +349,15 @@ def build_docs() -> list[dict]:
         else:
             raw = read(SRC, "docs", "pages", f"{p['slug']}.html")
         body, uses = expand_components(raw)
-        body, toc = process_headings(body)
+        body, _ = process_headings(body)
         g = p["group"]
-        crumbs = [("Docs", "/docs/"), (g["title"], f"/docs/{g['landing']}"), (p["title"], f"/docs/{p['slug']}")]
+        crumbs = [("Home", "/"), ("Docs", "/docs/"), (g["title"], f"/docs/{g['landing']}"), (p["title"], f"/docs/{p['slug']}")]
         attrs = ""
         if p["slug"] in ANCHORS:  # cli-client / php-sdk keep their old URL
             attrs = f' data-legacy-page="{p["slug"]}"'
         meta = f'<div class="docs-meta"><span>{esc(g["title"])}</span></div>'
         out = page_shell(slug=p["slug"], title=p["title"], desc=p["desc"], body=body,
-                         toc=toc_html(toc, p["slug"]), crumbs=crumbs, uses=uses,
+                         foot=doc_foot(p["slug"]), crumbs=crumbs, uses=uses,
                          extra_body_attrs=attrs, pager=guides_box(gmap.get(p["slug"], [])) + pager_html(p["slug"]), meta=meta)
         write(os.path.join(ROOT, "docs", f"{p['slug']}.html"), out)
         written.append(p["slug"])
@@ -388,8 +385,8 @@ def build_docs() -> list[dict]:
             for p in g["pages"])
         body = f'<ul class="landing-list">{items}</ul>'
         attrs = f' data-legacy-page="{slug}"' if slug in ANCHORS else ""
-        out = page_shell(slug=slug, title=g["title"], desc=g["intro"], body=body, toc=toc_html([], None),
-                         crumbs=[("Docs", "/docs/"), (g["title"], f"/docs/{slug}")], uses=set(),
+        out = page_shell(slug=slug, title=g["title"], desc=g["intro"], body=body, foot=doc_foot(None),
+                         crumbs=[("Home", "/"), ("Docs", "/docs/"), (g["title"], f"/docs/{slug}")], uses=set(),
                          extra_body_attrs=attrs)
         write(os.path.join(ROOT, "docs", f"{slug}.html"), out)
         written.append(slug)
@@ -401,7 +398,7 @@ def build_docs() -> list[dict]:
         items = "".join(f'<li><a href="/docs/{s}"><b>{esc(BY_SLUG[s]["title"])}</b><span>{esc(BY_SLUG[s]["desc"])}</span></a></li>' for s in moved)
         body = f'<p>The pages that used to live here now each have their own page:</p><ul class="landing-list">{items}</ul>'
         out = page_shell(slug=old, title="This page has moved", desc="The advanced topics are now separate pages.",
-                         body=body, toc=toc_html([], None), crumbs=[("Docs", "/docs/"), ("Moved", f"/docs/{old}")],
+                         body=body, foot=doc_foot(None), crumbs=[("Home", "/"), ("Docs", "/docs/"), ("Moved", f"/docs/{old}")],
                          uses=set(), robots="noindex, follow", canonical=f"{SITE}/docs/{target}",
                          extra_body_attrs=f' data-legacy-page="{old}" data-legacy-default="{target}"')
         write(os.path.join(ROOT, "docs", f"{old}.html"), out)
@@ -422,7 +419,7 @@ def build_docs() -> list[dict]:
     out = page_shell(slug="index", title="Documentation",
                      desc="Everything about Cipi: install it, create and deploy apps, domains and SSL, backups, security, the web panel and the API.",
                      lead="Install Cipi, create and deploy apps, and run them in production. Commands are written the way the cipi user types them, sudo cipi …; from a root shell, leave out sudo. Press / anywhere to search.",
-                     body=body, toc=toc_html([], None), crumbs=[("Docs", "/docs/")], uses=set(),
+                     body=body, foot=doc_foot(None), crumbs=[("Home", "/"), ("Docs", "/docs/")], uses=set(),
                      extra_body_attrs=' data-legacy-page="index"')
     write(os.path.join(ROOT, "docs", "index.html"), out)
 
@@ -479,6 +476,11 @@ def build_landings() -> None:
             f'<a href="{h}"{" aria-current=\"page\"" if h == path else ""}><small>Cipi</small><b>{esc(t)}</b><span>{esc(x)}</span></a>'
             for h, t, x in SIBLINGS) + "</div>"
         body = body.replace("{{SIBLINGS}}", sib)
+        crumbs = (f'<div class="page-w lp-crumbs"><ol class="crumbs"><li><a href="/">Home</a></li>'
+                  f'<li aria-current="page">{esc(meta["crumb"])}</li></ol></div>')
+        body, n = re.subn(r'(<section class="lp-hero[^"]*"[^>]*>\n?)', lambda h: h.group(1) + "    " + crumbs + "\n", body, count=1)
+        if not n:
+            sys.exit(f"landing {f}: no .lp-hero section to put the breadcrumb in")
         body, uses = expand_components(body)
         key = path.strip("/")
         og = og_url(key)
