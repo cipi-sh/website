@@ -36,7 +36,7 @@ cipi CLI | does the work, as on SSH
 | Octane | For an Octane app: the PHP that answers the requests next to the PHP that runs Composer, artisan, cron and the workers, a warning when they are two versions, [**Switch PHP** by its number](/docs/octane#octane-panel), restart, update the FrankenPHP build |
 | App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order), a block of variables pasted or [edited as text](/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
-| Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations; **[SFTP destinations](/docs/backups#sftp)** — a VPS, a Hetzner Storage Box — added, tested, changed and removed, with the key to install on the remote (no password, no secret through the panel) |
+| Backups | **[Set up](/docs/backups#setup)** on a server without backups — an S3 bucket, an SFTP server or this server only. A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations; **S3 buckets** added, tested, changed and removed — the secret key sent once and never kept; **[SFTP destinations](/docs/backups#sftp)** — a VPS, a Hetzner Storage Box — with the key to install on the remote; the **encryption key** shown and rotated; the **retention** previewed and applied |
 | Transfer | [Move apps to another server](/docs/sync#panel) as a wizard: which apps, with databases and files or not, the target from the panel's servers or by address, the connection checked first, the transfer as a job with its output — encryption handled by the servers, no passphrase to type; *Bring apps here* from the other side |
 | Updates | [How the server updates Cipi](/docs/self-update#panel): only releases signed by a trusted key (the first time, with the fingerprint you compared — signed releases are not available at the moment), a delay before a new release is installed; the keys trusted, the release waiting, why the last one wasn't installed. Starting an update stays the server's |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics)) |
@@ -53,7 +53,7 @@ cipi CLI | does the work, as on SSH
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs.
 
-> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](/docs/design-decisions#packages), monitor thresholds, changes to the Cloudflare tunnel, S3 secret keys, starting a self-update and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
+> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](/docs/design-decisions#packages), monitor thresholds, changes to the Cloudflare tunnel, downloading a backup run, starting a self-update and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
 @section gui-tour
 
@@ -189,7 +189,29 @@ A job that fails says why in one line above its output, and a failed deploy adds
 
 ### Backups, transfers and updates
 
-**Backups**: what each profile takes, against every app and database; the destinations — the server's disk, S3 buckets and SFTP servers. *Add an SFTP server* makes the key on the server and shows its public half with the command that installs it on the remote — `ssh-copy-id -s` for a Hetzner Storage Box, whose preset fills in port 23 — then *Test* writes a file there and removes it. See [SFTP destinations](/docs/backups#sftp).
+**Backups** starts here on a server without them: *Use an S3 bucket*, *Use an SFTP server* or *On this server only* — then a nightly profile takes every app and every database there. See [where backups go](/docs/backups#setup).
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-backups-setup-light.webp" width="1168" height="1073" alt="Backups not configured on the staging server: Use an S3 bucket, Use an SFTP server, On this server only; the S3 form open with Hetzner Object Storage picked, the bucket, region, endpoint, access key and a masked secret key" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-backups-setup.webp" width="1168" height="1073" alt="Backups not configured on the staging server: Use an S3 bucket, Use an SFTP server, On this server only; the S3 form open with Hetzner Object Storage picked, the bucket, region, endpoint, access key and a masked secret key" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>A server without backups: the default bucket on Hetzner, typed in — nothing is saved until the bucket answers.</figcaption>
+</figure>
+
+Then: what each profile takes, against every app and database; the destinations — the server's disk, S3 buckets and SFTP servers. *Add an S3 bucket*: a provider fills in the endpoint and the region; the server reaches the bucket with the keys **before it saves anything**, and the secret key goes to it once, on its standard input — the panel keeps nothing. *Edit* leaves a key or a secret empty to keep the one the server has.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-backups-s3-light.webp" width="1168" height="797" alt="Backups destinations: local and the default s3 bucket with Test and Edit; below, a new S3 bucket offsite on Cloudflare R2 with the account ID still to fill in in the endpoint" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-backups-s3.webp" width="1168" height="797" alt="Backups destinations: local and the default s3 bucket with Test and Edit; below, a new S3 bucket offsite on Cloudflare R2 with the account ID still to fill in in the endpoint" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>A second bucket on Cloudflare R2: the endpoint says what to fill in.</figcaption>
+</figure>
+
+*Add an SFTP server* makes the key on the server and shows its public half with the command that installs it on the remote — `ssh-copy-id -s` for a Hetzner Storage Box, whose preset fills in port 23 — then *Test* writes a file there and removes it. See [SFTP destinations](/docs/backups#sftp). **Encryption key**: *Show the key* (logged and notified on the server) and *Rotate*. **Stored runs**: *Preview the retention* and *Apply the retention*.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
@@ -211,13 +233,13 @@ A job that fails says why in one line above its output, and a failed deploy adds
 <figcaption>Transfer: production's apps to staging, the connection checked.</figcaption>
 </figure>
 
-**Updates** has the two optional safeguards of [self-update](/docs/self-update#panel): only signed releases, and a delay — here 12 hours, with a release waiting for it.
+**Updates** has the optional safeguards of [self-update](/docs/self-update#panel): a delay — here 12 hours, with a release waiting for it — and *Install only signed releases*, which says it is not available yet: Cipi releases are not signed at the moment.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-updates-light.webp" width="1440" height="900" alt="Updates tab: Install only signed releases unchecked, Wait before installing a new release set to 12 hours; beside it the state — signature not checked, delay 12 hours, no trusted keys yet, a release waiting and why it was held" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-updates.webp" width="1440" height="900" alt="Updates tab: Install only signed releases unchecked, Wait before installing a new release set to 12 hours; beside it the state — signature not checked, delay 12 hours, no trusted keys yet, a release waiting and why it was held" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-updates-light.webp" width="1440" height="900" alt="Updates tab: Install only signed releases greyed out — not available yet — Wait before installing a new release set to 12 hours; beside it the state — signature not checked, delay 12 hours, no trusted keys yet, a release waiting and why it was held" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-updates.webp" width="1440" height="900" alt="Updates tab: Install only signed releases greyed out — not available yet — Wait before installing a new release set to 12 hours; beside it the state — signature not checked, delay 12 hours, no trusted keys yet, a release waiting and why it was held" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Updates: a 12-hour delay, and the release it is holding.</figcaption>
 </figure>

@@ -172,17 +172,27 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `POST` | `/api/dbs/engines/install` | `dbs-manage` |
 | `GET` | `/api/backups`, `/api/backups/runs` | `backups-view` |
 | `POST`, `PUT`, `DELETE` | `/api/backups/run`, `/verify`, `/destinations/test`, `/profiles[/{name}]`, `…/enable`, `…/disable` | `backups-manage` |
-| `POST` | `/api/backups/destinations` — an SFTP destination: `{type: "sftp", name, host, user, port?, path?}` | `backups-manage` |
-| `PUT`, `DELETE` | `/api/backups/destinations/{name}` — change it (`host`, `port`, `user`, `path`, `new_key: true`), remove it | `backups-manage` |
-| `GET` | `/api/backups/destinations/{name}/key` — its public key | `backups-view` |
+| `PUT` | `/api/backups/config` — where backups go: `{type: "local"}`, `{type: "s3", bucket, key, secret, region?, endpoint?}` (the default bucket) or `{type: "sftp", host, user, port?, path?, name?}` | `backups-manage` |
+| `POST` | `/api/backups/destinations` — an S3 bucket `{type: "s3", name, bucket, key, secret, region?, endpoint?}` or an SFTP server `{type: "sftp", name, host, user, port?, path?}` | `backups-manage` |
+| `PUT`, `DELETE` | `/api/backups/destinations/{name}` — change it (S3: `bucket`, `key`, `secret`, `region`, `endpoint` — `none` for AWS; SFTP: `host`, `port`, `user`, `path`, `new_key: true`), remove it | `backups-manage` |
+| `GET` | `/api/backups/destinations/{name}/key` — an SFTP destination's public key | `backups-view` |
+| `GET`, `POST` | `/api/backups/key` (the encryption key, once: logged and notified on the server), `/api/backups/key/rotate` | `backups-manage` |
+| `POST` | `/api/backups/prune` (`profile?`, `dry_run?`) — the retention now, a job `backup-prune` | `backups-manage` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](/docs/backups#exclude-paths)). **Only SFTP destinations are added over the API** ([SFTP](/docs/backups#sftp)): Cipi makes the key on the server, and `POST` answers `201` with the destination and its `public_key` — the remote must accept it before `POST /api/backups/destinations/test` with `{"name": "box"}` passes. Nothing secret is sent or returned. An S3 bucket takes a secret key, so it is added on the server with `cipi backup destination add`; a `POST` of another `type` is a `422`. `DELETE` refuses (`422`) a destination a profile still uses; the archives on it stay there.
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](/docs/backups#exclude-paths)). **Setting backups up** ([where backups go](/docs/backups#setup)): `PUT /api/backups/config` answers the backup status after it in `data`, with `type` and `destination` — for an SFTP server its fields and the `public_key` it has to accept. A first setup makes the nightly profile. **An SFTP destination** ([SFTP](/docs/backups#sftp)): Cipi makes the key on the server, and `POST` answers `201` with the destination and its `public_key` — the remote must accept it before `POST /api/backups/destinations/test` with `{"name": "box"}` passes. **An S3 bucket** is reached with its keys before it is saved: a wrong key is a `422` that changes nothing. **A secret key never rides a command line**: the API writes it to the CLI's standard input (`--secret-stdin`) in a synchronous call — never in a job, never stored, never answered; a key left out of a `PUT` stays as the server has it. `DELETE` refuses (`422`) a destination a profile still uses; the archives on it stay there. Downloading a run (`cipi backup fetch`) is not in the API. Every change of where archives go is notified on the server (`backup_config`).
 
 ```bash
 $ curl -X POST https://api.example.com/api/backups/destinations \
     -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
     -d '{"type": "sftp", "name": "box", "host": "u123456.your-storagebox.de", "user": "u123456", "port": 23, "path": "cipi"}'
 {"data": {"name": "box", "type": "sftp", "host": "u123456.your-storagebox.de", "port": 23, "user": "u123456", "path": "cipi", "public_key": "ssh-ed25519 AAAA… cipi-backup-box@web1"}}
+```
+
+```bash
+$ curl -X POST https://api.example.com/api/backups/destinations \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"type": "s3", "name": "offsite", "bucket": "acme-offsite", "key": "AKIA…", "secret": "…", "region": "auto", "endpoint": "https://<account-id>.r2.cloudflarestorage.com"}'
+{"data": {"name": "offsite", "type": "s3", "bucket": "acme-offsite", "region": "auto", "endpoint": "https://<account-id>.r2.cloudflarestorage.com"}}
 ```
 
 ### Server {#endpoints-server}

@@ -207,7 +207,22 @@ $cipi->backups()->destinationKey('box');
 $cipi->backups()->removeDestination('box');             // no profile may use it; its archives stay
 ```
 
-S3 destinations and their keys are configured on the server and never returned. See [SFTP destinations](/docs/backups#sftp).
+Setting backups up — this server only, the default bucket or an SFTP server — more S3 buckets, the encryption key and the retention (cipi/api 1.49+, Cipi 5.19.0+; an SFTP setup 5.19.1+):
+
+```php
+$cipi->backups()->configureS3('acme-backups', 'AKIA…', $secret, endpoint: 'https://fsn1.your-objectstorage.com');
+$setup = $cipi->backups()->configureSftp('u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi');
+$setup['destination']['public_key'];                     // install it on the remote, then testDestinations('sftp')
+$cipi->backups()->configureLocalOnly();                  // this server only
+
+$cipi->backups()->addS3Destination('offsite', 'acme-offsite', 'AKIA…', $secret, 'auto', 'https://<account-id>.r2.cloudflarestorage.com');
+$cipi->backups()->updateS3Destination('offsite', ['region' => 'eu-west-1']);   // a key or a secret left out stays
+$cipi->backups()->encryptionKey()['data']['key'];       // keep it off the server; logged and notified there
+$cipi->backups()->rotateKey();
+$cipi->wait($cipi->backups()->prune(dryRun: true));     // what the retention would delete — a job
+```
+
+Every bucket is reached with its keys before it is saved: a wrong key is a `ValidationException` and changes nothing. A secret key goes to the server's CLI on its standard input — never on a command line, never in a job — and no answer carries a credential back. Downloading a run stays on the server. See [Backups from the panel](/docs/backups#panel) and [SFTP destinations](/docs/backups#sftp).
 
 @section sdk-server
 

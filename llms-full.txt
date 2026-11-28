@@ -5507,30 +5507,51 @@ Prune & watch | retention, staleness alert
 > Old runs beyond `--keep`/`--keep-days` are deleted. If a profile stops producing backups, you get a staleness alert.
 ```
 
-## 1. Destinations 
+## 1. Set up: where backups go 
+
+`cipi backup configure` asks first where the archives go, then makes the nightly profile — every app, every database — that sends them there:
 
 ```bash
-$ cipi backup configure          # the default bucket ("s3"); leave empty for local-only
-$ cipi backup destination add offsite --bucket=acme-backups --key=AKIA… --secret=… \
-    --region=eu-central-1 --endpoint=https://eu-central-1.your-objectstorage.com
-$ cipi backup destination add box --type=sftp --host=… --user=… --port=23   # an SFTP server — below
-$ cipi backup destination test   # reach every bucket and SFTP server with its own credentials
-$ cipi backup destination list   # local, s3 and every named destination
-$ cipi backup destination show offsite | edit offsite --region=… | remove offsite   # remove keeps the archives
-$ cipi backup status [--json]    # destinations, profiles, last run, overdue, uncovered
+$ cipi backup configure
+  Where do the backups go?
+    1) local      This server only — a folder here; lost if the server is lost
+    2) s3         An S3 bucket — AWS, Hetzner, Cloudflare R2, DigitalOcean, Backblaze, Scaleway, MinIO…
+    3) sftp       An SFTP server — a VPS with a backup user, a Hetzner Storage Box, a NAS
 ```
 
-| Provider | Endpoint |
-| --- | --- |
-| AWS S3 | leave empty |
-| Cloudflare R2 | `https://.r2.cloudflarestorage.com` |
-| Hetzner Object Storage | `https://.your-objectstorage.com` |
-| DigitalOcean Spaces | `https://.digitaloceanspaces.com` |
-| Backblaze B2 | `https://s3..backblazeb2.com` |
-| Scaleway | `https://s3..scw.cloud` |
-| MinIO | `https://your-minio-host` |
+| Choice | What it sets up | In profiles |
+| --- | --- | --- |
+| **An S3 bucket** | The default bucket: name, access key, secret key (not shown as you type), region, endpoint. The bucket is **reached with the keys before anything is saved** — a wrong key changes nothing | `s3` |
+| **An SFTP server** | A destination with a key Cipi makes for it, printed with how to install it on the remote — then tested, if you say so. [Details below](#sftp) | `sftp` |
+| **This server only** | A folder here (`/var/backups/cipi`). Such a copy is lost with the server: add a bucket or an SFTP server later | `local` |
 
-`local` (`/var/backups/cipi`) is always available. A profile can send each run to several destinations at once.
+The same without questions, for a script — and what [the panel](#panel) runs:
+
+```bash
+$ printf '%s\n' "$SECRET" | cipi backup configure --type=s3 --bucket=acme-backups --key=AKIA… \
+    --secret-stdin --endpoint=https://fsn1.your-objectstorage.com [--region=fsn1]
+$ cipi backup configure --type=sftp --host=u123456.your-storagebox.de --port=23 --user=u123456 --path=cipi [--name=sftp]
+$ cipi backup configure --type=local          # or --local-only
+```
+
+Run it again to change it: what is not given keeps its value (`--region=` alone changes the region; `--endpoint=none` goes back to AWS). An existing profile is never changed by it: add the new destination to its `--dest`. `--json` answers `{configured, type, destination}` — for an SFTP server with the public key to install. `--local-dir=` and `--tmpdir=` move the local folder and the folder archives are built in, at the server's shell only.
+
+## 2. Destinations 
+
+`local` and `s3` (the default bucket) are always there; more destinations get a name of their own — another S3 bucket, or an SFTP server. A profile can send each run to several at once.
+
+```bash
+$ cipi backup destination add offsite --bucket=acme-offsite --key=AKIA… --secret-stdin \
+    --region=auto --endpoint=https://.r2.cloudflarestorage.com .your-objectstorage.com` | `fsn1`, `nbg1`, `hel1` |
+| Cloudflare R2 | `https://.r2.cloudflarestorage.com` | `auto` |
+| DigitalOcean Spaces | `https://.digitaloceanspaces.com` | the Space's (`fra1`…) |
+| Backblaze B2 | `https://s3..backblazeb2.com` | `eu-central-003`… |
+| Scaleway | `https://s3..scw.cloud` | `fr-par`, `nl-ams`, `pl-waw` |
+| MinIO, Wasabi, others | `https://your-host` | as the service says |
+
+**The secret key.** `--secret-stdin` reads it from the first line of standard input, so it is not in `ps`, the shell's history or a log; `--secret=` still works at the server's shell. A key or a secret is printable characters with no space and no quote — the default bucket's are written to `/root/.aws/credentials`. Give Cipi a key limited to its bucket. Every bucket is reached with its keys before it is saved.
+
+**Notified.** Every change of where archives go — `configure`, a destination added, changed or removed, the encryption key rotated — sends the `backup_config` notification (Security), with who did it: the owner of the server hears of it, also when it comes from the panel.
 
 ### SFTP: a VPS, a Storage Box, a NAS 
 
@@ -5561,7 +5582,7 @@ Everything else is the same as for a bucket: retention prunes the old runs there
 
 How to choose, and a step-by-step for a Storage Box: [Backups to a Hetzner Storage Box over SFTP](https://cipi.sh/guides/sftp-backups-hetzner-storage-box).
 
-## 2. Profiles 
+## 3. Profiles 
 
 ```bash
 # every 30 minutes: databases only, on the server, last 48 runs
@@ -5611,18 +5632,18 @@ $ cipi backup profile edit nightly --exclude-paths=    # everything again
 
 Also as `exclude_paths` in a profile of [cipi.yml](https://cipi.sh/docs/yml), in the [web panel](https://cipi.sh/docs/gui) and over the [API](https://cipi.sh/docs/api#endpoints-databases). Which folders to leave out, `cipi.yml` examples for Laravel and WordPress, and how to keep excluded folders safe: [Exclude files and folders from backups](https://cipi.sh/guides/exclude-files-from-backups).
 
-## 3. Encryption 
+## 4. Encryption 
 
 The bucket provider never sees readable data. The manifest stays readable so runs can be listed.
 
 ```bash
-$ cipi backup key show       # store it off-server, now
-$ cipi backup key rotate     # new key for future runs
+$ cipi backup key show       # store it off-server, now (logged and notified)
+$ cipi backup key rotate     # new key for future runs; the old one is kept next to it
 ```
 
 > [!warning] Without the key, an encrypted backup cannot be restored by anyone. Runs taken before a rotation still need the old key.
 
-## 4. Run, verify, restore 
+## 5. Run, verify, restore 
 
 ```bash
 $ cipi backup run [--profile=nightly] [--dry-run] [--detach]
@@ -5640,6 +5661,23 @@ $ tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files
 | Staleness watchdog (hourly) | `backup_stale` when a profile hasn't succeeded in twice its interval |
 | Empty fetch / nothing to verify | Reported as an error, never as success |
 | Prune errors | Logged and alerted, never swallowed |
+
+## From the panel 
+
+Everything above but downloading a run is in the [web panel](https://cipi.sh/docs/gui), on a server's **Backups** tab, and over the [API](https://cipi.sh/docs/api#endpoints-databases), the [PHP SDK](https://cipi.sh/docs/php-sdk) and [cipi-cli](https://cipi.sh/docs/cli-client):
+
+| | |
+| --- | --- |
+| **Set up** | A server without backups offers *Use an S3 bucket*, *Use an SFTP server* and *On this server only* — `cipi backup configure` with flags |
+| **S3 buckets** | *Add an S3 bucket*: a provider fills in the endpoint and the region; *Test*, *Edit* (an empty key or secret keeps the one the server has), *Remove*. The default bucket is edited the same way |
+| **SFTP servers** | *Add an SFTP server* (a Storage Box preset), its key shown with how to install it — [above](#sftp) |
+| **Encryption key** | *Show the key* (asked first; logged and notified on the server), *Rotate* |
+| **Retention** | *Preview the retention*, *Apply the retention* |
+| **Profiles and runs** | The matrix of what each profile takes; create, edit, pause, run, verify |
+
+**A secret key never rides a command line.** The panel sends it to the API once; the API writes it to the CLI's standard input (`--secret-stdin`) in a synchronous call — never in a job, never stored, never answered back — and the form clears it. From the panel the CLI refuses `--secret=`, and refuses to move the local or temp folder (root creates the local one and makes it 0700: a path from the panel could be any directory). `cipi backup fetch` is not in the panel's sudoers: a run is downloaded and decrypted at the server's shell.
+
+> [!warning] A token with `backups-manage` can point backups at a bucket or a server of its choosing, and read the encryption key. Give it to whom you would give the backups; every such change is notified (`backup_config`).
 
 ## Layout 
 
@@ -6208,7 +6246,7 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Deploy | `deploy_success`, `deploy_fail`, `deploy_rollback`, `deploy_snapshot_fail`, `deploy_health_fail` |
 | Health & monitor | `health_fail`, `monitor_disk`, `monitor_app_disk`, `monitor_ssl`, `monitor_services`, `monitor_workers`, `monitor_http_5xx`, `monitor_fs`, `monitor_load`, `monitor_tunnel`, `monitor_mesh`, `monitor_ok` |
 | Backups & cron | `backup_fail`, `backup_stale`, `cron_fail` |
-| Security | `ssh_login`, `sudo`, `su`, `ssh_key_add`, `ssh_key_remove`, `ssh_key_rename`, `credentials_show`, `zt_*` |
+| Security | `ssh_login`, `sudo`, `su`, `ssh_key_add`, `ssh_key_remove`, `ssh_key_rename`, `credentials_show`, `backup_config` (where backups go, or their key, changed — [backups](https://cipi.sh/docs/backups#panel)), `zt_*` |
 | Apps & domains | `app_create`, `app_edit`, `app_delete`, `app_suspend`, `alias_*`, `www_*`, `redirect_change`, `proxy_change`, `basicauth_*` |
 | Updates | `self_update`, `php_upgrade`, `nginx_upgrade`, `mariadb_upgrade`, `pgsql_upgrade`, `valkey_upgrade`, `node_upgrade`, `composer_upgrade`, `frankenphp_upgrade`, `pending_report` |
 | Config | `ini_set`, `app_jit`, `yml_apply`, `yml_fail`, `yml_post_fail`, `node_default` |
@@ -6370,10 +6408,10 @@ Audit | deploy ledger, event log, compliance
 | --- | --- | --- |
 | **Network** | UFW allows only 22, 80, 443; the panel can open ports and block addresses, never close those three. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](https://cipi.sh/docs/firewall), [Nginx](https://cipi.sh/docs/nginx#default-server) |
 | **SSH** | Root login off; the `cipi` admin user is key-only; app users have their own password logins, which you can switch off | [SSH keys](https://cipi.sh/docs/ssh-keys) |
-| **Privilege** | App users can't `su`; their sudo is a short list of helpers that take their own app's name and nothing else — restarting its workers, recording its deploys, its post-deploy health check, emptying its [page cache](https://cipi.sh/docs/page-cache#recipe). The web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist. Abilities that reach as far as SSH — `ssh-manage`, `zt-manage`, `sync-manage` — are given one by one | [Panel architecture](https://cipi.sh/docs/gui-architecture), [API tokens](https://cipi.sh/docs/api#tokens) |
+| **Privilege** | App users can't `su`; their sudo is a short list of helpers that take their own app's name and nothing else — restarting its workers, recording its deploys, its post-deploy health check, emptying its [page cache](https://cipi.sh/docs/page-cache#recipe). The web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist. Abilities that reach as far as SSH — `ssh-manage`, `zt-manage`, `sync-manage` — are given one by one; `backups-manage` can point backups at a bucket or a server and read their encryption key, and every such change is notified (`backup_config`) | [Panel architecture](https://cipi.sh/docs/gui-architecture), [API tokens](https://cipi.sh/docs/api#tokens) |
 | **App isolation** | One Linux user per app (home `750`), its own PHP-FPM pool, `open_basedir` to its home, its own database user and Valkey instance | [How Cipi works](https://cipi.sh/docs/how-cipi-works#what-every-app-gets) |
 | **Git** | A separate read-only deploy key per app; signed webhooks; deploys run as the app user | [Git](https://cipi.sh/docs/git), [Auto-deploy](https://cipi.sh/docs/auto-deploy) |
-| **Secrets** | Configs, tokens and passwords encrypted at rest (AES-256); backups and sync archives encrypted before they leave | [Vault](https://cipi.sh/docs/vault), [Backups](https://cipi.sh/docs/backups#encryption) |
+| **Secrets** | Configs, tokens and passwords encrypted at rest (AES-256); backups and sync archives encrypted before they leave. A secret the panel sends — an S3 key, a mesh key — reaches the server's CLI on its standard input, never a command line or a job, and is kept by neither panel nor API | [Vault](https://cipi.sh/docs/vault), [Backups](https://cipi.sh/docs/backups#panel) |
 | **Patching** | Ubuntu security updates daily; PHP nightly with a patch-level report; Nginx, databases, Valkey, Node and FrankenPHP nightly, one at a time | [Stack upgrades](https://cipi.sh/docs/stack-upgrades), [PHP](https://cipi.sh/docs/php#security) |
 | **Updates of Cipi** | Nightly from GitHub, backed up first. Optionally: a delay before a new release is installed — and, once they are available, only releases signed by a key the server already trusts (signed releases are not available at the moment) — so a taken-over account can't reach every server overnight | [Safer self-updates](https://cipi.sh/docs/self-update) |
 | **Hardening** | PHP pools lock down settings used by recent CVEs; Nginx never enables HTTP/2; TLS 1.2/1.3 with modern ciphers | [PHP](https://cipi.sh/docs/php#hardening), [Nginx](https://cipi.sh/docs/nginx) |
@@ -7780,7 +7818,7 @@ cipi CLI | does the work, as on SSH
 | Octane | For an Octane app: the PHP that answers the requests next to the PHP that runs Composer, artisan, cron and the workers, a warning when they are two versions, [**Switch PHP** by its number](https://cipi.sh/docs/octane#octane-panel), restart, update the FrankenPHP build |
 | App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](https://cipi.sh/docs/environment#order), a block of variables pasted or [edited as text](https://cipi.sh/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](https://cipi.sh/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
-| Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations; **[SFTP destinations](https://cipi.sh/docs/backups#sftp)** — a VPS, a Hetzner Storage Box — added, tested, changed and removed, with the key to install on the remote (no password, no secret through the panel) |
+| Backups | **[Set up](https://cipi.sh/docs/backups#setup)** on a server without backups — an S3 bucket, an SFTP server or this server only. A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations; **S3 buckets** added, tested, changed and removed — the secret key sent once and never kept; **[SFTP destinations](https://cipi.sh/docs/backups#sftp)** — a VPS, a Hetzner Storage Box — with the key to install on the remote; the **encryption key** shown and rotated; the **retention** previewed and applied |
 | Transfer | [Move apps to another server](https://cipi.sh/docs/sync#panel) as a wizard: which apps, with databases and files or not, the target from the panel's servers or by address, the connection checked first, the transfer as a job with its output — encryption handled by the servers, no passphrase to type; *Bring apps here* from the other side |
 | Updates | [How the server updates Cipi](https://cipi.sh/docs/self-update#panel): only releases signed by a trusted key (the first time, with the fingerprint you compared — signed releases are not available at the moment), a delay before a new release is installed; the keys trusted, the release waiting, why the last one wasn't installed. Starting an update stays the server's |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics)) |
@@ -7797,7 +7835,7 @@ cipi CLI | does the work, as on SSH
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs.
 
-> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](https://cipi.sh/docs/design-decisions#packages), monitor thresholds, changes to the Cloudflare tunnel, S3 secret keys, starting a self-update and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
+> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](https://cipi.sh/docs/design-decisions#packages), monitor thresholds, changes to the Cloudflare tunnel, downloading a backup run, starting a self-update and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
 ## Screenshot tour 
 
@@ -7825,11 +7863,15 @@ A job that fails says why in one line above its output, and a failed deploy adds
 
 ### Backups, transfers and updates
 
-**Backups**: what each profile takes, against every app and database; the destinations — the server's disk, S3 buckets and SFTP servers. *Add an SFTP server* makes the key on the server and shows its public half with the command that installs it on the remote — `ssh-copy-id -s` for a Hetzner Storage Box, whose preset fills in port 23 — then *Test* writes a file there and removes it. See [SFTP destinations](https://cipi.sh/docs/backups#sftp).
+**Backups** starts here on a server without them: *Use an S3 bucket*, *Use an SFTP server* or *On this server only* — then a nightly profile takes every app and every database there. See [where backups go](https://cipi.sh/docs/backups#setup).
+
+Then: what each profile takes, against every app and database; the destinations — the server's disk, S3 buckets and SFTP servers. *Add an S3 bucket*: a provider fills in the endpoint and the region; the server reaches the bucket with the keys **before it saves anything**, and the secret key goes to it once, on its standard input — the panel keeps nothing. *Edit* leaves a key or a secret empty to keep the one the server has.
+
+*Add an SFTP server* makes the key on the server and shows its public half with the command that installs it on the remote — `ssh-copy-id -s` for a Hetzner Storage Box, whose preset fills in port 23 — then *Test* writes a file there and removes it. See [SFTP destinations](https://cipi.sh/docs/backups#sftp). **Encryption key**: *Show the key* (logged and notified on the server) and *Rotate*. **Stored runs**: *Preview the retention* and *Apply the retention*.
 
 **Transfer** sends the apps of the server to another one — [server sync](https://cipi.sh/docs/sync#panel) as a wizard, the connection checked before anything moves, the archive encrypted with a passphrase the servers make and keep to themselves.
 
-**Updates** has the two optional safeguards of [self-update](https://cipi.sh/docs/self-update#panel): only signed releases, and a delay — here 12 hours, with a release waiting for it.
+**Updates** has the optional safeguards of [self-update](https://cipi.sh/docs/self-update#panel): a delay — here 12 hours, with a release waiting for it — and *Install only signed releases*, which says it is not available yet: Cipi releases are not signed at the moment.
 
 ### Metrics
 
@@ -8884,17 +8926,27 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `POST` | `/api/dbs/engines/install` | `dbs-manage` |
 | `GET` | `/api/backups`, `/api/backups/runs` | `backups-view` |
 | `POST`, `PUT`, `DELETE` | `/api/backups/run`, `/verify`, `/destinations/test`, `/profiles[/{name}]`, `…/enable`, `…/disable` | `backups-manage` |
-| `POST` | `/api/backups/destinations` — an SFTP destination: `{type: "sftp", name, host, user, port?, path?}` | `backups-manage` |
-| `PUT`, `DELETE` | `/api/backups/destinations/{name}` — change it (`host`, `port`, `user`, `path`, `new_key: true`), remove it | `backups-manage` |
-| `GET` | `/api/backups/destinations/{name}/key` — its public key | `backups-view` |
+| `PUT` | `/api/backups/config` — where backups go: `{type: "local"}`, `{type: "s3", bucket, key, secret, region?, endpoint?}` (the default bucket) or `{type: "sftp", host, user, port?, path?, name?}` | `backups-manage` |
+| `POST` | `/api/backups/destinations` — an S3 bucket `{type: "s3", name, bucket, key, secret, region?, endpoint?}` or an SFTP server `{type: "sftp", name, host, user, port?, path?}` | `backups-manage` |
+| `PUT`, `DELETE` | `/api/backups/destinations/{name}` — change it (S3: `bucket`, `key`, `secret`, `region`, `endpoint` — `none` for AWS; SFTP: `host`, `port`, `user`, `path`, `new_key: true`), remove it | `backups-manage` |
+| `GET` | `/api/backups/destinations/{name}/key` — an SFTP destination's public key | `backups-view` |
+| `GET`, `POST` | `/api/backups/key` (the encryption key, once: logged and notified on the server), `/api/backups/key/rotate` | `backups-manage` |
+| `POST` | `/api/backups/prune` (`profile?`, `dry_run?`) — the retention now, a job `backup-prune` | `backups-manage` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](https://cipi.sh/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](https://cipi.sh/docs/backups#exclude-paths)). **Only SFTP destinations are added over the API** ([SFTP](https://cipi.sh/docs/backups#sftp)): Cipi makes the key on the server, and `POST` answers `201` with the destination and its `public_key` — the remote must accept it before `POST /api/backups/destinations/test` with `{"name": "box"}` passes. Nothing secret is sent or returned. An S3 bucket takes a secret key, so it is added on the server with `cipi backup destination add`; a `POST` of another `type` is a `422`. `DELETE` refuses (`422`) a destination a profile still uses; the archives on it stay there.
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](https://cipi.sh/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](https://cipi.sh/docs/backups#exclude-paths)). **Setting backups up** ([where backups go](https://cipi.sh/docs/backups#setup)): `PUT /api/backups/config` answers the backup status after it in `data`, with `type` and `destination` — for an SFTP server its fields and the `public_key` it has to accept. A first setup makes the nightly profile. **An SFTP destination** ([SFTP](https://cipi.sh/docs/backups#sftp)): Cipi makes the key on the server, and `POST` answers `201` with the destination and its `public_key` — the remote must accept it before `POST /api/backups/destinations/test` with `{"name": "box"}` passes. **An S3 bucket** is reached with its keys before it is saved: a wrong key is a `422` that changes nothing. **A secret key never rides a command line**: the API writes it to the CLI's standard input (`--secret-stdin`) in a synchronous call — never in a job, never stored, never answered; a key left out of a `PUT` stays as the server has it. `DELETE` refuses (`422`) a destination a profile still uses; the archives on it stay there. Downloading a run (`cipi backup fetch`) is not in the API. Every change of where archives go is notified on the server (`backup_config`).
 
 ```bash
 $ curl -X POST https://api.example.com/api/backups/destinations \
     -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
     -d '{"type": "sftp", "name": "box", "host": "u123456.your-storagebox.de", "user": "u123456", "port": 23, "path": "cipi"}'
 {"data": {"name": "box", "type": "sftp", "host": "u123456.your-storagebox.de", "port": 23, "user": "u123456", "path": "cipi", "public_key": "ssh-ed25519 AAAA… cipi-backup-box@web1"}}
+```
+
+```bash
+$ curl -X POST https://api.example.com/api/backups/destinations \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"type": "s3", "name": "offsite", "bucket": "acme-offsite", "key": "AKIA…", "secret": "…", "region": "auto", "endpoint": "https://.r2.cloudflarestorage.com"}'
+{"data": {"name": "offsite", "type": "s3", "bucket": "acme-offsite", "region": "auto", "endpoint": "https://.r2.cloudflarestorage.com"}}
 ```
 
 ### Server 
@@ -9430,11 +9482,15 @@ Flags: `--email`, `--url` (when the app redirects, redirects are never followed)
 | `backup run [profile]`, `backup verify [profile]` | Start a run in the background; check that the newest run opens |
 | `backup profile add  --dest local,s3 [flags]`, `edit  [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths`, `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
 | `backup profile enable|disable|remove ` | |
+| `backup configure --type local\|s3\|sftp [flags]` | [Where backups go](https://cipi.sh/docs/backups#setup): this server only (`-y` skips the question), the default bucket (`--bucket --key [--region] [--endpoint]`), or an SFTP server (`--host --user [--port] [--path] [--name sftp]`, Cipi 5.19.1+). A first setup makes the nightly profile |
 | `backup destination test [name]` | Reach each remote destination: an S3 bucket with its credentials, an SFTP server with its key |
+| `backup destination add  --bucket  --key  [--region R] [--endpoint URL]` | Another S3 bucket (Cipi 5.19.0+) — reached with its keys before it is saved |
 | `backup destination add  --host  --user  [--port 22] [--path dir]` | An [SFTP destination](https://cipi.sh/docs/backups#sftp): a VPS, a Hetzner Storage Box (`--port 23`). Prints the public key the remote must accept |
-| `backup destination edit  [--host …] [--port …] [--user …] [--path …] [--new-key]` | Change it; `--new-key` makes a new key, to install on the remote again |
-| `backup destination key ` | Its public key again |
-| `backup destination remove  [-y]` | Remove an SFTP destination no profile uses (its archives stay on it) |
+| `backup destination edit  [flags]` | Change what is given: S3 `--bucket --key --region --endpoint` (`none`: AWS); SFTP `--host --port --user --path --new-key` |
+| `backup destination key ` | An SFTP destination's public key again |
+| `backup destination remove  [-y]` | Remove a destination no profile uses (its archives stay on it) |
+| `backup key show`, `backup key rotate [-y]` | The encryption key (logged and notified on the server); a new one for the runs to come |
+| `backup prune [--profile P] [--dry-run]` | Apply the retention now — a job |
 
 ```bash
 $ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
@@ -9447,7 +9503,14 @@ $ cipi-cli backup destination test box          # once the remote accepts the ke
 $ cipi-cli backup profile edit nightly --dest local,box
 ```
 
-SFTP destinations are made here: the server makes the key, and nothing secret is sent. S3 buckets are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](https://cipi.sh/docs/backups), and [Exclude files and folders from backups](https://cipi.sh/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
+```bash
+$ cipi-cli backup configure --type s3 --bucket acme-backups --key AKIA… --endpoint https://fsn1.your-objectstorage.com
+  Secret access key: ········
+$ cipi-cli backup destination add offsite --bucket acme-offsite --key AKIA… --secret-file ~/r2.secret \
+    --region auto --endpoint https://.r2.cloudflarestorage.com
+```
+
+**A secret key is never a flag** — it would stay in the shell's history: it is asked at a prompt (not shown as it is typed), or read from the first line of `--secret-file` or of standard input (`--secret-stdin`), and sent once; the server reads it on its standard input. On `edit`, a key or a secret left out stays; a new `--key` asks for its secret. An SFTP server takes no secret at all: the server makes its key. See [Backups](https://cipi.sh/docs/backups), and [Exclude files and folders from backups](https://cipi.sh/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
 
 ## `php` 
 
@@ -9905,7 +9968,22 @@ $cipi->backups()->destinationKey('box');
 $cipi->backups()->removeDestination('box');             // no profile may use it; its archives stay
 ```
 
-S3 destinations and their keys are configured on the server and never returned. See [SFTP destinations](https://cipi.sh/docs/backups#sftp).
+Setting backups up — this server only, the default bucket or an SFTP server — more S3 buckets, the encryption key and the retention (cipi/api 1.49+, Cipi 5.19.0+; an SFTP setup 5.19.1+):
+
+```php
+$cipi->backups()->configureS3('acme-backups', 'AKIA…', $secret, endpoint: 'https://fsn1.your-objectstorage.com');
+$setup = $cipi->backups()->configureSftp('u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi');
+$setup['destination']['public_key'];                     // install it on the remote, then testDestinations('sftp')
+$cipi->backups()->configureLocalOnly();                  // this server only
+
+$cipi->backups()->addS3Destination('offsite', 'acme-offsite', 'AKIA…', $secret, 'auto', 'https://.r2.cloudflarestorage.com');
+$cipi->backups()->updateS3Destination('offsite', ['region' => 'eu-west-1']);   // a key or a secret left out stays
+$cipi->backups()->encryptionKey()['data']['key'];       // keep it off the server; logged and notified there
+$cipi->backups()->rotateKey();
+$cipi->wait($cipi->backups()->prune(dryRun: true));     // what the retention would delete — a job
+```
+
+Every bucket is reached with its keys before it is saved: a wrong key is a `ValidationException` and changes nothing. A secret key goes to the server's CLI on its standard input — never on a command line, never in a job — and no answer carries a credential back. Downloading a run stays on the server. See [Backups from the panel](https://cipi.sh/docs/backups#panel) and [SFTP destinations](https://cipi.sh/docs/backups#sftp).
 
 ## Server 
 
@@ -17175,11 +17253,11 @@ Restore | one app or everything | #restore
 Create a bucket and an access key limited to it, at any S3-compatible provider. Then:
 
 ```bash
-$ sudo cipi backup configure                 # interactive: endpoint, bucket, keys
+$ sudo cipi backup configure                 # choose "s3": bucket, keys, region, endpoint
 $ sudo cipi backup destination test
 ```
 
-Secret keys are entered on the server and never travel through the panel or the API.
+The bucket is reached with the keys before anything is saved. The same from the [web panel](https://cipi.sh/docs/backups#panel) — a server without backups offers *Use an S3 bucket* — or the API: the secret key goes to the server once, on the CLI's standard input, never on a command line, and neither panel nor API keeps it.
 
 ## 2. Create profiles 
 ```bash
@@ -18136,7 +18214,7 @@ $ cipi-cli backup status
 | [REST API](https://cipi.sh/docs/api) | Backup profile fields, ability `backups-manage` |
 | [Web panel](https://cipi.sh/docs/gui) | Server → Backups → profile form (cipi/gui 4.5+) |
 
-S3 secrets are never set this way: destinations are added on the server.
+Destinations are not part of a profile: they are set up with `cipi backup configure` and `cipi backup destination add`, or from the [panel](https://cipi.sh/docs/backups#panel).
 
 ## 7. Keep the excluded folders safe 
 

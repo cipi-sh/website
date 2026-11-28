@@ -234,7 +234,7 @@ $ cipi-cli backup status
 | [REST API](/docs/api) | Backup profile fields, ability `backups-manage` |
 | [Web panel](/docs/gui) | Server → Backups → profile form (cipi/gui 4.5+) |
 
-S3 secrets are never set this way: destinations are added on the server.
+Destinations are not part of a profile: they are set up with `cipi backup configure` and `cipi backup destination add`, or from the [panel](/docs/backups#panel).
 
 ## 7. Keep the excluded folders safe {#keep-safe}
 
