@@ -86,5 +86,5 @@ An app with a repository has no such page: its first `cipi deploy` brings the si
 | Can a custom app have cron jobs? | Yes, in the app user's crontab (`su - mysite`, `crontab -e`). |
 | I uploaded my site and still see *Coming soon*. | The page answers only while the document root has no `index.html` or `index.php`. Check that the files went into the document root (`~/htdocs/www` with `--docroot=www`, not `~/htdocs`): `cipi app show mysite` says which it is. |
 | My app still shows a page saying it is being deployed. | That is the `index.html` placeholder of an app created with an older Cipi, and it comes before `index.php`: delete it (`rm ~/htdocs/index.html`). New apps don't need that. |
-| Can a custom app use the page cache? | Yes: [`cipi app cache mysite on`](/docs/page-cache) has Nginx answer anonymous visitors without running PHP. For WordPress, see [the guide](/guides/nginx-page-cache-purge). |
+| Can a custom app use the page cache? | Yes: [`cipi cache mysite on`](/docs/page-cache) has Nginx answer anonymous visitors without running PHP. For WordPress, see [the guide](/guides/nginx-page-cache-purge). |
 | Step-by-step examples? | [WordPress](/guides/deploy-wordpress-custom-app), [WooCommerce](/guides/woocommerce-vps), [Symfony](/guides/deploy-symfony), and [plain PHP, static sites and other CMSs](/guides/custom-apps-php-static-cms). |

@@ -27,7 +27,7 @@
     <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/docs.css">
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "PHP SDK", "description": "cipi/sdk for Laravel and any PHP app.", "url": "https://cipi.sh/docs/php-sdk", "dateModified": "2026-11-27", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "PHP SDK", "description": "cipi/sdk for Laravel and any PHP app.", "url": "https://cipi.sh/docs/php-sdk", "dateModified": "2026-11-28", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "API & integrations", "item": "https://cipi.sh/docs/integrations"}, {"@type": "ListItem", "position": 3, "name": "PHP SDK", "item": "https://cipi.sh/docs/php-sdk"}]}</script>
 </head>
 <body class="docs" data-legacy-page="php-sdk">
@@ -141,10 +141,11 @@
 <li><a href="/docs/packages">Packages</a></li>
 <li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
 <li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/self-update">Safer self-updates</a></li>
 <li><a href="/docs/uninstall">Uninstall</a></li>
 </ul></details>
 <details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
-<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/backups">Backups to S3 &amp; SFTP</a></li>
 <li><a href="/docs/sync">Server sync &amp; migration</a></li>
 <li><a href="/docs/health-checks">Health checks</a></li>
 <li><a href="/docs/monitor">Server monitor</a></li>
@@ -306,9 +307,10 @@ $cipi-&gt;nginx()-&gt;reset('shop');</pre></div>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;cache()-&gt;enable('blog', ttl: '1h', size: '1g');   // nginx's page cache: sync, nginx -t first
 $cipi-&gt;cache()-&gt;show('blog')['data'];                    // enabled, ttl, files, bytes, clear_command, …
 $cipi-&gt;cache()-&gt;exclude('blog', ['/wishlist*', '/feed']);  // its own paths never cached: the whole list, [] for none
+$cipi-&gt;cache()-&gt;purge('blog', ['/hello-world/', '/category/news/*'])['data']['purged'];   // only those pages
 $cipi-&gt;cache()-&gt;clear('blog')['data']['cleared'];        // pages deleted
 $cipi-&gt;cache()-&gt;disable('blog');</pre></div>
-<p><code>cache()</code> is the <a href="/docs/page-cache">page cache</a> of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call <code>clear()</code> when content changes without one. <code>exclude()</code> sets the <a href="/docs/page-cache#exclude">paths of its own</a> an app keeps out — <code>*</code> is anything — and <code>enable()</code> takes the same list as <code>exclude:</code>.</p>
+<p><code>cache()</code> is the <a href="/docs/page-cache">page cache</a> of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call <code>purge()</code> with the pages that changed — a path, a prefix ending in <code>*</code>, a URL on a domain of the app, 500 at most — or <code>clear()</code> for all of them. Inside the app itself, the <a href="/docs/page-cache#wordpress">WordPress plugin</a> and the <a href="/docs/page-cache#php"><code>cipi/cache</code> package</a> purge without a token. <code>exclude()</code> sets the <a href="/docs/page-cache#exclude">paths of its own</a> an app keeps out — <code>*</code> is anything — and <code>enable()</code> takes the same list as <code>exclude:</code>.</p>
 </section>
 <section class="doc-section" id="sdk-data">
 <h2 id="data">Env, databases and backups<a class="anchor" href="#data" aria-label="Link to this section">#</a></h2>
@@ -330,7 +332,15 @@ $cipi-&gt;wait($cipi-&gt;databases()-&gt;restoreLocal('shop', __DIR__.'/shop.sql
 $cipi-&gt;backups()-&gt;status()['data']['uncovered'];   // what no enabled profile takes
 $cipi-&gt;backups()-&gt;run('nightly');                  // starts and returns, not a job
 $cipi-&gt;wait($cipi-&gt;backups()-&gt;verify('nightly'));</pre></div>
-<p>Destinations and their keys are configured on the server and never returned.</p>
+<p>An SFTP server — a VPS with a backup user, a Hetzner Storage Box, a NAS — is added from here; Cipi makes its key on the server and returns the public half:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$box = $cipi-&gt;backups()-&gt;addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi')['data'];
+$box['public_key'];                                      // install it on the remote, then:
+$cipi-&gt;backups()-&gt;testDestinations('box');              // a file written and removed there
+$cipi-&gt;backups()-&gt;updateProfile('nightly', ['destinations' =&gt; ['local', 'box']]);
+$cipi-&gt;backups()-&gt;updateSftpDestination('box', ['new_key' =&gt; true]);
+$cipi-&gt;backups()-&gt;destinationKey('box');
+$cipi-&gt;backups()-&gt;removeDestination('box');             // no profile may use it; its archives stay</pre></div>
+<p>S3 destinations and their keys are configured on the server and never returned. See <a href="/docs/backups#sftp">SFTP destinations</a>.</p>
 </section>
 <section class="doc-section" id="sdk-server">
 <h2 id="server">Server<a class="anchor" href="#server" aria-label="Link to this section">#</a></h2>
@@ -361,6 +371,14 @@ $cipi-&gt;valkey()-&gt;flushShared();                       // then: empty the s
 
 $cipi-&gt;notifications()-&gt;setTimezone('Europe/Rome');   // the Time line of every notification
 $cipi-&gt;notifications()-&gt;setServerName('production');  // "production (vmi12334)"</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;sync()-&gt;key();                                    // this server's sync key: what a target trusts
+$cipi-&gt;sync()-&gt;ready('203.0.113.77');                    // key accepted there, Cipi answering
+$cipi-&gt;wait($cipi-&gt;sync()-&gt;push('203.0.113.77', ['shop'], withDb: true));
+
+$cipi-&gt;updates()-&gt;policy()['data'];                      // verify, delay_hours, signers, pending, held
+$cipi-&gt;updates()-&gt;setPolicy(delayHours: 12);
+$cipi-&gt;updates()-&gt;setPolicy(verify: true, fingerprint: 'SHA256:…');</pre></div>
+<p><code>sync()</code> <a href="/docs/sync">moves apps to another server</a>: this server is the source, <code>push()</code> is a job (<code>sync-push</code>), and the target trusts the source's key first — <code>key()</code> here, <code>trust($key)</code> there (<code>untrust()</code> takes it back); <code>check()</code> says why the way isn't open. There's no passphrase to handle. Ability <code>sync-manage</code>, as strong as <code>ssh-manage</code>. <code>updates()</code> is <a href="/docs/self-update">how the server updates Cipi</a>: only signed releases, a delay — both off by default; starting an update isn't in the API. Abilities <code>updates-view</code>, <code>updates-manage</code>.</p>
 <p><code>octane()</code> is <a href="/docs/octane#octane-php">the PHP of an Octane app</a>, <code>valkey()</code> is <a href="/docs/valkey#manage">Valkey per app</a> — no password is ever returned — and the notification settings are <a href="/docs/notifications#written">how notifications are written</a>.</p>
 <p>Monitor, the Cloudflare side of Zero Trust and disk usage are read-only, as on the API; the <a href="#zero-trust">mesh network</a> is managed. <a href="/docs/packages">Optional packages</a> are listed, installed and removed (<code>packages()-&gt;list()</code>, <code>install()</code>, <code>remove()</code>): the catalog is closed and lives on the server.</p>
 <h2 id="zero-trust">Zero Trust<a class="anchor" href="#zero-trust" aria-label="Link to this section">#</a></h2>

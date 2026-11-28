@@ -207,12 +207,14 @@ The [page cache](/docs/page-cache) of an app: Nginx keeps the page PHP made and 
 | `cache on <app> [--ttl 10m] [--size 256m] [--exclude '/cart*,/feed'] [--deploy-clear=false]` | Turn it on, or change it when it is on |
 | `cache ttl <app> <time>` | How long a page is kept: `30s`, `10m`, `1h`, `7d` |
 | `cache exclude <app> [add\|remove\|set <path>…]` | The app's [own paths that are never cached](/docs/page-cache#exclude): the list, more, fewer (`remove --all` for none), exactly these |
+| `cache purge <app> <page>…` | Delete only those pages: a path (`/hello-world/`), a prefix (`/blog/*`), a URL on a domain of the app — the rest stays cached ([purge some pages](/docs/page-cache#purge)) |
 | `cache clear <app>` | Delete the cached pages now |
 | `cache off <app>` | Every request runs PHP again |
 
 ```bash
 $ cipi-cli cache on blog --ttl 1h
 $ cipi-cli cache exclude blog add '/wishlist*' /feed
+$ cipi-cli cache purge blog /hello-world/ '/category/news/*'
 $ cipi-cli cache clear blog
 ```
 
@@ -270,14 +272,24 @@ Flags: `--email`, `--url` (when the app redirects, redirects are never followed)
 | `backup run [profile]`, `backup verify [profile]` | Start a run in the background; check that the newest run opens |
 | `backup profile add <name> --dest local,s3 [flags]`, `edit <name> [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths`, `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
 | `backup profile enable|disable|remove <name>` | |
-| `backup destination test [name]` | Reach each S3 destination with its credentials |
+| `backup destination test [name]` | Reach each remote destination: an S3 bucket with its credentials, an SFTP server with its key |
+| `backup destination add <name> --host <host> --user <user> [--port 22] [--path dir]` | An [SFTP destination](/docs/backups#sftp): a VPS, a Hetzner Storage Box (`--port 23`). Prints the public key the remote must accept |
+| `backup destination edit <name> [--host …] [--port …] [--user …] [--path …] [--new-key]` | Change it; `--new-key` makes a new key, to install on the remote again |
+| `backup destination key <name>` | Its public key again |
+| `backup destination remove <name> [-y]` | Remove an SFTP destination no profile uses (its archives stay on it) |
 
 ```bash
 $ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
 $ cipi-cli backup profile edit nightly --exclude-paths ""     # take everything again
 ```
 
-Destinations are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](/docs/backups), and [Exclude files and folders from backups](/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
+```bash
+$ cipi-cli backup destination add box --host u123456.your-storagebox.de --user u123456 --port 23 --path cipi
+$ cipi-cli backup destination test box          # once the remote accepts the key
+$ cipi-cli backup profile edit nightly --dest local,box
+```
+
+SFTP destinations are made here: the server makes the key, and nothing secret is sent. S3 buckets are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](/docs/backups), and [Exclude files and folders from backups](/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
 
 ## `php` {#php}
 
@@ -416,6 +428,44 @@ $ cipi-cli zt lock ssh
 ```
 
 The server refuses [what would lock people out](/docs/mesh-network#panel-guards) and prints its reason. `zt lock http` is refused while this client reaches the API on the server's public address: point the profile's endpoint at the server's mesh name (or its hostname on the Cloudflare tunnel) and run it again. Needs `zt-view`; changes need `zt-manage`.
+
+## `sync`: moving apps {#sync}
+
+[Server sync](/docs/sync) from your terminal. **The server of the profile in use is the source**: it exports the apps, encrypts the archive, sends it over SSH and has the target import it. Apps that aren't on the target are created there; the others are updated. Nothing is removed or stopped on the source.
+
+| Command | Does |
+| --- | --- |
+| `sync push [app…] --to <profile>` | Send apps to another server of yours: the client puts the source's key on the target, checks the way, and takes the key back out when the transfer ends (`--keep-trust` leaves it) |
+| `sync push [app…] --host <address>` | …to a server that isn't a profile: it must trust the source's key already |
+| `--with-db`, `--with-storage`, `--port` | Databases (replacing the target's), each app's `shared/storage`, the target's SSH port |
+| `sync check <host> [--port 22]` | Can the source send there: the key accepted, Cipi answering — or why not |
+| `sync key [--raw]` | The source's sync key |
+| `sync trust [key]`, `sync untrust [key]` | On the target: let a server send apps here, or not any more (`--from <profile>`, `--key-file <file>`) |
+
+```bash
+$ cipi-cli prod sync push --to staging --with-db
+$ cipi-cli prod sync push shop blog --host 203.0.113.9 --with-db --with-storage
+```
+
+No apps means every app. Node apps are skipped: create them on the target, they deploy from Git. There is no passphrase to type or keep — the source makes one for the transfer and hands it to the target over SSH. A transfer is a job followed for up to two hours. Needs `sync-manage` on the source, and on the target for `--to`, `trust` and `untrust`.
+
+## `updates`: how the server updates Cipi {#updates}
+
+The two optional safeguards of [self-update](/docs/self-update), both off by default:
+
+| Command | Does |
+| --- | --- |
+| `updates` | Whether releases must be signed, the delay, the keys trusted, the release waiting, why the last one wasn't installed |
+| `updates --delay 12h` | Install a new release once the server has seen it for 12 hours (`6h` … `7d`, `off`) |
+| `updates --verify on --fingerprint SHA256:…` | Only releases signed by a trusted key — the first time with the fingerprint you compared with [the published one](/docs/self-update#signers) |
+| `updates --verify off` | Back to any release |
+
+```bash
+$ cipi-cli prod updates --delay 12h
+$ cipi-cli staging updates --delay off      # staging sees a release first
+```
+
+Starting an update is not in the client: it stays the server's. Needs `updates-view`, and `updates-manage` to change it.
 
 ## Notifications {#notifications}
 

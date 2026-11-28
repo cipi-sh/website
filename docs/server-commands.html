@@ -27,7 +27,7 @@
     <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/docs.css">
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Server commands & updates", "description": "cipi status, self-update and shell completion.", "url": "https://cipi.sh/docs/server-commands", "dateModified": "2026-11-27", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Server commands & updates", "description": "cipi status, self-update and shell completion.", "url": "https://cipi.sh/docs/server-commands", "dateModified": "2026-11-28", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Server & runtime", "item": "https://cipi.sh/docs/infrastructure"}, {"@type": "ListItem", "position": 3, "name": "Server commands & updates", "item": "https://cipi.sh/docs/server-commands"}]}</script>
 </head>
 <body class="docs">
@@ -141,10 +141,11 @@
 <li><a href="/docs/packages">Packages</a></li>
 <li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
 <li><a href="/docs/server-commands" aria-current="page">Server commands &amp; updates</a></li>
+<li><a href="/docs/self-update">Safer self-updates</a></li>
 <li><a href="/docs/uninstall">Uninstall</a></li>
 </ul></details>
 <details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
-<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/backups">Backups to S3 &amp; SFTP</a></li>
 <li><a href="/docs/sync">Server sync &amp; migration</a></li>
 <li><a href="/docs/health-checks">Health checks</a></li>
 <li><a href="/docs/monitor">Server monitor</a></li>
@@ -219,9 +220,10 @@ $ cipi self-update</pre><script type="application/json" class="term-script">[{"c
 <section class="doc-section" id="self-update">
 <h2 id="self-update">Updating Cipi<a class="anchor" href="#self-update" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi self-update --check
-<span class="p"></span>cipi self-update</pre></div>
+<span class="p"></span>cipi self-update
+<span class="p"></span>cipi self-update policy<span class="c">        # signed releases only, a delay — optional</span></pre></div>
 <div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Download</b><span>from GitHub</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Back up</b><span>/opt/cipi.bak.&lt;timestamp&gt;</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Replace CLI</b><span>scripts and libraries</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Migrations</b><span>in order, each idempotent</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="4"><b>Done</b><span>apps untouched</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 5</span><b>Download</b></div><p><code>cipi self-update</code> downloads the new version of Cipi from GitHub.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 5</span><b>Back up</b></div><p>The current installation is copied to <code>/opt/cipi.bak.&lt;timestamp&gt;</code>, so you can go back.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 5</span><b>Replace CLI</b></div><p>The CLI's scripts and libraries are replaced.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 5</span><b>Migrations</b></div><p>Migrations bring older servers up to date, in order. Each is safe to run twice.</p></div><div class="fx-pane" role="tabpanel" data-i="4" hidden><div class="fx-head"><span class="fx-n">Step 5 of 5</span><b>Done</b></div><p>Your apps keep running throughout: no deploy, no restart of your code.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
-<p>Updates never deploy your apps or touch their code and data. Migrations bring existing servers in line with new defaults (a security setting, a new hook); each one is written to be safe to re-run and to degrade to a warning instead of breaking the update. A nightly job (03:50) applies updates automatically; run it yourself first if you'd rather watch. What changed in each release: <a href="/whats-new">What's new</a> and the <a href="https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md">changelog on GitHub</a>.</p>
+<p>Updates never deploy your apps or touch their code and data. Migrations bring existing servers in line with new defaults (a security setting, a new hook); each one is written to be safe to re-run and to degrade to a warning instead of breaking the update. A nightly job (03:50) applies updates automatically; run it yourself first if you'd rather watch. To install only releases signed by a trusted key, or to wait some hours before a new release lands, see <a href="/docs/self-update">Safer self-updates</a> — both optional, both off by default. What changed in each release: <a href="/whats-new">What's new</a> and the <a href="https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md">changelog on GitHub</a>.</p>
 </section>
 <section class="doc-section" id="cli-completion">
 <h2 id="completion">Tab completion<a class="anchor" href="#completion" aria-label="Link to this section">#</a></h2>
@@ -233,7 +235,7 @@ $ cipi self-update</pre><script type="application/json" class="term-script">[{"c
 </section>
 
 </div>
-<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/stack-upgrades" rel="prev"><small>Previous</small><b>Stack upgrades</b></a><a class="next" href="/docs/uninstall" rel="next"><small>Next</small><b>Uninstall</b></a></nav>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/stack-upgrades" rel="prev"><small>Previous</small><b>Stack upgrades</b></a><a class="next" href="/docs/self-update" rel="next"><small>Next</small><b>Safer self-updates</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>

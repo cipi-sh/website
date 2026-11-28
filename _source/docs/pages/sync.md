@@ -103,8 +103,8 @@ The same push without a shell on either server. The server you start from is the
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-transfer-light.webp" width="1440" height="1240" alt="Transfer tab of a server: step 1 What — every app or chosen apps, databases, uploaded files; step 2 Where — the target server picked from the panel's servers, its SSH address and port, Check the connection and its answer; step 3 Encryption and transfer, with Start the transfer; beside it Bring apps here and What a transfer does" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-transfer.webp" width="1440" height="1240" alt="Transfer tab of a server: step 1 What — every app or chosen apps, databases, uploaded files; step 2 Where — the target server picked from the panel's servers, its SSH address and port, Check the connection and its answer; step 3 Encryption and transfer, with Start the transfer; beside it Bring apps here and What a transfer does" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-transfer-light.webp" width="1440" height="1288" alt="Transfer tab of a server: step 1 What — every app or chosen apps, databases, uploaded files; step 2 Where — the target server picked from the panel's servers, its SSH address and port, Check the connection and its answer; step 3 Encryption and transfer, with Start the transfer; beside it Bring apps here and What a transfer does" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-transfer.webp" width="1440" height="1288" alt="Transfer tab of a server: step 1 What — every app or chosen apps, databases, uploaded files; step 2 Where — the target server picked from the panel's servers, its SSH address and port, Check the connection and its answer; step 3 Encryption and transfer, with Start the transfer; beside it Bring apps here and What a transfer does" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Server → <strong>Transfer</strong>: the apps of <code>production</code> to <code>staging</code>, the connection checked, ready to start.</figcaption>
 </figure>
@@ -131,7 +131,7 @@ The same push without a shell on either server. The server you start from is the
 | --- | --- |
 | **API** | `GET /api/sync/key`, `POST /api/sync/check`, `POST` and `DELETE /api/sync/trust`, `POST /api/sync/push` (a job of type `sync-push`) — ability `sync-manage` ([endpoints](/docs/api#endpoints-sync)) |
 | **cipi-cli** | `cipi-cli prod sync push --to staging --with-db` — `--to` names the target by its profile and does the trust for you. `sync check`, `sync key`, `sync trust --from prod`, `sync untrust` ([cipi-cli](/docs/cli-client#sync)) |
-| **PHP SDK** | `$source->sync()->key()`, `$target->sync()->trust($key)`, `$source->sync()->ready($host)`, `$source->wait($source->sync()->push($host, ['shop'], withDb: true))` ([PHP SDK](/docs/php-sdk#sync)) |
+| **PHP SDK** | `$source->sync()->key()`, `$target->sync()->trust($key)`, `$source->sync()->ready($host)`, `$source->wait($source->sync()->push($host, ['shop'], withDb: true))` ([PHP SDK](/docs/php-sdk#server)) |
 
 A transfer started this way is followed for up to two hours.
 

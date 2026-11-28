@@ -80,12 +80,14 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Routing | `redirects-view`, `redirects-manage`, `proxies-view`, `proxies-manage`, `nginx-view`, `nginx-manage` (an app's directives and its [page cache](/docs/page-cache)) |
 | Node | `node-view`, `node-manage` (SSR restart), `node-runtimes-manage` |
 | Databases | `dbs-view`, `dbs-create`, `dbs-manage` |
-| Backups | `backups-view` (never keys), `backups-manage` |
+| Backups | `backups-view` (never secret keys; the public key of an SFTP destination), `backups-manage` (profiles, runs, SFTP destinations) |
 | Server | `status-view`, `php-view`, `php-manage`, `ssh-view`, `ssh-manage`, `services-view`, `services-manage`, `smtp-view`, `smtp-manage`, `health-view`, `health-manage`, `ip-whitelist-view`, `ip-whitelist-manage` |
 | Firewall | `firewall-view` (UFW rules, Fail2ban threshold and bans, CrowdSec state and decisions), `firewall-manage` (open ports, block addresses, unban, threshold, CrowdSec on/off and allowlist) |
 | Optional packages | `packages-view` (the catalog and its state), `packages-manage` (install and remove an entry of the closed catalog) |
 | Read-only insights | `search-view`, `search-manage`, `monitor-view`, `zt-view`, `disk-view` |
 | Zero Trust: the mesh network | `zt-manage` (join and leave a Tailscale or NetBird network, close and reopen SSH and 80/443, Tailscale SSH) — as strong as `ssh-manage` |
+| Moving apps | `sync-manage` ([send apps to another server](#endpoints-sync), trust another server's key) — as strong as `ssh-manage` |
+| Updates of Cipi | `updates-view`, `updates-manage` ([the signature check and the delay](#endpoints-self-update) of self-update; never an update itself) |
 | Metrics | `metrics-view` (series, uptime, events, settings), `metrics-manage` (retention, probe, collector, heartbeat) |
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
@@ -170,8 +172,18 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `POST` | `/api/dbs/engines/install` | `dbs-manage` |
 | `GET` | `/api/backups`, `/api/backups/runs` | `backups-view` |
 | `POST`, `PUT`, `DELETE` | `/api/backups/run`, `/verify`, `/destinations/test`, `/profiles[/{name}]`, `…/enable`, `…/disable` | `backups-manage` |
+| `POST` | `/api/backups/destinations` — an SFTP destination: `{type: "sftp", name, host, user, port?, path?}` | `backups-manage` |
+| `PUT`, `DELETE` | `/api/backups/destinations/{name}` — change it (`host`, `port`, `user`, `path`, `new_key: true`), remove it | `backups-manage` |
+| `GET` | `/api/backups/destinations/{name}/key` — its public key | `backups-view` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](/docs/backups#exclude-paths)). **Backup destinations are read-only** over the API: S3 secret keys are added on the server with `cipi backup destination add`.
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](/docs/backups#exclude-paths)). **Only SFTP destinations are added over the API** ([SFTP](/docs/backups#sftp)): Cipi makes the key on the server, and `POST` answers `201` with the destination and its `public_key` — the remote must accept it before `POST /api/backups/destinations/test` with `{"name": "box"}` passes. Nothing secret is sent or returned. An S3 bucket takes a secret key, so it is added on the server with `cipi backup destination add`; a `POST` of another `type` is a `422`. `DELETE` refuses (`422`) a destination a profile still uses; the archives on it stay there.
+
+```bash
+$ curl -X POST https://api.example.com/api/backups/destinations \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"type": "sftp", "name": "box", "host": "u123456.your-storagebox.de", "user": "u123456", "port": 23, "path": "cipi"}'
+{"data": {"name": "box", "type": "sftp", "host": "u123456.your-storagebox.de", "port": 23, "user": "u123456", "path": "cipi", "public_key": "ssh-ed25519 AAAA… cipi-backup-box@web1"}}
+```
 
 ### Server {#endpoints-server}
 
@@ -201,7 +213,39 @@ Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to
 | `GET` | `/api/metrics`, `/api/metrics/series`, `/api/apps/{name}/metrics`, `/api/metrics/uptime`, `/api/metrics/events`, `/api/metrics/settings` ([metrics](/docs/metrics)) | `metrics-view` |
 | `PUT`, `DELETE`, `POST` | `/api/metrics/settings`, `/api/metrics/heartbeat`, `/heartbeat/test` | `metrics-manage` |
 | `GET`, `PUT` | `/api/apps/{name}/basicauth/agent` ([cipi/agent and basic auth](/docs/basic-auth#agent)) | `apps-basicauth` |
+| `GET`, `POST`, `DELETE` | `/api/sync/key`, `/sync/check`, `/sync/trust`, `/sync/push` ([moving apps](#endpoints-sync)) | `sync-manage` |
+| `GET`, `PUT` | `/api/self-update/policy` ([how the server updates Cipi](#endpoints-self-update)) | `updates-view` / `updates-manage` |
 | `GET` | `/api/jobs/{id}` | the job's ability |
+
+### Moving apps to another server {#endpoints-sync}
+
+[`cipi sync`](/docs/sync) over the API. The server the token belongs to is the **source**: it exports the apps, encrypts the archive, sends it over SSH and has the target import it.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| `GET` | `/api/sync/key` | This server's sync key: `{key, type, fingerprint, comment}` — what a target trusts |
+| `POST` | `/api/sync/check` — `{host, port?, user?}` | Can it send there: `{ok, host, port, user, cipi, reason, message}`; `reason` is `not-trusted`, `unreachable`, `host-key-changed`, `no-cipi` or `no-key` |
+| `POST`, `DELETE` | `/api/sync/trust` — `{key}` | On the target: trust a source's key, or take it back (`changed`: whether anything changed) |
+| `POST` | `/api/sync/push` — `{host, port?, user?, apps?, with_db?, with_storage?}` | `202`, a job of type `sync-push` with the transfer's output; no `apps` means every app |
+
+There is no passphrase in any of them: the source makes one for the transfer and hands it to the target over SSH, on the target's standard input. `sync-manage` is as strong as `ssh-manage` — it sends apps, their databases and their files to a host the caller names, and lets another server send apps here — so give it only to who would have SSH. Node apps are not moved yet: `push` skips them and says so.
+
+### How the server updates Cipi {#endpoints-self-update}
+
+The two optional safeguards of [self-update](/docs/self-update): only releases signed by a trusted key, and a delay before a new release is installed.
+
+| Method | Path | Ability |
+| --- | --- | --- |
+| `GET` | `/api/self-update/policy` | `updates-view` |
+| `PUT` | `/api/self-update/policy` — `{verify?, delay_hours?, fingerprint?}` | `updates-manage` |
+
+`GET` answers `verify`, `delay_hours` (0 to 168), `delay_default_hours`, `signers` (the keys this server trusts: `fingerprint`, `principal`), `signers_ready`, `shipped_signers` (the keys shipped with the installed Cipi), `pending` (a release waiting for its delay: `sha`, `version`, `first_seen`), `held` (why the last update wasn't installed: `reason`, `at`) and `installed_sha`. `PUT` changes what is given. Turning `verify` on the first time takes `fingerprint` — one of the `shipped_signers`, compared with the [published one](/docs/self-update#signers); anything else is a `422` and nothing changes. **Starting an update is not in the API**: it stays the server's, at night or at its shell.
+
+```bash
+$ curl -X PUT https://api.example.com/api/self-update/policy \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"delay_hours": 12}'
+```
 
 ### Firewall {#endpoints-firewall}
 
@@ -284,14 +328,18 @@ The [page cache](/docs/page-cache) of an app: Nginx answers with the page PHP ma
 | `PUT` | `/api/apps/{name}/cache` — `{enabled, ttl?, size?, clear_on_deploy?, exclude?}` | `nginx-manage` |
 | `PUT` | `/api/apps/{name}/cache/exclude` — `{exclude: ["/cart*", "/feed"]}` | `nginx-manage` |
 | `POST` | `/api/apps/{name}/cache/clear` | `nginx-manage` |
+| `POST` | `/api/apps/{name}/cache/purge` — `{paths: ["/hello-world/", "/blog/*"]}` | `nginx-manage` |
 
-`GET` answers `supported` (false for a Node app), `kind` (`fastcgi`, `proxy`), `enabled`, `active`, `ttl`, `ttl_seconds`, `size`, `clear_on_deploy`, `exclude` (the app's [own paths that are never cached](/docs/page-cache#exclude)), `files` and `bytes` on disk now, `path`, `suspended` and `clear_command` — what [a recipe of your own](/docs/page-cache#recipe) runs to empty it. `PUT` with `enabled: true` changes what is given and leaves the rest (`ttl`, `size`, `clear_on_deploy` and `exclude` with `enabled: false` are a `422`). `…/cache/exclude` sets the whole list, with the cache on or off; an empty one keeps none, and a path that isn't one (letters, digits, `. _ ~ % - /` and `*`, 50 at most) is a `422` before anything runs. `clear` answers the cache after it, with `cleared`. Synchronous: `nginx -t` runs before the reload, and a refusal is a `422` with the server's words.
+`GET` answers `supported` (false for a Node app), `kind` (`fastcgi`, `proxy`), `enabled`, `active`, `ttl`, `ttl_seconds`, `size`, `clear_on_deploy`, `exclude` (the app's [own paths that are never cached](/docs/page-cache#exclude)), `files` and `bytes` on disk now, `path`, `suspended` and `clear_command` — what [a recipe of your own](/docs/page-cache#recipe) runs to empty it. `PUT` with `enabled: true` changes what is given and leaves the rest (`ttl`, `size`, `clear_on_deploy` and `exclude` with `enabled: false` are a `422`). `…/cache/exclude` sets the whole list, with the cache on or off; an empty one keeps none, and a path that isn't one (letters, digits, `. _ ~ % - /` and `*`, 50 at most) is a `422` before anything runs. `clear` answers the cache after it, with `cleared`. `purge` deletes only the pages given ([purge some pages](/docs/page-cache#purge)): a path, a prefix ending in `*`, or a URL on a domain of the app — no query string, 500 at most — and answers `{app, enabled, purged, targets}`, `purged` being the cached files that went; a page that isn't one is a `422` and nothing is purged. Synchronous: `nginx -t` runs before the reload, and a refusal is a `422` with the server's words.
 
 ```bash
 $ curl -X PUT https://api.example.com/api/apps/blog/cache \
     -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
     -d '{"enabled": true, "ttl": "1h"}'
 $ curl -X POST https://api.example.com/api/apps/blog/cache/clear -H "Authorization: Bearer $TOKEN"
+$ curl -X POST https://api.example.com/api/apps/blog/cache/purge \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"paths": ["/hello-world/", "/category/news/*"]}'
 ```
 
 ### The PHP of an Octane app {#endpoints-octane}
@@ -393,7 +441,7 @@ Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the 
 
 ## MCP server {#mcp}
 
-`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), the page cache of an app (`PageCacheShow`, `PageCacheUpdate`, `PageCacheClear`), the PHP of an Octane app (`OctanePhpShow`, `OctanePhpSwitch`), Valkey per app (read-only: `ValkeyList`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
+`/mcp` exposes the server to AI assistants: apps, deploys and audit, domains, SSL, redirects, proxies, Node, databases, search, limits, disk, `cipi.yml`, server management, the optional packages and the firewall (read-only: `PackageList`, `FirewallStatus`), the page cache of an app (`PageCacheShow`, `PageCacheUpdate`, `PageCachePurge`, `PageCacheClear`), the PHP of an Octane app (`OctanePhpShow`, `OctanePhpSwitch`), Valkey per app (read-only: `ValkeyList`), logs, Artisan and job polling. A token with `mcp-access` covers every tool. Async tools return a `job_id` to poll with `JobShow`; log tools prepend a production warning and redact secrets.
 
 ```bash
 $ claude mcp add --transport http cipi-api https://api.example.com/mcp \

@@ -9,6 +9,7 @@ $ cipi cache blog on                 # pages kept 10 minutes, up to 256 MB on di
 $ cipi cache blog on --ttl=1h --size=1g
 $ cipi cache blog ttl 30m            # how long a page is kept
 $ cipi cache blog clear              # delete the cached pages now
+$ cipi cache blog purge /hello-world/ '/category/news/*'   # only those pages
 $ cipi cache blog exclude add '/feed'   # a path of your own that is never cached
 $ cipi cache blog off                # every request runs PHP again
 $ cipi cache blog                    # on or off, pages and bytes now   (--json)
@@ -109,17 +110,48 @@ A cached page is the old page until it expires or the cache is emptied.
 | --- | --- |
 | **A deploy run by Cipi** — `cipi deploy`, the Git webhook, the panel's Deploy button, a rollback | **Nothing.** Cipi empties the cache after every successful deploy and rollback, and the notification says how many pages went |
 | **By hand** | `cipi cache blog clear`, or **Empty the cache now** in the [panel](#panel) |
-| **A deploy recipe of your own, a CI job, a cron, the app's code** | One command, as the app's own user — below |
+| **One post, one product, one page changed** | [Purge only those pages](#purge): `cipi cache blog purge /hello-world/ '/category/news/*'` — the rest of the cache stays warm |
+| **WordPress** | The [Cipi Cache plugin](#wordpress) purges the pages each change touches, by itself |
+| **Laravel or any PHP app** | The [`cipi/cache` package](#php): purge by path, by prefix or by route from the code that changes the content |
+| **A deploy recipe of your own, a CI job, a cron** | One command, as the app's own user — [below](#recipe) |
 | **Nothing at all** | With pages kept 10 minutes, an edit shows up by itself within 10 minutes |
+
+### Purge some pages, not all {#purge}
+
+Emptying the cache makes every page slow once more: the next visit to each runs PHP again. When one post changed, purge the pages that show it and keep the others.
+
+```bash
+$ cipi cache blog purge /hello-world/
+$ cipi cache blog purge /hello-world/ '/category/news/*' /     # several at once
+$ cipi cache blog purge https://blog.example.com/hello-world/   # that host only
+$ cipi cache blog purge /hello-world/ --json
+{"app":"blog","enabled":true,"purged":4,"targets":["/hello-world/"]}
+```
+
+| A page | What goes |
+| --- | --- |
+| `/hello-world/` | That page on **every domain and alias of the app**, over http and https, `GET` and `HEAD`, with every query string it was kept with (`?utm_source=…`) |
+| `/category/news/*` | Every page whose path starts so: `/category/news/`, `/category/news/page/2/`, `/category/news/feed/`. A `*` only at the end |
+| `https://www.example.com/x/` | That page on that host only. The host must be a domain or an alias of the app — another site's pages are refused |
+
+`purged` counts the cached files that went: a page kept for two domains and with a tracking variant is three files. Up to 500 pages per call, every one checked before anything is deleted: if one isn't a page of the app — no leading `/`, a domain of another app — nothing is purged and the reason is given. With the cache off there is nothing to purge and it says so. A page that wasn't cached is not an error: it simply counts 0.
+
+How it works: Nginx names each cached file after the request it answers — scheme, method, host and address — and writes that name at the top of the file. Cipi finds the files whose name matches and deletes them as Nginx's own user, under the app's cache folder only. There is no `ngx_cache_purge` module to install and nothing to change in the vhost.
+
+> [!note] `/hello-world/` and `/hello-world` are two addresses: write the one your site uses (WordPress ends its addresses with a slash). The home page is `/`, and `/*` is every page — the same as `cipi cache blog clear`.
+
 
 ### In a deploy recipe or a script {#recipe}
 
-The cached files belong to Nginx, so the app's user can't delete them. It may ask root for exactly one thing — no password, and only for its own app:
+The cached files belong to Nginx, so the app's user can't delete them. It may ask root for exactly one thing — no password, and only for its own app: emptying its cache, all of it or the pages it names.
 
 ```bash
 $ sudo /usr/local/bin/cipi-cache-clear blog
 Page cache of 'blog' emptied — 128 page(s)
+$ sudo /usr/local/bin/cipi-cache-clear blog /hello-world/ '/category/news/*'
 ```
+
+The pages are written as for [`cipi cache <app> purge`](#purge). The rule is in `/etc/sudoers.d/cipi-<app>`, added when the app is created and, for older apps, by `cipi self-update`; the helper takes the app's name and pages, nothing else, and refuses another app's user.
 
 In a Deployer recipe of your own ([customize the pipeline](/docs/deploy-script)), after the new release is live:
 
@@ -136,17 +168,98 @@ From a CI job or a script over SSH:
 $ ssh blog@your-server 'sudo /usr/local/bin/cipi-cache-clear blog'
 ```
 
-In WordPress, when a post is saved — a must-use plugin of five lines:
+In the app's own code, for the pages it just changed — or use the [plugin](#wordpress) and the [package](#php) below, which do it for you:
 
 ```php
-<?php
-// wp-content/mu-plugins/cipi-page-cache.php
-add_action('save_post', function () {
-    exec('sudo /usr/local/bin/cipi-cache-clear blog > /dev/null 2>&1 &');
-});
+exec('sudo -n /usr/local/bin/cipi-cache-clear blog '.escapeshellarg('/hello-world/'));
 ```
 
 > [!tip] You don't need this with Cipi's own deploys: adding it to a recipe Cipi runs only empties the cache twice. To keep the cache across deploys instead — a site whose deploys never change its pages — `cipi cache blog on --no-deploy-clear`.
+
+## WordPress: the Cipi Cache plugin {#wordpress}
+
+[**Cipi Cache**](https://github.com/cipi-sh/cache-wp) is a WordPress plugin that purges the pages a change touches — and only those — through the command above. Nothing to configure: it finds the app by the user PHP runs as.
+
+| Change in WordPress | Pages purged |
+| --- | --- |
+| A post published, updated or unpublished | The post (its comment pages, its feed, its AMP page), its categories, tags and other public terms with their parents, its author, its year, the archive of its type, the home page and its pagination, the blog page, the feeds, the sitemaps |
+| Its slug or its parent changed | The old address too |
+| A post trashed or deleted | The same, as it was before it went |
+| A comment approved, edited, removed | The post and the comments feed |
+| A category, tag or other term edited or deleted | The term, its parents, the listings |
+| WooCommerce: the stock of a product or a variation | The product, its categories, the shop |
+| A menu, widgets, the theme, the Customizer, block templates or global styles, the site's title, permalinks or reading settings, an update of WordPress, a plugin or a theme | Every page: they are on every page |
+| A draft, a revision, an autosave, a type that isn't public | Nothing |
+
+Everything a request changes is gathered and sent to Cipi **once, at its end**: saving a post with ten categories is one call.
+
+### Install it {#wordpress-install}
+
+The page cache is on first (`cipi cache blog on`, or the app's **Page cache** tab). Then, as the app's user — `ssh blog@your-server`:
+
+```bash
+$ cd ~/htdocs
+$ wp plugin install https://github.com/cipi-sh/cache-wp/releases/latest/download/cipi-cache.zip --activate
+$ wp cipi-cache status
+```
+
+Without WP-CLI: download [`cipi-cache.zip`](https://github.com/cipi-sh/cache-wp/releases/latest/download/cipi-cache.zip), upload it under **Plugins → Add New → Upload Plugin** and activate it. With Composer (Bedrock): `composer require cipi-sh/cache-wp`. **Tools → Cipi Cache → Check the connection** says whether the site reaches Cipi. The panel's **Page cache** tab shows the same commands with the app's name in them.
+
+| In WordPress | |
+| --- | --- |
+| **Tools → Cipi Cache** | Purge on changes (on by default); the pages a change touches, or every page on any change; pages to purge every time (a landing page with the latest posts: `/`, `/events/*`); the last purges with what Cipi answered |
+| **Toolbar** | *Purge this page*, *Purge every page* |
+| **Posts and pages** | *Purge from cache* on each row |
+| **WP-CLI** | `wp cipi-cache purge /hello-world/ '/category/news/*'`, `--post=123`, `--all`, `wp cipi-cache status` |
+| **In a theme or a plugin** | `cipi_cache_purge(['/landing/', '/events/*'])`, `cipi_cache_purge(true)` for every page; the `cipi_cache_post_pages` and `cipi_cache_term_pages` filters add pages for a post or a term |
+
+On a multisite each site's pages are sent as whole URLs, so a change on one site leaves the others' cache alone; every site's domain must be a domain or an alias of the app. If the app runs as another user than its name, define `CIPI_CACHE_APP` in `wp-config.php`.
+
+> [!tip] With the plugin, pages can be kept much longer — `cipi cache blog ttl 8h` — since an edit no longer waits for them to expire.
+
+## Laravel and any PHP app: cipi/cache {#php}
+
+[**cipi/cache**](https://github.com/cipi-sh/cache-php) is a Composer package — plain PHP, with a Laravel integration — for the same purge from the code that changes the content, and for saying which responses Nginx may keep.
+
+```bash
+$ composer require cipi/cache
+```
+
+```php
+use Cipi\Cache\PageCache;
+
+$cache = PageCache::forThisApp();
+$cache->purge('/blog/hello-world/', '/blog/*', '/');
+$cache->clear();                                   // every page
+
+PageCache::cacheFor(600);                          // this response may be kept 10 minutes
+PageCache::neverCache();                           // this one never
+PageCache::warm(['https://example.com/']);         // ask for it again: cached before a visitor comes
+```
+
+In Laravel the facade and the middleware are there once installed:
+
+```php
+use Cipi\Cache\Laravel\Facades\CipiCache;
+
+CipiCache::purgeRoute('posts.show', $post);        // the page of a named route
+CipiCache::purgeRouteUnder('posts.index');         // that page and everything under it
+
+Route::get('/blog/{post:slug}', ShowPost::class)
+    ->name('posts.show')
+    ->middleware('cipi.cache:3600');               // cacheable for visitors without cookies, an hour
+Route::get('/account', Account::class)->middleware('cipi.nocache');
+```
+
+| | |
+| --- | --- |
+| **A model that purges its own pages** | The `PurgesPageCache` trait and a `cachedPages()` method: saved or deleted, its pages go — the old ones too after a change of slug |
+| **Artisan** | `php artisan cipi:cache:purge /blog/hello/ '/blog/*'`, `--route=posts.index`, `--all`; `php artisan cipi:cache:check` |
+| **One call per request** | Purges are gathered and sent once, when the request, the job or the command ends |
+| **Off the server** | The `api` driver purges through the [API](/docs/api#endpoints-cache) — `POST /api/apps/{name}/cache/purge` with an `nginx-manage` token — from a worker on another machine or a CI job |
+| **Local and tests** | Off outside `production` by default; `FakeRunner` records what would be purged |
+
+> [!warning] `cipi.cache` makes a page the same for every visitor without cookies. Use it on public pages only, and not on a page with a form: a cached CSRF token is someone else's.
 
 ## How it's set up {#setup}
 
@@ -165,20 +278,29 @@ add_action('save_post', function () {
 
 ## From the panel, the API, the SDK and cipi-cli {#panel}
 
-The app's **Page cache** tab in the [web panel](/docs/gui-overview) turns it on and off, sets the time and the size, shows the pages kept now and has **Empty the cache now**. **Paths that are never cached** takes the [paths of your own](#exclude), one per line, checked before they are saved. It also says what this page says — what OPcache already does, what the page cache adds, what is never cached — and shows the command for a recipe of your own with the app's name in it, ready to copy. Turning it on or off takes *Edit* on the app; emptying it comes with *Deploy* too.
+The app's **Page cache** tab in the [web panel](/docs/gui-overview) turns it on and off, sets the time and the size, shows the pages kept now and has **Empty the cache now**. **Purge some pages** takes the pages to purge, one per line, and says why when Cipi refuses one — nothing is purged then. **When the content changes** has the commands for a recipe of your own, and the install of the [WordPress plugin](#wordpress) and the [PHP package](#php), with the app's name in them. **Paths that are never cached** takes the [paths of your own](#exclude), one per line, checked before they are saved. It also says what this page says — what OPcache already does, what the page cache adds, what is never cached — and shows the command for a recipe of your own with the app's name in it, ready to copy. Turning it on or off takes *Edit* on the app; emptying it comes with *Deploy* too.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/app-page-cache-light.webp" width="1440" height="2786" alt="Page cache tab of a WordPress app: on, pages kept 10 minutes up to 256 MB, paths never cached, Purge some pages with three pages in it, and When the content changes with the commands, the Cipi Cache plugin for WordPress and the cipi/cache package; beside them what OPcache does and what is never cached" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/app-page-cache.webp" width="1440" height="2786" alt="Page cache tab of a WordPress app: on, pages kept 10 minutes up to 256 MB, paths never cached, Purge some pages with three pages in it, and When the content changes with the commands, the Cipi Cache plugin for WordPress and the cipi/cache package; beside them what OPcache does and what is never cached" class="shot-dark" loading="lazy" decoding="async">
+</div>
+</figure>
 
 | | |
 | --- | --- |
-| **API** | `GET` and `PUT /api/apps/{name}/cache`, `PUT /api/apps/{name}/cache/exclude`, `POST /api/apps/{name}/cache/clear`, `GET /api/cache` — abilities `nginx-view`, `nginx-manage` ([endpoints](/docs/api#endpoints-cache)) |
-| **PHP SDK** | `$cipi->cache()->enable('blog', ttl: '1h')`, `->exclude('blog', ['/feed'])`, `->clear('blog')`, `->disable('blog')` |
-| **cipi-cli** | `cipi-cli cache on blog --ttl 1h`, `cipi-cli cache exclude blog add '/feed'`, `cipi-cli cache clear blog` |
-| **MCP** | `PageCacheShow`, `PageCacheUpdate`, `PageCacheClear` |
+| **API** | `GET` and `PUT /api/apps/{name}/cache`, `PUT /api/apps/{name}/cache/exclude`, `POST /api/apps/{name}/cache/clear`, `POST /api/apps/{name}/cache/purge` (`{"paths": ["/hello-world/", "/blog/*"]}`), `GET /api/cache` — abilities `nginx-view`, `nginx-manage` ([endpoints](/docs/api#endpoints-cache)) |
+| **PHP SDK** | `$cipi->cache()->enable('blog', ttl: '1h')`, `->exclude('blog', ['/feed'])`, `->purge('blog', ['/hello-world/'])`, `->clear('blog')`, `->disable('blog')` |
+| **cipi-cli** | `cipi-cli cache on blog --ttl 1h`, `cipi-cli cache exclude blog add '/feed'`, `cipi-cli cache purge blog /hello-world/ '/blog/*'`, `cipi-cli cache clear blog` |
+| **MCP** | `PageCacheShow`, `PageCacheUpdate`, `PageCachePurge`, `PageCacheClear` |
 
 ## Questions {#questions}
 
 | Question | Answer |
 | --- | --- |
-| Is it the cache of RunCloud Hub, RunCache or a WordPress cache plugin? | The same engine — Nginx's FastCGI cache — with the other way of keeping it fresh. Those keep a page for hours and rely on a WordPress plugin to delete it when its post changes. Cipi keeps a page 10 minutes and needs nothing inside WordPress: an edit shows up by itself. For the first way, give pages a long time (`cipi cache blog ttl 8h`) and add the [five lines that empty the cache when a post is saved](#recipe) — the whole cache of the app, not the single page. |
+| Is it the cache of RunCloud Hub, RunCache or a WordPress cache plugin? | The same engine — Nginx's FastCGI cache. Those keep a page for hours and rely on a WordPress plugin to delete it when its post changes. Cipi keeps a page 10 minutes by default and needs nothing inside WordPress: an edit shows up by itself. For the first way, install the [Cipi Cache plugin](#wordpress) and give pages a long time (`cipi cache blog ttl 8h`): it purges the pages each change touches, not the whole cache. |
+| Do I need the `ngx_cache_purge` module? | No. [Purging a page](#purge) finds its files by the request name Nginx writes in them; the Nginx Ubuntu ships is enough. |
 | Do I still need a WordPress cache plugin? | Not for page caching: Nginx does it before PHP starts, which a plugin can't. An object cache (queries, in [Valkey](/docs/valkey)) is a different thing and still helps the pages that do reach PHP. |
 | A visitor signs in: does he see a cached page? | No. A session or login cookie bypasses the cache, in both directions: nothing is read from it and nothing is stored. |
 | Is it safe with WooCommerce? | The cart, the checkout and the account are never cached (cookies and `POST`). Catalogue pages are, for visitors with an empty cart. |

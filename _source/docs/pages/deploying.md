@@ -111,7 +111,7 @@ The change is in effect from the next deploy. A number outside the range is refu
 | Where | How |
 | --- | --- |
 | [cipi.yml](/docs/yml#file) | `deploy.build_timeout` and `deploy.step_timeout`, in the repository |
-| [Web panel](/docs/gui#deploy-pipeline) | App → Deploy → *Deploy pipeline*: two fields, with the minutes beside them |
+| [Web panel](/docs/gui-overview) | App → Deploy → *Deploy pipeline*: two fields, with the minutes beside them |
 | [REST API](/docs/api) | `PUT /api/apps/{name}/deploy-config` with `build_timeout`, `step_timeout` |
 | [cipi-cli](/docs/cli-client) | `cipi-cli deploy config set myapp --build-timeout 2700 --step-timeout 900` |
 | [PHP SDK](/docs/php-sdk) | `$cipi->deployConfig()->update('myapp', ['build_timeout' => 2700])` |
