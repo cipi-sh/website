@@ -13,7 +13,7 @@ related:
   - laravel-security-checklist
 faq:
   - Is there a commercial support contract? | Cipi is MIT-licensed open source without a paid support desk. Enterprises typically pair it with an internal platform owner or a local partner who knows Linux and Laravel. See [what to add](#gaps).
-  - Does Cipi have a SOC 2 report or an ISO 27001 certificate? | Certifications apply to organisations and services, and Cipi is software you run. What it gives you is evidence for **your** controls: `cipi compliance report` maps checks to ISO 27001:2022 Annex A and SOC 2.
+  - Does Cipi have a SOC 2 report or an ISO 27001 certificate? | Certifications apply to organisations and services, and Cipi is software you run. What it gives you is evidence for **your** controls: `sudo cipi compliance report` maps checks to ISO 27001:2022 Annex A and SOC 2.
   - Can it run on-premises? | On full virtual machines or bare metal (KVM, VMware, Hyper-V, Xen HVM) with Ubuntu 24.04 or 26.04, a public IPv4 address and ports 22, 80 and 443 reachable. Cloudflare Zero Trust can later close those ports to the internet.
   - Does it support SAML? | The panel supports OpenID Connect (Microsoft Entra ID, Okta, Google Workspace, Keycloak, Authentik, Zitadel, Auth0). SAML isn't supported.
   - Can we restrict what developers and AI assistants can do? | Yes: per-server and per-app roles in the panel, API tokens limited to listed abilities with an expiry date, an IP allowlist for the API, and MCP tools that inherit the token's abilities.
@@ -82,10 +82,10 @@ What Cipi does out of the box, grouped the way security questionnaires and ISO 2
 | **Vulnerability management** | Ubuntu security updates daily; PHP, Nginx, databases and Valkey patched nightly, one service at a time; optional ClamAV scans and CrowdSec; [Hackly](/guides/hackly-security-scanning) and [Checkpoint](/guides/checkpoint-laravel-sast-ci) for the code |
 | **Network** | UFW allowing 22, 80 and 443 only, Fail2ban, optional [Cloudflare Zero Trust](/docs/zero-trust) that closes the origin's ports entirely |
 | **Secrets** | Configuration, tokens and passwords encrypted at rest (AES-256), readable by root only; backups and sync archives encrypted before they leave |
-| **Backup and recovery** | [Backup profiles](/docs/backups) to any S3-compatible storage, encrypted, verified, with staleness alerts; warm standby servers with [`cipi sync`](/docs/sync) |
+| **Backup and recovery** | [Backup profiles](/docs/backups) to any S3-compatible storage, encrypted, verified, with staleness alerts; warm standby servers with [`sudo cipi sync`](/docs/sync) |
 | **Monitoring** | Server monitor and health checks with alerts to e-mail, Slack, Discord, Google Chat, Telegram, signed webhooks and more; [metrics](/guides/cipi-metrics-server-app-uptime) kept by the minute; OpenMetrics for your Prometheus |
 | **Privacy** | Fixed [log retention](/docs/log-retention): logs with IP addresses 90 days, application and security logs 12 months; [anonymized database dumps](/docs/anonymizer) for developers |
-| **Evidence** | [`cipi compliance report`](/docs/compliance): 17 controls checked read-only and mapped to ISO 27001:2022 Annex A and SOC 2, with raw evidence and checksums |
+| **Evidence** | [`sudo cipi compliance report`](/docs/compliance): 17 controls checked read-only and mapped to ISO 27001:2022 Annex A and SOC 2, with raw evidence and checksums |
 
 ```bash
 $ sudo cipi compliance                    # pass / warn / fail per control
@@ -103,12 +103,12 @@ Being honest about the gaps is what makes a rollout succeed:
 | Gap | How enterprises fill it |
 | --- | --- |
 | **No vendor support or SLA** | Name an internal platform owner (two, for holidays) and keep a runbook; or contract a local partner who knows Linux and Laravel. The stack is standard, so any experienced Linux administrator can work on it |
-| **No autoscaling or clustering** | Size servers for peak; split heavy apps onto their own servers; keep a warm standby with `cipi sync`; put critical data on a managed database if you need automatic failover |
+| **No autoscaling or clustering** | Size servers for peak; split heavy apps onto their own servers; keep a warm standby with `sudo cipi sync`; put critical data on a managed database if you need automatic failover |
 | **Logs stay on the server** | Forward syslog to the SIEM (Splunk, Elastic, Microsoft Sentinel) with your usual agent; the compliance report checks that forwarding is configured |
 | **OIDC, not SAML** | Most identity providers offer OIDC next to SAML for the same users (Entra ID, Okta, Google Workspace) |
 | **Ubuntu LTS only** | Treat it as an appliance OS: Ubuntu 24.04 or 26.04 on full VMs, nothing else installed by hand |
-| **Public IPv4 needed** | Required for certificates and webhooks; after setup, [`cipi zt lock`](/docs/zero-trust) closes 22, 80 and 443 to the internet and traffic arrives through a Cloudflare Tunnel |
-| **Certifications for the tool itself** | Your controls are audited, not the tool. Use a certified infrastructure provider for the VMs and `cipi compliance` for the evidence on top |
+| **Public IPv4 needed** | Required for certificates and webhooks; after setup, [`sudo cipi zt lock`](/docs/zero-trust) closes 22, 80 and 443 to the internet and traffic arrives through a Cloudflare Tunnel |
+| **Certifications for the tool itself** | Your controls are audited, not the tool. Use a certified infrastructure provider for the VMs and `sudo cipi compliance` for the evidence on top |
 
 ## Answers for the vendor questionnaire {#questionnaire}
 
@@ -121,7 +121,7 @@ Procurement and security teams ask the same questions of every supplier. For Cip
 | Who can access the servers? | Your accounts only: SSH keys you add, panel users you invite, tokens you create |
 | Licence and cost? | MIT for every component; no licence fee, no per-seat or per-server pricing |
 | Is the source available? | Yes, all of it, on [GitHub](https://github.com/cipi-sh). What runs as root is readable on the server |
-| How are vulnerabilities reported and fixed? | Private reports through GitHub's vulnerability reporting ([security.txt](https://cipi.sh/.well-known/security.txt)); fixes ship in the latest release, installed with `cipi self-update` |
+| How are vulnerabilities reported and fixed? | Private reports through GitHub's vulnerability reporting ([security.txt](https://cipi.sh/.well-known/security.txt)); fixes ship in the latest release, installed with `sudo cipi self-update` |
 | How are changes documented? | A detailed [changelog](https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md) per release, with the tests each release adds |
 | What if the project is discontinued? | Servers keep working without it; the code can be forked; the server is standard Ubuntu |
 | Can we exit? | Yes: apps are ordinary Laravel apps, data is in standard MariaDB, MySQL or PostgreSQL, files in standard directories |
@@ -134,11 +134,11 @@ Pilot | one real, non-critical app
 Baseline | the golden server
 > Write down the standard: Ubuntu version, VM size, Cipi version, backup destination and profiles, notification channels, CrowdSec on or off, Zero Trust on or off. Script it: `wget -O - https://cipi.sh/setup.sh | SSH_PUBKEY="…" bash`, then the same `cipi` commands every time.
 Guardrails | access and change rules
-> Panel with SSO and roles; API tokens per pipeline with only the abilities they need and an expiry date; branch protection on repositories with `cipi.yml`; `cipi yml auto` only where pushing to main is already controlled.
+> Panel with SSO and roles; API tokens per pipeline with only the abilities they need and an expiry date; branch protection on repositories with `cipi.yml`; `sudo cipi yml auto` only where pushing to main is already controlled.
 Evidence | from day one
-> Schedule `cipi compliance --json` (exit 1 on any failure) and a monthly `cipi compliance report`; forward syslog; keep the bundles' checksums in your GRC tool.
+> Schedule `sudo cipi compliance --json` (exit 1 on any failure) and a monthly `sudo cipi compliance report`; forward syslog; keep the bundles' checksums in your GRC tool.
 Scale | the fleet
-> Add servers per business unit or per environment, all in one panel. Use cipi-cli profiles and the PHP SDK for automation, and `cipi sync` to rebalance or move providers.
+> Add servers per business unit or per environment, all in one panel. Use cipi-cli profiles and the PHP SDK for automation, and `sudo cipi sync` to rebalance or move providers.
 ```
 
 ## What it costs {#cost}

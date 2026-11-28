@@ -12,10 +12,10 @@ related:
   - migrate-server-cipi-sync
   - backup-vps-s3
 faq:
-  - Can I switch a server that already has apps? | Not in place. `cipi db switch` only runs on a server with no databases on port 3306, because there is no safe in-place conversion between the two. Use a new server, switch it before the first app, then move the apps with `cipi sync` ([step 6](#existing)).
+  - Can I switch a server that already has apps? | Not in place. `sudo cipi db switch` only runs on a server with no databases on port 3306, because there is no safe in-place conversion between the two. Use a new server, switch it before the first app, then move the apps with `sudo cipi sync` ([step 6](#existing)).
   - Do I need to change `DB_CONNECTION`? | No. Laravel's `mysql` driver talks to both servers, and Cipi writes `DB_CONNECTION=mysql` on MariaDB and on MySQL alike.
   - Which MySQL version do I get? | The one in the Ubuntu archive: 8.4 LTS on Ubuntu 26.04, 8.0 on 24.04. Prefer 26.04 for a new MySQL server: Oracle ended support for 8.0 on April 30, 2026.
-  - Can MariaDB and MySQL run side by side? | No. Port 3306 runs one of them. PostgreSQL can run next to either (`cipi db install pgsql`).
+  - Can MariaDB and MySQL run side by side? | No. Port 3306 runs one of them. PostgreSQL can run next to either (`sudo cipi db install pgsql`).
   - Why is the engine still called `mariadb`? | So nothing that stores or exchanges it changes shape: `apps.json`, `cipi.yml`, backups and the API keep the same id. It means "the server on port 3306", whichever it is.
   - Can I do it from the web panel or the API? | No. Replacing a database server is an operator decision, so it stays on the command line. The panel shows *MySQL* where it runs.
   - How do I go back? | On a server with no databases: `sudo cipi db switch mariadb`. On a server in use: the old server you moved from is your way back, which is why you keep it for a while.
@@ -37,7 +37,7 @@ MariaDB is Cipi's default and fits most Laravel apps without friction. Some team
 | **Engine `mariadb`** | Cipi's name for "the server on port 3306". It keeps that name after a switch, so `--engine=mariadb`, `cipi.yml`, backups and the API don't change |
 | **Switch** | MariaDB's packages removed, MySQL installed with the same root password and Cipi's tuning |
 | **Empty server** | No database, no app and nothing in Cipi's registry on port 3306. The only place a switch runs |
-| **Move** | A server already in use moves its apps to a new, switched server with `cipi sync` |
+| **Move** | A server already in use moves its apps to a new, switched server with `sudo cipi sync` |
 
 ```flow
 Decide | MySQL, MariaDB or PostgreSQL | #decide
@@ -116,7 +116,7 @@ In a provisioning script there is no terminal to confirm on, so the switch refus
 
 ```bash
 $ wget -O - https://cipi.sh/setup.sh | SSH_PUBKEY="ssh-ed25519 AAAA… ops" bash
-$ cipi db switch mysql --yes
+$ sudo cipi db switch mysql --yes
 ```
 
 > [!warning] The switch is refused, on purpose, on a server that already has a database, an app or a registry entry on port 3306. The message lists what it found. Don't delete apps to get past it: use [step 6](#existing).
@@ -132,8 +132,8 @@ $ sudo cat /etc/mysql/mysql.conf.d/99-cipi.cnf
 
 | Where | You should see |
 | --- | --- |
-| `cipi db engines` | `mariadb  installed  3306  *`, then *Port 3306 runs MySQL* |
-| `cipi service list` | The MySQL unit, watched by the [monitor](/docs/monitor) |
+| `sudo cipi db engines` | `mariadb  installed  3306  *`, then *Port 3306 runs MySQL* |
+| `sudo cipi service list` | The MySQL unit, watched by the [monitor](/docs/monitor) |
 | Web panel | *MySQL* on the server's databases tab |
 | `/var/lib/mysql.mariadb-<time>` | The old (empty) MariaDB data directory. Remove it once you're happy: `sudo rm -rf /var/lib/mysql.mariadb-*` |
 
@@ -149,10 +149,10 @@ $ sudo cipi app create --user=shop --domain=shop.example.com \
 | Thing | Value on a MySQL server |
 | --- | --- |
 | `.env` | `DB_CONNECTION=mysql`, `DB_HOST=127.0.0.1`, `DB_PORT=3306`, its own user and password |
-| TablePlus / DBeaver URL | `mysql+ssh://…` (printed at creation and by `cipi credentials`) |
+| TablePlus / DBeaver URL | `mysql+ssh://…` (printed at creation and by `sudo cipi credentials`) |
 | `cipi.yml` databases | `engine: mariadb`, or leave it out |
-| Backups, `cipi db backup/restore`, `cipi db password` | Same commands; the MySQL client does the work |
-| Patching | `cipi db upgrade` and the nightly [autoupdate](/docs/stack-upgrades) follow MySQL's packages |
+| Backups, `sudo cipi db backup/restore`, `sudo cipi db password` | Same commands; the MySQL client does the work |
+| Patching | `sudo cipi db upgrade` and the nightly [autoupdate](/docs/stack-upgrades) follow MySQL's packages |
 | Port | Localhost only. Connect over SSH; never open 3306 to the internet |
 
 Run the test suite against MySQL in CI too, so you find engine differences before production does:
@@ -207,7 +207,7 @@ $ sudo cipi ssl install shop
 | UCA 14 collations (`utf8mb4_uca1400_*`) | The matching MySQL `0900` collations |
 | Rows of data | Untouched |
 
-The same filter works in the other direction: a MySQL dump restored into MariaDB gets its `0900` collations mapped to UCA 14. It applies to `cipi db restore`, `cipi sync` and restores from [backups](/guides/backup-vps-s3).
+The same filter works in the other direction: a MySQL dump restored into MariaDB gets its `0900` collations mapped to UCA 14. It applies to `sudo cipi db restore`, `sudo cipi sync` and restores from [backups](/guides/backup-vps-s3).
 
 ### JSON columns after the move {#json}
 
@@ -224,7 +224,7 @@ Schema::table('orders', function (Blueprint $table) {
 | Situation | How |
 | --- | --- |
 | Switched, no database created yet | `sudo cipi db switch mariadb`: same checks, same steps, the other way round |
-| Apps already on MySQL | Move them to a MariaDB server with `cipi sync`, as in step 6 |
+| Apps already on MySQL | Move them to a MariaDB server with `sudo cipi sync`, as in step 6 |
 | Moved from an old server last week | Point DNS back at the old server you kept. Data written since the move has to be copied back |
 
 ## Troubleshooting {#troubleshooting}
@@ -237,5 +237,5 @@ Schema::table('orders', function (Blueprint $table) {
 | *Removing MariaDB would also remove: …* | Another package depends on MariaDB's client libraries. Remove it first, or stay on MariaDB. Nothing was changed |
 | *A database dump is running* | A backup is in progress. Try again when `sudo cipi backup status` shows it finished |
 | Stops after "Checking the MySQL packages…" with no message | Cipi 5.13.0: `sudo cipi self-update` to 5.13.1 or later and run it again |
-| `cipi db install mysql` doesn't switch | By design: `install` never replaces a server. Use `cipi db switch mysql` |
+| `sudo cipi db install mysql` doesn't switch | By design: `install` never replaces a server. Use `sudo cipi db switch mysql` |
 | App says `Access denied` after a move | `sudo cipi db password <app>` sets a new password in the database and `.env` together |

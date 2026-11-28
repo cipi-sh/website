@@ -90,7 +90,7 @@ Ploi Cloud is a managed application platform from the team behind Ploi, hosted i
 
 **Root access.** Install what you need, read any log, tune PHP and Nginx.
 
-**No lock-in.** A standard Ubuntu stack on any provider; move with `cipi sync`.
+**No lock-in.** A standard Ubuntu stack on any provider; move with `sudo cipi sync`.
 
 ## Where everything goes in Cipi {#map}
 
@@ -98,11 +98,11 @@ Every Ploi Cloud feature you use today, and its place in Cipi. Use it as your mi
 
 | In Ploi Cloud | In Cipi | Docs |
 | --- | --- | --- |
-| App | `cipi app create` | [Create an app](/docs/create-app) |
-| Environment | `cipi app env` | [Environment](/docs/environment) |
-| Managed database | `cipi db` | [Databases](/docs/databases) |
+| App | `sudo cipi app create` | [Create an app](/docs/create-app) |
+| Environment | `sudo cipi app env` | [Environment](/docs/environment) |
+| Managed database | `sudo cipi db` | [Databases](/docs/databases) |
 | Storage | S3 bucket or local storage |  |
-| Workers | `cipi worker add` | [Workers](/docs/workers) |
+| Workers | `sudo cipi worker add` | [Workers](/docs/workers) |
 
 ## Moving to Cipi, step by step {#move}
 

@@ -207,29 +207,29 @@
 <p>Move pages or whole sites without losing visitors or search ranking, and route a path to another service. Rules live in Cipi's state and survive every vhost change.</p>
 <h2 id="app-redirect">Redirect a whole app<a class="anchor" href="#app-redirect" aria-label="Link to this section">#</a></h2>
 <p>Every name the app answers to (primary, aliases, www) goes to the target in <strong>one hop</strong>.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi redirect set oldsite --to=https://new.com<span class="c">            # 301, path and query kept</span>
-<span class="p"></span>cipi redirect set oldsite --to=https://new.com --302 --no-path
-<span class="p"></span>cipi redirect disable oldsite<span class="c">      # serve the app again, keep the target</span>
-<span class="p"></span>cipi redirect enable oldsite
-<span class="p"></span>cipi redirect unset oldsite</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi redirect set oldsite --to=https://new.com<span class="c">       # 301, path and query kept</span>
+<span class="p"></span>sudo cipi redirect set oldsite --to=https://new.com --302 --no-path
+<span class="p"></span>sudo cipi redirect disable oldsite<span class="c">  # serve the app again, keep the target</span>
+<span class="p"></span>sudo cipi redirect enable oldsite
+<span class="p"></span>sudo cipi redirect unset oldsite</pre></div>
 <p>Status codes: <code>--301</code> (default), <code>--302</code>, <code>--307</code>, <code>--308</code>. The old name's certificate keeps renewing, so HTTPS visitors get a valid redirect too.</p>
 <h2 id="path-redirects">Redirect paths<a class="anchor" href="#path-redirects" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi redirect add myapp /old-pricing /pricing
-<span class="p"></span>cipi redirect add myapp /blog/ https://blog.example.com/
-<span class="p"></span>cipi redirect add myapp /docs/ https://docs.example.com --308 --no-path
-<span class="p"></span>cipi redirect list myapp
-<span class="p"></span>cipi redirect remove myapp /old-pricing</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi redirect add myapp /old-pricing /pricing
+<span class="p"></span>sudo cipi redirect add myapp /blog/ https://blog.example.com/
+<span class="p"></span>sudo cipi redirect add myapp /docs/ https://docs.example.com --308 --no-path
+<span class="p"></span>sudo cipi redirect list myapp
+<span class="p"></span>sudo cipi redirect remove myapp /old-pricing</pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th><code>from</code></th><th>Matches</th><th>Example</th></tr></thead><tbody><tr><td><code>/old</code> (no trailing slash)</td><td>Exactly that path; query kept</td><td><code>/old?x=1</code> → <code>/new?x=1</code></td></tr><tr><td><code>/blog/</code> (trailing slash)</td><td>The prefix; the rest is appended</td><td><code>/blog/x?y</code> → <code>https://blog.example.com/x?y</code></td></tr><tr><td>with <code>--no-path</code></td><td>Everything to the target as is</td><td><code>/blog/x</code> → <code>https://blog.example.com/</code></td></tr></tbody></table></div>
 <p>Path redirects and proxies keep working while an app redirect is on, so a moved site can keep <code>/api/</code> in place.</p>
 </section>
 <section class="doc-section" id="cli-proxy">
 <h2 id="proxy">Proxy a path to another service<a class="anchor" href="#proxy" aria-label="Link to this section">#</a></h2>
 <p>Hand <code>/api/</code>, <code>/events/</code> or <code>/docs/</code> to a Node or Go service, a legacy app or another origin.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi proxy add myapp /api/ http://127.0.0.1:3000 --strip-prefix
-<span class="p"></span>cipi proxy add myapp /events/ http://127.0.0.1:4000 --no-buffering --timeout=3600
-<span class="p"></span>cipi proxy add myapp /docs/ https://docs-origin.example.com --preserve-host
-<span class="p"></span>cipi proxy list myapp
-<span class="p"></span>cipi proxy remove myapp /api/</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi proxy add myapp /api/ http://127.0.0.1:3000 --strip-prefix
+<span class="p"></span>sudo cipi proxy add myapp /events/ http://127.0.0.1:4000 --no-buffering --timeout=3600
+<span class="p"></span>sudo cipi proxy add myapp /docs/ https://docs-origin.example.com --preserve-host
+<span class="p"></span>sudo cipi proxy list myapp
+<span class="p"></span>sudo cipi proxy remove myapp /api/</pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Option</th><th>Effect</th></tr></thead><tbody><tr><td>(none)</td><td>URI unchanged: <code>/api/users</code> → <code>upstream/api/users</code></td></tr><tr><td><code>--strip-prefix</code></td><td><code>/api/users</code> → <code>upstream/users</code>, with <code>X-Forwarded-Prefix</code></td></tr><tr><td><code>--preserve-host</code></td><td>Send the visitor's <code>Host</code></td></tr><tr><td><code>--timeout=N</code></td><td>Upstream timeout in seconds</td></tr><tr><td><code>--no-buffering</code></td><td>For Server-Sent Events, long polling, streaming</td></tr></tbody></table></div>
 <p>Every proxy carries WebSocket upgrade and <code>X-Real-IP</code> / <code>X-Forwarded-*</code> headers; basic auth, when on, covers it too.</p>
 <h2 id="safety">Safety rails<a class="anchor" href="#safety" aria-label="Link to this section">#</a></h2>

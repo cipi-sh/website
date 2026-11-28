@@ -89,4 +89,4 @@ See [Web panel](/web-panel), [API](/api) and [MCP](/mcp) for the full picture.
 | --- | --- |
 | API install fails on DNS | The API's hostname must point at the server first |
 | 403 from the API | Token lacks the ability: create one with the right `--abilities` |
-| Panel can't reach the API | Check `cipi api status`; tokens and URL in the panel settings |
+| Panel can't reach the API | Check `sudo cipi api status`; tokens and URL in the panel settings |

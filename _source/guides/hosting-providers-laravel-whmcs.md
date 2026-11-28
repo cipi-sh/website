@@ -15,7 +15,7 @@ related:
 faq:
   - Can I sell hosting built on Cipi? | Yes. Cipi and the WHMCS module are MIT: commercial use and resale are allowed, with no per-server or per-account licence. Keep the copyright notice in copies of the code.
   - Does the module give customers a client area? | No client-area tab. Customers use SSH and SFTP as their app user, Git for deploys, and optionally the Cipi panel, where you can invite them with access to their own app only.
-  - How are one-time credentials delivered? | The module doesn't push them to WHMCS. Deliver them through your onboarding (a ticket, a secure note), or let customers rotate them: `cipi db password` and SSH keys.
+  - How are one-time credentials delivered? | The module doesn't push them to WHMCS. Deliver them through your onboarding (a ticket, a secure note), or let customers rotate them: `sudo cipi db password` and SSH keys.
   - Are disk limits enforced? | They're soft: at 90% and over the limit the monitor alerts you, the site keeps working. Use them to upsell or bill overage, not to break a customer's app at the worst moment.
   - Can a customer get root? | Not in the managed products: each customer is an isolated app user. Sell a Laravel-ready VPS when they want root.
   - Does it support email hosting, DNS or reseller accounts? | No. Cipi focuses on applications. Keep your existing mail and DNS products, or partner for them.
@@ -49,7 +49,7 @@ Price | margins | #pricing
 | Composer and Node builds | Limited SSH, old tool versions | Composer 2 and Node on the server, build steps in the deploy |
 | A choice of PHP version per app | One or a few versions | PHP 8.3 to 8.6 side by side, per app |
 | Redis-compatible cache and queues | Rare on shared plans | A Valkey instance per app |
-| WebSockets (Reverb), Octane | Not available | `cipi app reverb enable`, `cipi app create --octane` |
+| WebSockets (Reverb), Octane | Not available | `sudo cipi app reverb enable`, `sudo cipi app create --octane` |
 | Document root on `public/` | Workarounds with `.htaccess` | Nginx configured for Laravel |
 | Isolation from other customers | Shared users or containers of varying quality | A Linux user, PHP-FPM pool, database user and Valkey instance per app |
 
@@ -152,7 +152,7 @@ Every call is written to WHMCS's module log (Utilities → Logs → Module Log).
 
 ## 3. Plans and limits {#limits}
 
-Limits stop one customer from starving the others. Set them per app with `cipi app limits`, or through the API (`PUT /api/apps/{name}/limits`) from a WHMCS hook, so each product applies its plan automatically:
+Limits stop one customer from starving the others. Set them per app with `sudo cipi app limits`, or through the API (`PUT /api/apps/{name}/limits`) from a WHMCS hook, so each product applies its plan automatically:
 
 | Plan (example) | PHP-FPM children | `memory_limit` | Queue workers | Soft disk limit |
 | --- | --- | --- | --- | --- |
@@ -241,10 +241,10 @@ Deliver one-time secrets (passwords, deploy key, webhook URL) through your onboa
 | --- | --- |
 | Patching | Ubuntu security updates daily, PHP nightly, Nginx, databases and Valkey through [autoupdate](/docs/stack-upgrades), one service at a time. Reboots when you schedule them |
 | Monitoring | The [monitor](/docs/monitor) alerts your ops channel on disk, services, workers, certificates, 5xx and load; [metrics](/docs/metrics) show which app is the noisy neighbour |
-| Backups | A server-wide nightly profile to off-site storage, plus frequent database profiles; `cipi backup status` lists any app nothing covers |
+| Backups | A server-wide nightly profile to off-site storage, plus frequent database profiles; `sudo cipi backup status` lists any app nothing covers |
 | Security | Per-app isolation, CrowdSec, optional malware scans, Cloudflare Zero Trust for the admin side |
-| Rebalancing | Move an app or a whole node with [`cipi sync`](/guides/migrate-server-cipi-sync) |
-| B2B customers' audits | [`cipi compliance report`](/docs/compliance): evidence mapped to ISO 27001 and SOC 2 |
+| Rebalancing | Move an app or a whole node with [`sudo cipi sync`](/guides/migrate-server-cipi-sync) |
+| B2B customers' audits | [`sudo cipi compliance report`](/docs/compliance): evidence mapped to ISO 27001 and SOC 2 |
 
 ## 6. Price it {#pricing}
 

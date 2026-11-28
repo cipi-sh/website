@@ -5,11 +5,11 @@ The server watches itself every 5 minutes and tells you when something actually 
 <cipi-term name="monitor"></cipi-term>
 
 ```bash
-$ cipi monitor                    # run every check now (exit 1 on warn/crit)
-$ cipi monitor list               # checks, thresholds, state, last alert
-$ cipi monitor set disk --warn=85 --crit=95
-$ cipi monitor disable load
-$ cipi monitor test               # sample alert to every channel
+$ sudo cipi monitor               # run every check now (exit 1 on warn/crit)
+$ sudo cipi monitor list          # checks, thresholds, state, last alert
+$ sudo cipi monitor set disk --warn=85 --crit=95
+$ sudo cipi monitor disable load
+$ sudo cipi monitor test          # sample alert to every channel
 ```
 
 ## The checks, on by default {#checks}
@@ -38,7 +38,7 @@ Tune any threshold: `--ssl --days=21`, `http_5xx --count=50 --ratio=10`, `load -
 | Still failing | A reminder every 4 hours (`set reminder --minutes=N`, min 15) |
 | failing → ok | One recovery, with how long it lasted |
 
-The 5xx check reads only what was written since the last run and starts with a baseline, so it never alerts on old errors. A check that can't run reports critical instead of crashing. Each check has its own trigger and can be muted (`cipi notifications disable monitor_load`).
+The 5xx check reads only what was written since the last run and starts with a baseline, so it never alerts on old errors. A check that can't run reports critical instead of crashing. Each check has its own trigger and can be muted (`sudo cipi notifications disable monitor_load`).
 
 ## In the web panel {#in-the-panel}
 
@@ -51,7 +51,7 @@ The fleet dashboard and each server's health. The [web panel](/docs/gui) is opti
 | Problem | Fix |
 | --- | --- |
 | No alerts | Configure a channel: [notifications](/docs/notifications) |
-| Too many disk alerts | Free space: `cipi disk` shows who uses it |
+| Too many disk alerts | Free space: `sudo cipi disk` shows who uses it |
 
 ## Questions {#questions}
 

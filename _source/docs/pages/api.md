@@ -1,6 +1,6 @@
 @section cipi-api
 
-`cipi api <domain>` adds an **optional REST API and MCP server** to a Cipi server. It's what the [web panel](/docs/gui), [cipi-cli](/docs/cli-client), the [PHP SDK](/docs/php-sdk), [WHMCS](/docs/whmcs) and your AI assistant talk to. It's a separate Laravel app ([`cipi/api`](https://github.com/cipi-sh/api), MIT) that runs as `www-data` and calls an **allowlist of `cipi` commands** through sudo: credentials never leave Cipi, and destructive host operations stay on the CLI.
+`sudo cipi api <domain>` adds an **optional REST API and MCP server** to a Cipi server. It's what the [web panel](/docs/gui), [cipi-cli](/docs/cli-client), the [PHP SDK](/docs/php-sdk), [WHMCS](/docs/whmcs) and your AI assistant talk to. It's a separate Laravel app ([`cipi/api`](https://github.com/cipi-sh/api), MIT) that runs as `www-data` and calls an **allowlist of `cipi` commands** through sudo: credentials never leave Cipi, and destructive host operations stay on the CLI.
 
 <cipi-term name="api"></cipi-term>
 
@@ -26,42 +26,42 @@ The API has its own vhost and certificate, so it needs a hostname **only it uses
 
 | What | Example | Set up with |
 | --- | --- | --- |
-| Your app | `example.com`, `www.example.com` | `cipi app create`, `cipi alias add` |
-| API + MCP | `api.example.com` | `cipi api api.example.com` |
-| Web panel | `panel.example.com` | `cipi gui panel.example.com` |
+| Your app | `example.com`, `www.example.com` | `sudo cipi app create`, `sudo cipi alias add` |
+| API + MCP | `api.example.com` | `sudo cipi api api.example.com` |
+| Web panel | `panel.example.com` | `sudo cipi gui panel.example.com` |
 
-All three can share a server and a registered domain; each hostname belongs to one of them. Cipi refuses any overlap, in both directions (`cipi app create`, `alias add`, `app clone`, `sync import` and `cipi.yml` aliases won't take the API's or the panel's hostname). `cipi api status` warns if an old install shares a hostname with an app: fix it with [`cipi api move`](#cipi-api-move).
+All three can share a server and a registered domain; each hostname belongs to one of them. Cipi refuses any overlap, in both directions (`sudo cipi app create`, `alias add`, `app clone`, `sync import` and `cipi.yml` aliases won't take the API's or the panel's hostname). `sudo cipi api status` warns if an old install shares a hostname with an app: fix it with [`sudo cipi api move`](#cipi-api-move).
 
 ## Commands {#commands}
 
 ```bash
-$ cipi api api.example.com          # DNS check, install, certificate, first token
-$ cipi api ssl                      # (re)issue the certificate
-$ cipi api status                   # versions, queue worker, pending jobs, FPM pool
-$ cipi api token list
-$ cipi api token create --name=panel --full-access
-$ cipi api token create --name=ci --abilities=apps-view,deploy-manage --expires=2027-06-30
-$ cipi api token revoke <id>
-$ cipi api update                   # soft update (also nightly at 04:30)
-$ cipi api upgrade                  # full rebuild, rollback kept at /opt/cipi/api.old
-$ cipi api fix-permissions          # storage/database ownership back to www-data
+$ sudo cipi api api.example.com     # DNS check, install, certificate, first token
+$ sudo cipi api ssl                 # (re)issue the certificate
+$ sudo cipi api status              # versions, queue worker, pending jobs, FPM pool
+$ sudo cipi api token list
+$ sudo cipi api token create --name=panel --full-access
+$ sudo cipi api token create --name=ci --abilities=apps-view,deploy-manage --expires=2027-06-30
+$ sudo cipi api token revoke <id>
+$ sudo cipi api update              # soft update (also nightly at 04:30)
+$ sudo cipi api upgrade             # full rebuild, rollback kept at /opt/cipi/api.old
+$ sudo cipi api fix-permissions     # storage/database ownership back to www-data
 ```
 
 Install flags: `--no-ssl`, `--no-token`, `--skip-dns-check`.
 
-## Change domain: `cipi api move` {#cipi-api-move}
+## Change domain: `sudo cipi api move` {#cipi-api-move}
 
 ```bash
-$ cipi api move api.newdomain.com           # move and issue the certificate
-$ cipi api move api.newdomain.com --no-ssl  # certificate later with cipi api ssl
+$ sudo cipi api move api.newdomain.com      # move and issue the certificate
+$ sudo cipi api move api.newdomain.com --no-ssl  # certificate later with sudo cipi api ssl
 ```
 
-Tokens, job history and the IP allowlist stay. The vhost is rewritten (and restored if `nginx -t` fails), `/etc/cipi/api.json` and `APP_URL` updated, `cipi-queue` restarted, the old certificate deleted (never one still used by an app) and a new one issued. Then update the URL in every client: panel Connections, cipi-cli profile, SDK config, MCP clients. Running `cipi api <other-domain>` on a configured server points you here instead of silently moving.
+Tokens, job history and the IP allowlist stay. The vhost is rewritten (and restored if `nginx -t` fails), `/etc/cipi/api.json` and `APP_URL` updated, `cipi-queue` restarted, the old certificate deleted (never one still used by an app) and a new one issued. Then update the URL in every client: panel Connections, cipi-cli profile, SDK config, MCP clients. Running `sudo cipi api <other-domain>` on a configured server points you here instead of silently moving.
 
-## Remove: `cipi api remove` {#cipi-api-remove}
+## Remove: `sudo cipi api remove` {#cipi-api-remove}
 
 ```bash
-$ cipi api remove           # alias: uninstall; --force skips the prompt
+$ sudo cipi api remove      # alias: uninstall; --force skips the prompt
 ```
 
 Removes the `cipi-queue` worker, vhost, FPM pool, crons, certificate, `/opt/cipi/api` (and backups), `api.json`, the IP allowlist and logs. **All tokens die with it.** Apps, databases and the panel are untouched; the sudoers allowlist stays because it's part of every Cipi install.
@@ -92,7 +92,7 @@ Authentication is **Sanctum** Bearer tokens. Each token gets a list of abilities
 | Notifications | `notifications-view` (channels without secrets, triggers), `notifications-manage` (add, change, test, toggle, remove channels; triggers) — `smtp-view` / `smtp-manage` are accepted too |
 | MCP | `mcp-access` (covers every MCP tool) |
 
-`php artisan cipi:token-abilities` (or the `cipi api token create` checklist) shows the canonical list.
+`php artisan cipi:token-abilities` (or the `sudo cipi api token create` checklist) shows the canonical list.
 
 Some routes have no ability of their own and sit under an area's: `nginx-*` for the [page cache](#endpoints-cache), `php-*` for the [PHP of an Octane app](#endpoints-octane), `services-*` for [Valkey per app](#endpoints-valkey), `notifications-*` for the [time zone and server name](#endpoints-notification-settings) of notifications. A token made for one of those areas can use them.
 
@@ -100,9 +100,9 @@ Some routes have no ability of their own and sit under an area's: `nginx-*` for 
 
 Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. **A job has a time limit**: two hours for a deploy and for a [transfer](#endpoints-sync) (a front-end build alone may take [30 minutes](/docs/deploying#time-limits), up to an hour where the app asks for it), ten minutes for any other; one that runs out of it ends as `failed` with `exit_code` 124, the output it had, and a line that says so. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
-The API and the server's Cipi are updated separately (`cipi api update`, `cipi self-update`). A route whose command the server's Cipi doesn't have yet answers `503` and says so: update the server.
+The API and the server's Cipi are updated separately (`sudo cipi api update`, `sudo cipi self-update`). A route whose command the server's Cipi doesn't have yet answers `503` and says so: update the server.
 
-A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens) (`cipi zt access enable --api --allow=none`) also needs the headers of a service token: `CF-Access-Client-Id` and `CF-Access-Client-Secret` (`cipi zt service-token create <name> --for=api`).
+A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens) (`sudo cipi zt access enable --api --allow=none`) also needs the headers of a service token: `CF-Access-Client-Id` and `CF-Access-Client-Secret` (`sudo cipi zt service-token create <name> --for=api`).
 
 ### Apps {#endpoints-apps}
 
@@ -125,7 +125,7 @@ A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens
 | `GET`, `PUT`, `DELETE` | `/api/apps/{name}/health`, `POST …/health/check` | `health-view` / `health-manage` |
 | `GET` | `/api/apps/{name}/logs?type=&page=&per_page=` | `apps-view` |
 
-`POST /api/apps` takes `domain`, `repository`, `branch`, `php`, `env`, `engine` (`mariadb`/`pgsql`), `octane`, `node_build`, `custom` + `docroot` (repository optional for SFTP-only sites), or Node fields (`node`: `spa|static|ssr`, `framework`, `node_version`, `build`, `start`, `output`, `health_path`). The same rules as [`cipi app create`](/docs/create-app) apply. `PUT` forwards only fields that changed; a `domain` already used elsewhere answers `409`. App objects return `type` (`laravel`, `custom`, `node`), `env`, `suspended`, `basic_auth`, `octane`, `redirects`, `proxies` and `databases`.
+`POST /api/apps` takes `domain`, `repository`, `branch`, `php`, `env`, `engine` (`mariadb`/`pgsql`), `octane`, `node_build`, `custom` + `docroot` (repository optional for SFTP-only sites), or Node fields (`node`: `spa|static|ssr`, `framework`, `node_version`, `build`, `start`, `output`, `health_path`). The same rules as [`sudo cipi app create`](/docs/create-app) apply. `PUT` forwards only fields that changed; a `domain` already used elsewhere answers `409`. App objects return `type` (`laravel`, `custom`, `node`), `env`, `suspended`, `basic_auth`, `octane`, `redirects`, `proxies` and `databases`.
 
 `PUT /api/apps/{name}/env` takes `set` (keys and values), `unset` (keys) and `order`: every key of the file after `set`/`unset`, each once, in the order they should be in (comments above a key move with it; an `order` alone is enough). It answers `vars` in file order. `GET /api/apps/{name}/basicauth` returns `enabled`, `users` and `agent` (`mode`, `public_prefix`).
 
@@ -143,7 +143,7 @@ A server whose API is [behind Cloudflare Access](/docs/zero-trust#service-tokens
 
 `deploy/status` is safe to poll: running, queued, interrupted or idle, with trigger, branch, phase, elapsed time and optional log tail. It also returns `paused_commit`: the commit whose automatic deploy failed, which the webhook does not deploy again ([paused commit](/docs/deploying#paused)); `deploy/unlock` resumes it, and its job result says `resumed` and `resumed_commit`. `deploy/audit` returns the [hash-chained ledger](/docs/deploy-audit).
 
-<p id="cipi-api-yml"><code>GET /api/apps/{name}/yml</code> is <code>cipi yml plan &lt;app&gt; --json</code>: the <code>file</code> of the live release, <code>env</code>, <code>auto</code>, <code>valid</code> and errors, <code>in_sync</code>, <code>warnings</code>, <code>changes</code> (kind, token, summary), <code>blockers</code> and <code>notes</code>. See <a href="/docs/yml">cipi.yml</a>.</p>
+<p id="cipi-api-yml"><code>GET /api/apps/{name}/yml</code> is <code>sudo cipi yml plan &lt;app&gt; --json</code>: the <code>file</code> of the live release, <code>env</code>, <code>auto</code>, <code>valid</code> and errors, <code>in_sync</code>, <code>warnings</code>, <code>changes</code> (kind, token, summary), <code>blockers</code> and <code>notes</code>. See <a href="/docs/yml">cipi.yml</a>.</p>
 
 ### Domains, SSL and routing {#endpoints-domains}
 
@@ -179,7 +179,7 @@ Redirects and proxies use the CLI's own validation, regenerate the vhost and rev
 | `GET`, `POST` | `/api/backups/key` (the encryption key, once: logged and notified on the server), `/api/backups/key/rotate` | `backups-manage` |
 | `POST` | `/api/backups/prune` (`profile?`, `dry_run?`) — the retention now, a job `backup-prune` | `backups-manage` |
 
-Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](/docs/backups#exclude-paths)). **Setting backups up** ([on the server first](/docs/backups#setup)): `PUT /api/backups/config` sets up the local folder and the nightly profile and answers the backup status after it. **S3 buckets and SFTP servers are destinations on a par**: any `name` but `local` (`s3` included, for a bucket); `profiles` sends those profiles there too. **An SFTP destination** ([SFTP](/docs/backups#sftp)): Cipi makes the key on the server, and `POST` answers `201` with the destination and its `public_key` — the remote must accept it before `POST /api/backups/destinations/test` with `{"name": "box"}` passes. **An S3 bucket** is reached with its keys before it is saved: a wrong key is a `422` that changes nothing. **A secret key never rides a command line**: the API writes it to the CLI's standard input (`--secret-stdin`) in a synchronous call — never in a job, never stored, never answered; a key left out of a `PUT` stays as the server has it. `DELETE` refuses (`422`) a destination a profile still uses; the archives on it stay there. Downloading a run (`cipi backup fetch`) is not in the API. Every change of where archives go is notified on the server (`backup_config`).
+Restore takes a server `file` or an `upload_id`: dumps (`.sql`, `.sql.gz`, up to 2 GB by default) are uploaded in chunks and deleted when the job ends. `dbs/engines` lists each engine with `status`, `port`, `default`, `server` and `label`: where [`sudo cipi db switch mysql`](/docs/databases#mysql) ran, the engine is still `mariadb` and `server` is `mysql`. Backup profiles take `exclude_paths` ([paths left out](/docs/backups#exclude-paths)). **Setting backups up** ([on the server first](/docs/backups#setup)): `PUT /api/backups/config` sets up the local folder and the nightly profile and answers the backup status after it. **S3 buckets and SFTP servers are destinations on a par**: any `name` but `local` (`s3` included, for a bucket); `profiles` sends those profiles there too. **An SFTP destination** ([SFTP](/docs/backups#sftp)): Cipi makes the key on the server, and `POST` answers `201` with the destination and its `public_key` — the remote must accept it before `POST /api/backups/destinations/test` with `{"name": "box"}` passes. **An S3 bucket** is reached with its keys before it is saved: a wrong key is a `422` that changes nothing. **A secret key never rides a command line**: the API writes it to the CLI's standard input (`--secret-stdin`) in a synchronous call — never in a job, never stored, never answered; a key left out of a `PUT` stays as the server has it. `DELETE` refuses (`422`) a destination a profile still uses; the archives on it stay there. Downloading a run (`sudo cipi backup fetch`) is not in the API. Every change of where archives go is notified on the server (`backup_config`).
 
 ```bash
 $ curl -X POST https://api.example.com/api/backups/destinations \
@@ -199,7 +199,7 @@ $ curl -X POST https://api.example.com/api/backups/destinations \
 
 | Method | Path | Ability |
 | --- | --- | --- |
-| `GET` | `/api/status` (same JSON as `cipi status`) | `status-view` |
+| `GET` | `/api/status` (same JSON as `sudo cipi status`) | `status-view` |
 | `GET`, `POST` | `/api/php`, `/api/php/install` | `php-view` / `php-manage` |
 | `GET`, `POST` | `/api/frankenphp`, `/api/frankenphp/upgrade` (the FrankenPHP build of each Octane app) | `php-view` / `php-manage` |
 | `GET`, `PUT`, `POST` | `/api/apps/{name}/octane`, `/octane/php`, `/octane/restart` ([the PHP of an Octane app](#endpoints-octane)) | `php-view` / `php-manage` |
@@ -229,7 +229,7 @@ $ curl -X POST https://api.example.com/api/backups/destinations \
 
 ### Moving apps to another server {#endpoints-sync}
 
-[`cipi sync`](/docs/sync) over the API. The server the token belongs to is the **source**: it exports the apps, encrypts the archive, sends it over SSH and has the target import it.
+[`sudo cipi sync`](/docs/sync) over the API. The server the token belongs to is the **source**: it exports the apps, encrypts the archive, sends it over SSH and has the target import it.
 
 | Method | Path | Does |
 | --- | --- | --- |
@@ -273,7 +273,7 @@ What the [panel's Firewall tab](/docs/firewall#panel) uses.
 | `PUT`, `DELETE` | `/api/firewall/real-ip` (on, or the ranges fetched again; off) | `firewall-manage` |
 | `POST` | `/api/firewall/real-ip/refresh` (Cloudflare's ranges fetched again) | `firewall-manage` |
 
-`GET /api/firewall` is `cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
+`GET /api/firewall` is `sudo cipi firewall status --json`, typed: every UFW rule with `kind` (`port`, `block`, `other`), `family` (`both`, `v4`, `v6`), `managed_by` (`zero-trust`, `metrics`, `crowdsec`), `protected` and `removable`. Changes answer `{data, message}` with the firewall after them. The CLI's refusals ([what stays open](/docs/firewall#protected): SSH, 80 and 443, a Zero Trust lock, a block that takes in the caller's address, a rule that isn't there) are `422` with its message. Enabling CrowdSec answers `422` with `blockers` when the server can't take it, and allowlists the caller's address. The API never sends `--force`, and the CLI ignores it from the API anyway.
 
 `GET /api/firewall` has `real_ip` — [the visitor's address behind Cloudflare](/docs/nginx#real-ip): `enabled`, `kept_by` (`real-ip`, `zero-trust`, `both`, `other` for a configuration Cipi didn't write), `ranges`, `refreshed_at`, `can_disable`, `bans_active` — `null` when the server's Cipi doesn't have it yet. `PUT /api/firewall/real-ip` turns it on, `DELETE` turns it off (`off --yes`: ask first, with what `bans_active` means) and answers `409` when the request itself came through Cloudflare (`CF-Connecting-IP`), since from then on the API would see Cloudflare instead of the caller.
 
@@ -376,7 +376,7 @@ An app that isn't on Octane answers `422`. The job fails, with nothing changed, 
 | `POST` | `/api/valkey/{app}/restart` | Synchronous; the list after it |
 | `POST` | `/api/valkey/flush-shared` | Empties the shared instance and changes its password; `409` while an app uses it |
 
-> [!security] **No password leaves the server through these routes.** The list has none, and the new shared password that `cipi valkey flush-shared` prints once is neither returned nor put in an error: it stays in `cipi credentials`.
+> [!security] **No password leaves the server through these routes.** The list has none, and the new shared password that `sudo cipi valkey flush-shared` prints once is neither returned nor put in an error: it stays in `sudo cipi credentials`.
 
 ### Notification settings {#endpoints-notification-settings}
 
@@ -390,11 +390,11 @@ $ curl -X PUT https://api.example.com/api/notifications/settings \
 
 ### Optional packages {#endpoints-packages}
 
-`GET /api/packages` is `cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
+`GET /api/packages` is `sudo cipi package list --json`: `data.packages`, each entry with `id`, `packages` (apt), `description`, `installed`, `partial`, `kind` (`tools`, `libraries`), `binaries`, `missing`, `source` (`ubuntu`, or `upstream` for the [pinned releases](/docs/packages#upstream)), `version`, `installed_version` and `outdated`.
 
 `POST /api/packages/{id}` installs an entry of the server's [closed catalog](/docs/packages#available) (or completes a partial one), `DELETE /api/packages/{id}` removes it, taking [only what no other package needs](/docs/packages#remove). Both are jobs — apt takes from seconds to a few minutes. An id outside the catalog is `404`, installing what is installed or removing what isn't is `409`; an `outdated` upstream entry can be installed (that updates it) and removed. A download that doesn't match its pinned SHA-256 fails the job, nothing installed. The job result says what happened: `installed`, `already`, `missing` for an install; `removed`, `apt`, `still_needed` for a removal. The API passes `--yes` and nothing else; `--force` and `--autoremove` stay at the server's shell. What the [panel's Packages tab](/docs/packages#panel) uses.
 
-> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every change to the Cloudflare side of Zero Trust (the tunnel, hostnames, Access, its locks), `cipi firewall deny`, closing SSH, 80 or 443 from the firewall routes, and the CrowdSec rescue listener. The [mesh network](#endpoints-zt) is the one place where SSH and 80/443 are closed over the API — under an ability of its own, and with the server refusing whatever would lock people out. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
+> [!security] **Kept off the API on purpose:** removing PHP versions, switching default PHP or engine, switching MariaDB and MySQL, dropping databases, installing Meilisearch, any apt package outside the [closed catalog](/docs/packages#available), stack upgrades, monitor thresholds, the OpenMetrics endpoint (it opens a port), every change to the Cloudflare side of Zero Trust (the tunnel, hostnames, Access, its locks), `sudo cipi firewall deny`, closing SSH, 80 or 443 from the firewall routes, and the CrowdSec rescue listener. The [mesh network](#endpoints-zt) is the one place where SSH and 80/443 are closed over the API — under an ability of its own, and with the server refusing whatever would lock people out. Installing arbitrary software or destroying data is an operator decision taken at the CLI, so a compromised token can't do it: the package catalog is a fixed list of stateless tools from Ubuntu's repositories, and its removal never takes what other software needs.
 
 ## Examples {#cipi-api-curl}
 
@@ -427,12 +427,12 @@ A database backup through the API is a **real** backup. For a dump people can sh
 
 ## Host integration {#cipi-api-host}
 
-The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, an explicit allowlist of subcommands with their exact argument shapes, checked with `visudo -cf` whenever a migration or `cipi self-update` regenerates it, and split into rules of at most 40 commands because sudo-rs (the `sudo` of Ubuntu 26.04) refuses longer lists. Vault and MariaDB credentials stay inside Cipi, never in PHP. Its FPM pool has its own `open_basedir`.
+The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, an explicit allowlist of subcommands with their exact argument shapes, checked with `visudo -cf` whenever a migration or `sudo cipi self-update` regenerates it, and split into rules of at most 40 commands because sudo-rs (the `sudo` of Ubuntu 26.04) refuses longer lists. Vault and MariaDB credentials stay inside Cipi, never in PHP. Its FPM pool has its own `open_basedir`.
 
 | Symptom | Fix |
 | --- | --- |
-| HTTP 500 on `/docs` or `/mcp` after an update | `cipi api fix-permissions`, then `cipi api status` |
-| `sudo: a terminal is required` | `cipi self-update` regenerates the allowlist |
+| HTTP 500 on `/docs` or `/mcp` after an update | `sudo cipi api fix-permissions`, then `sudo cipi api status` |
+| `sudo: a terminal is required` | `sudo cipi self-update` regenerates the allowlist |
 | `sudo: I'm sorry www-data. I'm afraid I can't do that` on new endpoints (e.g. metrics) | The allowlist is older than the command. `sudo cipi self-update` rewrites it, split into rules of 40 commands for sudo-rs on Ubuntu 26.04 and validated with `visudo` first; check with `sudo -l -U www-data` |
 | Panel says backups aren't configured | Compare `ls -l /etc/cipi/backup.json` with `sudo -u www-data sudo -n /usr/local/bin/cipi backup status --json` |
 
@@ -441,10 +441,10 @@ The API runs as `www-data` and calls `cipi` through `/etc/sudoers.d/cipi-api`, a
 Restrict REST and MCP clients by source IP. `/etc/cipi/api-ip-whitelist` holds one IPv4/IPv6 address or CIDR per line; `*` or no file allows all. Rejected clients get `403 {"error":"IP not allowed","ip":"…"}`.
 
 ```bash
-$ cipi api ip-whitelist show [--json]
-$ cipi api ip-whitelist add 203.0.113.10
-$ cipi api ip-whitelist set --ips=203.0.113.0/24,2001:db8::/32
-$ cipi api ip-whitelist allow-all
+$ sudo cipi api ip-whitelist show [--json]
+$ sudo cipi api ip-whitelist add 203.0.113.10
+$ sudo cipi api ip-whitelist set --ips=203.0.113.0/24,2001:db8::/32
+$ sudo cipi api ip-whitelist allow-all
 ```
 
 Over REST (`/api/ip-whitelist`), `PUT` adds the caller's IP when tightening the list unless `ensure_client_ip: false`, so you can't lock yourself out by accident. The file is replaced atomically.
@@ -464,7 +464,7 @@ Setup for Cursor, VS Code, Claude Desktop and others is in [MCP servers](/docs/m
 
 ## The `cipi/api` package {#package}
 
-`cipi api <domain>` provisions everything (`/opt/cipi/api`, Nginx, SSL, SQLite job queue, `cipi-queue.service`). For custom setups:
+`sudo cipi api <domain>` provisions everything (`/opt/cipi/api`, Nginx, SSL, SQLite job queue, `cipi-queue.service`). For custom setups:
 
 ```bash
 $ composer require cipi/api

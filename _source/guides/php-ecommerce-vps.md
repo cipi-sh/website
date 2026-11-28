@@ -183,7 +183,7 @@ Upload the PrestaShop release to `~/htdocs` by SFTP, open the domain and run the
 | Everything nightly, off-site | `--cron='0 3 * * *' --dest=s3 --encrypt` profile ([guide](/guides/backup-vps-s3)) |
 | Verified backups | `sudo cipi backup verify` (alerts on failure) |
 | Enough PHP workers | `sudo cipi app limits <app> --fpm-max-children=12` |
-| A staging copy | Laravel shops: `cipi app clone`; others: a second custom app with a restored dump |
+| A staging copy | Laravel shops: `sudo cipi app clone`; others: a second custom app with a restored dump |
 | Alerts | [Telegram, Slack or e-mail](/guides/notifications-alerts) |
 | Transactional e-mail | An SMTP or API provider, never direct from the VPS |
 

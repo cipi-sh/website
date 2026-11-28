@@ -5,13 +5,13 @@ Cipi tells you when something happens that you should know about: failed deploys
 <cipi-term name="notifications"></cipi-term>
 
 ```bash
-$ cipi notification                     # channels and active triggers (no secrets shown)
-$ cipi notification add slack ops --url=https://hooks.slack.com/services/…
-$ cipi notification test all
-$ cipi notification triggers            # which events notify
-$ cipi notification triggers disable monitor_load
-$ cipi notification update ops --url=https://hooks.slack.com/services/…
-$ cipi notification events oncall urgent       # only failures and security events to oncall
+$ sudo cipi notification                # channels and active triggers (no secrets shown)
+$ sudo cipi notification add slack ops --url=https://hooks.slack.com/services/…
+$ sudo cipi notification test all
+$ sudo cipi notification triggers       # which events notify
+$ sudo cipi notification triggers disable monitor_load
+$ sudo cipi notification update ops --url=https://hooks.slack.com/services/…
+$ sudo cipi notification events oncall urgent  # only failures and security events to oncall
 ```
 
 @section cipi-alert-channels
@@ -31,13 +31,13 @@ $ cipi notification events oncall urgent       # only failures and security even
 | `webhook` | `--url [--secret]` | JSON, optionally signed (`X-Cipi-Signature`) |
 
 ```bash
-$ cipi notification add smtp --host=smtp.example.com --port=587 --user=… --password=… \
+$ sudo cipi notification add smtp --host=smtp.example.com --port=587 --user=… --password=… \
     --from=alerts@example.com --to=ops@example.com --tls=on
-$ cipi notification add telegram oncall --token=<bot> --chat-id=<id>
-$ cipi notification add webhook pager --url=https://example.com/hooks/cipi --secret=…
-$ cipi notification disable ops | enable ops | remove ops
-$ cipi notification update oncall --chat-id=-1009999     # what is left out, secrets too, is kept
-$ cipi notification update siem --clear-secret           # stop signing a webhook
+$ sudo cipi notification add telegram oncall --token=<bot> --chat-id=<id>
+$ sudo cipi notification add webhook pager --url=https://example.com/hooks/cipi --secret=…
+$ sudo cipi notification disable ops | enable ops | remove ops
+$ sudo cipi notification update oncall --chat-id=-1009999  # what is left out, secrets too, is kept
+$ sudo cipi notification update siem --clear-secret      # stop signing a webhook
 ```
 
 Secrets omitted from the command line are asked for without echo, stored encrypted, and never printed back. Delivery is **best-effort with a 5-second timeout**: a dead webhook can never stall a deploy or a cron job.
@@ -63,29 +63,29 @@ All on by default; every event is also written to `/var/log/cipi/events.log` (ke
 | Config | `ini_set`, `app_jit`, `yml_apply`, `yml_fail`, `yml_post_fail`, `node_default` |
 | Other | SSL, PHP, database (`db_switch` when [MariaDB and MySQL](/docs/databases#mysql) are swapped), workers, services, search, packages, sync, API and password-reset events |
 
-`cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
+`sudo cipi notification triggers` prints the live list with on/off state; `enable-all`, `disable-all` and `reset` work as expected. `triggers --json` prints it as JSON and `triggers set --on=a,b --off=c,d` changes many in one write.
 
-`cipi notification test <id>` exits 1, with the reason, when the channel refuses the request; a disabled channel can be tested before it is turned on.
+`sudo cipi notification test <id>` exits 1, with the reason, when the channel refuses the request; a disabled channel can be tested before it is turned on.
 
 ## What each channel receives {#events}
 
 A channel takes **everything** — the default — or only the events you give it:
 
 ```bash
-$ cipi notification events                   # what each channel takes (--json)
-$ cipi notification events oncall urgent     # failures and security only
-$ cipi notification events team deploy       # deploys only
-$ cipi notification events smtp deploy,backup,security
-$ cipi notification events siem security,ssh_login
-$ cipi notification events team all          # back to everything
-$ cipi notification add slack team --url=… --events=deploy
+$ sudo cipi notification events              # what each channel takes (--json)
+$ sudo cipi notification events oncall urgent  # failures and security only
+$ sudo cipi notification events team deploy  # deploys only
+$ sudo cipi notification events smtp deploy,backup,security
+$ sudo cipi notification events siem security,ssh_login
+$ sudo cipi notification events team all     # back to everything
+$ sudo cipi notification add slack team --url=… --events=deploy
 ```
 
 | Selector | Lets through |
 | --- | --- |
 | `all` | Everything (the same as no list) |
 | `urgent` | Failures and security events: a failed deploy, backup, cron job or `cipi.yml`, a health check down, a service or a worker stopped, the disk or an app's limit filling up, 5xx spikes, a read-only filesystem, the Cloudflare Tunnel down, an SSH login, `sudo`, `su`, malware or drift found, the CrowdSec rescue — the triggers ntfy and Pushover also raise in priority |
-| A category | Every trigger of it, as an id: `apps`, `domains`, `deploy`, `health`, `monitor`, `ssl`, `php`, `updates`, `services`, `database`, `security`, `backup`, `cron`, `cipi-yml`, `basic-auth`, `ssh-keys`… (`cipi notification events --json` lists them with how many triggers each holds) |
+| A category | Every trigger of it, as an id: `apps`, `domains`, `deploy`, `health`, `monitor`, `ssl`, `php`, `updates`, `services`, `database`, `security`, `backup`, `cron`, `cipi-yml`, `basic-auth`, `ssh-keys`… (`sudo cipi notification events --json` lists them with how many triggers each holds) |
 | A trigger | That one: `backup_fail`, `deploy_success`, `ssh_login`… — mixed with categories as you like (`security,ssh_login`) |
 
 `add` and `update` take the same list as `--events=`, with the rest of the channel.
@@ -93,8 +93,8 @@ $ cipi notification add slack team --url=… --events=deploy
 - The [triggers](#triggers) come first: a trigger that is off reaches no channel, whatever the channels take.
 - Every selector is checked before anything is saved: a typo is named and changes nothing.
 - SMTP is a channel like the others (`events smtp …`), and reconfiguring SMTP or editing a channel keeps what it takes.
-- `cipi notification test <id>` and `cipi monitor test` reach a channel whatever it takes: they have no trigger.
-- `cipi notification --json` gives each channel its `events` (`null` for everything) and lists the `categories`.
+- `sudo cipi notification test <id>` and `sudo cipi monitor test` reach a channel whatever it takes: they have no trigger.
+- `sudo cipi notification --json` gives each channel its `events` (`null` for everything) and lists the `categories`.
 
 The alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su` (through PAM), [your own cron jobs](#security) and deploys through the Git webhook — reach every channel that takes them too, not e-mail alone.
 
@@ -103,11 +103,11 @@ The alerts that don't come from a `cipi` command — SSH logins, `sudo` and `su`
 Every notification names the server and the time. By default that is the machine's hostname (`vmi12334`) and the server's own time zone — UTC on most servers. Both are yours to set:
 
 ```bash
-$ cipi notification timezone                # what it is now
-$ cipi notification timezone Europe/Rome    # the Time line of every notification
-$ cipi notification timezone server         # back to the server's own
-$ cipi notification server-name production  # "production (vmi12334)" instead of "vmi12334"
-$ cipi notification server-name --clear     # back to the hostname
+$ sudo cipi notification timezone           # what it is now
+$ sudo cipi notification timezone Europe/Rome  # the Time line of every notification
+$ sudo cipi notification timezone server    # back to the server's own
+$ sudo cipi notification server-name production  # "production (vmi12334)" instead of "vmi12334"
+$ sudo cipi notification server-name --clear  # back to the hostname
 ```
 
 ```text
@@ -183,9 +183,9 @@ They run in the background through PAM, so they never slow a login, and they rea
 | Question | Answer |
 | --- | --- |
 | Which channels? | E-mail, Slack, Mattermost, Google Chat, Discord, Telegram, ntfy, Pushover, signed webhooks. |
-| Can one channel get only the alarms? | Yes: `cipi notification events <id> urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events <id> deploy` ([what each channel receives](#events)). |
-| The time in a notification is UTC | That's the server's time zone. `cipi notification timezone Europe/Rome` writes notifications in yours and leaves the server alone ([details](#written)). |
-| A notification says `vmi12334`: which server is it? | The machine's hostname. `cipi notification server-name production` gives it a name of yours; the panel shows each server's hostname next to its name and sets it in one click ([details](#written)). |
+| Can one channel get only the alarms? | Yes: `sudo cipi notification events <id> urgent`, or *Only some events* → *Urgent* in the panel. Deploys alone to a team chat: `events <id> deploy` ([what each channel receives](#events)). |
+| The time in a notification is UTC | That's the server's time zone. `sudo cipi notification timezone Europe/Rome` writes notifications in yours and leaves the server alone ([details](#written)). |
+| A notification says `vmi12334`: which server is it? | The machine's hostname. `sudo cipi notification server-name production` gives it a name of yours; the panel shows each server's hostname next to its name and sets it in one click ([details](#written)). |
 | Can I manage them from the panel? | Yes, every channel and trigger ([In the web panel](#panel)). |
 | The panel says "sudo: I'm sorry www-data" on Notifications | The panel's sudo whitelist was written by an old Cipi release: `sudo cipi self-update` rewrites it. |
 | Step by step? | [Notifications and alerts guide](/guides/notifications-alerts). |

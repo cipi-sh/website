@@ -25,7 +25,7 @@ Pull request opened | or the script run by hand
 Name it | stable per branch
 > The script turns the branch into a stable app name (`pv3a1f9c2e4b`) and a readable address (`feature-cart-3a1f9c2e4b.preview.example.com`). Same branch, same names, every time.
 Create | app, database, HTTPS, first deploy
-> If the preview doesn't exist yet: `cipi app create` on that branch, a Let's Encrypt certificate, the first deploy, the database seeders.
+> If the preview doesn't exist yet: `sudo cipi app create` on that branch, a Let's Encrypt certificate, the first deploy, the database seeders.
 Update | every push to the branch
 > Every later push deploys the preview again, with the usual zero-downtime deploy, usually through the preview's own webhook.
 Delete | when the pull request closes
@@ -62,14 +62,14 @@ After the first deploy, new pushes to the branch must reach the preview. There a
 | --- | --- | --- |
 | A server for previews | A separate Cipi server is best ([install](/docs/installation)) | Previews use RAM and CPU, and the token that creates and deletes them shouldn't be able to touch production |
 | Wildcard DNS | `A *.preview.example.com → preview server IP` | Every preview gets a subdomain without touching DNS again |
-| A Git token on the server | `cipi git github-token …` (or GitLab, Bitbucket, Azure) | Cipi adds a read-only deploy key and the webhook for each preview, and removes them on delete. See [Git providers](/docs/git) |
-| The API | `cipi api api.preview.example.com` | The script talks to the server through the API, not SSH |
+| A Git token on the server | `sudo cipi git github-token …` (or GitLab, Bitbucket, Azure) | Cipi adds a read-only deploy key and the webhook for each preview, and removes them on delete. See [Git providers](/docs/git) |
+| The API | `sudo cipi api api.preview.example.com` | The script talks to the server through the API, not SSH |
 | A token for previews | See below | Only what previews need |
-| PHP | `cipi php install 8.4` (the version your app uses) | Previews are created with it |
+| PHP | `sudo cipi php install 8.4` (the version your app uses) | Previews are created with it |
 
 ```bash
 # on the preview server
-$ cipi api token create --name=previews \
+$ sudo cipi api token create --name=previews \
     --abilities=apps-view,apps-create,apps-delete,apps-env,apps-artisan,deploy-manage,ssl-manage,yml-manage \
     --expires=2027-12-31
 ```
@@ -488,8 +488,8 @@ See [cipi.yml](/docs/yml) for every key.
 | Option | Works with | Note |
 | --- | --- | --- |
 | [Cloudflare Zero Trust](/docs/zero-trust) | Both update modes | Login with your company accounts; `/cipi/webhook` stays reachable |
-| [`cipi zt preview create`](/docs/zero-trust#previews) | One branch by hand, no script | The preview on the tunnel, behind Access, on `feature-cart-shop.example.com`; `cipi deploy` updates it, `cipi zt preview remove` deletes it with its database |
-| Basic auth (`app.basic_auth` in `cipi-preview.yml`, or `cipi basicauth enable`) | `PREVIEW_MODE=deploy` only | Blocks the Git webhook too |
+| [`sudo cipi zt preview create`](/docs/zero-trust#previews) | One branch by hand, no script | The preview on the tunnel, behind Access, on `feature-cart-shop.example.com`; `sudo cipi deploy` updates it, `sudo cipi zt preview remove` deletes it with its database |
+| Basic auth (`app.basic_auth` in `cipi-preview.yml`, or `sudo cipi basicauth enable`) | `PREVIEW_MODE=deploy` only | Blocks the Git webhook too |
 | Unguessable names only | Both | The ID in the address is not a secret: search engines and link scanners can still find a preview |
 
 ### E-mails, payments, third parties {#side-effects}
@@ -513,7 +513,7 @@ The script sets `MAIL_MAILER=log`, so previews never e-mail anyone. Do the same 
 | Preview created but not updating | No agent in the app, or basic auth on | Add `cipi/agent`, or set `PREVIEW_MODE=deploy` |
 | "Could not add the webhook" on create | GitHub's 20-webhook limit, or the Git token lacks webhook rights | Close stale previews; check the token ([Git providers](/docs/git)) |
 | Certificate fails | Wildcard DNS missing, or the Let's Encrypt weekly limit | `dig +short x.preview.example.com`; use a separate preview domain |
-| Deploy key can't read the repository | No Git token on the preview server | `cipi git github-token …` on the preview server, then `.cipi/preview.sh down` and `up` again |
+| Deploy key can't read the repository | No Git token on the preview server | `sudo cipi git github-token …` on the preview server, then `.cipi/preview.sh down` and `up` again |
 | `403` from the API | The token lacks an ability | Recreate it with the list in [setup](#setup) |
 | A preview half-created (the script stopped) | A step failed after `apps create` | `.cipi/preview.sh down`, fix the cause, `.cipi/preview.sh up` |
 

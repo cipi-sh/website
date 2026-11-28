@@ -27,8 +27,8 @@ $ userdel -r APP
 ## 2. Cipi itself {#cipi}
 
 ```bash
-$ cipi package list                             # optional packages: remove the installed ones first,
-$ cipi package remove <id> --yes                # with their links in /usr/local/bin and their apt packages
+$ sudo cipi package list                        # optional packages: remove the installed ones first,
+$ sudo cipi package remove <id> --yes           # with their links in /usr/local/bin and their apt packages
 $ systemctl disable --now cipi-queue 2>/dev/null; rm -f /etc/systemd/system/cipi-queue.service
 $ userdel -r cipi; groupdel cipi-ssh; groupdel cipi-apps
 $ rm -rf /opt/cipi /etc/cipi /var/log/cipi /usr/local/bin/cipi*

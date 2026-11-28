@@ -1,6 +1,6 @@
 @section ci-pipeline-ssh
 
-Pipeline mode lets your CI decide **when** an app goes live: usually right after the tests pass, sometimes after a backup or a manual approval. The server still does the deploy itself, exactly as with `cipi deploy`. Your pipeline only gives the order and reads the result.
+Pipeline mode lets your CI decide **when** an app goes live: usually right after the tests pass, sometimes after a backup or a manual approval. The server still does the deploy itself, exactly as with `sudo cipi deploy`. Your pipeline only gives the order and reads the result.
 
 This page has everything you need: how to connect CI to the server safely, a deploy command that never makes things worse, and ready-to-copy recipes for every popular CI.
 
@@ -32,7 +32,7 @@ Roll back | only if the check fails
 > If the new release is live but the app doesn't answer, the pipeline rolls back to the previous release and turns red, so you notice.
 ```
 
-> [!warning] **Don't roll back when the deploy command fails.** When `cipi deploy` fails while building the release (Composer, assets, migrations), nothing is published and the previous release is still serving. Rolling back at that point would go one release further back, to older code. Roll back only when the deploy succeeded and the health check then fails, as every recipe on this page does.
+> [!warning] **Don't roll back when the deploy command fails.** When `sudo cipi deploy` fails while building the release (Composer, assets, migrations), nothing is published and the previous release is still serving. Rolling back at that point would go one release further back, to older code. Roll back only when the deploy succeeded and the health check then fails, as every recipe on this page does.
 
 ## 1. Choose how CI calls the server {#connect}
 
@@ -41,7 +41,7 @@ Roll back | only if the check fails
 | What CI runs | `ssh cipi@server "sudo cipi deploy shop"` | `cipi-cli prod deploy shop` | `curl -X POST https://shop.example.com/cipi/webhook …` |
 | What the secret can do | Run **any** `cipi` command as root (including deleting apps) | Only what the token allows: with `deploy-manage`, deploy, roll back, unlock and read status | Only queue a deploy of that one app |
 | Waits for the result | Yes | Yes | No: it answers "queued" and the deploy starts within a minute |
-| Server needs | Port 22 open to CI | [`cipi api`](/docs/api) installed | [`cipi/agent`](/docs/agent-install) in the app (Laravel) |
+| Server needs | Port 22 open to CI | [`sudo cipi api`](/docs/api) installed | [`cipi/agent`](/docs/agent-install) in the app (Laravel) |
 | Choose it when | You want the quickest setup on one server | You want the least privilege, or several servers | Your tool can only send an HTTP request |
 
 > [!tip] Our recommendation: the **API** for production. A leaked API token with only `deploy-manage` can redeploy your app; a leaked SSH key for the `cipi` user can do anything Cipi can do.
@@ -55,9 +55,9 @@ Every recipe uses the same names, so you can copy them as they are.
 | `SERVER_HOST` | The server's IP or hostname | Your provider's dashboard |
 | `SERVER_SSH_KEY` | A private key used only by CI | `ssh-keygen` below |
 | `SERVER_KNOWN_HOSTS` | The server's public host key, so CI knows it's talking to your server | `ssh-keyscan` below |
-| `CIPI_API_URL` | Your API address, e.g. `https://api.example.com` | `cipi api status` |
-| `CIPI_API_TOKEN` | A token with only `deploy-manage` | `cipi api token create` below |
-| `CIPI_WEBHOOK_TOKEN` | The app's webhook secret | `cipi deploy shop --webhook` |
+| `CIPI_API_URL` | Your API address, e.g. `https://api.example.com` | `sudo cipi api status` |
+| `CIPI_API_TOKEN` | A token with only `deploy-manage` | `sudo cipi api token create` below |
+| `CIPI_WEBHOOK_TOKEN` | The app's webhook secret | `sudo cipi deploy shop --webhook` |
 | `HEALTH_URL` | A URL that answers 200 when the app works, e.g. `https://shop.example.com/up` | Your app ([health checks](/docs/health-checks)) |
 
 ### An SSH key for CI {#ssh-key}
@@ -87,10 +87,10 @@ $ ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 
 ```bash
 # on the server, once
-$ cipi api token create --name=ci-shop --abilities=deploy-manage --expires=2027-12-31
+$ sudo cipi api token create --name=ci-shop --abilities=deploy-manage --expires=2027-12-31
 ```
 
-The token is shown once: save it as `CIPI_API_TOKEN`. If you restrict the API by IP (`cipi api ip-whitelist`), remember that hosted runners (GitHub, GitLab.com, Bitbucket) change IP on every build: allow their published ranges or use a self-hosted runner with a fixed IP.
+The token is shown once: save it as `CIPI_API_TOKEN`. If you restrict the API by IP (`sudo cipi api ip-whitelist`), remember that hosted runners (GitHub, GitLab.com, Bitbucket) change IP on every build: allow their published ranges or use a self-hosted runner with a fixed IP.
 
 ## 3. Turn the webhook off {#webhook-off}
 
@@ -104,7 +104,7 @@ If the app also deploys on push, every push would deploy twice: once from the we
 | Gitea / Forgejo | Repository → **Settings → Webhooks** → untick **Active** |
 | Azure DevOps | Project settings → **Service hooks** → disable the Cipi hook |
 
-> [!note] `cipi git refresh` and `cipi app webhook recreate` create the webhook again. If you run them later, turn it off again.
+> [!note] `sudo cipi git refresh` and `sudo cipi app webhook recreate` create the webhook again. If you run them later, turn it off again.
 
 ## 4. The deploy step, explained once {#deploy-step}
 
@@ -447,9 +447,9 @@ This path needs the [`cipi/agent`](/docs/agent-install) package in a Laravel app
 
 ```bash
 # push a small change, then on the server:
-$ cipi deploy shop --status        # running, queued or idle
-$ cipi deploy shop --audit         # the last entry says origin "cipi-cli" (SSH) or "panel" (API)
-$ cipi app logs shop --type=deploy
+$ sudo cipi deploy shop --status   # running, queued or idle
+$ sudo cipi deploy shop --audit    # the last entry says origin "cipi-cli" (SSH) or "panel" (API)
+$ sudo cipi app logs shop --type=deploy
 ```
 
 ## Patterns {#patterns}
@@ -493,7 +493,7 @@ cipi-cli eu deploy shop && cipi-cli us deploy shop
 | `sudo: a terminal is required` | The SSH user isn't `cipi` | Connect as `cipi@…`, the user allowed to run `sudo cipi` without a password |
 | Every push deploys twice | The webhook is still active | [Turn it off](#webhook-off) |
 | *A deploy of 'shop' is running* | Two pipelines at once, or a webhook deploy in flight | Add a concurrency limit and keep one trigger per app; a lock left by an interrupted deploy is removed by the next deploy |
-| `401` or `403` from the API | Token expired, wrong ability, or IP not allowed | `cipi api token list`; ability `deploy-manage`; `cipi api ip-whitelist show` |
+| `401` or `403` from the API | Token expired, wrong ability, or IP not allowed | `sudo cipi api token list`; ability `deploy-manage`; `sudo cipi api ip-whitelist show` |
 | cipi-cli "timed out after polling" | The build takes more than about nine minutes | The deploy continues on the server: `cipi-cli prod deploy status shop` |
 | Azure task fails on a good deploy | `failOnStdErr` is on | Set `failOnStdErr: false` |
 | CI green, old code live | The pipeline used the agent webhook, which only queues | Use SSH or the API when CI must wait for the result |

@@ -9,7 +9,7 @@ Request | POST /cipi/db, cipi-cli or Artisan
 > You ask for a dump in one of three ways: `cipi-cli prod db anonymize myapp --email you@example.com` from your laptop, a `POST /cipi/db` with the anonymizer token, or `php artisan cipi:anonymize` on the server.
 > The HTTP request returns `{"status":"queued"}` at once: the work happens in the background.
 Queue | AnonymizeDatabaseJob
-> `AnonymizeDatabaseJob` goes on the app's queue and a worker runs it. No worker running means nothing happens: check with `cipi worker list myapp`.
+> `AnonymizeDatabaseJob` goes on the app's queue and a worker runs it. No worker running means nothing happens: check with `sudo cipi worker list myapp`.
 Dump | mysqldump / pg_dump
 > The job reads the database with the engine's own tool (`mysqldump` for MariaDB/MySQL, `pg_dump` for PostgreSQL). It only reads: production is never changed.
 Rewrite | only configured columns
@@ -138,7 +138,7 @@ Keys under `transformations` are tables, nested keys are columns. **Columns not 
 
 The API never returns the download URL: **the e-mail is the only channel**, and it goes only to the `email` in the request (no CC, no fallback). Success sends a signed link valid for `CIPI_ANONYMIZER_TTL` minutes (default 15); failure sends the error and the job id.
 
-It uses your app's Laravel mail (`MAIL_*`), not the server's `cipi smtp`. Test it before the first export:
+It uses your app's Laravel mail (`MAIL_*`), not the server's `sudo cipi smtp`. Test it before the first export:
 
 ```bash
 $ php artisan tinker --execute="Mail::raw('test', fn (\$m) => \$m->to('you@example.com')->subject('Mail test'));"

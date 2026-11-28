@@ -87,7 +87,7 @@ fortrabbit is a managed PHP hosting platform in Europe: you deploy with Git, it 
 
 **Root access.** Install what you need, read any log, tune PHP and Nginx.
 
-**No lock-in.** A standard Ubuntu stack on any provider; move with `cipi sync`.
+**No lock-in.** A standard Ubuntu stack on any provider; move with `sudo cipi sync`.
 
 ## Where everything goes in Cipi {#map}
 
@@ -95,11 +95,11 @@ Every fortrabbit feature you use today, and its place in Cipi. Use it as your mi
 
 | In fortrabbit | In Cipi | Docs |
 | --- | --- | --- |
-| App | `cipi app create` | [Create an app](/docs/create-app) |
+| App | `sudo cipi app create` | [Create an app](/docs/create-app) |
 | Git deploy | Webhook + releases | [How deploys work](/docs/how-deploys-work) |
-| ENV vars | `cipi app env` | [Environment](/docs/environment) |
-| MySQL | `cipi db` (MariaDB) | [Databases](/docs/databases) |
-| Workers | `cipi worker add` | [Workers](/docs/workers) |
+| ENV vars | `sudo cipi app env` | [Environment](/docs/environment) |
+| MySQL | `sudo cipi db` (MariaDB) | [Databases](/docs/databases) |
+| Workers | `sudo cipi worker add` | [Workers](/docs/workers) |
 
 ## Moving to Cipi, step by step {#move}
 

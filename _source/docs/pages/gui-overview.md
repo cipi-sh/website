@@ -51,7 +51,7 @@ cipi CLI | does the work, as on SSH
 | Team | Admins and users; per-server View/Manage and per-app View, Deploy, Edit, Environment, Logs, Commands, Delete; invite links (nothing is e-mailed); who still has to set up 2FA, and *Reset 2FA* after a lost phone |
 | Sign-in | Password with TOTP, optional or [required for every account](/docs/gui-install#two-factor-required); [passkeys](/docs/gui-install#passkeys) — Face ID, Touch ID, Windows Hello, a phone or a security key — alone or as the second step; or [single sign-on](/docs/gui-sso) over OpenID Connect |
 
-Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs.
+Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`sudo cipi self-update && sudo cipi api update`) and which abilities the token needs.
 
 > [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](/docs/design-decisions#packages), monitor thresholds, changes to the Cloudflare tunnel, downloading a backup run, starting a self-update and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
@@ -73,7 +73,7 @@ Every app of every server in one list, with server and type filters, search and 
 </div>
 </figure>
 
-Creating an app starts with its type. Node presets (Next.js, Nuxt, SvelteKit, Astro, Remix, Vite) fill the same defaults as `cipi app create --node`.
+Creating an app starts with its type. Node presets (Next.js, Nuxt, SvelteKit, Astro, Remix, Vite) fill the same defaults as `sudo cipi app create --node`.
 
 <div class="gui-shot-grid">
 <figure class="gui-shot">
@@ -303,7 +303,7 @@ UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order wi
 
 ### Zero Trust
 
-Both sides of Zero Trust on one tab. On top, the server's Cloudflare Tunnel as the CLI set it up: healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it — read-only, every change to the tunnel stays on `cipi zt`. See [Cloudflare Zero Trust](/docs/zero-trust#panel).
+Both sides of Zero Trust on one tab. On top, the server's Cloudflare Tunnel as the CLI set it up: healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it — read-only, every change to the tunnel stays on `sudo cipi zt`. See [Cloudflare Zero Trust](/docs/zero-trust#panel).
 
 Under it, the **mesh network** — Tailscale or NetBird — is managed from the page: join a network with its key, see the server's address on it and the last SSH login that came over it, close SSH and 80/443 to the world, turn Tailscale SSH on, leave. A button the server would refuse — nobody has signed in over the mesh yet, the panel would lose the server — is greyed out, with the server's reason beside it. See [Tailscale & NetBird](/docs/mesh-network#panel).
 

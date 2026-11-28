@@ -22,13 +22,13 @@ Create an OIDC web client with redirect URI `https://<panel-domain>/auth/sso/cal
 ## 2. Turn it on {#enable}
 
 ```bash
-$ cipi gui sso set --issuer=https://login.microsoftonline.com/<tenant>/v2.0 \
+$ sudo cipi gui sso set --issuer=https://login.microsoftonline.com/<tenant>/v2.0 \
     --client-id=<id> --client-secret=<secret>     # secret is asked if omitted
-$ cipi gui sso set --issuer=https://accounts.google.com --client-id=… --domains=example.com
-$ cipi gui sso status          # issuer, label, redirect URI, who can get in
-$ cipi gui sso only on         # SSO button only, passwords off
-$ cipi gui sso only off        # break-glass: passwords back
-$ cipi gui sso disable         # back to passwords; links are kept
+$ sudo cipi gui sso set --issuer=https://accounts.google.com --client-id=… --domains=example.com
+$ sudo cipi gui sso status     # issuer, label, redirect URI, who can get in
+$ sudo cipi gui sso only on    # SSO button only, passwords off
+$ sudo cipi gui sso only off   # break-glass: passwords back
+$ sudo cipi gui sso disable    # back to passwords; links are kept
 ```
 
 `set` writes the panel's `.env`, clears the config cache, runs the migration and prints the **redirect URI** to check against the provider.
@@ -60,8 +60,8 @@ Roles and grants stay the panel's; SSO-linked accounts carry a badge in Team.
 
 | Problem | Fix |
 | --- | --- |
-| Locked out with SSO-only | `cipi gui sso only off`, or `cipi gui sso disable`, or [`cipi gui reset-user`](/docs/gui-maintenance). Nothing in the panel can bypass SSO-only |
-| `redirect_uri mismatch` | Register exactly what `sso status` prints; after [`cipi gui move`](/docs/gui-install) register the new one |
+| Locked out with SSO-only | `sudo cipi gui sso only off`, or `sudo cipi gui sso disable`, or [`sudo cipi gui reset-user`](/docs/gui-maintenance). Nothing in the panel can bypass SSO-only |
+| `redirect_uri mismatch` | Register exactly what `sso status` prints; after [`sudo cipi gui move`](/docs/gui-install) register the new one |
 | `issuer mismatch` | Use the exact `issuer` from the discovery document (Entra: tenant id, not `common`) |
 | `no email claim` | Give the account a mail address and grant `openid`, `email`, `profile` (`preferred_username` isn't accepted) |
 | New issuer or client id | Links are forgotten (identities are per provider); everyone relinks by e-mail at next sign-in |

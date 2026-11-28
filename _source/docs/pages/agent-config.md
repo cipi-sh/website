@@ -26,7 +26,7 @@ Source: [github.com/cipi-sh/agent](https://github.com/cipi-sh/agent) (MIT).
 
 ## Environment variables {#env}
 
-Written by `cipi app create`; toggle features with `php artisan cipi:service <type> --enable|--disable`.
+Written by `sudo cipi app create`; toggle features with `php artisan cipi:service <type> --enable|--disable`.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ Written by `cipi app create`; toggle features with `php artisan cipi:service <ty
 
 | Question | Answer |
 | --- | --- |
-| Where do I see a token? | In the app's `.env` (`cipi app env myapp --get=CIPI_MCP_TOKEN`). Generate a new one with `php artisan cipi:generate-token mcp`. |
+| Where do I see a token? | In the app's `.env` (`sudo cipi app env myapp --get=CIPI_MCP_TOKEN`). Generate a new one with `php artisan cipi:generate-token mcp`. |
 | A feature answers 404. Is it broken? | It's disabled, on purpose: `php artisan cipi:service <feature> --enable`. |
-| After changing a variable nothing happens. | Rebuild the config cache: `cipi app artisan myapp config:cache`. |
+| After changing a variable nothing happens. | Rebuild the config cache: `sudo cipi app artisan myapp config:cache`. |
 | Is the agent required? | No. It's optional and adds features inside the app. See [Install the agent](/docs/agent-install). |

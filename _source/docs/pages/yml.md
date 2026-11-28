@@ -10,24 +10,24 @@ Commit cipi.yml | next to your code
 Deploy | the file ships with the release
 > Deploy as usual: the file arrives on the server inside the release.
 Plan | see exactly what would change
-> `cipi yml plan myapp` lists every change it would make and every blocker. Nothing changes yet.
+> `sudo cipi yml plan myapp` lists every change it would make and every blocker. Nothing changes yet.
 Apply | all or nothing, never half
-> `cipi yml apply myapp` makes all the changes, or none if any fails. With `cipi yml auto myapp on`, this happens after every deploy.
+> `sudo cipi yml apply myapp` makes all the changes, or none if any fails. With `sudo cipi yml auto myapp on`, this happens after every deploy.
 ```
 
 ## Commands {#commands}
 
 | Command | Does |
 | --- | --- |
-| `cipi yml generate myapp [--save]` | Write the app's current setup as a ready-to-commit file |
-| `cipi yml example myapp` | A commented template that validates as is |
-| `cipi yml validate myapp` | Parse and check; change nothing |
-| `cipi yml plan myapp [--json]` | Show every change that would be made |
-| `cipi yml apply myapp [--yes]` | Apply it |
-| `cipi yml auto myapp on\|off\|status` | Apply automatically after every successful deploy |
-| `cipi yml post-deploy myapp` | Run the `deploy.post` steps now |
+| `sudo cipi yml generate myapp [--save]` | Write the app's current setup as a ready-to-commit file |
+| `sudo cipi yml example myapp` | A commented template that validates as is |
+| `sudo cipi yml validate myapp` | Parse and check; change nothing |
+| `sudo cipi yml plan myapp [--json]` | Show every change that would be made |
+| `sudo cipi yml apply myapp [--yes]` | Apply it |
+| `sudo cipi yml auto myapp on\|off\|status` | Apply automatically after every successful deploy |
+| `sudo cipi yml post-deploy myapp` | Run the `deploy.post` steps now |
 
-Start from what you have: `cipi yml generate myapp > cipi.yml`, commit, and `plan` reports nothing to do. Validate locally or in CI with [Cipi Agent](/docs/agent-yml): `php artisan cipi:yml validate`.
+Start from what you have: `sudo cipi yml generate myapp > cipi.yml`, commit, and `plan` reports nothing to do. Validate locally or in CI with [Cipi Agent](/docs/agent-yml): `php artisan cipi:yml validate`.
 
 The file is read from the live release (`current/` or, for custom apps, `htdocs/`), then `shared/`. Every vhost refuses to serve it.
 
@@ -87,15 +87,15 @@ backup:
 
 | Section | Same as | Notes |
 | --- | --- | --- |
-| `app.php`, `app.ini` | [cipi php / ini](/docs/php) | Per-app; server-wide ini stays with `cipi ini` |
+| `app.php`, `app.ini` | [cipi php / ini](/docs/php) | Per-app; server-wide ini stays with `sudo cipi ini` |
 | `app.aliases` | [cipi alias](/docs/domains) | Authoritative: a removed alias is removed |
 | `app.limits` | [cipi app limits](/docs/limits) | Out-of-range values block the plan instead of being clamped |
 | `databases` | [cipi db](/docs/databases) | Credentials go to `shared/cipi-databases.env`, never to the repo |
 | `workers`, `schedule` | [Queues](/docs/workers), [Reverb](/docs/reverb), [Scheduler](/docs/scheduler) | Laravel apps only |
-| `search` | [cipi search](/docs/search) | Needs `cipi search install` by root first |
+| `search` | [cipi search](/docs/search) | Needs `sudo cipi search install` by root first |
 | `health` | [Health checks](/docs/health-checks) | Probed every 5 minutes and after every deploy |
 | `deploy` | [deploy-config](/docs/deploy-script) | `branch` takes effect from the next deploy. `build_timeout` and `step_timeout` are [how long a step may take](/docs/deploying#time-limits), in seconds: a number outside the range blocks the plan |
-| `ssl.force_https` | `cipi ssl force` | Can only be turned on from the file |
+| `ssl.force_https` | `sudo cipi ssl force` | Can only be turned on from the file |
 | `env.required` | | A missing variable blocks the plan |
 | `crons` | | Allowlisted runners only; your other cron lines are untouched |
 | `backup.profiles` | [cipi backup](/docs/backups) | The file owns the profiles it created; [`exclude_paths`](/docs/backups#exclude-paths) is validated like `--exclude-paths` |
@@ -130,8 +130,8 @@ Each app has an environment label (`production` by default; set with `--env` on 
 | `cipi.yml` (or `cipi-production.yml`) | production apps | `deploy: { branch: main }` |
 
 ```bash
-$ cipi app clone shop --domain=staging.shop.com --name=shop-stg --env=staging
-$ cipi yml plan shop-stg     # deploy branch: main → develop (from the next deploy)
+$ sudo cipi app clone shop --domain=staging.shop.com --name=shop-stg --env=staging
+$ sudo cipi yml plan shop-stg  # deploy branch: main → develop (from the next deploy)
 ```
 
 The **server** decides which file an app reads, never the file itself: a commit cannot point production at the staging file. An invalid `cipi-<env>.yml` does not fall back silently; the error names it.
@@ -146,7 +146,7 @@ node:
   start: npx next start -H 127.0.0.1
 ```
 
-Applied by the deploy itself, from the release being deployed, so the commit that changes the build is built with it. Requires `cipi yml auto myapp on`.
+Applied by the deploy itself, from the release being deployed, so the commit that changes the build is built with it. Requires `sudo cipi yml auto myapp on`.
 
 Under `deploy:`, a Node app takes `branch`, `keep_releases`, `build_timeout`, `step_timeout`, `predeploy_snapshot` and `post`. The artisan hooks (`migrate`, `optimize`, `storage_link`, `queue_restart`, `horizon_terminate`, `extra_artisan`) and `node_build` are for Laravel apps: in a Node app's file they block the plan, with a line that says which (its build is `node.build`).
 
@@ -168,11 +168,11 @@ deploy:
 | --- | --- |
 | `artisan`, `composer`, `npm`, `npx`, `yarn`, `pnpm`, `php`/`node` + a script inside the release | shells, pipes, `;`, `..`, `artisan tinker`, unknown commands |
 
-Order of a deploy: build → swap → `cipi yml apply` (if auto) → `deploy.post` → health check → notification.
+Order of a deploy: build → swap → `sudo cipi yml apply` (if auto) → `deploy.post` → health check → notification.
 
 ## Auto-apply {#auto}
 
-Nothing on the server changes from the file until you run `cipi yml auto myapp on`. Then every successful deploy (CLI, panel, API or webhook) reconciles. A release without the file is a no-op; an invalid or blocked file is reported (`yml_fail`) and **never partially applied**, and the deploy itself still succeeds.
+Nothing on the server changes from the file until you run `sudo cipi yml auto myapp on`. Then every successful deploy (CLI, panel, API or webhook) reconciles. A release without the file is a no-op; an invalid or blocked file is reported (`yml_fail`) and **never partially applied**, and the deploy itself still succeeds.
 
 ## Why it is safe to accept over Git {#cli-yml-more}
 

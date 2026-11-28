@@ -17,23 +17,23 @@ Valkey is the open-source (BSD, Linux Foundation) continuation of Redis: same pr
 New apps keep cache, sessions and queues in their database. Switch whatever you want to Valkey:
 
 ```bash
-$ cipi app env myapp --set=CACHE_STORE=redis
-$ cipi app env myapp --set=SESSION_DRIVER=redis
-$ cipi app artisan myapp config:cache
-$ cipi worker restart myapp
+$ sudo cipi app env myapp --set=CACHE_STORE=redis
+$ sudo cipi app env myapp --set=SESSION_DRIVER=redis
+$ sudo cipi app artisan myapp config:cache
+$ sudo cipi worker restart myapp
 ```
 
-Queues on Valkey run under Horizon: set `QUEUE_CONNECTION=redis` and `cipi worker horizon enable myapp` ([Horizon](/docs/workers#horizon)). Plain `queue:work` workers read the `database` connection.
+Queues on Valkey run under Horizon: set `QUEUE_CONNECTION=redis` and `sudo cipi worker horizon enable myapp` ([Horizon](/docs/workers#horizon)). Plain `queue:work` workers read the `database` connection.
 
 ## Manage instances {#manage}
 
 ```bash
-$ cipi valkey list
-$ cipi valkey isolate shop                     # move an app off the shared instance
-$ cipi valkey isolate --all
-$ cipi valkey isolate shop --maxmemory=256mb --policy=allkeys-lru
-$ cipi valkey restart shop
-$ cipi valkey flush-shared                     # once no app uses it: empty + new password
+$ sudo cipi valkey list
+$ sudo cipi valkey isolate shop                # move an app off the shared instance
+$ sudo cipi valkey isolate --all
+$ sudo cipi valkey isolate shop --maxmemory=256mb --policy=allkeys-lru
+$ sudo cipi valkey restart shop
+$ sudo cipi valkey flush-shared                # once no app uses it: empty + new password
 ```
 
 ```flow
@@ -49,7 +49,7 @@ Back online | seconds later
 > The app comes back online. If the copy failed, it stays on the shared instance, unchanged.
 ```
 
-If the copy fails, the app stays exactly where it was. Apps whose Redis points elsewhere are left alone. Clones and synced apps get their own instance. `cipi pending` lists apps still on the shared instance.
+If the copy fails, the app stays exactly where it was. Apps whose Redis points elsewhere are left alone. Clones and synced apps get their own instance. `sudo cipi pending` lists apps still on the shared instance.
 
 ### From the panel {#panel}
 
@@ -59,6 +59,6 @@ The server's **Services** tab in the [web panel](/docs/gui-overview) has a **Val
 | --- | --- |
 | **API** | `GET /api/valkey`, `POST /api/valkey/isolate`, `/share`, `/{app}/restart`, `/flush-shared` — abilities `services-view`, `services-manage` ([endpoints](/docs/api#endpoints-valkey)) |
 | **PHP SDK / cipi-cli** | `$cipi->valkey()->isolateAll()` · `cipi-cli valkey isolate --all` |
-| **Passwords** | None travels through the API or the panel. The new shared password after *Empty the shared instance* stays on the server: `cipi credentials` |
+| **Passwords** | None travels through the API or the panel. The new shared password after *Empty the shared instance* stays on the server: `sudo cipi credentials` |
 
-> [!note] `cipi app create --valkey=shared` keeps one app on the server-wide instance. Valkey is excluded from unattended upgrades; patch it with [stack upgrades](/docs/stack-upgrades).
+> [!note] `sudo cipi app create --valkey=shared` keeps one app on the server-wide instance. Valkey is excluded from unattended upgrades; patch it with [stack upgrades](/docs/stack-upgrades).

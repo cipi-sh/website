@@ -5,10 +5,10 @@ PHP's JIT compiles hot code to machine code. It helps CPU-bound work (calculatio
 ## Commands {#commands}
 
 ```bash
-$ cipi app jit myapp on                              # tracing mode, 128M buffer
-$ cipi app jit myapp on --mode=function --buffer=256M
-$ cipi app jit myapp off
-$ cipi app jit myapp --json                          # current state
+$ sudo cipi app jit myapp on                         # tracing mode, 128M buffer
+$ sudo cipi app jit myapp on --mode=function --buffer=256M
+$ sudo cipi app jit myapp off
+$ sudo cipi app jit myapp --json                     # current state
 ```
 
 ## Safety checks {#checks}
@@ -25,7 +25,7 @@ $ cipi app jit myapp --json                          # current state
 | PHP-FPM | The app's pool, plus a small server-wide file that makes JIT startable for that PHP version | Restarts that version's PHP-FPM (all its apps, briefly) |
 | Octane | The app's own ini directory | Restarts only that app's Octane |
 
-A value forced with [cipi ini](/docs/php#cli-ini) wins. `cipi app convert` resets JIT. Panel API: `GET|PUT /api/apps/{name}/jit`.
+A value forced with [cipi ini](/docs/php#cli-ini) wins. `sudo cipi app convert` resets JIT. Panel API: `GET|PUT /api/apps/{name}/jit`.
 
 > [!tip] Measure before and after on your real workload; keep JIT only where it pays.
 

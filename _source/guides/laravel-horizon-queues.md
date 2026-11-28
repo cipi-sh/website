@@ -21,7 +21,7 @@ faq:
   - Workers or Horizon? | Plain workers are enough for a few queues. Horizon adds a dashboard, metrics, auto-balancing between queues and tagged job search, and needs the queues on Redis (Valkey). One or the other per app, not both.
   - Do workers run old code after a deploy? | Only the job they already had in hand. Since Cipi 5.13.0 workers keep running during the deploy; after the release swap each one finishes its job and restarts on the new code. Keep migrations backward compatible for one release.
   - My job takes 20 minutes and gets killed. | Laravel kills a job after 60 seconds unless the job says otherwise: set `public $timeout = 1500;` on it, give its worker a `--timeout` at least as long, and set `retry_after` in `config/queue.php` higher, or it may be picked up twice.
-  - Where do failed jobs go? | The `failed_jobs` table. List them with `cipi app artisan shop queue:failed`, retry with `queue:retry all`. Horizon shows them in the dashboard.
+  - Where do failed jobs go? | The `failed_jobs` table. List them with `sudo cipi app artisan shop queue:failed`, retry with `queue:retry all`. Horizon shows them in the dashboard.
   - How many processes should I run? | Start with 1–2 per queue and watch the wait time. Each process uses about the memory of one request (often 50–150 MB). Horizon can scale between a min and max for you.
   - Who can open /horizon in production? | Nobody until you allow them in the `viewHorizon` gate. Add your team's e-mails, or put the whole app behind basic auth or Zero Trust.
   - Do queued jobs survive a server restart? | Yes. Jobs live in the database or in Valkey (saved to disk), and Supervisor starts the workers again at boot.
@@ -100,7 +100,7 @@ $tries / $backoff | per job: how many attempts, how long between
 | Rule | Example |
 | --- | --- |
 | Long jobs declare their own limit | `public $timeout = 7000;` on `ExportOrders` |
-| The worker waits at least that long | `cipi worker add shop --queue=exports --timeout=7200` |
+| The worker waits at least that long | `sudo cipi worker add shop --queue=exports --timeout=7200` |
 | `retry_after` > the longest job | `'retry_after' => 7260` for that connection |
 | Jobs that call APIs get a backoff | `public $backoff = [10, 60, 300];` |
 | Limit attempts | `public $tries = 5;` or `retryUntil()` |
@@ -209,10 +209,10 @@ Or `horizon: true` to hand everything to Horizon. [More on cipi.yml](/guides/man
 
 | Problem | Fix |
 | --- | --- |
-| Jobs never run | No worker on that queue (`cipi worker list shop`), job not `ShouldQueue`, or `QUEUE_CONNECTION=redis` with plain workers: they read `database`, so enable Horizon or set it back |
+| Jobs never run | No worker on that queue (`sudo cipi worker list shop`), job not `ShouldQueue`, or `QUEUE_CONNECTION=redis` with plain workers: they read `database`, so enable Horizon or set it back |
 | Job runs twice | `retry_after` shorter than the job's runtime |
 | `MaxAttemptsExceededException` / job killed at 60 s | Set `$timeout` on the job and raise `retry_after` |
 | Code change ignored by jobs | Workers not restarted: `sudo cipi worker restart shop` |
-| Horizon shows "Inactive" | Not enabled: `cipi worker horizon enable shop`; or `QUEUE_CONNECTION` isn't `redis` |
+| Horizon shows "Inactive" | Not enabled: `sudo cipi worker horizon enable shop`; or `QUEUE_CONNECTION` isn't `redis` |
 | `/horizon` returns 403 | The `viewHorizon` gate doesn't include your user |
 | Memory grows over time | A job leaks: `--max-jobs` / `maxJobs` in Horizon restarts processes regularly |

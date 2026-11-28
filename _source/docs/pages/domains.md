@@ -3,7 +3,7 @@
 An app has one **primary domain** and any number of **aliases**. One certificate covers them all.
 
 ```bash
-$ cipi domains            # every domain of every app, in one table
+$ sudo cipi domains       # every domain of every app, in one table
 ```
 
 | Column | Shows |
@@ -14,21 +14,21 @@ $ cipi domains            # every domain of every app, in one table
 | SSL | `✓`/`✗` per name |
 | suffix | `⏸ suspended` for suspended apps |
 
-To rename the primary domain: `cipi app edit myapp --domain=new.example.com` ([Manage apps](/docs/manage-apps#edit)).
+To rename the primary domain: `sudo cipi app edit myapp --domain=new.example.com` ([Manage apps](/docs/manage-apps#edit)).
 
 @section cli-aliases
 
 ## Aliases {#alias}
 
 ```bash
-$ cipi alias add myapp www.myapp.com
-$ cipi alias add myapp myapp.it
-$ cipi alias add myapp '*.myapp.com'     # wildcard: quote it
-$ cipi alias list myapp
-$ cipi alias remove myapp myapp.it
+$ sudo cipi alias add myapp www.myapp.com
+$ sudo cipi alias add myapp myapp.it
+$ sudo cipi alias add myapp '*.myapp.com'  # wildcard: quote it
+$ sudo cipi alias list myapp
+$ sudo cipi alias remove myapp myapp.it
 ```
 
-The vhost keeps serving HTTPS while you change aliases. `alias add` tells you whether the new name is already covered by the certificate or which command adds it (usually `cipi ssl install myapp`; for a wildcard `--dns=cloudflare`, see [Wildcard domains](/docs/wildcard-domains)).
+The vhost keeps serving HTTPS while you change aliases. `alias add` tells you whether the new name is already covered by the certificate or which command adds it (usually `sudo cipi ssl install myapp`; for a wildcard `--dns=cloudflare`, see [Wildcard domains](/docs/wildcard-domains)).
 
 @section cli-www
 
@@ -37,10 +37,10 @@ The vhost keeps serving HTTPS while you change aliases. `alias add` tells you wh
 Pick one canonical host and 301 the other to it. Search engines see one site, and the certificate covers both.
 
 ```bash
-$ cipi www force-to-root myapp      # www.myapp.com → myapp.com
-$ cipi www force-from-root myapp    # myapp.com → www.myapp.com
-$ cipi www status myapp
-$ cipi www clear myapp
+$ sudo cipi www force-to-root myapp  # www.myapp.com → myapp.com
+$ sudo cipi www force-from-root myapp  # myapp.com → www.myapp.com
+$ sudo cipi www status myapp
+$ sudo cipi www clear myapp
 ```
 
 The missing counterpart is added as an alias automatically. ACME challenges stay reachable, so renewals keep working. In [cipi.yml](/docs/yml#cli-yml-routes): `app.www: to-root`.
@@ -56,7 +56,7 @@ Aliases, certificates and www/apex redirects, from the browser. The [web panel](
 | Problem | Fix |
 | --- | --- |
 | Alias added but the site shows another app | DNS points elsewhere, or the browser cached a redirect: check `dig`, try a private window |
-| HTTPS warning on the new alias | Re-run `cipi ssl install myapp` so the certificate covers it |
+| HTTPS warning on the new alias | Re-run `sudo cipi ssl install myapp` so the certificate covers it |
 | Wildcard alias doesn't get a certificate | Wildcards need DNS validation: [wildcard domains](/docs/wildcard-domains) |
 
 ## Questions {#questions}
@@ -64,5 +64,5 @@ Aliases, certificates and www/apex redirects, from the browser. The [web panel](
 | Question | Answer |
 | --- | --- |
 | How many domains per app? | As many aliases as you like; one certificate covers up to 100 names. |
-| www or not? | Pick one with `cipi www`; the other redirects to it. |
+| www or not? | Pick one with `sudo cipi www`; the other redirects to it. |
 | Behind Cloudflare? | Read [Cloudflare in front of Laravel](/guides/cloudflare-proxy-ssl-wildcard). |

@@ -5,12 +5,12 @@ Every Laravel app starts with one Supervisor worker on the `default` queue. Add 
 <cipi-term name="workers"></cipi-term>
 
 ```bash
-$ cipi worker add myapp --queue=emails --processes=3
-$ cipi worker add myapp --queue=exports --processes=1 --timeout=7200
-$ cipi worker edit myapp --queue=default --processes=3
-$ cipi worker list myapp
-$ cipi worker remove myapp emails
-$ cipi worker restart myapp
+$ sudo cipi worker add myapp --queue=emails --processes=3
+$ sudo cipi worker add myapp --queue=exports --processes=1 --timeout=7200
+$ sudo cipi worker edit myapp --queue=default --processes=3
+$ sudo cipi worker list myapp
+$ sudo cipi worker remove myapp emails
+$ sudo cipi worker restart myapp
 ```
 
 | Flag | Meaning | Default |
@@ -25,9 +25,9 @@ Plain workers consume the `database` connection; Redis (Valkey) queues run under
 ## Horizon {#horizon}
 
 ```bash
-$ cipi worker horizon enable myapp
-$ cipi worker horizon status myapp
-$ cipi worker horizon disable myapp
+$ sudo cipi worker horizon enable myapp
+$ sudo cipi worker horizon status myapp
+$ sudo cipi worker horizon disable myapp
 ```
 
 Horizon replaces the `queue:work` workers of that app (one or the other, not both). It needs the queues on Redis: set `QUEUE_CONNECTION=redis` with [cipi app env](/docs/environment); each app has its own [Valkey](/docs/valkey) instance ready.
@@ -40,7 +40,7 @@ When a deploy finds `laravel/horizon` installed, it helps without overriding you
 | Horizon plus existing workers | Explains how to switch; changes nothing |
 | Horizon, queues not on Redis | Tells you which variable to set |
 
-A Horizon you disabled stays disabled. `cipi pending` lists apps with Horizon installed but nothing processing jobs.
+A Horizon you disabled stays disabled. `sudo cipi pending` lists apps with Horizon installed but nothing processing jobs.
 
 ## During deploys {#deploys}
 
@@ -70,7 +70,7 @@ $ sudo cipi-worker restart myapp
 | --- | --- |
 | Jobs never run | No worker on that queue, or `QUEUE_CONNECTION=redis` without Horizon |
 | Job killed after 60 s | Set `public $timeout` on the job and raise `retry_after` |
-| Workers run old code | A long job started before the deploy finishes on the old release; the worker then restarts on the new one. Otherwise `cipi worker restart myapp` |
+| Workers run old code | A long job started before the deploy finishes on the old release; the worker then restarts on the new one. Otherwise `sudo cipi worker restart myapp` |
 | Horizon stuck in `STOPPING` after a deploy | An old Cipi release, whose deploys waited for running jobs: `sudo cipi self-update` |
 
 ## Questions {#questions}

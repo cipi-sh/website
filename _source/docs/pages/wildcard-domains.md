@@ -4,8 +4,8 @@ One app answering on every `<tenant>.myapp.com`, with one certificate for all of
 
 | Part | How | Note |
 | --- | --- | --- |
-| **Routing** | `cipi alias add myapp '*.myapp.com'` (or a wildcard primary) | Works with any DNS |
-| **Certificate** | `cipi ssl install myapp --dns=cloudflare` | Let's Encrypt issues wildcards over DNS only; Cipi automates Cloudflare |
+| **Routing** | `sudo cipi alias add myapp '*.myapp.com'` (or a wildcard primary) | Works with any DNS |
+| **Certificate** | `sudo cipi ssl install myapp --dns=cloudflare` | Let's Encrypt issues wildcards over DNS only; Cipi automates Cloudflare |
 
 ## Which setup is yours {#setups}
 
@@ -24,20 +24,20 @@ One app answering on every `<tenant>.myapp.com`, with one certificate for all of
 DNS records | A @ and A * → server
 > In Cloudflare, create `A @` and `A *` records pointing at the server's IP, **both with the same proxy status**. The `*` record sends every subdomain to the server.
 API token | Zone → DNS → Edit
-> Create a Cloudflare API token with only **Zone → DNS → Edit** on that zone and save it with `cipi ssl dns set --token=…`.
+> Create a Cloudflare API token with only **Zone → DNS → Edit** on that zone and save it with `sudo cipi ssl dns set --token=…`.
 Wildcard alias | routes subdomains
-> `cipi alias add myapp '*.myapp.com'` (with quotes) tells Nginx to send every subdomain to this app.
+> `sudo cipi alias add myapp '*.myapp.com'` (with quotes) tells Nginx to send every subdomain to this app.
 Certificate | DNS-01, ~1 minute
-> `cipi ssl install myapp --dns=cloudflare` proves ownership with a temporary DNS record and gets the wildcard certificate in about a minute. It works with the proxy on or off.
+> `sudo cipi ssl install myapp --dns=cloudflare` proves ownership with a temporary DNS record and gets the wildcard certificate in about a minute. It works with the proxy on or off.
 Proxy settings | Full (strict), real IPs
-> If the records are proxied (orange cloud): SSL/TLS **Full (strict)**, no rule that sets Flexible, `cipi zt enable` for real visitor IPs and `trustProxies` in Laravel.
+> If the records are proxied (orange cloud): SSL/TLS **Full (strict)**, no rule that sets Flexible, `sudo cipi zt enable` for real visitor IPs and `trustProxies` in Laravel.
 ```
 
 ```bash
-$ cipi ssl dns set --token=YOUR_CLOUDFLARE_TOKEN
-$ cipi alias add myapp '*.myapp.com'
-$ cipi ssl install myapp --dns=cloudflare
-$ cipi ssl status
+$ sudo cipi ssl dns set --token=YOUR_CLOUDFLARE_TOKEN
+$ sudo cipi alias add myapp '*.myapp.com'
+$ sudo cipi ssl install myapp --dns=cloudflare
+$ sudo cipi ssl status
 $ curl -sI https://tenant1.myapp.com | head -1
 ```
 
@@ -119,11 +119,11 @@ Then **SSL/TLS → Edge Certificates**:
 
 | | Let's Encrypt via DNS-01 | Cloudflare Origin CA |
 | --- | --- | --- |
-| Command | `cipi ssl install myapp --dns=cloudflare` | `cipi zt origin-cert myapp` |
+| Command | `sudo cipi ssl install myapp --dns=cloudflare` | `sudo cipi zt origin-cert myapp` |
 | Trusted by | Browsers and Cloudflare | **Only Cloudflare** |
 | Grey cloud | Works | Browsers reject it |
 | Validity | 90 days, renewed automatically | Up to 15 years |
-| Token | DNS token (`cipi ssl dns set`) | Zero Trust token with Zone · SSL and Certificates ([Zero Trust](/docs/zero-trust#cli-zt-origin-cert)) |
+| Token | DNS token (`sudo cipi ssl dns set`) | Zero Trust token with Zone · SSL and Certificates ([Zero Trust](/docs/zero-trust#cli-zt-origin-cert)) |
 
 Let's Encrypt is the safer default: it keeps working if you ever switch a record to grey. Origin CA fits servers that are permanently behind the proxy or the tunnel.
 
@@ -131,7 +131,7 @@ Let's Encrypt is the safer default: it keeps working if you ever switch a record
 
 Behind the orange cloud every request comes from a Cloudflare IP. Left as is, Nginx logs, Fail2ban, CrowdSec and Laravel (`$request->ip()`, rate limiting, login throttling) see the same few addresses for every visitor.
 
-1. **Nginx**: [`cipi nginx real-ip cloudflare`](/docs/nginx#real-ip) sets Nginx's real IP from Cloudflare's ranges (refreshed every night) and teaches Fail2ban and CrowdSec the same ranges. No token and no tunnel (with a [Zero Trust](/docs/zero-trust) tunnel, `cipi zt enable` does the same). From here `$request->ip()` is already the visitor's.
+1. **Nginx**: [`sudo cipi nginx real-ip cloudflare`](/docs/nginx#real-ip) sets Nginx's real IP from Cloudflare's ranges (refreshed every night) and teaches Fail2ban and CrowdSec the same ranges. No token and no tunnel (with a [Zero Trust](/docs/zero-trust) tunnel, `sudo cipi zt enable` does the same). From here `$request->ip()` is already the visitor's.
 2. **Laravel**: trust the proxy in `bootstrap/app.php`, so the scheme and host Cloudflare forwards are believed too:
 
 ```php
@@ -140,7 +140,7 @@ Behind the orange cloud every request comes from a Cloudflare IP. Left as is, Ng
 })
 ```
 
-3. **Optional, close the origin**: `cipi zt lock http --yes` allows 80/443 only from Cloudflare, so nobody can skip the WAF by calling the server's IP. It refuses while an app still renews over HTTP; with `--dns=cloudflare` renewals are unaffected. Don't lock if some records are grey.
+3. **Optional, close the origin**: `sudo cipi zt lock http --yes` allows 80/443 only from Cloudflare, so nobody can skip the WAF by calling the server's IP. It refuses while an app still renews over HTTP; with `--dns=cloudflare` renewals are unaffected. Don't lock if some records are grey.
 
 > [!warning] `trustProxies(at: '*')` is safe only when the server can't be reached except through Cloudflare (step 3, or a [tunnel](/docs/zero-trust)). With 80/443 open to the world, list [Cloudflare's IP ranges](https://www.cloudflare.com/ips/) instead of `*`, or anyone can fake their IP.
 
@@ -174,8 +174,8 @@ If the second command works and the first doesn't, the problem is in Cloudflare 
 | --- | --- | --- |
 | `ERR_TOO_MANY_REDIRECTS` | SSL/TLS mode Flexible (globally or in a rule) | Full (strict), then check Rules |
 | 525 SSL handshake failed | No app has that hostname, or it has no certificate yet | Add the alias / issue the certificate |
-| 526 Invalid SSL certificate | The certificate doesn't cover the hostname, or expired | `cipi ssl status`, then reissue |
-| 521 Web server is down | Nginx stopped, or 80/443 closed to Cloudflare | `cipi status`, [firewall](/docs/firewall) |
+| 526 Invalid SSL certificate | The certificate doesn't cover the hostname, or expired | `sudo cipi ssl status`, then reissue |
+| 521 Web server is down | Nginx stopped, or 80/443 closed to Cloudflare | `sudo cipi status`, [firewall](/docs/firewall) |
 | 522 Connection timed out | Wrong IP in the record, provider firewall, or an AAAA the server doesn't answer | Fix the records, allow 80/443 |
 | Certificate issuance fails | Zone not Active yet, token without DNS Edit on that zone, or IP filter on the token | Check zone status and token |
 | Apex works, tenants don't (or the reverse) | `@` and `*` with different proxy status, or a rule on some hosts | Align the records, review Rules |
@@ -200,10 +200,10 @@ The whole Cloudflare setup, not only wildcards, is in [Cloudflare in front of La
 # bring your own: name the certificate after the app's primary domain
 $ apt install python3-certbot-dns-route53
 $ certbot certonly --dns-route53 -d myapp.com -d '*.myapp.com' --cert-name myapp.com
-$ cipi alias add myapp '*.myapp.com'    # Cipi finds and serves it
+$ sudo cipi alias add myapp '*.myapp.com'  # Cipi finds and serves it
 ```
 
-Don't run `cipi ssl install` on that app afterwards: it would reissue over HTTP without the wildcard.
+Don't run `sudo cipi ssl install` on that app afterwards: it would reissue over HTTP without the wildcard.
 
 ## Multi-tenant tips {#tenants}
 

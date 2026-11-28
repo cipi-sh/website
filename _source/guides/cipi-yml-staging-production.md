@@ -24,7 +24,7 @@ faq:
   - Which file wins if both cipi.yml and cipi-staging.yml exist? | An app with env `staging` reads `cipi-staging.yml`. If that file doesn't exist it falls back to `cipi.yml`. If it exists but is invalid, nothing is applied and the error names the file: there is no silent fallback.
   - Can a developer make production read the staging file by committing something? | No. The environment is set on the server (`--env`), never in the file. A commit can change what a file says, not which file an app reads.
   - How do I keep production settings out of staging, like backups to S3? | Put them only in `cipi.yml`. The staging file starts from nothing: it doesn't inherit from `cipi.yml`, so anything you don't write in it isn't applied to staging.
-  - What about secrets that differ, like Stripe test keys? | Keep them in each app's `.env` on the server (`cipi app env shop-stg --set=STRIPE_KEY=…`). Both files can require them by name with `env.required`, so a missing key blocks the plan.
+  - What about secrets that differ, like Stripe test keys? | Keep them in each app's `.env` on the server (`sudo cipi app env shop-stg --set=STRIPE_KEY=…`). Both files can require them by name with `env.required`, so a missing key blocks the plan.
 ---
 Most teams want two copies of the same app: **production**, which your customers use, and **staging**, where you try changes first. This guide sets that up on Cipi from scratch, explaining each idea along the way. No previous Cipi experience needed.
 
@@ -219,7 +219,7 @@ Merge to main | production deploys
 
 | Problem | Fix |
 | --- | --- |
-| `cipi yml plan shop-stg` says it reads `cipi.yml` | The app's env isn't `staging`: `sudo cipi app edit shop-stg --env=staging` |
+| `sudo cipi yml plan shop-stg` says it reads `cipi.yml` | The app's env isn't `staging`: `sudo cipi app edit shop-stg --env=staging` |
 | Plan says "blocked: STRIPE_KEY missing" | Set it on the staging app: `sudo cipi app env shop-stg --set=STRIPE_KEY=sk_test_…` |
 | Staging deploys `main` | `deploy.branch` is applied from the **next** deploy, or set it now: `sudo cipi app edit shop-stg --branch=develop` |
 | Invalid `cipi-staging.yml` | The error names the file; validate locally with `CIPI_ENV=staging php artisan cipi:yml validate` |

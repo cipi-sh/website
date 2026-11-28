@@ -14,10 +14,10 @@ related:
 faq:
   - Can a commit break production? | The server plans every change first and applies all or nothing. An invalid file, an out-of-range value or a missing required variable blocks the plan and nothing changes.
   - Do secrets go in cipi.yml? | No. `env.required` lists variable names only; values stay in the server's `.env`. Basic-auth users are names or bcrypt hashes, never passwords.
-  - Do I have to use it? | No. Every setting also works from the CLI or the panel. `cipi yml generate` writes a file from what an app already has, so adopting it later is one command.
+  - Do I have to use it? | No. Every setting also works from the CLI or the panel. `sudo cipi yml generate` writes a file from what an app already has, so adopting it later is one command.
   - What happens if I delete a section from the file? | Sections you don't write are left as they are on the server. Some lists are authoritative once present (for example `app.aliases`): `plan` shows any removal before it happens.
-  - When does a change take effect? | When the release containing it is deployed and you run `cipi yml apply` (or automatically, with `cipi yml auto shop on`).
-  - Can I see what would change before merging? | Yes. Validate in CI with `php artisan cipi:yml validate`, and after deploying to staging run `cipi yml plan` there.
+  - When does a change take effect? | When the release containing it is deployed and you run `sudo cipi yml apply` (or automatically, with `sudo cipi yml auto shop on`).
+  - Can I see what would change before merging? | Yes. Validate in CI with `php artisan cipi:yml validate`, and after deploying to staging run `sudo cipi yml plan` there.
   - Which file does staging use? | The app's environment decides: an app created with `--env=staging` reads `cipi-staging.yml` if present, otherwise `cipi.yml`.
 docs:
   - yml
@@ -44,9 +44,9 @@ Review | pull request
 Merge, deploy | the file ships with the release
 > Merge and deploy. The file arrives with the release.
 Plan | what would change
-> `cipi yml plan shop` lists what would change. Nothing happens yet.
+> `sudo cipi yml plan shop` lists what would change. Nothing happens yet.
 Apply | all or nothing
-> `cipi yml apply shop` (or the automatic mode) applies everything, or nothing if one change fails.
+> `sudo cipi yml apply shop` (or the automatic mode) applies everything, or nothing if one change fails.
 ```
 
 ## Before you start {#before}
@@ -68,7 +68,7 @@ $ sudo cipi yml generate shop --save
 $ cat /home/shop/cipi.yml
 ```
 
-Commit that file at the root of the repository. After the next deploy, `cipi yml plan shop` should say there's nothing to do: the file describes the server as it is.
+Commit that file at the root of the repository. After the next deploy, `sudo cipi yml plan shop` should say there's nothing to do: the file describes the server as it is.
 
 ## 2. Describe the app {#describe}
 A typical Laravel app:
@@ -109,12 +109,12 @@ backup:
 
 | Block | Replaces |
 | --- | --- |
-| `app` | `cipi php`, `cipi alias`, `cipi www`, `cipi ini`, `cipi app limits` |
-| `workers`, `schedule` | `cipi worker`, `cipi app reverb`, the scheduler cron |
-| `search` | `cipi search enable` |
-| `health` | `cipi health set` |
+| `app` | `sudo cipi php`, `sudo cipi alias`, `sudo cipi www`, `sudo cipi ini`, `sudo cipi app limits` |
+| `workers`, `schedule` | `sudo cipi worker`, `sudo cipi app reverb`, the scheduler cron |
+| `search` | `sudo cipi search enable` |
+| `health` | `sudo cipi health set` |
 | `deploy` | `cipi deploy-config` |
-| `backup.profiles` | `cipi backup profile` |
+| `backup.profiles` | `sudo cipi backup profile` |
 
 The full list, with routes, proxies, crons and Node apps, is in the [cipi.yml reference](/docs/yml).
 
@@ -169,7 +169,7 @@ Next: one repository, two servers or two apps, with [staging and production file
 | Problem | Fix |
 | --- | --- |
 | `plan` says nothing to do after an edit | The release with the edit isn't deployed yet: deploy first |
-| Blocked: required variable missing | Add it to the server's `.env` with `cipi app env shop --set=…` |
+| Blocked: required variable missing | Add it to the server's `.env` with `sudo cipi app env shop --set=…` |
 | Blocked: database name | Extra databases must be named `shop` or `shop_*` |
 | Blocked: command not allowed | `deploy.post` and `crons` accept known runners only (`artisan`, `php`, `composer`, `npm`…) |
 | Validation passes locally, fails on server | Different Cipi Agent version: update `cipi/agent` |

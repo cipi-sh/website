@@ -5,14 +5,14 @@ Most apps never touch the deploy recipe: the options below cover the common need
 ## Deploy options {#options}
 
 ```bash
-$ cipi app deploy-config myapp                                  # show
-$ cipi app deploy-config myapp --keep-releases=10
-$ cipi app deploy-config myapp --no-migrate --no-optimize
-$ cipi app deploy-config myapp --horizon-terminate --queue-restart
-$ cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
-$ cipi app deploy-config myapp --node-build='npm ci && npm run build'
-$ cipi app deploy-config myapp --predeploy-snapshot
-$ cipi app deploy-config myapp --build-timeout=2700 --step-timeout=600
+$ sudo cipi app deploy-config myapp                             # show
+$ sudo cipi app deploy-config myapp --keep-releases=10
+$ sudo cipi app deploy-config myapp --no-migrate --no-optimize
+$ sudo cipi app deploy-config myapp --horizon-terminate --queue-restart
+$ sudo cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
+$ sudo cipi app deploy-config myapp --node-build='npm ci && npm run build'
+$ sudo cipi app deploy-config myapp --predeploy-snapshot
+$ sudo cipi app deploy-config myapp --build-timeout=2700 --step-timeout=600
 ```
 
 | Option | Effect | Default |
@@ -30,7 +30,7 @@ $ cipi app deploy-config myapp --build-timeout=2700 --step-timeout=600
 
 Saving regenerates `deploy.php` from Cipi's template. Also via REST (`GET|PUT /api/apps/{name}/deploy-config`), MCP and the panel's Deploy tab. The same settings can live in [cipi.yml](/docs/yml).
 
-**A [Node app](/docs/node-apps)** has a recipe too, without the artisan hooks: it takes `--keep-releases`, `--build-timeout`, `--step-timeout` and `--predeploy-snapshot` (its build command is `cipi app edit myapp --build="…"`). A custom app deploys with a `git pull` and has no recipe to configure.
+**A [Node app](/docs/node-apps)** has a recipe too, without the artisan hooks: it takes `--keep-releases`, `--build-timeout`, `--step-timeout` and `--predeploy-snapshot` (its build command is `sudo cipi app edit myapp --build="…"`). A custom app deploys with a `git pull` and has no recipe to configure.
 
 @section cli-deploy-script
 
@@ -63,8 +63,8 @@ task('app:import', function () {
 });
 ```
 
-**Each step runs once.** A Laravel deploy runs `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` one time each — the deploy log shows one `artisan:migrate` and one `artisan:optimize` — and a step turned off with `--no-migrate` or `--no-optimize` is really skipped. A log that shows them twice comes from a recipe written by an old release: `cipi self-update` rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.
+**Each step runs once.** A Laravel deploy runs `artisan:storage:link`, `artisan:optimize` and `artisan:migrate` one time each — the deploy log shows one `artisan:migrate` and one `artisan:optimize` — and a step turned off with `--no-migrate` or `--no-optimize` is really skipped. A log that shows them twice comes from a recipe written by an old release: `sudo cipi self-update` rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.
 
-> [!warning] Changing PHP or branch with `cipi app edit` regenerates `deploy.php`. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer `deploy-config` and [cipi.yml](/docs/yml), which are never lost.
+> [!warning] Changing PHP or branch with `sudo cipi app edit` regenerates `deploy.php`. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer `deploy-config` and [cipi.yml](/docs/yml), which are never lost.
 
-Test every change with a normal deploy; `cipi deploy myapp --rollback` is always one command away, and the log is in `cipi app logs myapp --type=deploy`.
+Test every change with a normal deploy; `sudo cipi deploy myapp --rollback` is always one command away, and the log is in `sudo cipi app logs myapp --type=deploy`.

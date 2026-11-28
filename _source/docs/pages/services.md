@@ -5,14 +5,14 @@ See and control every service Cipi runs. Nginx always reloads gracefully, so res
 ## Commands {#commands}
 
 ```bash
-$ cipi service list [nginx] [--json]
-$ cipi service restart              # everything
-$ cipi service restart nginx        # graceful reload
-$ cipi service restart php          # every PHP-FPM version
-$ cipi service start fail2ban
-$ cipi service stop supervisor      # asks first
-$ cipi service upgrade              # installed vs available versions
-$ cipi service upgrade valkey [--yes]
+$ sudo cipi service list [nginx] [--json]
+$ sudo cipi service restart         # everything
+$ sudo cipi service restart nginx   # graceful reload
+$ sudo cipi service restart php     # every PHP-FPM version
+$ sudo cipi service start fail2ban
+$ sudo cipi service stop supervisor  # asks first
+$ sudo cipi service upgrade         # installed vs available versions
+$ sudo cipi service upgrade valkey [--yes]
 ```
 
 ## Service names {#names}
@@ -21,7 +21,7 @@ $ cipi service upgrade valkey [--yes]
 | --- | --- |
 | `nginx` | Web server |
 | `php` or `php8.6-fpm` | All PHP-FPM versions, or one |
-| `mariadb` (or `mysql`, where [`cipi db switch mysql`](/docs/databases#mysql) ran), `postgresql` (`pgsql`) | Databases |
+| `mariadb` (or `mysql`, where [`sudo cipi db switch mysql`](/docs/databases#mysql) ran), `postgresql` (`pgsql`) | Databases |
 | `valkey-server` (`redis`, `valkey`) | Shared Valkey |
 | `supervisor` | Workers, Octane, Horizon, Reverb |
 | `fail2ban` | Brute-force protection |
@@ -33,10 +33,10 @@ $ cipi service upgrade valkey [--yes]
 
 | Symptom | Restart | Effect on visitors |
 | --- | --- | --- |
-| Changed an Nginx setting by hand | `cipi service restart nginx` | None: graceful reload |
-| Changed `php.ini` by hand | `cipi service restart php8.6-fpm` | A short pause for apps on that version |
-| Workers ignore new code | `cipi worker restart myapp` (one app) | None |
-| Database unresponsive | `cipi service restart mariadb` | Seconds of errors: last resort |
+| Changed an Nginx setting by hand | `sudo cipi service restart nginx` | None: graceful reload |
+| Changed `php.ini` by hand | `sudo cipi service restart php8.6-fpm` | A short pause for apps on that version |
+| Workers ignore new code | `sudo cipi worker restart myapp` (one app) | None |
+| Database unresponsive | `sudo cipi service restart mariadb` | Seconds of errors: last resort |
 
 Prefer the narrowest restart: one app's workers before Supervisor, one PHP version before all of them.
 

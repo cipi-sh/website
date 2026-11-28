@@ -177,7 +177,7 @@ Git webhooks hit `/cipi/webhook` on your domain: don't challenge that path.
 | You see | Cause | Fix |
 | --- | --- | --- |
 | `ERR_TOO_MANY_REDIRECTS` | SSL/TLS on Flexible | Full (strict) |
-| 525 SSL handshake failed | No certificate on the server for that name | `cipi ssl install` (or add the alias first) |
+| 525 SSL handshake failed | No certificate on the server for that name | `sudo cipi ssl install` (or add the alias first) |
 | 526 Invalid SSL certificate | Certificate doesn't cover the name, or expired | `sudo cipi ssl status`, reissue |
 | 521 Web server is down | Nginx unreachable, or ports closed without a tunnel | `sudo cipi status`, firewall |
 | 522 Connection timed out | Provider firewall blocks Cloudflare | Allow 80/443 |

@@ -21,7 +21,7 @@ faq:
   - Should I enable DigitalOcean's backups? | They snapshot the whole disk weekly or daily, which is a good extra. Keep Cipi's backups too: they're per app, encrypted and restorable on any server.
   - Can I use a DigitalOcean Load Balancer? | Yes, with two or more Droplets running the same app. Terminate TLS on the balancer or pass it through to Cipi's certificates.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
-  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `sudo cipi sync`.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 ---
@@ -81,7 +81,7 @@ Add an `A` record (DigitalOcean DNS or your registrar) to the Droplet's IP and c
 
 | Need | Use |
 | --- | --- |
-| Off-site backups | **Spaces** is S3-compatible: use it as a `cipi backup` destination |
+| Off-site backups | **Spaces** is S3-compatible: use it as a `sudo cipi backup` destination |
 | Managed database | Point `DB_*` at a Managed MySQL/PostgreSQL cluster if you prefer |
 | Behind a load balancer | Terminate TLS on the balancer or pass through to Cipi's certificates |
 

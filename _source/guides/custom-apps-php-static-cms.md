@@ -13,9 +13,9 @@ related:
   - nginx-page-cache-purge
 faq:
   - What can a custom app run? | Anything PHP-FPM and Nginx can serve from a folder: plain PHP, WordPress, Drupal, Joomla, Grav, Kirby, PrestaShop, a Symfony app, or static files.
-  - Git or SFTP? | Git when the site lives in a repository (`cipi deploy` pulls it); SFTP when files are uploaded or the CMS updates itself.
+  - Git or SFTP? | Git when the site lives in a repository (`sudo cipi deploy` pulls it); SFTP when files are uploaded or the CMS updates itself.
   - Are deploys zero-downtime? | No: a custom app pulls into `htdocs` in place. For atomic releases use a Laravel app, or build elsewhere and publish the result.
-  - Can it have a database? | Yes: `--db=NAME` when creating it, or `cipi db create --name=… --app=…` later. MariaDB, MySQL or PostgreSQL.
+  - Can it have a database? | Yes: `--db=NAME` when creating it, or `sudo cipi db create --name=… --app=…` later. MariaDB, MySQL or PostgreSQL.
   - Can it run cron jobs? | Yes, in the app user's crontab. Long-running workers are for Laravel apps.
   - Does Node build a static site here? | A custom app doesn't build. Build in CI and push the output, or use a Node app (SPA or static), which builds on every deploy.
   - What if a step fails? | Read the troubleshooting table below first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community.
@@ -74,7 +74,7 @@ Until files arrive, the domain shows a neutral **Coming soon** page with the sit
 $ rsync -avz ./site/ legacy@203.0.113.10:htdocs/
 ```
 
-**Git**: the deploy key is in the summary (`cipi deploy docs --key`); add it to the repository, then:
+**Git**: the deploy key is in the summary (`sudo cipi deploy docs --key`); add it to the repository, then:
 
 ```bash
 $ sudo cipi deploy docs
@@ -125,8 +125,8 @@ $ sudo cipi app logs legacy
 
 | Problem | Fix |
 | --- | --- |
-| Still *Coming soon* after the upload | The files aren't in the document root: `cipi app show legacy` says which folder it is |
+| Still *Coming soon* after the upload | The files aren't in the document root: `sudo cipi app show legacy` says which folder it is |
 | 404 on pretty URLs | The vhost already routes unknown paths to `/index.php`; check the CMS's base URL setting |
-| A blank page | PHP errors: `cipi app logs legacy`. Code written for an older PHP than 8.3 is the usual reason |
-| `Permission denied` writing files | Upload as the app user, not root; `cipi app fix-permissions legacy` repairs ownership |
+| A blank page | PHP errors: `sudo cipi app logs legacy`. Code written for an older PHP than 8.3 is the usual reason |
+| `Permission denied` writing files | Upload as the app user, not root; `sudo cipi app fix-permissions legacy` repairs ownership |
 | `cipi.yml` downloaded by visitors | It can't be: every vhost refuses `/cipi.yml` and `/cipi-*.yml` |

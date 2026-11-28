@@ -18,11 +18,11 @@ related:
   - laravel-zero-downtime-migrations
 faq:
   - MariaDB or PostgreSQL for a new app? | Both work with Laravel out of the box. Pick PostgreSQL if you want JSONB, strict types, partial indexes, transactional migrations or extensions such as pgvector; pick MariaDB if your team, hosting or packages expect MySQL.
-  - Can one server run both? | Yes. MariaDB is always there; `cipi db install pgsql` adds PostgreSQL on port 5432. Each app picks one with `--engine`, and you can create extra databases on either.
+  - Can one server run both? | Yes. MariaDB is always there; `sudo cipi db install pgsql` adds PostgreSQL on port 5432. Each app picks one with `--engine`, and you can create extra databases on either.
   - Is the database reachable from the internet? | No. PostgreSQL listens on `localhost` only and the firewall never opens 5432. You connect from your laptop over an SSH tunnel.
   - Can I switch an existing app's engine with one command? | No. Create a new app on PostgreSQL and move the data (see the migration section). It's a one-off job you test on a copy first.
-  - Does PostgreSQL get security updates automatically? | It's excluded from unattended upgrades so it never restarts under you. Patch it when you choose with `cipi db upgrade pgsql`, or schedule it with `cipi autoupdate`.
-  - Which PostgreSQL version? | The one Ubuntu ships for your release (`postgresql` package), with `postgresql-contrib`. `cipi db engines` shows it.
+  - Does PostgreSQL get security updates automatically? | It's excluded from unattended upgrades so it never restarts under you. Patch it when you choose with `sudo cipi db upgrade pgsql`, or schedule it with `sudo cipi autoupdate`.
+  - Which PostgreSQL version? | The one Ubuntu ships for your release (`postgresql` package), with `postgresql-contrib`. `sudo cipi db engines` shows it.
   - Can I use pgvector? | Install the extension package for your PostgreSQL version as root, then create the extension in the app's database as the `postgres` superuser. App users own their database but aren't superusers.
 ---
 PostgreSQL is an open-source database known for being strict, predictable and extensible. Laravel supports it natively: same Eloquent, same migrations, `DB_CONNECTION=pgsql`. This guide sets it up on a Cipi server, explains what changes compared to MySQL, and covers the day-two tasks.

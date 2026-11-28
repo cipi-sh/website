@@ -7,7 +7,7 @@ Cipi runs Nginx from nginx.org's mainline repository, hardened and kept patched.
 ## Security report {#nginx-security}
 
 ```bash
-$ cipi nginx security
+$ sudo cipi nginx security
 ```
 
 | Reports | Why it matters |
@@ -23,8 +23,8 @@ Cipi's vhosts use `listen 443 ssl;` and never enable HTTP/2, which removes a who
 Nginx is excluded from unattended upgrades so it never restarts unexpectedly. Patch it on your terms:
 
 ```bash
-$ cipi nginx upgrade [--yes]      # now
-$ cipi autoupdate on nginx        # or nightly, automatically
+$ sudo cipi nginx upgrade [--yes]  # now
+$ sudo cipi autoupdate on nginx   # or nightly, automatically
 ```
 
 ```flow
@@ -43,7 +43,7 @@ If a long-lived connection (a WebSocket) keeps an old worker on the replaced bin
 ## Default server {#default-server}
 
 ```bash
-$ cipi nginx default-server status|on|off
+$ sudo cipi nginx default-server status|on|off
 ```
 
 On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty reply (444) instead of reaching one of your apps or a tenant resolver.
@@ -53,9 +53,9 @@ On by default: requests for unknown hostnames, on HTTP and HTTPS, get an empty r
 A domain proxied by Cloudflare (the orange cloud) reaches Nginx from Cloudflare's addresses: the access log, Fail2ban, CrowdSec and your app all see Cloudflare instead of the visitor. One command fixes it for the whole server, or one button in the [panel](#real-ip-panel):
 
 ```bash
-$ cipi nginx real-ip cloudflare     # on
-$ cipi nginx real-ip status         # --json for scripts
-$ cipi nginx real-ip off            # back to the address of each connection
+$ sudo cipi nginx real-ip cloudflare  # on
+$ sudo cipi nginx real-ip status    # --json for scripts
+$ sudo cipi nginx real-ip off       # back to the address of each connection
 ```
 
 | | |
@@ -63,12 +63,12 @@ $ cipi nginx real-ip off            # back to the address of each connection
 | **What it does** | Gives Nginx Cloudflare's IPv4 and IPv6 ranges and `CF-Connecting-IP`: a request from one of the ranges gets the visitor's address |
 | **Why it can't be forged** | A request from anywhere else keeps the address of its connection, so sending the header straight to your server does nothing. Domains not behind Cloudflare are unaffected |
 | **In the app** | With PHP-FPM the visitor's address is `REMOTE_ADDR`: `$request->ip()`, rate limiting and login throttling work with no change in Laravel. Octane and Node apps get it in `X-Forwarded-For`, as they already do for a direct visitor |
-| **Fail2ban and CrowdSec** | Never ban Cloudflare's ranges (that would take every proxied site down), and `cipi crowdsec enable` no longer needs `--force` behind the proxy |
+| **Fail2ban and CrowdSec** | Never ban Cloudflare's ranges (that would take every proxied site down), and `sudo cipi crowdsec enable` no longer needs `--force` behind the proxy |
 | **Kept current** | The ranges are Cloudflare's public list — no token — fetched again every night; if the fetch fails, the previous ones stay |
 
 `nginx -t` runs before the reload: if Nginx refuses (another `real_ip_header` in your `nginx.conf`, say), the file is taken back and you get Nginx's reason. A `real_ip` configuration Cipi didn't write is left alone.
 
-> [!info] A firewall ban stops direct connections only. A visitor who comes through Cloudflare is blocked at Cloudflare (WAF rules), not on the server. With a [Zero Trust tunnel](/docs/zero-trust), `cipi zt enable` already sets the same thing and the two share one file.
+> [!info] A firewall ban stops direct connections only. A visitor who comes through Cloudflare is blocked at Cloudflare (WAF rules), not on the server. With a [Zero Trust tunnel](/docs/zero-trust), `sudo cipi zt enable` already sets the same thing and the two share one file.
 
 ### From the panel {#real-ip-panel}
 
@@ -96,10 +96,10 @@ The server's [Firewall tab](/docs/firewall#panel) has a **Cloudflare real IP** c
 Cipi generates each vhost (`/etc/nginx/sites-available/myapp`) and writes it again whenever aliases, PHP, SSL, basic auth, redirects or proxies change — so an edit of that file never lasts. What lasts is a text of your own per app: Cipi keeps it and includes it in the app's server block.
 
 ```bash
-$ cipi nginx edit myapp                    # in $EDITOR; tested and live when you save
-$ cipi nginx show myapp                    # --json for scripts
-$ cipi nginx set myapp --file=myapp.conf   # the same from a file (- for stdin)
-$ cipi nginx reset myapp                   # remove them
+$ sudo cipi nginx edit myapp               # in $EDITOR; tested and live when you save
+$ sudo cipi nginx show myapp               # --json for scripts
+$ sudo cipi nginx set myapp --file=myapp.conf  # the same from a file (- for stdin)
+$ sudo cipi nginx reset myapp              # remove them
 ```
 
 ```nginx
@@ -118,9 +118,9 @@ location ~* \.(?:woff2?|ttf)$ {
 
 | | |
 | --- | --- |
-| **Where it lives** | In the app's settings, so it follows [`cipi sync`](/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
-| **What it's for** | Headers, browser caching, upload size, timeouts, rewrites, `location` blocks of your own. For caching whole pages in Nginx use [`cipi cache`](/docs/page-cache), which writes and maintains it |
-| **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`cipi proxy` and `cipi redirect`](/docs/redirects-proxies) |
+| **Where it lives** | In the app's settings, so it follows [`sudo cipi sync`](/docs/sync), and in `/etc/nginx/cipi-custom/myapp.conf`, included before `location /` in every kind of vhost: Laravel, Octane, custom, Node |
+| **What it's for** | Headers, browser caching, upload size, timeouts, rewrites, `location` blocks of your own. For caching whole pages in Nginx use [`sudo cipi cache`](/docs/page-cache), which writes and maintains it |
+| **What it can't do** | Redefine a location Cipi already defines (`/`, `\.php$`, the ACME path): Nginx says *duplicate location* and nothing changes. For reverse proxies and redirects use [`sudo cipi proxy` and `sudo cipi redirect`](/docs/redirects-proxies) |
 | **Limits** | 32 KB per app. A suspended app keeps its text; it's back in the vhost when you unsuspend |
 
 ```flow
@@ -131,7 +131,7 @@ nginx -t | must pass
 Reload | graceful
 > Passed: a graceful reload, no connection dropped.
 Refused | everything back
-> Failed: the settings and the vhost go back to what they were and you get Nginx's reason by line (`line 3: unknown directive "foo"`). `cipi nginx edit` offers the editor again on your text.
+> Failed: the settings and the vhost go back to what they were and you get Nginx's reason by line (`line 3: unknown directive "foo"`). `sudo cipi nginx edit` offers the editor again on your text.
 ```
 
 ### From the panel, the API, the SDK and cipi-cli {#custom-api}
@@ -144,6 +144,6 @@ The same text can be read and replaced from the [web panel](/docs/gui-overview) 
 | --- | --- |
 | **Accepted** | `location`, `if`, `return`, `rewrite`, `set`, `try_files`, `error_page`, `add_header`, `expires`, `gzip*`, `client_max_body_size` and the timeouts, `allow` / `deny`, `autoindex`, `types`, `sub_filter`, the `fastcgi_*` and `proxy_*` buffers and timeouts, `access_log off`, `auth_basic off`, `root` and `alias` under `/home/myapp/` |
 | **Refused** | A log path, `include`, `listen`, `server_name`, every `*_pass`, certificates, `auth_basic_user_file`, a path outside the app's home, and anything not on the list — by name, with its line |
-| **The whole language** | `cipi nginx edit myapp` at the server, as root |
+| **The whole language** | `sudo cipi nginx edit myapp` at the server, as root |
 
-`cipi nginx set myapp --file=… --strict` applies the API's check at the terminal, to try a text before sending it from a script.
+`sudo cipi nginx set myapp --file=… --strict` applies the API's check at the terminal, to try a text before sending it from a script.

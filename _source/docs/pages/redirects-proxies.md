@@ -7,11 +7,11 @@ Move pages or whole sites without losing visitors or search ranking, and route a
 Every name the app answers to (primary, aliases, www) goes to the target in **one hop**.
 
 ```bash
-$ cipi redirect set oldsite --to=https://new.com            # 301, path and query kept
-$ cipi redirect set oldsite --to=https://new.com --302 --no-path
-$ cipi redirect disable oldsite      # serve the app again, keep the target
-$ cipi redirect enable oldsite
-$ cipi redirect unset oldsite
+$ sudo cipi redirect set oldsite --to=https://new.com       # 301, path and query kept
+$ sudo cipi redirect set oldsite --to=https://new.com --302 --no-path
+$ sudo cipi redirect disable oldsite  # serve the app again, keep the target
+$ sudo cipi redirect enable oldsite
+$ sudo cipi redirect unset oldsite
 ```
 
 Status codes: `--301` (default), `--302`, `--307`, `--308`. The old name's certificate keeps renewing, so HTTPS visitors get a valid redirect too.
@@ -19,11 +19,11 @@ Status codes: `--301` (default), `--302`, `--307`, `--308`. The old name's certi
 ## Redirect paths {#path-redirects}
 
 ```bash
-$ cipi redirect add myapp /old-pricing /pricing
-$ cipi redirect add myapp /blog/ https://blog.example.com/
-$ cipi redirect add myapp /docs/ https://docs.example.com --308 --no-path
-$ cipi redirect list myapp
-$ cipi redirect remove myapp /old-pricing
+$ sudo cipi redirect add myapp /old-pricing /pricing
+$ sudo cipi redirect add myapp /blog/ https://blog.example.com/
+$ sudo cipi redirect add myapp /docs/ https://docs.example.com --308 --no-path
+$ sudo cipi redirect list myapp
+$ sudo cipi redirect remove myapp /old-pricing
 ```
 
 | `from` | Matches | Example |
@@ -41,11 +41,11 @@ Path redirects and proxies keep working while an app redirect is on, so a moved 
 Hand `/api/`, `/events/` or `/docs/` to a Node or Go service, a legacy app or another origin.
 
 ```bash
-$ cipi proxy add myapp /api/ http://127.0.0.1:3000 --strip-prefix
-$ cipi proxy add myapp /events/ http://127.0.0.1:4000 --no-buffering --timeout=3600
-$ cipi proxy add myapp /docs/ https://docs-origin.example.com --preserve-host
-$ cipi proxy list myapp
-$ cipi proxy remove myapp /api/
+$ sudo cipi proxy add myapp /api/ http://127.0.0.1:3000 --strip-prefix
+$ sudo cipi proxy add myapp /events/ http://127.0.0.1:4000 --no-buffering --timeout=3600
+$ sudo cipi proxy add myapp /docs/ https://docs-origin.example.com --preserve-host
+$ sudo cipi proxy list myapp
+$ sudo cipi proxy remove myapp /api/
 ```
 
 | Option | Effect |

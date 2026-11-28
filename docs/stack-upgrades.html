@@ -205,34 +205,34 @@
 <div class="prose">
 <section class="doc-section" id="cli-stack-upgrade">
 <p>Security patches for the whole stack, without surprise restarts. Ubuntu's unattended upgrades would restart Nginx or a database whenever they run; Cipi takes those packages over and patches them at a quiet hour, one at a time, checking each one.</p>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Component</th><th>Patched by</th><th>When</th></tr></thead><tbody><tr><td>Ubuntu (kernel, libraries…)</td><td>unattended-upgrades</td><td>Daily</td></tr><tr><td>PHP</td><td><a href="/docs/php#security">cipi php upgrade</a></td><td>Daily, 03:30</td></tr><tr><td>Nginx, MariaDB (or MySQL), PostgreSQL, Valkey, Node.js, Composer, FrankenPHP</td><td><code>cipi autoupdate</code></td><td>Nightly, 04:20</td></tr><tr><td>Reboot for a new kernel</td><td><code>cipi reboot auto</code></td><td>Off unless you turn it on</td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Component</th><th>Patched by</th><th>When</th></tr></thead><tbody><tr><td>Ubuntu (kernel, libraries…)</td><td>unattended-upgrades</td><td>Daily</td></tr><tr><td>PHP</td><td><a href="/docs/php#security">cipi php upgrade</a></td><td>Daily, 03:30</td></tr><tr><td>Nginx, MariaDB (or MySQL), PostgreSQL, Valkey, Node.js, Composer, FrankenPHP</td><td><code>sudo cipi autoupdate</code></td><td>Nightly, 04:20</td></tr><tr><td>Reboot for a new kernel</td><td><code>sudo cipi reboot auto</code></td><td>Off unless you turn it on</td></tr></tbody></table></div>
 </section>
 <section class="doc-section" id="cli-autoupdate">
-<h2 id="autoupdate">Nightly patches: <code>cipi autoupdate</code><a class="anchor" href="#autoupdate" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi autoupdate<span class="c">                    # what's on, how the last run went</span>
-<span class="p"></span>cipi autoupdate off mariadb<span class="c">        # patch this one yourself</span>
-<span class="p"></span>cipi autoupdate on
-<span class="p"></span>cipi autoupdate run [name]<span class="c">         # now</span></pre></div>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why</th></tr></thead><tbody><tr><td>Patch releases only (<code>--only-upgrade</code>)</td><td>No major jumps overnight</td></tr><tr><td>Your config files are kept; <code>nginx -t</code> before reload</td><td>A patch never breaks the config</td></tr><tr><td>Node runtimes checked against SHA-256; Composer rolled back if it won't start</td><td>Verified binaries only</td></tr><tr><td>One at a time, databases last; skipped during a dump or deploy</td><td>No restart in the middle of your work</td></tr><tr><td>Octane builds stay on their PHP minor, health-checked, rolled back if silent</td><td><a href="/docs/octane#cli-frankenphp">FrankenPHP pinning</a></td></tr><tr><td>Each upgrade notified; failures alert and show in <code>cipi pending</code></td><td>You always know</td></tr></tbody></table></div>
+<h2 id="autoupdate">Nightly patches: <code>sudo cipi autoupdate</code><a class="anchor" href="#autoupdate" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi autoupdate<span class="c">               # what's on, how the last run went</span>
+<span class="p"></span>sudo cipi autoupdate off mariadb<span class="c">   # patch this one yourself</span>
+<span class="p"></span>sudo cipi autoupdate on
+<span class="p"></span>sudo cipi autoupdate run [name]<span class="c">    # now</span></pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why</th></tr></thead><tbody><tr><td>Patch releases only (<code>--only-upgrade</code>)</td><td>No major jumps overnight</td></tr><tr><td>Your config files are kept; <code>nginx -t</code> before reload</td><td>A patch never breaks the config</td></tr><tr><td>Node runtimes checked against SHA-256; Composer rolled back if it won't start</td><td>Verified binaries only</td></tr><tr><td>One at a time, databases last; skipped during a dump or deploy</td><td>No restart in the middle of your work</td></tr><tr><td>Octane builds stay on their PHP minor, health-checked, rolled back if silent</td><td><a href="/docs/octane#cli-frankenphp">FrankenPHP pinning</a></td></tr><tr><td>Each upgrade notified; failures alert and show in <code>sudo cipi pending</code></td><td>You always know</td></tr></tbody></table></div>
 <p>Log: <code>/var/log/cipi/autoupdate.log</code>.</p>
 <h2 id="manual">By hand<a class="anchor" href="#manual" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi nginx upgrade [--yes]
-<span class="p"></span>cipi db upgrade [mariadb|pgsql] [--yes]<span class="c">     # mariadb: MySQL's packages where it runs</span>
-<span class="p"></span>cipi service upgrade valkey [--yes]
-<span class="p"></span>cipi service upgrade<span class="c">                 # installed vs available</span></pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi nginx upgrade [--yes]
+<span class="p"></span>sudo cipi db upgrade [mariadb|pgsql] [--yes]<span class="c">  # mariadb: MySQL's packages where it runs</span>
+<span class="p"></span>sudo cipi service upgrade valkey [--yes]
+<span class="p"></span>sudo cipi service upgrade<span class="c">            # installed vs available</span></pre></div>
 <p>Package patterns are pinned (a loose match can't drag PHP in), vendor repositories are re-asserted if missing, and a lock prevents two upgrades from overlapping. These are not exposed to the panel: patching a database is an operator decision.</p>
 </section>
 <section class="doc-section" id="cli-pending">
-<h2 id="pending">What needs you: <code>cipi pending</code><a class="anchor" href="#pending" aria-label="Link to this section">#</a></h2>
-<p>A server can be fully patched and still run last month's kernel. <code>cipi pending</code> lists what an update can't do by itself, each with the command to run:</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi pending [--json]</pre></div>
+<h2 id="pending">What needs you: <code>sudo cipi pending</code><a class="anchor" href="#pending" aria-label="Link to this section">#</a></h2>
+<p>A server can be fully patched and still run last month's kernel. <code>sudo cipi pending</code> lists what an update can't do by itself, each with the command to run:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi pending [--json]</pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Item</th><th>Example</th></tr></thead><tbody><tr><td>Reboot required</td><td>New kernel installed, old one running</td></tr><tr><td>Below a security release</td><td>PHP, Nginx, Composer, Node.js</td></tr><tr><td>Old binary still running</td><td>Nginx upgraded on disk, workers not yet replaced</td></tr><tr><td>Updates waiting</td><td>A component with autoupdate off, or whose last run failed</td></tr><tr><td>Unmanaged code</td><td>PHP extensions built by hand or with PECL</td></tr><tr><td>App hygiene</td><td>Horizon installed but not running; apps on the shared Valkey</td></tr></tbody></table></div>
-<p>Checked every morning; mailed when the list changes, and weekly while something stays on it. <code>cipi status</code> shows it too.</p>
+<p>Checked every morning; mailed when the list changes, and weekly while something stays on it. <code>sudo cipi status</code> shows it too.</p>
 <h2 id="reboot">Reboots<a class="anchor" href="#reboot" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi reboot<span class="c">                         # needed? since when? which kernel?</span>
-<span class="p"></span>cipi reboot now [--yes]
-<span class="p"></span>cipi reboot auto on --at=04:45<span class="c">      # only on nights one is required</span>
-<span class="p"></span>cipi reboot auto off<span class="c">                # back to rebooting by hand</span></pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi reboot<span class="c">                    # needed? since when? which kernel?</span>
+<span class="p"></span>sudo cipi reboot now [--yes]
+<span class="p"></span>sudo cipi reboot auto on --at=04:45<span class="c">  # only on nights one is required</span>
+<span class="p"></span>sudo cipi reboot auto off<span class="c">           # back to rebooting by hand</span></pre></div>
 <p>Automatic reboots notify, warn two minutes ahead, and wait for the next night while a package install, dump, deploy or other <code>cipi</code> command is running.</p>
 </section>
 
@@ -241,9 +241,9 @@
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>
-<li><a class="l2" href="#autoupdate">Nightly patches: cipi autoupdate</a></li>
+<li><a class="l2" href="#autoupdate">Nightly patches: sudo cipi autoupdate</a></li>
 <li><a class="l2" href="#manual">By hand</a></li>
-<li><a class="l2" href="#pending">What needs you: cipi pending</a></li>
+<li><a class="l2" href="#pending">What needs you: sudo cipi pending</a></li>
 <li><a class="l2" href="#reboot">Reboots</a></li>
 </ol>
 <div class="toc-tools">

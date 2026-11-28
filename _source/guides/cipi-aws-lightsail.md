@@ -21,7 +21,7 @@ faq:
   - Do I need a static IP? | Yes. Without it the public IP changes when the instance stops, and your DNS breaks.
   - Lightsail or EC2? | Lightsail for a fixed monthly price and simple needs. EC2 when you need VPCs, private RDS, autoscaling or specific instance types.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
-  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `sudo cipi sync`.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 ---
@@ -77,7 +77,7 @@ Point an `A` record at the static IP (Lightsail DNS zones work), then create and
 
 | When | Do |
 | --- | --- |
-| You need more RAM | Snapshot the instance and create a bigger one from it, or move apps with [`cipi sync`](/guides/migrate-server-cipi-sync) |
+| You need more RAM | Snapshot the instance and create a bigger one from it, or move apps with [`sudo cipi sync`](/guides/migrate-server-cipi-sync) |
 | You need VPC, autoscaling groups, RDS in private subnets | Move to [EC2](/guides/cipi-aws-ec2) |
 
 > [!note] Lightsail's own snapshots copy the whole disk. Keep Cipi's [S3 backups](/guides/backup-vps-s3) too: they're per app, encrypted and restorable on any server.

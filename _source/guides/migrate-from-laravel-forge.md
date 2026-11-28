@@ -50,16 +50,16 @@ Keep old | a week, then delete | #rollback
 | Forge / Ploi | Cipi |
 | --- | --- |
 | Server provisioning | `wget -O - https://cipi.sh/setup.sh \| bash` on a fresh VPS |
-| Site | `cipi app create` (Laravel, Node or custom) |
-| Deploy script | Built-in steps plus `cipi app deploy-config`, `deploy.post` in `cipi.yml` |
+| Site | `sudo cipi app create` (Laravel, Node or custom) |
+| Deploy script | Built-in steps plus `sudo cipi app deploy-config`, `deploy.post` in `cipi.yml` |
 | Quick deploy | Push-to-deploy webhook, created with the app |
-| Environment | `cipi app env` (`/home/<app>/shared/.env`) |
-| Daemons / queue workers | `cipi worker add`, `cipi worker horizon enable` |
+| Environment | `sudo cipi app env` (`/home/<app>/shared/.env`) |
+| Daemons / queue workers | `sudo cipi worker add`, `sudo cipi worker horizon enable` |
 | Scheduler | On by default per app |
-| Databases | `cipi db` (MariaDB, PostgreSQL) |
-| SSL (Let's Encrypt) | `cipi ssl install` |
-| Backups | `cipi backup` (local and S3, encrypted) |
-| Monitoring, health checks | `cipi monitor`, health checks with auto-rollback |
+| Databases | `sudo cipi db` (MariaDB, PostgreSQL) |
+| SSL (Let's Encrypt) | `sudo cipi ssl install` |
+| Backups | `sudo cipi backup` (local and S3, encrypted) |
+| Monitoring, health checks | `sudo cipi monitor`, health checks with auto-rollback |
 | Team access | Panel roles, API tokens with abilities |
 | Monthly plan | None: MIT licensed |
 
@@ -113,7 +113,7 @@ $ sudo cipi app env shop                  # or paste the rest in the editor
 | Keep from Cipi | Bring from Forge |
 | --- | --- |
 | `DB_*`, `REDIS_*`, `CIPI_*` | `APP_KEY`, mail, payments, storage, third-party APIs |
-| `APP_URL` (switched to https by `cipi ssl install`) | Custom keys your code reads |
+| `APP_URL` (switched to https by `sudo cipi ssl install`) | Custom keys your code reads |
 
 ## 4. Deploy once {#deploy}
 
@@ -206,7 +206,7 @@ Until you delete the old server, going back is one DNS change plus `artisan up` 
 | --- | --- |
 | `The MAC is invalid` | The new app has a different `APP_KEY`: set the old one |
 | Images missing | `storage/app` not copied, or `storage:link` missing: redeploy |
-| Deploy fails on Composer | PHP version differs from Forge: `cipi app edit shop --php=8.x` |
+| Deploy fails on Composer | PHP version differs from Forge: `sudo cipi app edit shop --php=8.x` |
 | `Permission denied (publickey)` on deploy | Deploy key not added to the repository |
 | Certificate fails | DNS not pointing at the new server yet: `dig +short shop.example.com` |
 | Jobs processed twice | Old server's workers still running: stop them |

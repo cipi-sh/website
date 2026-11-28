@@ -97,16 +97,16 @@
 {"ev":"stack"},
 {"bar":"Installing nginx, PHP 8.5, MariaDB, Valkey ","ms":2200},
 {"o":[["✓ ","ok"],["Cipi 5.18.0 ready. Admin login: ",""],["ssh cipi@203.0.113.10","hl"]]},
-{"c":"cipi app create --user=shop --domain=shop.example.com --repository=git@github.com:acme/shop.git","wait":500},
+{"c":"sudo cipi app create --user=shop --domain=shop.example.com --repository=git@github.com:acme/shop.git","p":"cipi@vps:~$","wait":500},
 {"ev":"cell:shop:on"},
 {"o":[["✓ ","ok"],["User  ",""],["✓ ","ok"],["Database (MariaDB)  ",""],["✓ ","ok"],["PHP-FPM 8.5  ",""],["✓ ","ok"],["Nginx → shop.example.com","" ]]},
 {"o":[["✓ ","ok"],["Deploy key and push webhook added on GitHub","dim"]],"d":350},
-{"c":"cipi deploy shop","wait":300},
+{"c":"sudo cipi deploy shop","p":"cipi@vps:~$","wait":300},
 {"ev":"cell:shop:deploying"},
 {"bar":"Release 1: clone, composer, migrate, swap ","ms":2300},
 {"ev":"cell:shop:live"},
 {"o":[["✓ ","ok"],["Deploy completed  (release 1, 48s)",""]]},
-{"c":"cipi ssl install shop","wait":300},
+{"c":"sudo cipi ssl install shop","p":"cipi@vps:~$","wait":300},
 {"o":[["✓ ","ok"],["DNS: shop.example.com → 203.0.113.10",""]],"d":400},
 {"ev":"cell:shop:secure"},
 {"o":[["✓ ","ok"],["Certificate issued. Live on ",""],["https://shop.example.com","hl"]],"d":700},
@@ -116,14 +116,14 @@
 {"bar":"Release 2: build next to the live one, then swap ","ms":2000},
 {"ev":"release2"},
 {"o":[["✓ ","ok"],["Release 2 live in 41s. Requests dropped: ",""],["0","hl"]],"d":900},
-{"c":"cipi app create --user=api --domain=api.example.com --repository=git@github.com:acme/api.git --octane --engine=pgsql","wait":600},
+{"c":"sudo cipi app create --user=api --domain=api.example.com --repository=git@github.com:acme/api.git --octane --engine=pgsql","p":"cipi@vps:~$","wait":600},
 {"ev":"cell:api:on"},{"ev":"tab:api"},
 {"o":[["✓ ","ok"],["User  ",""],["✓ ","ok"],["Database (PostgreSQL)  ",""],["✓ ","ok"],["Worker + Octane (:8001)",""]]},
-{"c":"cipi app create --user=docs --domain=docs.example.com --repository=git@github.com:acme/docs.git --node=static --framework=astro","wait":500},
+{"c":"sudo cipi app create --user=docs --domain=docs.example.com --repository=git@github.com:acme/docs.git --node=static --framework=astro","p":"cipi@vps:~$","wait":500},
 {"ev":"cell:docs:on"},{"ev":"tab:docs"},
 {"o":[["✓ ","ok"],["User  ",""],["✓ ","ok"],["Nginx → docs.example.com  ",""],["✓ ","ok"],["Deployer + asset build",""]]},
 {"ev":"cell:api:deploying"},{"ev":"cell:docs:deploying"},
-{"c":"cipi deploy api && cipi deploy docs","wait":300},
+{"c":"sudo cipi deploy api && sudo cipi deploy docs","p":"cipi@vps:~$","wait":300},
 {"o":[["✓ ","ok"],["Deploy completed  (release 1, 39s)",""]],"d":2300},
 {"ev":"cell:api:live"},
 {"o":[["✓ ","ok"],["Deploy completed  (release 1, 21s)",""]],"d":400},
@@ -305,8 +305,8 @@
                     <p>The web panel is optional and self-hosted. It manages one or many Cipi servers: apps, deploys and their audit trail, domains, environment, logs, databases and your team, with two-factor login and SSO.</p>
                 </div>
                 <div class="cmd">
-                    <code>cipi gui panel.example.com</code>
-                    <button class="copy-btn" type="button" data-copy="cipi gui panel.example.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button>
+                    <code>sudo cipi gui panel.example.com</code>
+                    <button class="copy-btn" type="button" data-copy="sudo cipi gui panel.example.com"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button>
                 </div>
             </div>
             <div data-clips></div>
@@ -405,7 +405,7 @@
                     <ul>
                         <li>Server settings in Git: <code>cipi.yml</code> is reviewed in pull requests and applied all or nothing</li>
                         <li>Preview environments per branch, deploys from CI</li>
-                        <li>Hash-chained deploy audit and ISO 27001 / SOC 2 evidence with <code>cipi compliance</code></li>
+                        <li>Hash-chained deploy audit and ISO 27001 / SOC 2 evidence with <code>sudo cipi compliance</code></li>
                         <li>PHP and Nginx security fixes applied overnight</li>
                     </ul>
                     <div class="for-links"><a class="for-link" href="/cipi-yml">Configuration as code</a></div>
@@ -462,8 +462,8 @@
                 <details><summary>How do I install Cipi?</summary><p>Run a single command on a fresh Ubuntu VPS: <code>wget -O - https://cipi.sh/setup.sh | bash</code>. It installs and configures the full LEMP production stack automatically. The <a href="/docs/quickstart">quickstart</a> walks through every step.</p></details>
                 <details><summary>Is Cipi an alternative to Laravel Forge?</summary><p>Yes. Cipi is a free, self-hosted, open-source alternative to Laravel Forge and similar deployment tools, giving you full control over your servers with zero recurring cost. See the <a href="/alternative-to-laravel-forge">Laravel Forge comparison</a>.</p></details>
                 <details><summary>Which servers does Cipi support?</summary><p>Cipi runs on any Ubuntu VPS from providers like DigitalOcean, Hetzner, Vultr, Linode, AWS, and more, turning a single server into a multi-app LEMP hosting platform.</p></details>
-                <details><summary>Does Cipi support Laravel Octane?</summary><p>Yes. Cipi runs Laravel Octane on FrankenPHP natively: create Octane apps with <code>cipi app create --octane</code> or convert existing apps with <code>cipi app convert --to=octane</code>, running alongside classic PHP-FPM apps on the same server.</p></details>
-                <details><summary>Does Cipi have a web control panel?</summary><p>Yes, optionally. Cipi is CLI-first, but <code>cipi gui yourdomain.com</code> installs a free, self-hosted web dashboard that manages one or more Cipi servers from the browser — apps, databases, SSL, deploys and logs.</p></details>
+                <details><summary>Does Cipi support Laravel Octane?</summary><p>Yes. Cipi runs Laravel Octane on FrankenPHP natively: create Octane apps with <code>sudo cipi app create --octane</code> or convert existing apps with <code>sudo cipi app convert --to=octane</code>, running alongside classic PHP-FPM apps on the same server.</p></details>
+                <details><summary>Does Cipi have a web control panel?</summary><p>Yes, optionally. Cipi is CLI-first, but <code>sudo cipi gui yourdomain.com</code> installs a free, self-hosted web dashboard that manages one or more Cipi servers from the browser — apps, databases, SSL, deploys and logs.</p></details>
                 <details><summary>Does Cipi send my data to external services?</summary><p>No. Cipi is self-hosted and has no telemetry or phone-home: it runs on your VPS and never sends your apps, domains, keys or database credentials anywhere. It is open source (MIT), built in the EU, and stores configs, tokens and keys encrypted with AES-256-CBC through the Vault.</p></details>
                 <details><summary>Can AI agents manage a Cipi server?</summary><p>Yes. Cipi ships a dual MCP (Model Context Protocol) server, so MCP-compatible IDEs and AI agents can create apps, run deployments, manage SSL and databases through a structured API. See the <a href="/docs/mcp">MCP server docs</a>.</p></details>
                 <details><summary>Is it safe for production?</summary><p>Yes. Each app is isolated (own Linux user, PHP pool, database user and Valkey), PHP is patched every night, the firewall and Fail2ban are on by default, secrets are encrypted at rest, and deploys switch atomically with rollback. See the <a href="/docs/security-model">security model</a>.</p></details>

@@ -17,7 +17,7 @@ faq:
   - Is `.env` safe from an exclusion? | Only if no pattern matches it. Don't write patterns like `.env*` or `*.env`: without `.env` (and its `APP_KEY`) a restored app can't read its own encrypted data.
   - Does `--exclude-paths` add to the list or replace it? | It replaces it. Pass every pattern you want each time, or `--exclude-paths=` to empty it.
   - Can I use the `shop:` prefix in cipi.yml? | No. A cipi.yml belongs to one app, so its patterns apply to that app only and the prefix is refused. Use it on the command line, for server-wide profiles.
-  - Will a restore warn me about what's missing? | Each app archive has a `meta.json` with `excluded_paths`. Read it after `cipi backup fetch` to know which folders come back from elsewhere.
+  - Will a restore warn me about what's missing? | Each app archive has a `meta.json` with `excluded_paths`. Read it after `sudo cipi backup fetch` to know which folders come back from elsewhere.
   - Are Meilisearch indexes and releases backed up? | No, and they don't need to be: indexes are rebuilt with `scout:import`, releases by the next deploy. Code is in Git.
 docs:
   - backups
@@ -57,7 +57,7 @@ $ sudo du -sh /home/shop/shared/storage/app/* | sort -h | tail
 $ sudo cipi backup list --profile=nightly          # the runs a profile has kept
 ```
 
-`cipi disk` shows files and database per app; `du` tells you which folder inside `shared/` is the big one. Usual suspects:
+`sudo cipi disk` shows files and database per app; `du` tells you which folder inside `shared/` is the big one. Usual suspects:
 
 | Folder | Typical content | Exclude? |
 | --- | --- | --- |
@@ -234,7 +234,7 @@ $ cipi-cli backup status
 | [REST API](/docs/api) | Backup profile fields, ability `backups-manage` |
 | [Web panel](/docs/gui) | Server → Backups → profile form (cipi/gui 4.5+) |
 
-Destinations are not part of a profile: they are set up with `cipi backup configure` and `cipi backup destination add`, or from the [panel](/docs/backups#panel).
+Destinations are not part of a profile: they are set up with `sudo cipi backup configure` and `sudo cipi backup destination add`, or from the [panel](/docs/backups#panel).
 
 ## 7. Keep the excluded folders safe {#keep-safe}
 
@@ -286,5 +286,5 @@ Then bring the excluded folders back from where you keep them (`rsync` from the 
 | Too much is left out | A short name (`cache`, `tmp`) matched folders you wanted. Use the full path |
 | I added a pattern and lost the others | `--exclude-paths` replaces the list: pass all of them |
 | `cipi.yml` plan refuses `shop:…` | The prefix is CLI-only; in `cipi.yml` write the bare pattern |
-| `cipi yml plan` says the profile name is invalid | It must be the app's name or start with it: `shop`, `shop-nightly` |
+| `sudo cipi yml plan` says the profile name is invalid | It must be the app's name or start with it: `shop`, `shop-nightly` |
 | Archives are still big | Check the database side too: `--exclude-tables` for logs, jobs and Telescope tables |

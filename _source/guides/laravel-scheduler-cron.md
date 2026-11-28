@@ -17,12 +17,12 @@ related:
   - server-monitoring-alerts
 faq:
   - Do I need to add the cron line myself? | No. Every Laravel app on Cipi gets `schedule:run` every minute in its own user's crontab, with the app's PHP version.
-  - My task didn't run. Where do I look? | Run `cipi app artisan shop schedule:list` to see when it's due, then check syslog for the app's cron lines and `storage/logs/laravel.log` for errors. See the debugging section.
+  - My task didn't run. Where do I look? | Run `sudo cipi app artisan shop schedule:list` to see when it's due, then check syslog for the app's cron lines and `storage/logs/laravel.log` for errors. See the debugging section.
   - What happens during a deploy? | The cron line always points at `current/`, so the next minute runs the new release. A task that was mid-run finishes on the old code.
   - Should a long task run in the scheduler? | Better as a queued job: schedule a small command that dispatches the job. Workers retry, time out cleanly and don't block the next tasks.
   - Two servers run the same app. Will tasks run twice? | Yes, unless you add `->onOneServer()`, which needs a shared cache store such as Redis or the database.
   - Which timezone does the scheduler use? | The app's `timezone` in `config/app.php` (UTC by default). Use `->timezone('Europe/Rome')` per task.
-  - Can I pause scheduled tasks? | `cipi schedule off shop` removes the line; `cipi schedule on shop` puts it back. Maintenance mode also skips tasks unless they use `->evenInMaintenanceMode()`.
+  - Can I pause scheduled tasks? | `sudo cipi schedule off shop` removes the line; `sudo cipi schedule on shop` puts it back. Maintenance mode also skips tasks unless they use `->evenInMaintenanceMode()`.
 ---
 Most apps need things to happen on their own: send a daily report, clear old records, renew subscriptions. Laravel's **scheduler** lets you list those tasks in code. A single cron line runs the scheduler every minute, and it decides what's due.
 
@@ -142,7 +142,7 @@ $ crontab -e
 
 | Rule | Why |
 | --- | --- |
-| Keep the `schedule:run` line | `cipi schedule on shop` puts it back if it goes |
+| Keep the `schedule:run` line | `sudo cipi schedule on shop` puts it back if it goes |
 | Use absolute paths | Cron has a minimal `PATH` |
 | Log to a file | Otherwise output disappears |
 | Root jobs in `/etc/cron.d/` | Never give an app more rights than it needs |
@@ -158,13 +158,13 @@ $ sudo cipi schedule on shop
 
 ```flow
 Is it listed? | schedule:list
-> `cipi app artisan shop schedule:list` shows every task and when it's next due. Missing? It isn't in the deployed code.
+> `sudo cipi app artisan shop schedule:list` shows every task and when it's next due. Missing? It isn't in the deployed code.
 Is cron calling? | grep CRON syslog
 > `grep CRON /var/log/syslog | grep shop` shows whether cron is calling `schedule:run` every minute.
 Did it fail? | laravel.log
-> `cipi app logs shop --type=laravel` shows the exception if the task crashed.
+> `sudo cipi app logs shop --type=laravel` shows the exception if the task crashed.
 Run it by hand | artisan command
-> Run the command by hand with `cipi app artisan shop <command>` to see the error directly.
+> Run the command by hand with `sudo cipi app artisan shop <command>` to see the error directly.
 ```
 
 ```bash
@@ -179,7 +179,7 @@ $ sudo cipi app artisan shop schedule:clear-cache # stuck overlap lock
 
 | Problem | Fix |
 | --- | --- |
-| Task listed but never runs | `schedule status` says off: `cipi schedule on shop` |
+| Task listed but never runs | `schedule status` says off: `sudo cipi schedule on shop` |
 | Runs at the wrong hour | Server time is UTC: set `->timezone()` per task or `timezone` in `config/app.php` |
 | Skipped forever after a crash | Overlap lock left behind: `schedule:clear-cache` |
 | Runs twice | Two servers without `->onOneServer()`, or a duplicate line in the crontab |

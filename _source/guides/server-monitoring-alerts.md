@@ -59,7 +59,7 @@ $ sudo cipi monitor test
 | Check | Alerts on |
 | --- | --- |
 | CPU, load, memory, swap | Sustained high usage |
-| Disk | Thresholds per filesystem; [`cipi disk`](/docs/disk) shows which app is filling it |
+| Disk | Thresholds per filesystem; [`sudo cipi disk`](/docs/disk) shows which app is filling it |
 | Services | nginx, databases, Valkey, Supervisor, PHP-FPM down |
 | Certificates | Expiring soon |
 | App disk | An app over its soft limit |
@@ -79,6 +79,6 @@ More channels and webhook signatures: [notifications and alerts](/guides/notific
 
 | Problem | Fix |
 | --- | --- |
-| No alerts at all | No channel configured: add one with `cipi notification add`, then `cipi notification test all` |
+| No alerts at all | No channel configured: add one with `sudo cipi notification add`, then `sudo cipi notification test all` |
 | Telegram silent | Bot never received `/start`, or wrong chat id (groups are negative) |
 | Too many disk alerts | Clean logs and releases; lower `--keep-releases` |

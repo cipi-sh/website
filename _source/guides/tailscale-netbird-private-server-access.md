@@ -89,7 +89,7 @@ $ sudo cipi zt tailscale lock ssh
 ✓ SSH port closed to the world. SSH is Tailscale-only (100.101.102.103). Unlock: cipi zt tailscale unlock ssh
 ```
 
-`lock ssh` refuses — with the reason — while the mesh isn't connected, nobody has signed in over it, the node key can still expire, or SSH doesn't listen on the mesh address. In the panel, the button is greyed out with the same reason. `cipi zt tailscale unlock ssh` reopens it.
+`lock ssh` refuses — with the reason — while the mesh isn't connected, nobody has signed in over it, the node key can still expire, or SSH doesn't listen on the mesh address. In the panel, the button is greyed out with the same reason. `sudo cipi zt tailscale unlock ssh` reopens it.
 
 > [!warning] Keep your provider's web console at hand. If the server ever leaves the network with 22 closed, the console is the way back in: `sudo cipi zt tailscale unlock ssh`.
 
@@ -112,8 +112,8 @@ Point the DNS records of those sites at the mesh address (a public `A` record on
 | The web panel and API privately | Their records on the mesh address, a DNS-01 certificate, then `lock http` |
 | SSH without managing keys (Tailscale) | `sudo cipi zt tailscale ssh enable`: the tailnet's policy decides who signs in as whom |
 | A CI runner that deploys | Join the runner to the network (Tailscale's GitHub Action, NetBird's), deploy over SSH |
-| See it all | `cipi zt status`, the panel's Zero Trust tab, `cipi-cli zt`, `GET /api/zt` |
-| Move apps between two servers on the network | `cipi sync` and the panel's Transfer use the private addresses: nothing to open |
+| See it all | `sudo cipi zt status`, the panel's Zero Trust tab, `cipi-cli zt`, `GET /api/zt` |
+| Move apps between two servers on the network | `sudo cipi sync` and the panel's Transfer use the private addresses: nothing to open |
 | Leave | `sudo cipi zt tailscale disable` — the locks are reopened first, then the client is removed |
 
 From your laptop, with [cipi-cli](/docs/cli-client#zt): `cipi-cli zt join tailscale --tags cipi`, `cipi-cli zt lock ssh`, `cipi-cli zt leave`. Over the [API](/docs/api#endpoints-zt) with a `zt-manage` token, or the [PHP SDK](/docs/php-sdk#zero-trust).
@@ -135,5 +135,5 @@ Headscale is a self-hosted Tailscale control server; NetBird's management server
 | `lock ssh` says the node key expires | Tailscale: rejoin with a tagged key (`--reauth`), or *Disable key expiry* for the machine in the console |
 | `ssh` over the mesh hangs | The network's policy doesn't allow TCP 22 to the server |
 | `enable` says the server is on another mesh | One mesh at a time: both use `100.64.0.0/10`. `disable` the other first |
-| `lock http` refused | An app renews its certificate over HTTP-01: `cipi ssl install <app> --dns=cloudflare` |
+| `lock http` refused | An app renews its certificate over HTTP-01: `sudo cipi ssl install <app> --dns=cloudflare` |
 | Locked out | Provider's web console, then `sudo cipi zt tailscale unlock ssh` (or `netbird`) |

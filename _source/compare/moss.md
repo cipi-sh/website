@@ -96,12 +96,12 @@ Every moss.sh feature you use today, and its place in Cipi. Use it as your migra
 
 | In moss.sh | In Cipi | Docs |
 | --- | --- | --- |
-| Site | `cipi app create` | [Create an app](/docs/create-app) |
+| Site | `sudo cipi app create` | [Create an app](/docs/create-app) |
 | Deploys | Webhook + releases | [How deploys work](/docs/how-deploys-work) |
-| Workers | `cipi worker add` | [Workers](/docs/workers) |
+| Workers | `sudo cipi worker add` | [Workers](/docs/workers) |
 | Cron | Scheduler / crontab | [Scheduler](/docs/scheduler) |
-| Databases | `cipi db` | [Databases](/docs/databases) |
-| SSL | `cipi ssl install` | [SSL](/docs/ssl) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
+| SSL | `sudo cipi ssl install` | [SSL](/docs/ssl) |
 
 ## Moving to Cipi, step by step {#move}
 
@@ -129,14 +129,14 @@ Open moss.sh's dashboard and write down, for each site you move:
 
 | What | Where to find it in moss.sh | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | the site's domain settings | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | the site's domain settings | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | the site's Git / deployment settings | `--repository`, `--branch` |
 | PHP version | the site's PHP settings | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | the site's environment or `.env` file | your own keys and `APP_KEY` |
-| Background workers | the server's daemons / Supervisor section | `cipi worker add` or Horizon |
+| Background workers | the server's daemons / Supervisor section | `sudo cipi worker add` or Horizon |
 | Scheduled tasks | the server's cron section | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | the site's deploy script or hooks | Cipi's deploy options or `deploy.post` |
-| Databases | the server's databases section | `cipi db restore` |
+| Databases | the server's databases section | `sudo cipi db restore` |
 
 Replace `SITE_USER` and `SITE_PATH` with the system user and folder moss.sh shows for the site.
 

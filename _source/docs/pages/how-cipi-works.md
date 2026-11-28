@@ -67,4 +67,4 @@ Every app is a separate Linux user. If one app is compromised, the others' files
 | Scheduler | the app user's crontab |
 | Database | `myapp` with user `myapp@localhost` |
 
-Cipi writes `.env` with every credential and `APP_KEY`; change it with [cipi app env](/docs/environment). If permissions get mangled (an archive unpacked as root, a `chmod 775 .ssh`), `cipi app fix-permissions myapp` restores them. Do not `chown -R`: Nginx writes logs as `www-data` and SSH refuses a deploy key with loose permissions.
+Cipi writes `.env` with every credential and `APP_KEY`; change it with [cipi app env](/docs/environment). If permissions get mangled (an archive unpacked as root, a `chmod 775 .ssh`), `sudo cipi app fix-permissions myapp` restores them. Do not `chown -R`: Nginx writes logs as `www-data` and SSH refuses a deploy key with loose permissions.

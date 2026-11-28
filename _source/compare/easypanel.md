@@ -15,7 +15,7 @@ choose_them:
   - You want a GUI over Docker for many stacks
 faq:
   - Can I keep using a GUI? | Yes: Cipi's [web panel](/web-panel) is optional and self-hosted.
-  - How do I export a database from a container? | `docker exec CONTAINER pg_dump …` (or `mariadb-dump`), then `cipi db restore`.
+  - How do I export a database from a container? | `docker exec CONTAINER pg_dump …` (or `mariadb-dump`), then `sudo cipi db restore`.
   - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
   - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
   - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
@@ -97,11 +97,11 @@ Every Easypanel feature you use today, and its place in Cipi. Use it as your mig
 
 | In Easypanel | In Cipi | Docs |
 | --- | --- | --- |
-| App service | `cipi app create` | [Create an app](/docs/create-app) |
-| Environment | `cipi app env` | [Environment](/docs/environment) |
-| Database service | `cipi db` | [Databases](/docs/databases) |
+| App service | `sudo cipi app create` | [Create an app](/docs/create-app) |
+| Environment | `sudo cipi app env` | [Environment](/docs/environment) |
+| Database service | `sudo cipi db` | [Databases](/docs/databases) |
 | Mounts / volumes | `/home/<app>/shared/storage` |  |
-| Domains and HTTPS | `cipi alias add`, `cipi ssl install` | [SSL](/docs/ssl) |
+| Domains and HTTPS | `sudo cipi alias add`, `sudo cipi ssl install` | [SSL](/docs/ssl) |
 
 ## Moving to Cipi, step by step {#move}
 

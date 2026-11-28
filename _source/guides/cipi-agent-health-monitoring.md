@@ -70,8 +70,8 @@ If the database, cache, queue or storage fails, `status` becomes `degraded` with
 
 | Layer | Watches | Alerts via |
 | --- | --- | --- |
-| `cipi monitor` | CPU, memory, disk, services, certificates | Your [Cipi channels](/guides/server-monitoring-alerts) |
-| `cipi health` | One URL per app, every 5 minutes and after deploys; can roll back | Your Cipi channels |
+| `sudo cipi monitor` | CPU, memory, disk, services, certificates | Your [Cipi channels](/guides/server-monitoring-alerts) |
+| `sudo cipi health` | One URL per app, every 5 minutes and after deploys; can roll back | Your Cipi channels |
 | `/cipi/health` | Inside the app: DB, cache, queue, storage, deploy | Your uptime service, from outside |
 
 The outside view catches what the server can't see about itself: DNS, network, a down server.
@@ -82,5 +82,5 @@ The outside view catches what the server can't see about itself: DNS, network, a
 | --- | --- |
 | Always 401 | Missing `Authorization: Bearer` header in the monitor |
 | `queue` not ok | Failed or pending jobs above threshold: check workers and `queue:failed` |
-| `storage` not ok | Disk full or permissions: `cipi app fix-permissions shop`, check disk |
+| `storage` not ok | Disk full or permissions: `sudo cipi app fix-permissions shop`, check disk |
 | Monitor flaps | Increase its timeout; the check queries the database each time |

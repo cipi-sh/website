@@ -101,13 +101,13 @@ Every RunCloud feature you use today, and its place in Cipi. Use it as your migr
 
 | In RunCloud | In Cipi | Docs |
 | --- | --- | --- |
-| Web application | `cipi app create` (Laravel) or `--custom` (WordPress, PHP) | [Create an app](/docs/create-app) |
+| Web application | `sudo cipi app create` (Laravel) or `--custom` (WordPress, PHP) | [Create an app](/docs/create-app) |
 | Git deployment | Webhook + releases | [How deploys work](/docs/how-deploys-work) |
-| Supervisor | `cipi worker add` | [Workers](/docs/workers) |
+| Supervisor | `sudo cipi worker add` | [Workers](/docs/workers) |
 | Cron jobs | Scheduler, crontab, `crons:` | [Scheduler](/docs/scheduler) |
-| Databases | `cipi db` | [Databases](/docs/databases) |
-| SSL | `cipi ssl install` | [SSL](/docs/ssl) |
-| Backups | `cipi backup` | [Backups](/docs/backups) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
+| SSL | `sudo cipi ssl install` | [SSL](/docs/ssl) |
+| Backups | `sudo cipi backup` | [Backups](/docs/backups) |
 | WordPress staging/cloning | A second custom app + restored dump | No one-click WordPress tools |
 
 ## Moving to Cipi, step by step {#move}
@@ -137,14 +137,14 @@ Open RunCloud's dashboard and write down, for each site you move:
 
 | What | Where to find it in RunCloud | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | Web Application → Domain Name | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | Web Application → Domain Name | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | Web Application → Git | `--repository`, `--branch` |
 | PHP version | Web Application → Settings (PHP version) | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | Web Application → File Manager (`.env`) | your own keys and `APP_KEY` |
-| Supervisor programs | Server → Supervisor | `cipi worker add` or Horizon |
+| Supervisor programs | Server → Supervisor | `sudo cipi worker add` or Horizon |
 | Cron jobs | Server → Cron Jobs | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | Web Application → Git → Deployment script | Cipi's deploy options or `deploy.post` |
-| Databases | Server → Databases | `cipi db restore` |
+| Databases | Server → Databases | `sudo cipi db restore` |
 
 RunCloud shows each web app's root path in its settings; it's under `/home/<system-user>/webapps/<app-name>`. WordPress and plain PHP sites become Cipi **custom apps**.
 

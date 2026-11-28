@@ -6,20 +6,20 @@ The everyday commands for the server itself.
 
 | Command | Shows or does |
 | --- | --- |
-| `cipi status` | CPU, RAM, disk, services, PHP versions, apps, pending items |
-| `cipi disk` | Disk usage of the server and each app ([Disk usage](/docs/disk)) |
-| `cipi pending` | What needs a human ([Stack upgrades](/docs/stack-upgrades#pending)) |
-| `cipi version` | Installed Cipi version |
-| `cipi help [topic]` | Every command, grouped |
+| `sudo cipi status` | CPU, RAM, disk, services, PHP versions, apps, pending items |
+| `sudo cipi disk` | Disk usage of the server and each app ([Disk usage](/docs/disk)) |
+| `sudo cipi pending` | What needs a human ([Stack upgrades](/docs/stack-upgrades#pending)) |
+| `sudo cipi version` | Installed Cipi version |
+| `sudo cipi help [topic]` | Every command, grouped |
 
 ## Credentials {#credentials}
 
 ```bash
-$ cipi credentials                       # root, MariaDB, PostgreSQL, Valkey, Meilisearch, backup key
-$ cipi credentials export > cipi.csv     # CSV for any password manager
-$ cipi reset root-password
-$ cipi reset db-password [--engine=pgsql]
-$ cipi reset valkey-password             # restarts the shared Valkey
+$ sudo cipi credentials                  # root, MariaDB, PostgreSQL, Valkey, Meilisearch, backup key
+$ sudo cipi credentials export > cipi.csv  # CSV for any password manager
+$ sudo cipi reset root-password
+$ sudo cipi reset db-password [--engine=pgsql]
+$ sudo cipi reset valkey-password        # restarts the shared Valkey
 ```
 
 Run the export from your laptop (`ssh cipi@server sudo cipi credentials export > cipi.csv`) so no copy stays on the server. Every show or export is logged and notified (`credentials_show`). Secrets are stored encrypted ([Vault](/docs/vault)).
@@ -29,14 +29,14 @@ Run the export from your laptop (`ssh cipi@server sudo cipi credentials export >
 ## Updating Cipi {#self-update}
 
 ```bash
-$ cipi self-update --check
-$ cipi self-update
-$ cipi self-update policy        # signed releases only, a delay — optional
+$ sudo cipi self-update --check
+$ sudo cipi self-update
+$ sudo cipi self-update policy   # signed releases only, a delay — optional
 ```
 
 ```flow
 Download | from GitHub
-> `cipi self-update` downloads the new version of Cipi from GitHub.
+> `sudo cipi self-update` downloads the new version of Cipi from GitHub.
 Back up | /opt/cipi.bak.<timestamp>
 > The current installation is copied to `/opt/cipi.bak.<timestamp>`, so you can go back.
 Replace CLI | scripts and libraries
@@ -58,7 +58,7 @@ Installed for you for bash and zsh, for root and the `cipi` user, in login and n
 ```bash
 $ sudo cipi dep<Tab>          # → deploy
 $ sudo cipi deploy sh<Tab>    # → shop  shop-stg   (your apps)
-$ cipi completion zsh --print # the script, for another user or rc file
+$ sudo cipi completion zsh --print # the script, for another user or rc file
 ```
 
 It completes commands, sub-commands, flags, help topics and app names.

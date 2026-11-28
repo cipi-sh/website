@@ -15,7 +15,7 @@ choose_cipi:
 choose_them:
   - You want a Heroku-style git push for many languages
 faq:
-  - How do I export my Dokku database? | `dokku postgres:export <service> > dump.sql` (or `mysql:export`), then `cipi db restore`.
+  - How do I export my Dokku database? | `dokku postgres:export <service> > dump.sql` (or `mysql:export`), then `sudo cipi db restore`.
   - How do I get my environment variables? | `dokku config:export <app>` prints them.
   - Can I still deploy with git push? | Yes: pushing to GitHub/GitLab triggers Cipi's webhook and a zero-downtime deploy.
   - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
@@ -98,12 +98,12 @@ Every Dokku feature you use today, and its place in Cipi. Use it as your migrati
 
 | In Dokku | In Cipi | Docs |
 | --- | --- | --- |
-| App | `cipi app create` | [Create an app](/docs/create-app) |
-| `dokku config:set` | `cipi app env` | [Environment](/docs/environment) |
-| Procfile `worker:` | `cipi worker add`, Horizon | [Workers](/docs/workers) |
+| App | `sudo cipi app create` | [Create an app](/docs/create-app) |
+| `dokku config:set` | `sudo cipi app env` | [Environment](/docs/environment) |
+| Procfile `worker:` | `sudo cipi worker add`, Horizon | [Workers](/docs/workers) |
 | Procfile scheduler / cron | Scheduler built in | [Scheduler](/docs/scheduler) |
-| postgres / mysql plugin | `cipi db` | [Databases](/docs/databases) |
-| letsencrypt plugin | `cipi ssl install` | [SSL](/docs/ssl) |
+| postgres / mysql plugin | `sudo cipi db` | [Databases](/docs/databases) |
+| letsencrypt plugin | `sudo cipi ssl install` | [SSL](/docs/ssl) |
 | Storage mounts | `/home/<app>/shared/storage` |  |
 
 ## Moving to Cipi, step by step {#move}

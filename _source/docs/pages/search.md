@@ -5,16 +5,16 @@ Full-text search for Laravel Scout, self-hosted: no Algolia account, no per-reco
 <cipi-term name="search"></cipi-term>
 
 ```bash
-$ cipi search install             # binary, config, hardened unit; checks /health
-$ cipi search enable myapp        # scoped key + SCOUT_* in .env
-$ cipi app artisan myapp scout:import "App\Models\Product"
-$ cipi search status [--check]
-$ cipi search disable myapp [--purge-indexes]
+$ sudo cipi search install        # binary, config, hardened unit; checks /health
+$ sudo cipi search enable myapp   # scoped key + SCOUT_* in .env
+$ sudo cipi app artisan myapp scout:import "App\Models\Product"
+$ sudo cipi search status [--check]
+$ sudo cipi search disable myapp [--purge-indexes]
 ```
 
 Step-by-step with a real model: [Laravel Scout with Meilisearch on Cipi](/guides/laravel-scout-meilisearch).
 
-> [!tip] Small dataset? Scout's `database` driver or PostgreSQL full-text need no extra service. `cipi search status` says so on servers without Meilisearch.
+> [!tip] Small dataset? Scout's `database` driver or PostgreSQL full-text need no extra service. `sudo cipi search status` says so on servers without Meilisearch.
 
 ## Isolation by design {#isolation}
 
@@ -39,10 +39,10 @@ Meilisearch | 127.0.0.1, no public port
 
 | Command | Does |
 | --- | --- |
-| `cipi search list` | Apps with search and their prefixes |
-| `cipi search key show\|rotate myapp` | Show or replace an app's key (`.env` updated) |
-| `cipi search key rotate --master` | New master key; every app's `.env` is rewritten in the same run |
-| `cipi search upgrade [--version=]` | Upgrade in place; the old binary returns if the store is refused |
-| `cipi search remove [--keep-data]` | Uninstall |
+| `sudo cipi search list` | Apps with search and their prefixes |
+| `sudo cipi search key show\|rotate myapp` | Show or replace an app's key (`.env` updated) |
+| `sudo cipi search key rotate --master` | New master key; every app's `.env` is rewritten in the same run |
+| `sudo cipi search upgrade [--version=]` | Upgrade in place; the old binary returns if the store is refused |
+| `sudo cipi search remove [--keep-data]` | Uninstall |
 
 The panel can show status and enable/disable search per app; installing, upgrading, rotating and removing stay on the CLI.

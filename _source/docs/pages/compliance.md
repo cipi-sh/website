@@ -1,13 +1,13 @@
 @section cli-compliance
 
-Under an ISO 27001 or SOC 2 audit, you need **evidence** that your hosting meets the controls. `cipi compliance` collects it from the server, read-only, in a form an auditor accepts.
+Under an ISO 27001 or SOC 2 audit, you need **evidence** that your hosting meets the controls. `sudo cipi compliance` collects it from the server, read-only, in a form an auditor accepts.
 
 ```bash
-$ cipi compliance                     # 17 controls: pass / warn / fail / info
-$ cipi compliance tls --days=30       # one control
-$ cipi compliance --json              # exit 1 on any fail: gate CI or cron
-$ cipi compliance report [--days=365] # evidence bundle
-$ cipi compliance controls            # mapping to ISO 27001:2022 Annex A and SOC 2
+$ sudo cipi compliance                # 17 controls: pass / warn / fail / info
+$ sudo cipi compliance tls --days=30  # one control
+$ sudo cipi compliance --json         # exit 1 on any fail: gate CI or cron
+$ sudo cipi compliance report [--days=365] # evidence bundle
+$ sudo cipi compliance controls       # mapping to ISO 27001:2022 Annex A and SOC 2
 ```
 
 ## Controls {#controls}

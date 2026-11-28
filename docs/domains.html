@@ -206,34 +206,34 @@
 <div class="prose">
 <section class="doc-section" id="cli-domains">
 <p>An app has one <strong>primary domain</strong> and any number of <strong>aliases</strong>. One certificate covers them all.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi domains<span class="c">            # every domain of every app, in one table</span></pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi domains<span class="c">       # every domain of every app, in one table</span></pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Column</th><th>Shows</th></tr></thead><tbody><tr><td>DOMAIN, APP, KIND</td><td>The name, its app, <code>primary</code> or <code>alias</code></td></tr><tr><td>TYPE, PHP, DOCROOT, BRANCH</td><td>How the app is served and deployed</td></tr><tr><td>LAST DEPLOY</td><td>When the live release was published</td></tr><tr><td>SSL</td><td><code>✓</code>/<code>✗</code> per name</td></tr><tr><td>suffix</td><td><code>⏸ suspended</code> for suspended apps</td></tr></tbody></table></div>
-<p>To rename the primary domain: <code>cipi app edit myapp --domain=new.example.com</code> (<a href="/docs/manage-apps#edit">Manage apps</a>).</p>
+<p>To rename the primary domain: <code>sudo cipi app edit myapp --domain=new.example.com</code> (<a href="/docs/manage-apps#edit">Manage apps</a>).</p>
 </section>
 <section class="doc-section" id="cli-aliases">
 <h2 id="alias">Aliases<a class="anchor" href="#alias" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi alias add myapp www.myapp.com
-<span class="p"></span>cipi alias add myapp myapp.it
-<span class="p"></span>cipi alias add myapp '*.myapp.com'<span class="c">     # wildcard: quote it</span>
-<span class="p"></span>cipi alias list myapp
-<span class="p"></span>cipi alias remove myapp myapp.it</pre></div>
-<p>The vhost keeps serving HTTPS while you change aliases. <code>alias add</code> tells you whether the new name is already covered by the certificate or which command adds it (usually <code>cipi ssl install myapp</code>; for a wildcard <code>--dns=cloudflare</code>, see <a href="/docs/wildcard-domains">Wildcard domains</a>).</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi alias add myapp www.myapp.com
+<span class="p"></span>sudo cipi alias add myapp myapp.it
+<span class="p"></span>sudo cipi alias add myapp '*.myapp.com'<span class="c">  # wildcard: quote it</span>
+<span class="p"></span>sudo cipi alias list myapp
+<span class="p"></span>sudo cipi alias remove myapp myapp.it</pre></div>
+<p>The vhost keeps serving HTTPS while you change aliases. <code>alias add</code> tells you whether the new name is already covered by the certificate or which command adds it (usually <code>sudo cipi ssl install myapp</code>; for a wildcard <code>--dns=cloudflare</code>, see <a href="/docs/wildcard-domains">Wildcard domains</a>).</p>
 </section>
 <section class="doc-section" id="cli-www">
 <h2 id="www">www and apex<a class="anchor" href="#www" aria-label="Link to this section">#</a></h2>
 <p>Pick one canonical host and 301 the other to it. Search engines see one site, and the certificate covers both.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi www force-to-root myapp<span class="c">      # www.myapp.com → myapp.com</span>
-<span class="p"></span>cipi www force-from-root myapp<span class="c">    # myapp.com → www.myapp.com</span>
-<span class="p"></span>cipi www status myapp
-<span class="p"></span>cipi www clear myapp</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi www force-to-root myapp<span class="c">  # www.myapp.com → myapp.com</span>
+<span class="p"></span>sudo cipi www force-from-root myapp<span class="c">  # myapp.com → www.myapp.com</span>
+<span class="p"></span>sudo cipi www status myapp
+<span class="p"></span>sudo cipi www clear myapp</pre></div>
 <p>The missing counterpart is added as an alias automatically. ACME challenges stay reachable, so renewals keep working. In <a href="/docs/yml#cli-yml-routes">cipi.yml</a>: <code>app.www: to-root</code>.</p>
 <h2 id="in-the-panel">In the web panel<a class="anchor" href="#in-the-panel" aria-label="Link to this section">#</a></h2>
 <p>Aliases, certificates and www/apex redirects, from the browser. The <a href="/docs/gui">web panel</a> is optional; everything here also works from the CLI.</p>
 <div data-clips="domains" data-single></div><noscript><p>Animated clips of the web panel; see the <a href="/docs/gui-overview#gui-tour">screenshot tour</a>.</p></noscript>
 <h2 id="problems">Common problems<a class="anchor" href="#problems" aria-label="Link to this section">#</a></h2>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>Alias added but the site shows another app</td><td>DNS points elsewhere, or the browser cached a redirect: check <code>dig</code>, try a private window</td></tr><tr><td>HTTPS warning on the new alias</td><td>Re-run <code>cipi ssl install myapp</code> so the certificate covers it</td></tr><tr><td>Wildcard alias doesn't get a certificate</td><td>Wildcards need DNS validation: <a href="/docs/wildcard-domains">wildcard domains</a></td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>Alias added but the site shows another app</td><td>DNS points elsewhere, or the browser cached a redirect: check <code>dig</code>, try a private window</td></tr><tr><td>HTTPS warning on the new alias</td><td>Re-run <code>sudo cipi ssl install myapp</code> so the certificate covers it</td></tr><tr><td>Wildcard alias doesn't get a certificate</td><td>Wildcards need DNS validation: <a href="/docs/wildcard-domains">wildcard domains</a></td></tr></tbody></table></div>
 <h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>How many domains per app?</td><td>As many aliases as you like; one certificate covers up to 100 names.</td></tr><tr><td>www or not?</td><td>Pick one with <code>cipi www</code>; the other redirects to it.</td></tr><tr><td>Behind Cloudflare?</td><td>Read <a href="/guides/cloudflare-proxy-ssl-wildcard">Cloudflare in front of Laravel</a>.</td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>How many domains per app?</td><td>As many aliases as you like; one certificate covers up to 100 names.</td></tr><tr><td>www or not?</td><td>Pick one with <code>sudo cipi www</code>; the other redirects to it.</td></tr><tr><td>Behind Cloudflare?</td><td>Read <a href="/guides/cloudflare-proxy-ssl-wildcard">Cloudflare in front of Laravel</a>.</td></tr></tbody></table></div>
 </section>
 
 </div>

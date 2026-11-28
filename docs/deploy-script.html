@@ -206,17 +206,17 @@
 <section class="doc-section" id="cli-deploy-config">
 <p>Most apps never touch the deploy recipe: the options below cover the common needs and are kept safely across updates. For anything else, add your own Deployer tasks.</p>
 <h2 id="options">Deploy options<a class="anchor" href="#options" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app deploy-config myapp<span class="c">                                  # show</span>
-<span class="p"></span>cipi app deploy-config myapp --keep-releases=10
-<span class="p"></span>cipi app deploy-config myapp --no-migrate --no-optimize
-<span class="p"></span>cipi app deploy-config myapp --horizon-terminate --queue-restart
-<span class="p"></span>cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
-<span class="p"></span>cipi app deploy-config myapp --node-build='npm ci &amp;&amp; npm run build'
-<span class="p"></span>cipi app deploy-config myapp --predeploy-snapshot
-<span class="p"></span>cipi app deploy-config myapp --build-timeout=2700 --step-timeout=600</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app deploy-config myapp<span class="c">                             # show</span>
+<span class="p"></span>sudo cipi app deploy-config myapp --keep-releases=10
+<span class="p"></span>sudo cipi app deploy-config myapp --no-migrate --no-optimize
+<span class="p"></span>sudo cipi app deploy-config myapp --horizon-terminate --queue-restart
+<span class="p"></span>sudo cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
+<span class="p"></span>sudo cipi app deploy-config myapp --node-build='npm ci &amp;&amp; npm run build'
+<span class="p"></span>sudo cipi app deploy-config myapp --predeploy-snapshot
+<span class="p"></span>sudo cipi app deploy-config myapp --build-timeout=2700 --step-timeout=600</pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Option</th><th>Effect</th><th>Default</th></tr></thead><tbody><tr><td><code>--keep-releases</code></td><td>Releases kept for rollback</td><td>5</td></tr><tr><td><code>--migrate</code> / <code>--no-migrate</code></td><td><code>migrate --force</code></td><td>on</td></tr><tr><td><code>--optimize</code> / <code>--no-optimize</code></td><td><code>artisan optimize</code></td><td>on</td></tr><tr><td><code>--storage-link</code></td><td><code>storage:link</code></td><td>on</td></tr><tr><td><code>--queue-restart</code>, <code>--horizon-terminate</code></td><td>Reload workers / Horizon</td><td>on</td></tr><tr><td><code>--extra-artisan</code></td><td>More Artisan commands after migrations</td><td>none</td></tr><tr><td><code>--node-build</code></td><td>Front-end build before the swap (npm, yarn, pnpm, bun)</td><td>none</td></tr><tr><td><code>--predeploy-snapshot</code></td><td>Database dump before migrations</td><td>off</td></tr><tr><td><code>--build-timeout</code></td><td>Seconds the front-end build may run, 60 to 3600 (<a href="/docs/deploying#time-limits">time limits</a>)</td><td>1800</td></tr><tr><td><code>--step-timeout</code></td><td>Seconds every other command of the deploy may run, 60 to 1800</td><td>300</td></tr></tbody></table></div>
 <p>Saving regenerates <code>deploy.php</code> from Cipi's template. Also via REST (<code>GET|PUT /api/apps/{name}/deploy-config</code>), MCP and the panel's Deploy tab. The same settings can live in <a href="/docs/yml">cipi.yml</a>.</p>
-<p><strong>A <a href="/docs/node-apps">Node app</a></strong> has a recipe too, without the artisan hooks: it takes <code>--keep-releases</code>, <code>--build-timeout</code>, <code>--step-timeout</code> and <code>--predeploy-snapshot</code> (its build command is <code>cipi app edit myapp --build="…"</code>). A custom app deploys with a <code>git pull</code> and has no recipe to configure.</p>
+<p><strong>A <a href="/docs/node-apps">Node app</a></strong> has a recipe too, without the artisan hooks: it takes <code>--keep-releases</code>, <code>--build-timeout</code>, <code>--step-timeout</code> and <code>--predeploy-snapshot</code> (its build command is <code>sudo cipi app edit myapp --build="…"</code>). A custom app deploys with a <code>git pull</code> and has no recipe to configure.</p>
 </section>
 <section class="doc-section" id="cli-deploy-script">
 <h2 id="custom">Custom Deployer tasks<a class="anchor" href="#custom" aria-label="Link to this section">#</a></h2>
@@ -232,9 +232,9 @@ after('artisan:migrate', 'app:warm');</pre></div>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>task('app:import', function () {
     run('{{bin/php}} {{release_path}}/artisan app:import-catalog', timeout: 1200);
 });</pre></div>
-<p><strong>Each step runs once.</strong> A Laravel deploy runs <code>artisan:storage:link</code>, <code>artisan:optimize</code> and <code>artisan:migrate</code> one time each — the deploy log shows one <code>artisan:migrate</code> and one <code>artisan:optimize</code> — and a step turned off with <code>--no-migrate</code> or <code>--no-optimize</code> is really skipped. A log that shows them twice comes from a recipe written by an old release: <code>cipi self-update</code> rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.</p>
-<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Changing PHP or branch with <code>cipi app edit</code> regenerates <code>deploy.php</code>. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer <code>deploy-config</code> and <a href="/docs/yml">cipi.yml</a>, which are never lost.</p></div></div>
-<p>Test every change with a normal deploy; <code>cipi deploy myapp --rollback</code> is always one command away, and the log is in <code>cipi app logs myapp --type=deploy</code>.</p>
+<p><strong>Each step runs once.</strong> A Laravel deploy runs <code>artisan:storage:link</code>, <code>artisan:optimize</code> and <code>artisan:migrate</code> one time each — the deploy log shows one <code>artisan:migrate</code> and one <code>artisan:optimize</code> — and a step turned off with <code>--no-migrate</code> or <code>--no-optimize</code> is really skipped. A log that shows them twice comes from a recipe written by an old release: <code>sudo cipi self-update</code> rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.</p>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Changing PHP or branch with <code>sudo cipi app edit</code> regenerates <code>deploy.php</code>. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer <code>deploy-config</code> and <a href="/docs/yml">cipi.yml</a>, which are never lost.</p></div></div>
+<p>Test every change with a normal deploy; <code>sudo cipi deploy myapp --rollback</code> is always one command away, and the log is in <code>sudo cipi app logs myapp --type=deploy</code>.</p>
 </section>
 
 </div>

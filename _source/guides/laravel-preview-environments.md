@@ -71,7 +71,7 @@ $ sudo cipi api token create --name=previews \
     --expires=2027-12-31
 ```
 
-At your DNS provider, add `A *.preview.example.com → preview server IP` (and an `A` record for `api.preview.example.com` before running `cipi api`).
+At your DNS provider, add `A *.preview.example.com → preview server IP` (and an `A` record for `api.preview.example.com` before running `sudo cipi api`).
 
 | Why each piece | |
 | --- | --- |

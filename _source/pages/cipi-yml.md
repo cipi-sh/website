@@ -12,9 +12,9 @@ keywords: cipi.yml, laravel infrastructure as code, laravel server configuration
 faq:
   - Is it like Docker Compose or Terraform? | Smaller and safer. It configures one app on a Cipi server (runtime, workers, domains, backups), can't create or delete apps, and refuses anything outside the app's own namespace.
   - What happens with an invalid file? | Nothing is applied. The plan reports the error; with auto-apply on you get a `yml_fail` notification and the deploy itself still succeeds.
-  - Can I start using it on an existing app? | Yes. `cipi yml generate <app> --save` writes the current setup as a file; commit it and the next plan shows nothing to change.
+  - Can I start using it on an existing app? | Yes. `sudo cipi yml generate <app> --save` writes the current setup as a file; commit it and the next plan shows nothing to change.
   - Do I have to describe everything? | No. Write only the sections you want to manage from the repository. Anything you leave out stays as it is on the server, and you can keep using the CLI or the panel for it.
-  - Who can change the server once auto-apply is on? | Anyone who can merge to the deploy branch. Protect the branch and require reviews, as you do for code. Without `cipi yml auto <app> on`, changes apply only when someone runs `cipi yml apply`.
+  - Who can change the server once auto-apply is on? | Anyone who can merge to the deploy branch. Protect the branch and require reviews, as you do for code. Without `sudo cipi yml auto <app> on`, changes apply only when someone runs `sudo cipi yml apply`.
   - How do I undo a change? | Revert the commit and deploy: the plan shows the way back. Or roll back the release and apply.
   - Where can I see every option? | In the [cipi.yml reference](/docs/yml), with ready-made setups in the [recipes](/guides/cipi-yml-recipes).
   - Does it work for Node and custom apps? | Yes, with the sections that apply to them (domains, routes, deploy steps, backups). Workers, scheduler and search are Laravel-only.
@@ -174,7 +174,7 @@ Walkthrough: [staging and production from one repository](/guides/cipi-yml-stagi
 
 ## 5. Apply: all or nothing, safe to accept from Git {#safe}
 
-`cipi yml apply` performs the plan in one transaction: if any step fails, nothing is left half done. With `cipi yml auto <app> on` it runs after every deploy. Anyone who can push controls the file, so it's designed to fail closed.
+`sudo cipi yml apply` performs the plan in one transaction: if any step fails, nothing is left half done. With `sudo cipi yml auto <app> on` it runs after every deploy. Anyone who can push controls the file, so it's designed to fail closed.
 
 | Guard | Effect |
 | --- | --- |

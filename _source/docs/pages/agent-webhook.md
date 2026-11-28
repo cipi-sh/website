@@ -12,7 +12,7 @@
 | Gitea / Forgejo | `X-Gitea-Signature` (HMAC) | `push` |
 | Azure DevOps | `X-Gitlab-Token` (set by Cipi's service hook) | `git.push` |
 
-Only pushes to `CIPI_DEPLOY_BRANCH` deploy (others answer `skipped`); other events answer `202 ignored`. Get URL and token with `cipi deploy myapp --webhook`.
+Only pushes to `CIPI_DEPLOY_BRANCH` deploy (others answer `skipped`); other events answer `202 ignored`. Get URL and token with `sudo cipi deploy myapp --webhook`.
 
 Each trigger records what the push claimed (provider, pusher, commit, delivery ID, IP) for the [deploy audit](/docs/deploy-audit):
 

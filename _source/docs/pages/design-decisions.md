@@ -24,11 +24,11 @@ Cipi installs Nginx, PHP-FPM, MariaDB or PostgreSQL, Valkey and Supervisor **as 
 
 | | With Docker | On a Cipi server |
 | --- | --- | --- |
-| **Ease of use** | A second system to learn on top of Linux: images, Compose files, networks, volumes, registries. Every task goes through Docker first | One command per task (`cipi app create`, `cipi deploy`, `cipi ssl install`). Underneath, a plain Ubuntu server: nothing to translate |
+| **Ease of use** | A second system to learn on top of Linux: images, Compose files, networks, volumes, registries. Every task goes through Docker first | One command per task (`sudo cipi app create`, `sudo cipi deploy`, `sudo cipi ssl install`). Underneath, a plain Ubuntu server: nothing to translate |
 | **An extra layer** | Docker sits between you and every component: to change a `php.ini` or an Nginx rule you edit an image or a mount, then recreate | The component is the one on the host: `/etc/nginx`, `/etc/php`, managed by Cipi and visible to you |
 | **SSH and SFTP** | SSH lands on the host, not in the app: then `docker exec` into a container that usually has no SSH, no editor and no SFTP | [`ssh myapp@server`](/docs/app-ssh) drops you into the app as its own user, with `artisan`, `composer`, logs and SFTP for your IDE |
 | **Remote databases** | The database lives on a container network. To reach it from TablePlus or DBeaver you publish its port (bypassing the firewall, see below) or chain an SSH tunnel into the container network | Native MariaDB or PostgreSQL on localhost: connect over SSH with the `mariadb+ssh://` URL shown at creation. [No database port is ever exposed](/docs/databases) |
-| **Ports and firewall** | Published ports (`-p 3306:3306`) are opened by Docker's own iptables rules, ahead of UFW: a firewall that says "deny" doesn't apply to them | One firewall. UFW, Fail2ban, CrowdSec and `cipi zt lock` see and govern every port |
+| **Ports and firewall** | Published ports (`-p 3306:3306`) are opened by Docker's own iptables rules, ahead of UFW: a firewall that says "deny" doesn't apply to them | One firewall. UFW, Fail2ban, CrowdSec and `sudo cipi zt lock` see and govern every port |
 | **Security patches** | A CVE in PHP or OpenSSL means rebuilding every image that contains it and redeploying every app. Images pinned months ago keep old libraries | PHP patched **every night at 03:30** from packages.sury.org, Nginx from nginx.org, the rest by unattended-upgrades. One update fixes every app |
 | **Privileges** | `dockerd` runs as root, and anyone in the `docker` group is root in practice | No daemon with root access to manage. Apps run as their own unprivileged users |
 | **Isolation** | Containers share the host kernel; a misconfigured mount or a privileged container breaks the boundary | Per-app Linux user (home `750`), PHP-FPM pool with `open_basedir`, database user and Valkey instance |
@@ -36,7 +36,7 @@ Cipi installs Nginx, PHP-FPM, MariaDB or PostgreSQL, Valkey and Supervisor **as 
 | **Workers** | Restart policies only know "the process exited" | Supervisor restarts workers, Horizon, Reverb and Octane individually, with logs per program |
 | **Native components** | Bridge networks, NAT, `docker-proxy` and an overlay filesystem between the request and PHP | Unix sockets between Nginx, PHP-FPM, the database and Valkey. Nothing in between |
 | **Resources** | The daemon plus a runtime and a copy of the userland per container; heavy on a 1–2 GB VPS | One shared runtime. Cipi sizes MariaDB's buffer pool from the server's RAM |
-| **Data** | Databases on volumes; one `docker compose down -v` deletes them | Data in the standard directories, backed up by [`cipi backup`](/docs/backups), encrypted and verified |
+| **Data** | Databases on volumes; one `docker compose down -v` deletes them | Data in the standard directories, backed up by [`sudo cipi backup`](/docs/backups), encrypted and verified |
 | **Deploys** | Build an image, push it to a registry, pull it, swap containers behind a proxy | `git push`: [Deployer](/docs/how-deploys-work) builds a release and swaps a symlink atomically, with one-command rollback |
 | **Debugging** | `docker exec` into a minimal image, with logs per container | `systemctl`, `journalctl`, `/var/log`, `strace`: the tools and tutorials every sysadmin already knows |
 
@@ -50,7 +50,7 @@ Cipi installs Nginx, PHP-FPM, MariaDB or PostgreSQL, Valkey and Supervisor **as 
 
 ## Why a closed package catalog? {#packages}
 
-Some Laravel packages call a program on the host: Browsershot needs the libraries Chrome starts with, `laravel-ffmpeg` needs `ffmpeg`, OCR needs `tesseract`. Cipi could offer `apt install <anything>`. It doesn't: a panel or a token that installs any package is a root shell with extra steps. [`cipi package`](/docs/packages) has a **closed catalog** instead, and every entry has to earn its place:
+Some Laravel packages call a program on the host: Browsershot needs the libraries Chrome starts with, `laravel-ffmpeg` needs `ffmpeg`, OCR needs `tesseract`. Cipi could offer `apt install <anything>`. It doesn't: a panel or a token that installs any package is a root shell with extra steps. [`sudo cipi package`](/docs/packages) has a **closed catalog** instead, and every entry has to earn its place:
 
 | Rule | Why |
 | --- | --- |
@@ -76,15 +76,15 @@ MariaDB (port `3306`) is the default because it fits most Laravel apps with zero
 | Simple licensing | GPL community server, no enterprise feature gates, no Oracle dual-licensing to navigate |
 | Native packaging | Installed from MariaDB.org or Ubuntu; Cipi adds users, backups and vault credentials on top |
 
-Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? `cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](/docs/databases#mysql)).
+Need **MySQL** itself (an app that relies on MySQL-only behaviour, a team standard)? `sudo cipi db switch mysql` replaces MariaDB on a new server, before its first app — an explicit choice, never a default, and never a conversion of existing data ([MySQL instead of MariaDB](/docs/databases#mysql)).
 
 @section why-postgresql
 
 ## Why PostgreSQL as an option? {#postgresql}
 
 ```bash
-$ cipi db install pgsql                       # port 5432, side by side with MariaDB
-$ cipi app create shop --engine=pgsql
+$ sudo cipi db install pgsql                  # port 5432, side by side with MariaDB
+$ sudo cipi app create shop --engine=pgsql
 ```
 
 Choose PostgreSQL per app when the product needs more than tables:
@@ -97,7 +97,7 @@ Choose PostgreSQL per app when the product needs more than tables:
 | Concurrency | MVCC: readers don't block writers; long reports and busy writes coexist |
 | Portability | The standard of managed databases, BI tools and data pipelines |
 
-The same `cipi db` workflow covers both engines: create, list, backup, restore, password rotation.
+The same `sudo cipi db` workflow covers both engines: create, list, backup, restore, password rotation.
 
 @section why-valkey
 
@@ -108,7 +108,7 @@ The same `cipi db` workflow covers both engines: create, list, backup, restore, 
 | Drop-in | Same protocol on `6379`, same `phpredis`, same `REDIS_*` keys; Laravel doesn't notice |
 | Truly open source | BSD-licensed, stewarded by the Linux Foundation after Redis moved to source-available licences |
 | Native on Ubuntu | `valkey-server` from the Universe repository, no third-party PPAs |
-| Automatic migration | Servers moved from Redis to Valkey on `cipi self-update`, same password and data |
+| Automatic migration | Servers moved from Redis to Valkey on `sudo cipi self-update`, same password and data |
 
 The licence of every component Cipi installs, and why it matters on a server: [Open source licences, explained](/guides/open-source-licences).
 
@@ -120,11 +120,11 @@ Knowing the framework lets Cipi automate what generic panels leave to you: the r
 
 | Laravel brings | Cipi turns it into |
 | --- | --- |
-| Queues and Horizon | Supervisor workers, `cipi worker horizon enable` |
-| Reverb | Supervisor process, Nginx `/app` proxy, `REVERB_*` keys: `cipi app reverb enable` |
-| Octane | FrankenPHP apps side by side with FPM: `cipi app create --octane` |
+| Queues and Horizon | Supervisor workers, `sudo cipi worker horizon enable` |
+| Reverb | Supervisor process, Nginx `/app` proxy, `REVERB_*` keys: `sudo cipi app reverb enable` |
+| Octane | FrankenPHP apps side by side with FPM: `sudo cipi app create --octane` |
 | Scheduler | One cron per app, nothing to configure |
-| Scout | Meilisearch on the server: `cipi search` |
+| Scout | Meilisearch on the server: `sudo cipi search` |
 | Secure defaults and a long support cycle | Apps you can leave in production for years |
 
 Taylor Otwell's mantra is **"we must ship"**. Cipi exists for the same reason: to remove the server work between a developer and a live application.

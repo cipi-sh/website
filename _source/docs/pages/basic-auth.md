@@ -5,11 +5,11 @@ Put any app behind a username and password at the Nginx level: staging sites, in
 ## Turn it on and off {#commands}
 
 ```bash
-$ cipi basicauth enable myapp                          # generates credentials, shown once
-$ cipi basicauth enable myapp --user=client --password='…'
-$ cipi basicauth status myapp [--json]       # --json: enabled, users, agent
-$ cipi basicauth disable myapp
-$ cipi basicauth agent myapp protected     # keep cipi/agent behind it too (default: public)
+$ sudo cipi basicauth enable myapp                     # generates credentials, shown once
+$ sudo cipi basicauth enable myapp --user=client --password='…'
+$ sudo cipi basicauth status myapp [--json]  # --json: enabled, users, agent
+$ sudo cipi basicauth disable myapp
+$ sudo cipi basicauth agent myapp protected  # keep cipi/agent behind it too (default: public)
 ```
 
 ## How it works {#how}
@@ -30,11 +30,11 @@ The [Cipi Agent](/docs/agent-install) routes — `/cipi/webhook`, `/cipi/health`
 | Prefix | `/cipi/`, or `CIPI_ROUTE_PREFIX` from the app's `.env` — exactly that prefix (`/cipi-admin` stays protected) |
 | When | Checked again after every deploy: a release that adds or removes the agent, or changes the prefix, updates the vhost |
 | Not for | Custom and Node apps, or a prefix a [proxy](/docs/redirects-proxies) already uses |
-| Opt out | `cipi basicauth agent myapp protected` (and `public` to undo) — also in the panel's Access tab |
+| Opt out | `sudo cipi basicauth agent myapp protected` (and `public` to undo) — also in the panel's Access tab |
 
-`cipi basicauth status myapp` says what is left out.
+`sudo cipi basicauth status myapp` says what is left out.
 
-Not to be confused with `cipi auth`, which manages Composer credentials for private packages ([Git providers](/docs/git#cli-auth)).
+Not to be confused with `sudo cipi auth`, which manages Composer credentials for private packages ([Git providers](/docs/git#cli-auth)).
 
 ## Questions {#questions}
 

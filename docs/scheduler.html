@@ -205,9 +205,9 @@
 <div class="prose">
 <section class="doc-section" id="cli-schedule">
 <p>Every Laravel app runs <code>schedule:run</code> every minute, as its own user, with its own PHP version. You only turn it on or off.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi schedule status myapp
-<span class="p"></span>cipi schedule off myapp
-<span class="p"></span>cipi schedule on myapp</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi schedule status myapp
+<span class="p"></span>sudo cipi schedule off myapp
+<span class="p"></span>sudo cipi schedule on myapp</pre></div>
 </section>
 <section class="doc-section" id="cli-app-cron">
 <h2 id="user-crontab">Your own cron jobs<a class="anchor" href="#user-crontab" aria-label="Link to this section">#</a></h2>
@@ -218,12 +218,12 @@
 * * * * * /usr/bin/php8.6 /home/myapp/current/artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1
 <span class="c"># your job, every 15 minutes</span>
 */15 * * * * /home/myapp/current/scripts/sync.sh &gt;&gt; /home/myapp/logs/sync.log 2&gt;&amp;1</pre></div>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why</th></tr></thead><tbody><tr><td>Keep the <code>schedule:run</code> line</td><td>If removed, <code>cipi schedule on myapp</code> puts it back</td></tr><tr><td>Write only inside <code>/home/myapp</code></td><td>Jobs have the app's permissions, nothing more</td></tr><tr><td>Prefer Laravel's scheduler</td><td>Jobs stay in code, deployed and versioned with the app</td></tr><tr><td>Root jobs go in root's crontab</td><td>Never give an app more rights than it needs</td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Rule</th><th>Why</th></tr></thead><tbody><tr><td>Keep the <code>schedule:run</code> line</td><td>If removed, <code>sudo cipi schedule on myapp</code> puts it back</td></tr><tr><td>Write only inside <code>/home/myapp</code></td><td>Jobs have the app's permissions, nothing more</td></tr><tr><td>Prefer Laravel's scheduler</td><td>Jobs stay in code, deployed and versioned with the app</td></tr><tr><td>Root jobs go in root's crontab</td><td>Never give an app more rights than it needs</td></tr></tbody></table></div>
 <h2 id="check">Check it runs<a class="anchor" href="#check" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app artisan myapp schedule:list
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app artisan myapp schedule:list
 <span class="p"></span>grep CRON /var/log/syslog | grep myapp | tail -20</pre></div>
 <h2 id="problems">Common problems<a class="anchor" href="#problems" aria-label="Link to this section">#</a></h2>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>Task never runs</td><td><code>cipi schedule status myapp</code>; then <code>schedule:list</code></td></tr><tr><td>Runs at the wrong time</td><td>Server time is UTC: set <code>-&gt;timezone()</code></td></tr><tr><td>Stuck after a crash</td><td>Clear the overlap lock: <code>cipi app artisan myapp schedule:clear-cache</code></td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>Task never runs</td><td><code>sudo cipi schedule status myapp</code>; then <code>schedule:list</code></td></tr><tr><td>Runs at the wrong time</td><td>Server time is UTC: set <code>-&gt;timezone()</code></td></tr><tr><td>Stuck after a crash</td><td>Clear the overlap lock: <code>sudo cipi app artisan myapp schedule:clear-cache</code></td></tr></tbody></table></div>
 <h2 id="questions">Questions<a class="anchor" href="#questions" aria-label="Link to this section">#</a></h2>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Question</th><th>Answer</th></tr></thead><tbody><tr><td>Do I add the cron line?</td><td>No, Cipi adds it for every Laravel app.</td></tr><tr><td>Full guide?</td><td><a href="/guides/laravel-scheduler-cron">Scheduler and cron jobs</a>.</td></tr></tbody></table></div>
 </section>

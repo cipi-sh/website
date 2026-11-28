@@ -103,7 +103,7 @@ Cipi installs well-known open source components from their official packages, an
 | Nginx (nginx.org packages) | Web server | BSD-2-Clause | Always |
 | PHP (packages.sury.org) | Runtime | PHP License (BSD-style, permissive) | Always |
 | MariaDB Server | Database on port 3306 | GPL-2.0 | Default |
-| MySQL Community | Alternative on port 3306 | GPL-2.0 | Only with `cipi db switch mysql` |
+| MySQL Community | Alternative on port 3306 | GPL-2.0 | Only with `sudo cipi db switch mysql` |
 | PostgreSQL | Database on port 5432 | PostgreSQL License (permissive) | Optional |
 | Valkey | Cache, sessions, queues | BSD-3-Clause | Always |
 | Supervisor | Queue workers, Horizon, Reverb, Octane | BSD-style | Always |
@@ -120,7 +120,7 @@ Three choices worth noting:
 
 | Choice | Reason |
 | --- | --- |
-| **Valkey instead of Redis** | Same protocol, same `phpredis`, same `REDIS_*` keys, but BSD-licensed and stewarded by the Linux Foundation. Servers moved automatically on `cipi self-update` ([why](/docs/design-decisions#valkey)) |
+| **Valkey instead of Redis** | Same protocol, same `phpredis`, same `REDIS_*` keys, but BSD-licensed and stewarded by the Linux Foundation. Servers moved automatically on `sudo cipi self-update` ([why](/docs/design-decisions#valkey)) |
 | **MariaDB by default** | A GPL community server with no enterprise edition gating features and no dual licensing to navigate; MySQL stays available as an explicit choice ([guide](/guides/laravel-mysql-instead-of-mariadb)) |
 | **No source-available component** | Nothing in this stack carries a "no competing service" clause, so you can host clients, sell hosting or build a platform on it |
 
@@ -137,7 +137,7 @@ The [optional packages](/docs/packages) are a different matter: third-party tool
 | What leaves the server | Nothing by default: no telemetry, no account, no control plane. Alerts and backups go only where you configure them |
 | What the panel and API may do | A sudo allowlist of `cipi` commands (`/etc/sudoers.d/cipi-api`), readable on the server |
 | Who deployed what | A hash-chained [deploy ledger](/docs/deploy-audit), copied to syslog |
-| How the server measures up | [`cipi compliance`](/docs/compliance), which says plainly what it can't prove |
+| How the server measures up | [`sudo cipi compliance`](/docs/compliance), which says plainly what it can't prove |
 
 A closed SaaS panel asks you to trust a dashboard. An open source tool on your own server lets you verify instead.
 

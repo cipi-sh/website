@@ -18,10 +18,10 @@ related:
 faq:
   - Should I commit `.env`? | Never. Commit `.env.example` with the key names and no values. The real `.env` lives only on the server.
   - Where is the `.env` on a Cipi server? | At `/home/<app>/shared/.env`, linked into every release. Deploys and rollbacks never replace it.
-  - Why does my change not show up? | Every deploy caches the config (`config:cache`), and a cached config doesn't read `.env` again. After a change, run `cipi app artisan shop config:cache` (or deploy), then restart workers and Octane.
+  - Why does my change not show up? | Every deploy caches the config (`config:cache`), and a cached config doesn't read `.env` again. After a change, run `sudo cipi app artisan shop config:cache` (or deploy), then restart workers and Octane.
   - Can I rotate `APP_KEY`? | Yes, but it logs everyone out and makes data encrypted with `Crypt` unreadable unless you keep the old key in `APP_PREVIOUS_KEYS`. Do it on purpose, not by accident.
   - Who can read the `.env`? | The app user and root. Other apps can't. Through the API, only tokens with the `apps-env` ability.
-  - How do I give my CI a secret? | Store it in your CI's secret store for the build, and set runtime values on the server with `cipi app env --set` (or the API) once. The server doesn't need your CI's secrets.
+  - How do I give my CI a secret? | Store it in your CI's secret store for the build, and set runtime values on the server with `sudo cipi app env --set` (or the API) once. The server doesn't need your CI's secrets.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 ---
 Every Laravel app reads its settings and secrets (database password, Stripe key, mail credentials) from a file called `.env`. Getting it right is mostly about **where it lives, who can read it and how you change it** without breaking a running app.
@@ -149,8 +149,8 @@ Staging and production are separate apps with separate `.env` files: a staging k
 
 | Problem | Fix |
 | --- | --- |
-| Change ignored | Cached config: `cipi app artisan shop config:cache`, then `cipi worker restart shop` |
+| Change ignored | Cached config: `sudo cipi app artisan shop config:cache`, then `sudo cipi worker restart shop` |
 | `env()` returns `null` in code | `env()` only works inside `config/` files once config is cached: read via `config('services.stripe.secret')` |
 | `The MAC is invalid` | `APP_KEY` changed without `APP_PREVIOUS_KEYS` |
 | `Access denied for user` | Password changed by hand: run `sudo cipi db password shop` |
-| Value with spaces breaks | Quote it: `--set='MAIL_FROM_NAME="Acme Shop"'` |
+| Value with spaces breaks | Give it as it is, Cipi adds the quotes: `--set='MAIL_FROM_NAME=Acme Shop'` (quotes inside the value become part of it) |

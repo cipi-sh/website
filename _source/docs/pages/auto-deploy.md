@@ -19,7 +19,7 @@ Deploy | the normal zero-downtime pipeline
 > From here it's a normal deploy: new release, Composer, migrations, atomic swap, workers restarted. You get the usual notification. A push that arrives during a deploy waits for it; a commit whose deploy failed is not retried by itself.
 ```
 
-The webhook only drops a trigger file; it never runs the deploy itself. That keeps the HTTP answer instant (providers time out after ~10 s) and the deploy in the same safe context as `cipi deploy`.
+The webhook only drops a trigger file; it never runs the deploy itself. That keeps the HTTP answer instant (providers time out after ~10 s) and the deploy in the same safe context as `sudo cipi deploy`.
 
 | Receiver | Used by | Verifies |
 | --- | --- | --- |
@@ -32,9 +32,9 @@ The webhook only drops a trigger file; it never runs the deploy itself. That kee
 # in your Laravel project
 $ composer require cipi/agent && git commit -am "Add Cipi Agent" && git push
 # on the server: one manual deploy, so the route exists
-$ cipi deploy myapp
-$ cipi git status                 # webhook already created?
-$ cipi deploy myapp --webhook     # if not: URL and secret to add by hand
+$ sudo cipi deploy myapp
+$ sudo cipi git status            # webhook already created?
+$ sudo cipi deploy myapp --webhook  # if not: URL and secret to add by hand
 ```
 
 | Provider | Payload URL | Secret | Events |
@@ -42,13 +42,13 @@ $ cipi deploy myapp --webhook     # if not: URL and secret to add by hand
 | GitHub | `https://myapp.com/cipi/webhook` | the token from `--webhook` | push |
 | GitLab | same | Secret token: same value | Push events |
 
-Only pushes to `CIPI_DEPLOY_BRANCH` deploy; others get `skipped`. Cipi keeps it in step with `cipi app edit --branch`. Use HTTPS ([cipi ssl install](/docs/ssl)) so the secret never travels in clear text.
+Only pushes to `CIPI_DEPLOY_BRANCH` deploy; others get `skipped`. Cipi keeps it in step with `sudo cipi app edit --branch`. Use HTTPS ([cipi ssl install](/docs/ssl)) so the secret never travels in clear text.
 
 Verify with a small commit:
 
 ```bash
-$ cipi deploy myapp --status
-$ cipi app logs myapp --type=deploy
+$ sudo cipi deploy myapp --status
+$ sudo cipi app logs myapp --type=deploy
 ```
 
 Every webhook deploy lands in the [audit ledger](/docs/deploy-audit) with pusher, commit, delivery ID and source IP.
@@ -70,18 +70,18 @@ It queues the deploy and answers at once; it doesn't wait for the result. When a
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| 404 | Agent not deployed yet | `cipi deploy myapp` after adding `cipi/agent` |
-| 403, invalid signature | Secret mismatch | Copy the token from `cipi deploy myapp --webhook` again |
+| 404 | Agent not deployed yet | `sudo cipi deploy myapp` after adding `cipi/agent` |
+| 403, invalid signature | Secret mismatch | Copy the token from `sudo cipi deploy myapp --webhook` again |
 | 200 but no deploy | Another branch was pushed | Check `CIPI_DEPLOY_BRANCH` |
-| Push queued, deploys later | A deploy was running | Nothing: it deploys when that one ends (`cipi deploy myapp --status` says *queued*) |
-| 200 but the same commit doesn't deploy again | It failed before and is [paused](/docs/deploying#paused) | Push a fix, or `cipi deploy myapp` |
+| Push queued, deploys later | A deploy was running | Nothing: it deploys when that one ends (`sudo cipi deploy myapp --status` says *queued*) |
+| 200 but the same commit doesn't deploy again | It failed before and is [paused](/docs/deploying#paused) | Push a fix, or `sudo cipi deploy myapp` |
 | Two deploys per push | Webhook and pipeline both active | Keep [one trigger](/docs/how-deploys-work) |
 
 ## Common problems {#problems}
 
 | Problem | Fix |
 | --- | --- |
-| Push doesn't deploy | Pushed to another branch, or the webhook was removed: `cipi deploy myapp --webhook` |
+| Push doesn't deploy | Pushed to another branch, or the webhook was removed: `sudo cipi deploy myapp --webhook` |
 
 ## Questions {#questions}
 

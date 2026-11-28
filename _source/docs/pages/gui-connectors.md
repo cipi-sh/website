@@ -399,7 +399,7 @@ The account asks for **API token**.
 3. Account permissions, for what you use: Account Settings — Read (the account names), Workers Scripts — Edit, Cloudflare Pages — Edit, Workers R2 Storage — Edit, Cloudflare Tunnel — Read.
 4. Zone Resources: All zones (or the account or the zones the panel manages). Client IP filtering: the panel server's address, if you want it tighter.
 5. Read-only is possible: the same permissions as Read; the actions that change something then answer 403.
-6. The servers' Zero Trust token (`cipi zt token set`) is a different one: it lives on each server, this one in the panel.
+6. The servers' Zero Trust token (`sudo cipi zt token set`) is a different one: it lives on each server, this one in the panel.
 
 - **API token** — An API token, not the Global API Key. One token can reach several Cloudflare accounts: each is a filter of the page.
 
@@ -648,5 +648,5 @@ Hackly's own guide: [hackly.web.ap.it](https://hackly.web.ap.it/#docs).
 ## What stays out {#limits}
 
 - **Not for users.** Connectors are for admins; the team's other accounts do not see them.
-- **Not on the servers.** The Cloudflare token of the panel is not the one of [Zero Trust](/docs/zero-trust) (`cipi zt token set`), which lives on each server; DNS for [certificates](/docs/ssl) keeps its own as well.
+- **Not on the servers.** The Cloudflare token of the panel is not the one of [Zero Trust](/docs/zero-trust) (`sudo cipi zt token set`), which lives on each server; DNS for [certificates](/docs/ssl) keeps its own as well.
 - **Not a billing console.** Accounts, plans and payment methods stay on each provider; Contabo's servers are ordered in its Control Panel.

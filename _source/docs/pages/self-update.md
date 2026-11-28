@@ -8,13 +8,13 @@ Every night, at 03:50, each Cipi server installs the latest Cipi from GitHub ([U
 | **[A delay](#delay)** | A new release is installed once the server has seen it for a while — 12 hours, suggested | A bad release, signed or not: time for it to be noticed and reverted before it lands on your servers |
 
 ```bash
-$ cipi self-update policy                                 # how this server updates Cipi   (--json)
-$ cipi self-update policy --delay=12h                     # wait 12 hours before a new release
-$ cipi self-update policy --verify=on --fingerprint=SHA256:…   # signed releases only — not available at the moment
-$ cipi self-update policy --delay=off --verify=off        # back to the default
+$ sudo cipi self-update policy                            # how this server updates Cipi   (--json)
+$ sudo cipi self-update policy --delay=12h                # wait 12 hours before a new release
+$ sudo cipi self-update policy --verify=on --fingerprint=SHA256:…  # signed releases only — not available at the moment
+$ sudo cipi self-update policy --delay=off --verify=off   # back to the default
 ```
 
-Nothing else changes: the nightly update, `cipi self-update` at the shell, the backup of the installation before it and the migrations after it work as before. From the [panel](#panel), the API, `cipi-cli` and the PHP SDK too.
+Nothing else changes: the nightly update, `sudo cipi self-update` at the shell, the backup of the installation before it and the migrations after it work as before. From the [panel](#panel), the API, `cipi-cli` and the PHP SDK too.
 
 ## Signed releases only {#verify}
 
@@ -40,7 +40,7 @@ The keys the server trusts are the ones already on it. A release can't vouch for
 The first time the check is turned on, `/etc/cipi/release-signers` is empty: the server takes the keys shipped with the installed Cipi (`/opt/cipi/release-signers`), **once you say you compared them** with the ones published below.
 
 ```bash
-$ cipi self-update policy --verify=on
+$ sudo cipi self-update policy --verify=on
   Releases will be checked against these keys:
     SHA256:…  releases@cipi.sh
   Compare them with the ones published at https://cipi.sh/docs/self-update#signers
@@ -50,7 +50,7 @@ $ cipi self-update policy --verify=on
 From a script, the panel or the API, there is no question to answer: pass the fingerprint you compared, and the server takes the keys only when it is one of them.
 
 ```bash
-$ cipi self-update policy --verify=on --fingerprint=SHA256:…
+$ sudo cipi self-update policy --verify=on --fingerprint=SHA256:…
 ```
 
 > [!note] With the check on, an unsigned release is never installed: a server whose check refuses every release stays on its version — and misses its security fixes too.
@@ -70,8 +70,8 @@ No key is listed yet: releases are not signed, and the [delay](#delay) is the sa
 With `--delay=12h`, a new release is installed once **this server has seen it for 12 hours**. The clock is the server's own — the date of a commit can be written by whoever makes it.
 
 ```bash
-$ cipi self-update policy --delay=12h      # 0 (off) to 168 hours: 6h, 12h, 24h, 2d, 7d
-$ cipi self-update policy
+$ sudo cipi self-update policy --delay=12h  # 0 (off) to 168 hours: 6h, 12h, 24h, 2d, 7d
+$ sudo cipi self-update policy
   Delay       12h — a new commit is installed once this server has seen it for that long
   Waiting     v5.19.0 (5e0d7c1a9b2f), seen 2026-11-28 03:50 CET
 ```
@@ -82,7 +82,7 @@ $ cipi self-update policy
 | **When it is installed** | At the first hourly check after its delay has passed: not only at night |
 | **A newer release meanwhile** | Its own delay starts when it is seen: a release replaced within the delay is never installed |
 | **The version already running** | Not held: right after turning the delay on, the commit of the version installed is recorded as installed, not waited for |
-| **Install it now** | `cipi self-update --now` — skips the delay, never the signature check |
+| **Install it now** | `sudo cipi self-update --now` — skips the delay, never the signature check |
 | **Suggested** | 12 hours: a bad release is usually noticed within a few. Longer for servers that matter most; a mix is fine — a staging server with no delay sees a release first |
 
 ## Both together {#both}
@@ -93,7 +93,7 @@ The signature is checked first, on what was downloaded; the delay is counted aft
 
 | | |
 | --- | --- |
-| **Let an update around it** | `cipi self-update` at the shell follows the same policy; `--now` skips only the delay. Only root — or the panel, with a token that has `updates-manage` — changes the policy |
+| **Let an update around it** | `sudo cipi self-update` at the shell follows the same policy; `--now` skips only the delay. Only root — or the panel, with a token that has `updates-manage` — changes the policy |
 | **Check what isn't Cipi** | Ubuntu's packages, PHP, Node and the rest come from their own signed repositories (`unattended-upgrades`) |
 | **Replace the signing key's safety** | A signature is as safe as the key that makes it. Cipi's is kept off GitHub; a server trusts only the keys it was given |
 | **Start an update from the panel** | Neither the panel nor the API can start a self-update: they read and set the policy only |
@@ -133,6 +133,6 @@ The script makes the annotated tag `v<version>` signed with `gpg.format=ssh`, ch
 | Question | Answer |
 | --- | --- |
 | Is my server less safe if I change nothing? | It is as it always was: it trusts GitHub, and installs a release the night it is published. The safeguards are for those who want a narrower trust. |
-| Can I turn off the nightly update instead? | Remove its line (`cipi self-update`, at 03:50) from root's crontab and update by hand — but then security fixes wait for you. A delay is usually the better trade. |
-| An update was refused: what now? | `cipi self-update policy` says why (*Last held*). A release the maintainers haven't signed yet is installed once its tag is signed. A signature that doesn't match is worth an issue on GitHub. |
-| Does the delay hold back a fix I need now? | `cipi self-update --now` installs it at once — after the signature check, if it is on. |
+| Can I turn off the nightly update instead? | Remove its line (`sudo cipi self-update`, at 03:50) from root's crontab and update by hand — but then security fixes wait for you. A delay is usually the better trade. |
+| An update was refused: what now? | `sudo cipi self-update policy` says why (*Last held*). A release the maintainers haven't signed yet is installed once its tag is signed. A signature that doesn't match is worth an issue on GitHub. |
+| Does the delay hold back a fix I need now? | `sudo cipi self-update --now` installs it at once — after the signature check, if it is on. |

@@ -15,7 +15,7 @@ faq:
   - Which is simplest? | For SSH only, a mesh: join, sign in, lock. For public sites behind a CDN and WAF with no open port, the tunnel.
   - Which keeps working if the vendor is down? | A mesh keeps existing connections when its coordination server is down; a self-hosted one (Headscale, NetBird) depends on nobody. A tunnel needs Cloudflare up, as do visitors anyway behind Cloudflare.
   - Which sees my traffic? | Cloudflare terminates TLS for the sites it proxies. A mesh is end-to-end WireGuard between devices; the vendor only coordinates (or relays encrypted packets).
-  - Does Cipi manage all three? | Yes: `cipi zt` for Cloudflare, `cipi zt tailscale` and `cipi zt netbird` for the mesh — the mesh from the web panel and the API too.
+  - Does Cipi manage all three? | Yes: `sudo cipi zt` for Cloudflare, `sudo cipi zt tailscale` and `sudo cipi zt netbird` for the mesh — the mesh from the web panel and the API too.
   - What if a step fails? | Read the matching guide's troubleshooting table first. Then check the [docs](/docs/), open a GitHub issue, or ask in the community.
 docs:
   - zero-trust
@@ -42,7 +42,7 @@ docs:
 | **CDN, WAF, DDoS** | Yes | No | No |
 | **Self-hosting** | No | Coordination via Headscale | Everything |
 | **Who sees the traffic** | Cloudflare terminates TLS | Nobody but the two ends | Nobody but the two ends |
-| **On Cipi** | `cipi zt enable`, `cipi zt hostname add`, `cipi zt access enable`, `cipi zt lock` | `cipi zt tailscale enable`, `lock ssh` | `cipi zt netbird enable`, `lock ssh` |
+| **On Cipi** | `sudo cipi zt enable`, `sudo cipi zt hostname add`, `sudo cipi zt access enable`, `sudo cipi zt lock` | `sudo cipi zt tailscale enable`, `lock ssh` | `sudo cipi zt netbird enable`, `lock ssh` |
 | **From the web panel** | Shown, read-only | Managed: join, lock, unlock, leave | Managed: join, lock, unlock, leave |
 
 ## Which one, by situation {#pick}
@@ -55,7 +55,7 @@ docs:
 | A team already on Tailscale | Tailscale, with a tag for servers |
 | No third party in the control path, or a compliance requirement to self-host | NetBird self-hosted, or Tailscale with Headscale |
 | A CI runner that deploys over SSH | A mesh (the runner joins it), or Cloudflare's SSH with a service token |
-| Two Cipi servers that sync apps to each other | A mesh: `cipi sync` uses the private addresses |
+| Two Cipi servers that sync apps to each other | A mesh: `sudo cipi sync` uses the private addresses |
 | All of the above | Both: the tunnel for visitors, the mesh for people |
 
 ## The combined setup {#both}
@@ -74,7 +74,7 @@ $ ssh cipi@100.101.102.103            # once, over the mesh
 $ sudo cipi zt tailscale lock ssh
 ```
 
-The two sides know each other: a port stays closed while either holds it, `cipi firewall status` says who holds each one, and `unlock` on one side tells you if the other still keeps it closed. The panel's **Zero Trust** tab shows both — Cloudflare's tunnel read-only, the mesh managed.
+The two sides know each other: a port stays closed while either holds it, `sudo cipi firewall status` says who holds each one, and `unlock` on one side tells you if the other still keeps it closed. The panel's **Zero Trust** tab shows both — Cloudflare's tunnel read-only, the mesh managed.
 
 Step by step: [Cloudflare Zero Trust](/guides/cloudflare-zero-trust-laravel) and [Tailscale or NetBird](/guides/tailscale-netbird-private-server-access).
 

@@ -5,9 +5,9 @@ Laravel Reverb is Laravel's own WebSocket server. Cipi runs it behind the app's 
 <cipi-term name="reverb"></cipi-term>
 
 ```bash
-$ cipi app reverb enable myapp
-$ cipi app reverb status myapp
-$ cipi app reverb disable myapp
+$ sudo cipi app reverb enable myapp
+$ sudo cipi app reverb status myapp
+$ sudo cipi app reverb disable myapp
 ```
 
 ## What enable sets up {#setup}
@@ -39,9 +39,9 @@ Running `enable` again is safe: it keeps port and credentials, re-derives host a
 # in your project, then commit
 $ composer require laravel/reverb && php artisan install:broadcasting
 # on the server
-$ cipi app reverb enable myapp
-$ cipi ssl install myapp        # wss:// instead of ws://
-$ cipi deploy myapp             # Vite bakes VITE_REVERB_* into the bundle
+$ sudo cipi app reverb enable myapp
+$ sudo cipi ssl install myapp   # wss:// instead of ws://
+$ sudo cipi deploy myapp        # Vite bakes VITE_REVERB_* into the bundle
 ```
 
 The stock `resources/js/echo.js` reads exactly the variables Cipi writes; nothing to change. **Redeploy after a domain or certificate change** so the bundle picks up the new values.
@@ -57,7 +57,7 @@ The stock `resources/js/echo.js` reads exactly the variables Cipi writes; nothin
 ## Status and troubleshooting {#status}
 
 ```bash
-$ cipi app reverb status myapp
+$ sudo cipi app reverb status myapp
  Reverb: enabled 127.0.0.1:9000
  myapp-reverb RUNNING pid 21847, uptime 3 days
  Clients dial: wss://myapp.com:443/app/3f9c1ab27de40518b6c4
@@ -66,7 +66,7 @@ $ cipi app reverb status myapp
 
 | Warning | Fix |
 | --- | --- |
-| `Missing in .env: …` | Run `cipi app reverb enable myapp` again |
+| `Missing in .env: …` | Run `sudo cipi app reverb enable myapp` again |
 | Certificate present but scheme `http` | `enable` again, then deploy |
 | Default open-file limit | `systemctl restart supervisor` (restarts all workers) or enable with `--restart-supervisor` |
 

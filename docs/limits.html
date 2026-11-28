@@ -205,23 +205,23 @@
 <div class="prose">
 <section class="doc-section" id="cli-app-limits">
 <p>Cap what one app can use, so a busy or misbehaving app cannot starve the others.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app limits myapp<span class="c">                                   # show</span>
-<span class="p"></span>cipi app limits myapp --fpm-max-children=20 --memory-limit=256M
-<span class="p"></span>cipi app limits myapp --octane-workers=4 --worker-procs=3
-<span class="p"></span>cipi app limits myapp --disk=10<span class="c">                          # soft limit, GB</span>
-<span class="p"></span>cipi app limits myapp --disk=none</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app limits myapp<span class="c">                              # show</span>
+<span class="p"></span>sudo cipi app limits myapp --fpm-max-children=20 --memory-limit=256M
+<span class="p"></span>sudo cipi app limits myapp --octane-workers=4 --worker-procs=3
+<span class="p"></span>sudo cipi app limits myapp --disk=10<span class="c">                     # soft limit, GB</span>
+<span class="p"></span>sudo cipi app limits myapp --disk=none</pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Flag</th><th>Controls</th></tr></thead><tbody><tr><td><code>--fpm-max-children</code></td><td>Maximum PHP-FPM processes (FPM apps)</td></tr><tr><td><code>--memory-limit</code></td><td>PHP <code>memory_limit</code></td></tr><tr><td><code>--octane-workers</code></td><td>Octane workers (Octane apps)</td></tr><tr><td><code>--worker-procs</code></td><td>Queue worker processes</td></tr><tr><td><code>--disk</code></td><td>Soft disk limit for files + database, in GB, or <code>none</code></td></tr></tbody></table></div>
 <h2 id="disk">Soft disk limit<a class="anchor" href="#disk" aria-label="Link to this section">#</a></h2>
 <p>No app has one unless you set it. It never blocks the app: it drives the <a href="/docs/monitor">monitor</a>.</p>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Usage</th><th>Result</th></tr></thead><tbody><tr><td>Below 90%</td><td>Nothing</td></tr><tr><td>90% of the limit</td><td>Warning</td></tr><tr><td>Over the limit</td><td>Critical alert, repeated every 4 hours</td></tr><tr><td>Back under</td><td>Recovery notice</td></tr></tbody></table></div>
-<p><code>cipi disk</code> shows usage next to the limit. The limit is kept outside <code>cipi.yml</code> on purpose: <strong>a repository cannot raise the space its server grants it</strong>. Also via REST (<code>GET|PUT /api/apps/{name}/limits</code>) and the panel.</p>
+<p><code>sudo cipi disk</code> shows usage next to the limit. The limit is kept outside <code>cipi.yml</code> on purpose: <strong>a repository cannot raise the space its server grants it</strong>. Also via REST (<code>GET|PUT /api/apps/{name}/limits</code>) and the panel.</p>
 </section>
 <section class="doc-section" id="cli-app-suspend">
 <h2 id="suspend">Suspend an app<a class="anchor" href="#suspend" aria-label="Link to this section">#</a></h2>
 <p>Take an app offline without deleting anything: for unpaid invoices, maintenance or a staging site you want dark.</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi app suspend myapp
-<span class="p"></span>cipi app unsuspend myapp</pre></div>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>While suspended</th><th></th></tr></thead><tbody><tr><td>Every request</td><td>A static <strong>503</strong> page; PHP never runs</td></tr><tr><td>HTTPS</td><td>Covered too</td></tr><tr><td>Certificate renewals</td><td>Keep working</td></tr><tr><td>Vhost changes (aliases, PHP, SSL)</td><td>Respect the suspension</td></tr><tr><td><code>cipi app list</code>, <code>cipi domains</code></td><td>Mark the app as suspended</td></tr></tbody></table></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app suspend myapp
+<span class="p"></span>sudo cipi app unsuspend myapp</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>While suspended</th><th></th></tr></thead><tbody><tr><td>Every request</td><td>A static <strong>503</strong> page; PHP never runs</td></tr><tr><td>HTTPS</td><td>Covered too</td></tr><tr><td>Certificate renewals</td><td>Keep working</td></tr><tr><td>Vhost changes (aliases, PHP, SSL)</td><td>Respect the suspension</td></tr><tr><td><code>sudo cipi app list</code>, <code>sudo cipi domains</code></td><td>Mark the app as suspended</td></tr></tbody></table></div>
 <p>Also from the REST API (<code>POST /api/apps/{name}/suspend</code>), cipi-cli and the <a href="/docs/whmcs">WHMCS module</a>.</p>
 <div class="callout success"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg><div><p>Need a private preview instead of a closed site? Use <a href="/docs/basic-auth">basic auth</a>: the app runs, behind a password.</p></div></div>
 </section>

@@ -15,7 +15,7 @@ Every configuration file holding a secret (database passwords, API tokens, Git t
 
 ```flow
 Export (sync) | decrypt with this server's key
-> When you export apps with `cipi sync`, their secrets are decrypted with this server's vault key.
+> When you export apps with `sudo cipi sync`, their secrets are decrypted with this server's vault key.
 Archive | encrypted with your passphrase
 > The archive is encrypted with a passphrase you choose, so it's safe in transit and at rest.
 Import | decrypt with the passphrase
@@ -24,9 +24,9 @@ Store | re-encrypted with the new server's key
 > The secrets are encrypted again with the new server's own vault key. Keys never travel inside the data they protect.
 ```
 
-Backups use their own key (`cipi backup key show`); sync archives use your passphrase. Keys never travel inside the data they protect.
+Backups use their own key (`sudo cipi backup key show`); sync archives use your passphrase. Keys never travel inside the data they protect.
 
-> [!warning] Lose the vault key and the encrypted configs can't be read. Back it up with your server credentials (`cipi credentials export` lists the backup key; copy `.vault_key` to your password manager).
+> [!warning] Lose the vault key and the encrypted configs can't be read. Back it up with your server credentials (`sudo cipi credentials export` lists the backup key; copy `.vault_key` to your password manager).
 
 ## Questions {#questions}
 
@@ -34,4 +34,4 @@ Backups use their own key (`cipi backup key show`); sync archives use your passp
 | --- | --- |
 | Do I need to do anything? | No, encryption is automatic. Do back up `/etc/cipi/.vault_key` in your password manager. |
 | Can the panel read the secrets? | No. It reads `apps-public.json`, which holds only non-secret fields; the key stays root-only. |
-| Is this the same key as backups? | No. Backups have their own key (`cipi backup key show`). |
+| Is this the same key as backups? | No. Backups have their own key (`sudo cipi backup key show`). |

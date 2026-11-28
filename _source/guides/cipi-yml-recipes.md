@@ -15,8 +15,8 @@ docs:
   - agent-yml
 faq:
   - Can I mix recipes? | Yes. Sections are independent: take `workers` from one and `backup` from another.
-  - Will a recipe overwrite settings I made by hand? | Only for the sections it contains. Run `cipi yml plan` first: it lists every change.
-  - Where do I put the passwords these setups need? | In the server's `.env` (`cipi app env --set`). `env.required` only lists the names so a missing one blocks the plan.
+  - Will a recipe overwrite settings I made by hand? | Only for the sections it contains. Run `sudo cipi yml plan` first: it lists every change.
+  - Where do I put the passwords these setups need? | In the server's `.env` (`sudo cipi app env --set`). `env.required` only lists the names so a missing one blocks the plan.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
   - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
@@ -59,7 +59,7 @@ Validate | php artisan cipi:yml validate
 Deploy | the release carries the file
 > Commit and deploy. The file travels inside the release.
 Plan, apply | cipi yml plan / apply
-> On the server, `cipi yml plan shop` shows the changes; `cipi yml apply shop` makes them, all or nothing.
+> On the server, `sudo cipi yml plan shop` shows the changes; `sudo cipi yml apply shop` makes them, all or nothing.
 ```
 
 Names inside the file (databases, backup profiles) must start with the app's name, so replace `shop` with yours. New to the file? Start with [the cipi.yml guide](/guides/manage-apps-with-cipi-yml).

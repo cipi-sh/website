@@ -15,7 +15,7 @@ choose_cipi:
 choose_them:
   - You host Python apps alongside PHP and want a GUI-first panel
 faq:
-  - How do I export a database from CloudPanel? | As the site user: `clpctl db:export --databaseName=NAME --file=dump.sql.gz`, then restore with `cipi db restore` on Cipi.
+  - How do I export a database from CloudPanel? | As the site user: `clpctl db:export --databaseName=NAME --file=dump.sql.gz`, then restore with `sudo cipi db restore` on Cipi.
   - Where are CloudPanel sites stored? | In `/home/<site-user>/htdocs/<domain>`.
   - Is Cipi harder to use without a GUI? | Commands are short and documented, and an optional [web panel](/web-panel) exists.
   - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
@@ -98,12 +98,12 @@ Every CloudPanel feature you use today, and its place in Cipi. Use it as your mi
 
 | In CloudPanel | In Cipi | Docs |
 | --- | --- | --- |
-| Site | `cipi app create` (Laravel) or `--custom` | [Create an app](/docs/create-app) |
+| Site | `sudo cipi app create` (Laravel) or `--custom` | [Create an app](/docs/create-app) |
 | Site user | The app's Linux user | [App SSH](/docs/app-ssh) |
-| Databases | `cipi db` | [Databases](/docs/databases) |
-| clpctl db:export / import | `cipi db backup` / `cipi db restore` | [Databases](/docs/databases) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
+| clpctl db:export / import | `sudo cipi db backup` / `sudo cipi db restore` | [Databases](/docs/databases) |
 | Cron jobs | Scheduler + crontab | [Scheduler](/docs/scheduler) |
-| Let's Encrypt | `cipi ssl install` | [SSL](/docs/ssl) |
+| Let's Encrypt | `sudo cipi ssl install` | [SSL](/docs/ssl) |
 
 ## Moving to Cipi, step by step {#move}
 
@@ -131,14 +131,14 @@ Open CloudPanel's dashboard and write down, for each site you move:
 
 | What | Where to find it in CloudPanel | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | Sites → the site → Domain | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | Sites → the site → Domain | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | Your own deploy process (CloudPanel has no Git pipeline) | `--repository`, `--branch` |
 | PHP version | Sites → the site → Settings (PHP) | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | the site's files (`.env` in `htdocs/<domain>`) | your own keys and `APP_KEY` |
-| Supervisor programs | Supervisor, if you configured it by hand | `cipi worker add` or Horizon |
+| Supervisor programs | Supervisor, if you configured it by hand | `sudo cipi worker add` or Horizon |
 | Cron jobs | Sites → the site → Cron Jobs | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | Your own scripts | Cipi's deploy options or `deploy.post` |
-| Databases | Databases | `cipi db restore` |
+| Databases | Databases | `sudo cipi db restore` |
 
 On the old server, the site's files are usually in `/home/SITE_USER/htdocs/shop.example.com`. You'll log in with `ssh SITE_USER@OLD_IP`.
 

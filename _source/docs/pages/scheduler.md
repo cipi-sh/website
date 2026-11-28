@@ -3,9 +3,9 @@
 Every Laravel app runs `schedule:run` every minute, as its own user, with its own PHP version. You only turn it on or off.
 
 ```bash
-$ cipi schedule status myapp
-$ cipi schedule off myapp
-$ cipi schedule on myapp
+$ sudo cipi schedule status myapp
+$ sudo cipi schedule off myapp
+$ sudo cipi schedule on myapp
 ```
 
 @section cli-app-cron
@@ -28,7 +28,7 @@ $ crontab -e
 
 | Rule | Why |
 | --- | --- |
-| Keep the `schedule:run` line | If removed, `cipi schedule on myapp` puts it back |
+| Keep the `schedule:run` line | If removed, `sudo cipi schedule on myapp` puts it back |
 | Write only inside `/home/myapp` | Jobs have the app's permissions, nothing more |
 | Prefer Laravel's scheduler | Jobs stay in code, deployed and versioned with the app |
 | Root jobs go in root's crontab | Never give an app more rights than it needs |
@@ -36,7 +36,7 @@ $ crontab -e
 ## Check it runs {#check}
 
 ```bash
-$ cipi app artisan myapp schedule:list
+$ sudo cipi app artisan myapp schedule:list
 $ grep CRON /var/log/syslog | grep myapp | tail -20
 ```
 
@@ -44,9 +44,9 @@ $ grep CRON /var/log/syslog | grep myapp | tail -20
 
 | Problem | Fix |
 | --- | --- |
-| Task never runs | `cipi schedule status myapp`; then `schedule:list` |
+| Task never runs | `sudo cipi schedule status myapp`; then `schedule:list` |
 | Runs at the wrong time | Server time is UTC: set `->timezone()` |
-| Stuck after a crash | Clear the overlap lock: `cipi app artisan myapp schedule:clear-cache` |
+| Stuck after a crash | Clear the overlap lock: `sudo cipi app artisan myapp schedule:clear-cache` |
 
 ## Questions {#questions}
 
