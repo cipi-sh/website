@@ -198,7 +198,7 @@ $cipi->wait($cipi->backups()->verify('nightly'));
 An SFTP server — a VPS with a backup user, a Hetzner Storage Box, a NAS — is added from here; Cipi makes its key on the server and returns the public half:
 
 ```php
-$box = $cipi->backups()->addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi')['data'];
+$box = $cipi->backups()->addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi', profiles: ['default'])['data'];
 $box['public_key'];                                      // install it on the remote, then:
 $cipi->backups()->testDestinations('box');              // a file written and removed there
 $cipi->backups()->updateProfile('nightly', ['destinations' => ['local', 'box']]);
@@ -207,7 +207,19 @@ $cipi->backups()->destinationKey('box');
 $cipi->backups()->removeDestination('box');             // no profile may use it; its archives stay
 ```
 
-S3 destinations and their keys are configured on the server and never returned. See [SFTP destinations](/docs/backups#sftp).
+Backups start on the server, then S3 buckets and SFTP servers are added on a par; the encryption key and the retention too:
+
+```php
+$cipi->backups()->configure();                           // on the server: the local folder and a nightly profile
+$cipi->backups()->addS3Destination('s3', 'acme-backups', 'AKIA…', $secret, endpoint: 'https://fsn1.your-objectstorage.com', profiles: ['default']);
+$cipi->backups()->addS3Destination('offsite', 'acme-offsite', 'AKIA…', $secret, 'auto', 'https://<account-id>.r2.cloudflarestorage.com');
+$cipi->backups()->updateS3Destination('offsite', ['region' => 'eu-west-1']);   // a key or a secret left out stays
+$cipi->backups()->encryptionKey()['data']['key'];       // keep it off the server; logged and notified there
+$cipi->backups()->rotateKey();
+$cipi->wait($cipi->backups()->prune(dryRun: true));     // what the retention would delete — a job
+```
+
+Every bucket is reached with its keys before it is saved: a wrong key is a `ValidationException` and changes nothing. A secret key goes to the server's CLI on its standard input — never on a command line, never in a job — and no answer carries a credential back. Downloading a run stays on the server. See [Backups from the panel](/docs/backups#panel) and [SFTP destinations](/docs/backups#sftp).
 
 @section sdk-server
 

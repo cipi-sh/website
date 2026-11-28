@@ -333,14 +333,22 @@ $cipi-&gt;backups()-&gt;status()['data']['uncovered'];   // what no enabled prof
 $cipi-&gt;backups()-&gt;run('nightly');                  // starts and returns, not a job
 $cipi-&gt;wait($cipi-&gt;backups()-&gt;verify('nightly'));</pre></div>
 <p>An SFTP server — a VPS with a backup user, a Hetzner Storage Box, a NAS — is added from here; Cipi makes its key on the server and returns the public half:</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$box = $cipi-&gt;backups()-&gt;addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi')['data'];
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$box = $cipi-&gt;backups()-&gt;addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi', profiles: ['default'])['data'];
 $box['public_key'];                                      // install it on the remote, then:
 $cipi-&gt;backups()-&gt;testDestinations('box');              // a file written and removed there
 $cipi-&gt;backups()-&gt;updateProfile('nightly', ['destinations' =&gt; ['local', 'box']]);
 $cipi-&gt;backups()-&gt;updateSftpDestination('box', ['new_key' =&gt; true]);
 $cipi-&gt;backups()-&gt;destinationKey('box');
 $cipi-&gt;backups()-&gt;removeDestination('box');             // no profile may use it; its archives stay</pre></div>
-<p>S3 destinations and their keys are configured on the server and never returned. See <a href="/docs/backups#sftp">SFTP destinations</a>.</p>
+<p>Backups start on the server, then S3 buckets and SFTP servers are added on a par; the encryption key and the retention too:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>$cipi-&gt;backups()-&gt;configure();                           // on the server: the local folder and a nightly profile
+$cipi-&gt;backups()-&gt;addS3Destination('s3', 'acme-backups', 'AKIA…', $secret, endpoint: 'https://fsn1.your-objectstorage.com', profiles: ['default']);
+$cipi-&gt;backups()-&gt;addS3Destination('offsite', 'acme-offsite', 'AKIA…', $secret, 'auto', 'https://&lt;account-id&gt;.r2.cloudflarestorage.com');
+$cipi-&gt;backups()-&gt;updateS3Destination('offsite', ['region' =&gt; 'eu-west-1']);   // a key or a secret left out stays
+$cipi-&gt;backups()-&gt;encryptionKey()['data']['key'];       // keep it off the server; logged and notified there
+$cipi-&gt;backups()-&gt;rotateKey();
+$cipi-&gt;wait($cipi-&gt;backups()-&gt;prune(dryRun: true));     // what the retention would delete — a job</pre></div>
+<p>Every bucket is reached with its keys before it is saved: a wrong key is a <code>ValidationException</code> and changes nothing. A secret key goes to the server's CLI on its standard input — never on a command line, never in a job — and no answer carries a credential back. Downloading a run stays on the server. See <a href="/docs/backups#panel">Backups from the panel</a> and <a href="/docs/backups#sftp">SFTP destinations</a>.</p>
 </section>
 <section class="doc-section" id="sdk-server">
 <h2 id="server">Server<a class="anchor" href="#server" aria-label="Link to this section">#</a></h2>

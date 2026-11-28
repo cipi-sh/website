@@ -51,11 +51,11 @@ Restore | one app or everything | #restore
 Create a bucket and an access key limited to it, at any S3-compatible provider. Then:
 
 ```bash
-$ sudo cipi backup configure                 # interactive: endpoint, bucket, keys
+$ sudo cipi backup configure                 # on the server; then "s3": bucket, keys, region, endpoint
 $ sudo cipi backup destination test
 ```
 
-Secret keys are entered on the server and never travel through the panel or the API.
+The bucket is reached with the keys before anything is saved. `configure` sets backups up on the server and offers to add the bucket right after (or later: `cipi backup destination add s3 --bucket=… --key=… --use=default`). The same from the [web panel](/docs/backups#panel) — *Set up backups*, then *Add an S3 bucket* — or the API: the secret key goes to the server once, on the CLI's standard input, never on a command line, and neither panel nor API keeps it.
 
 ## 2. Create profiles {#profiles}
 ```bash

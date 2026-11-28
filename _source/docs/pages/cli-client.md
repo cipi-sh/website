@@ -272,11 +272,15 @@ Flags: `--email`, `--url` (when the app redirects, redirects are never followed)
 | `backup run [profile]`, `backup verify [profile]` | Start a run in the background; check that the newest run opens |
 | `backup profile add <name> --dest local,s3 [flags]`, `edit <name> [flags]` | `--scope`, `--apps`, `--databases`, `--exclude-databases`, `--exclude-tables`, `--exclude-paths`, `--every` or `--cron`, `--keep`, `--keep-days`, `--keep-weeks`, `--encrypt` |
 | `backup profile enable|disable|remove <name>` | |
+| `backup configure` | [Set backups up on the server](/docs/backups#setup): the local folder and a nightly profile kept there |
 | `backup destination test [name]` | Reach each remote destination: an S3 bucket with its credentials, an SFTP server with its key |
-| `backup destination add <name> --host <host> --user <user> [--port 22] [--path dir]` | An [SFTP destination](/docs/backups#sftp): a VPS, a Hetzner Storage Box (`--port 23`). Prints the public key the remote must accept |
-| `backup destination edit <name> [--host …] [--port …] [--user …] [--path …] [--new-key]` | Change it; `--new-key` makes a new key, to install on the remote again |
-| `backup destination key <name>` | Its public key again |
-| `backup destination remove <name> [-y]` | Remove an SFTP destination no profile uses (its archives stay on it) |
+| `backup destination add <name> --bucket <b> --key <id> [--region R] [--endpoint URL] [--use P,…]` | An S3 bucket — reached with its keys before it is saved; `--use` sends those profiles there too |
+| `backup destination add <name> --host <host> --user <user> [--port 22] [--path dir] [--use P,…]` | An [SFTP destination](/docs/backups#sftp), on a par with the buckets: a VPS, a Hetzner Storage Box (`--port 23`). Prints the public key the remote must accept |
+| `backup destination edit <name> [flags]` | Change what is given: S3 `--bucket --key --region --endpoint` (`none`: AWS); SFTP `--host --port --user --path --new-key`; both `--use` |
+| `backup destination key <name>` | An SFTP destination's public key again |
+| `backup destination remove <name> [-y]` | Remove a destination no profile uses (its archives stay on it) |
+| `backup key show`, `backup key rotate [-y]` | The encryption key (logged and notified on the server); a new one for the runs to come |
+| `backup prune [--profile P] [--dry-run]` | Apply the retention now — a job |
 
 ```bash
 $ cipi-cli backup profile edit nightly --exclude-paths storage/app/uploads,*.mp4
@@ -289,7 +293,15 @@ $ cipi-cli backup destination test box          # once the remote accepts the ke
 $ cipi-cli backup profile edit nightly --dest local,box
 ```
 
-SFTP destinations are made here: the server makes the key, and nothing secret is sent. S3 buckets are added on the server (`cipi backup destination add`): an S3 secret never goes through the API. See [Backups](/docs/backups), and [Exclude files and folders from backups](/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
+```bash
+$ cipi-cli backup configure
+$ cipi-cli backup destination add s3 --bucket acme-backups --key AKIA… --endpoint https://fsn1.your-objectstorage.com --use default
+  Secret access key: ········
+$ cipi-cli backup destination add offsite --bucket acme-offsite --key AKIA… --secret-file ~/r2.secret \
+    --region auto --endpoint https://<account-id>.r2.cloudflarestorage.com
+```
+
+**A secret key is never a flag** — it would stay in the shell's history: it is asked at a prompt (not shown as it is typed), or read from the first line of `--secret-file` or of standard input (`--secret-stdin`), and sent once; the server reads it on its standard input. On `edit`, a key or a secret left out stays; a new `--key` asks for its secret. An SFTP server takes no secret at all: the server makes its key. See [Backups](/docs/backups), and [Exclude files and folders from backups](/guides/exclude-files-from-backups) for patterns and `cipi.yml` examples.
 
 ## `php` {#php}
 
