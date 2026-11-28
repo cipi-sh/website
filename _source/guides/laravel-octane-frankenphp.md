@@ -13,12 +13,12 @@ related:
   - deploy-laravel-ubuntu-vps
 faq:
   - Do I need Docker for FrankenPHP? | No. Cipi runs the FrankenPHP binary natively under Supervisor, behind Nginx, like any other process.
-  - Can Octane and PHP-FPM apps share a server? | Yes. Each app picks its runtime; you can convert one back and forth with `cipi app convert`.
-  - Will a deploy change my PHP version? | No. Each Octane app is pinned to a FrankenPHP build. PHP changes only when you run `cipi frankenphp upgrade` or switch the app's PHP version.
+  - Can Octane and PHP-FPM apps share a server? | Yes. Each app picks its runtime; you can convert one back and forth with `sudo cipi app convert`.
+  - Will a deploy change my PHP version? | No. Each Octane app is pinned to a FrankenPHP build. PHP changes only when you run `sudo cipi frankenphp upgrade` or switch the app's PHP version.
   - Is Octane always faster? | For most apps, yes: requests skip the framework boot. Apps dominated by slow database queries or external APIs gain less; fix those first.
   - What breaks under Octane? | Code that keeps per-request data in static properties, singletons resolved once with the request inside, or global state. Test with `php artisan octane:start --watch` locally.
   - How much memory does it use? | Each Octane worker keeps the app in memory, often 60–150 MB. Workers × memory must fit alongside your database and queues.
-  - How do I reload Octane after changing .env? | Rebuild the config cache and restart: `cipi app artisan shop config:cache`, then `cipi worker restart shop`. A deploy does both.
+  - How do I reload Octane after changing .env? | Rebuild the config cache and restart: `sudo cipi app artisan shop config:cache`, then `sudo cipi worker restart shop`. A deploy does both.
 docs:
   - octane
   - php
@@ -114,7 +114,7 @@ $ sudo cipi frankenphp upgrade shop  # newest build on the same PHP minor
 | --- | --- |
 | Upgrades stay on the app's PHP minor | No surprise PHP jump |
 | Octane must answer after an upgrade | Otherwise the previous build comes back |
-| Nightly patches via `cipi autoupdate` | Security fixes without manual work |
+| Nightly patches via `sudo cipi autoupdate` | Security fixes without manual work |
 
 To move to a new PHP minor: `sudo cipi app edit shop --php=8.6`, then `sudo cipi frankenphp upgrade shop`.
 
@@ -142,7 +142,7 @@ app:
 | --- | --- |
 | 502 Bad Gateway | Octane isn't running: `sudo cipi worker list shop`, then `sudo cipi app logs shop --type=worker` |
 | One user sees another's data | A state leak: see the table above |
-| `.env` change ignored | `cipi app artisan shop config:cache`, then `cipi worker restart shop` |
+| `.env` change ignored | `sudo cipi app artisan shop config:cache`, then `sudo cipi worker restart shop` |
 | Memory climbs until restart | A leak in a long-lived object: find it (static arrays, listeners added per request); lower the worker count meanwhile |
-| `cipi php upgrade` lists the app | Its FrankenPHP build is behind: `sudo cipi frankenphp upgrade shop` |
-| Uploads larger than a few MB fail | Raise `client_max_body_size` and `upload_max_filesize` with `cipi ini` |
+| `sudo cipi php upgrade` lists the app | Its FrankenPHP build is behind: `sudo cipi frankenphp upgrade shop` |
+| Uploads larger than a few MB fail | Raise `client_max_body_size` and `upload_max_filesize` with `sudo cipi ini` |

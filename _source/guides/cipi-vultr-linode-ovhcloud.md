@@ -19,7 +19,7 @@ faq:
   - Will Cipi work on my provider? | If it gives you a full virtual machine with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443, yes. The installer explains what's missing otherwise.
   - Dedicated servers? | Yes, with Ubuntu 24.04 or 26.04 installed. Cipi doesn't need virtualization, just a full kernel of its own.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
-  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `sudo cipi sync`.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
   - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
@@ -66,7 +66,7 @@ Then log in as `cipi` and follow [the main guide](/guides/deploy-laravel-ubuntu-
 | Public IPv4, not NAT-only | Let's Encrypt and visitors must reach the server |
 | Reverse DNS set to your hostname | Helps deliverability of notification e-mail |
 | Outbound 25 often blocked | Send mail through an SMTP provider on 587 |
-| A second region or provider for backups | Point `cipi backup` at an S3-compatible bucket elsewhere |
+| A second region or provider for backups | Point `sudo cipi backup` at an S3-compatible bucket elsewhere |
 
 > [!tip] **From the web panel.** With the optional [web panel](/web-panel) (cipi/gui 4.8.0+), the **Vultr**, **Akamai (Linode)** and **OVHcloud** connectors (and Scaleway, Contabo, UpCloud) list your servers with each Cipi server named, with their power actions, firewalls, snapshots, IPs and DNS. See [Connectors](/docs/gui-connectors#vultr).
 

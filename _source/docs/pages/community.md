@@ -9,21 +9,21 @@ Cipi deploys and runs your apps. Exception tracking, analytics or object storage
 | Tool | What it does | With Cipi |
 | --- | --- | --- |
 | [**conn**](https://conn.web.ap.it/) | SSH connection manager: save connections under aliases, connect with `conn to <alias>` | One alias for the `cipi` admin user and one per app user, instead of remembering hosts and ports |
-| [**Johnny**](https://johnny.web.ap.it/) | S3-compatible object storage on your own VPS (Garage + Caddy), with a web panel, CLI and API | On a **separate** VPS, as the S3 destination for [`cipi backup`](/docs/backups) or a Laravel disk: off-site, still yours |
+| [**Johnny**](https://johnny.web.ap.it/) | S3-compatible object storage on your own VPS (Garage + Caddy), with a web panel, CLI and API | On a **separate** VPS, as the S3 destination for [`sudo cipi backup`](/docs/backups) or a Laravel disk: off-site, still yours |
 
 ### Monitoring and analytics {#monitoring}
 
 | Tool | What it does | With Cipi |
 | --- | --- | --- |
-| [**Boogle**](https://boogle.web.ap.it/) | Self-hosted exception tracker and uptime monitor for Laravel | [`cipi monitor`](/docs/monitor) watches the server, Boogle the application from outside. Error payloads stay on your infrastructure |
-| [**IndieStats**](https://indiestats.web.ap.it/) | Privacy-friendly web analytics on Laravel: no cookies, no consent banner | Deploy it with `cipi app create` on a subdomain and track every site without sending visitor data anywhere |
+| [**Boogle**](https://boogle.web.ap.it/) | Self-hosted exception tracker and uptime monitor for Laravel | [`sudo cipi monitor`](/docs/monitor) watches the server, Boogle the application from outside. Error payloads stay on your infrastructure |
+| [**IndieStats**](https://indiestats.web.ap.it/) | Privacy-friendly web analytics on Laravel: no cookies, no consent banner | Deploy it with `sudo cipi app create` on a subdomain and track every site without sending visitor data anywhere |
 
 ### Application security {#security}
 
 | Tool | What it does | With Cipi |
 | --- | --- | --- |
 | [**Checkpoint**](https://checkpoint.web.ap.it/) | Laravel security audit in one Artisan command: vulnerable dependencies, leaked secrets, injection risks | Cipi hardens the server, Checkpoint the code. Run it in CI before the deploy |
-| [**Hackly**](https://hackly.web.ap.it/) | Authorized attack-surface and code scanning (Laravel/PHP SAST and SCA) with a Filament panel | A continuous vulnerability view across projects; runs on a Cipi server, pairs with [`cipi compliance`](/docs/compliance) |
+| [**Hackly**](https://hackly.web.ap.it/) | Authorized attack-surface and code scanning (Laravel/PHP SAST and SCA) with a Filament panel | A continuous vulnerability view across projects; runs on a Cipi server, pairs with [`sudo cipi compliance`](/docs/compliance) |
 
 ### Building Laravel apps {#building}
 

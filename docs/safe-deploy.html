@@ -205,18 +205,18 @@
 <div class="prose">
 <section class="doc-section" id="safe-deploy">
 <p>A safe deploy has a restore point taken <strong>before</strong> new code and migrations touch production. Cipi gives you two levels; use one or both.</p>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Level</th><th>How</th><th>Restores</th><th>Where it lives</th></tr></thead><tbody><tr><td>Database snapshot</td><td><code>--snapshot</code> or <code>--predeploy-snapshot</code></td><td>The database</td><td>On the server</td></tr><tr><td>Full backup</td><td><code>cipi backup run</code> in a pipeline stage</td><td>Database + files (<code>shared/</code>: <code>.env</code>, uploads)</td><td>S3 or any S3-compatible bucket</td></tr></tbody></table></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Level</th><th>How</th><th>Restores</th><th>Where it lives</th></tr></thead><tbody><tr><td>Database snapshot</td><td><code>--snapshot</code> or <code>--predeploy-snapshot</code></td><td>The database</td><td>On the server</td></tr><tr><td>Full backup</td><td><code>sudo cipi backup run</code> in a pipeline stage</td><td>Database + files (<code>shared/</code>: <code>.env</code>, uploads)</td><td>S3 or any S3-compatible bucket</td></tr></tbody></table></div>
 <div class="fx" data-fx><ol class="flow fx-steps" role="tablist"><li><button type="button" role="tab" aria-selected="true" data-i="0"><b>Tests pass</b><span>CI</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="1"><b>Snapshot / backup</b><span>restore point</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="2"><b>Deploy</b><span>atomic swap</span></button></li><li><button type="button" role="tab" aria-selected="false" data-i="3"><b>Health check</b><span>automatic rollback if broken</span></button></li></ol><div class="fx-panel"><div class="fx-pane" role="tabpanel" data-i="0"><div class="fx-head"><span class="fx-n">Step 1 of 4</span><b>Tests pass</b></div><p>Your CI runs the tests. Only a green build goes on.</p></div><div class="fx-pane" role="tabpanel" data-i="1" hidden><div class="fx-head"><span class="fx-n">Step 2 of 4</span><b>Snapshot / backup</b></div><p>A database snapshot (<code>--snapshot</code>, or <code>predeploy_snapshot</code>) or a backup gives you a point to go back to if a migration goes wrong.</p></div><div class="fx-pane" role="tabpanel" data-i="2" hidden><div class="fx-head"><span class="fx-n">Step 3 of 4</span><b>Deploy</b></div><p>The release is built separately and switched in atomically.</p></div><div class="fx-pane" role="tabpanel" data-i="3" hidden><div class="fx-head"><span class="fx-n">Step 4 of 4</span><b>Health check</b></div><p>The health check verifies the live site; if it's broken, the previous release comes back automatically.</p></div><div class="fx-nav"><button type="button" class="fx-prev" data-fx-prev>Previous</button><button type="button" class="fx-next" data-fx-next>Next step</button></div></div></div>
 </section>
 <section class="doc-section" id="predeploy-snapshot">
 <h2 id="snapshot">Database snapshot before every deploy<a class="anchor" href="#snapshot" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi deploy shop --snapshot<span class="c">             # dump first; warn and continue if it fails</span>
-<span class="p"></span>cipi deploy shop --snapshot-required<span class="c">    # dump first; abort the deploy if it fails</span>
-<span class="p"></span>cipi app edit shop --predeploy-snapshot # always, for every trigger (CLI, webhook, CI)</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi deploy shop --snapshot<span class="c">        # dump first; warn and continue if it fails</span>
+<span class="p"></span>sudo cipi deploy shop --snapshot-required<span class="c">  # dump first; abort the deploy if it fails</span>
+<span class="p"></span>sudo cipi app edit shop --predeploy-snapshot # always, for every trigger (CLI, webhook, CI)</pre></div>
 <p>Dumps go to <code>/var/log/cipi/backups/</code>, the same place as <a href="/docs/databases">cipi db backup</a>.</p>
-<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p><code>cipi deploy --rollback</code> restores <strong>code</strong>, not data. To undo a migration, restore the snapshot: <code>cipi db restore shop /var/log/cipi/backups/shop_&lt;timestamp&gt;.sql.gz</code>.</p></div></div>
+<div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p><code>sudo cipi deploy --rollback</code> restores <strong>code</strong>, not data. To undo a migration, restore the snapshot: <code>sudo cipi db restore shop /var/log/cipi/backups/shop_&lt;timestamp&gt;.sql.gz</code>.</p></div></div>
 <h2 id="pipeline">Full backup in a pipeline<a class="anchor" href="#pipeline" aria-label="Link to this section">#</a></h2>
-<p>A webhook deploys as soon as you push, so an off-site backup step belongs in a <a href="/docs/ci-pipelines">CI pipeline</a>. Configure S3 once with <code>cipi backup configure</code>.</p>
+<p>A webhook deploys as soon as you push, so an off-site backup step belongs in a <a href="/docs/ci-pipelines">CI pipeline</a>. Configure S3 once with <code>sudo cipi backup configure</code>.</p>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># .github/workflows/deploy.yml (jobs only)</span>
   backup:
     needs: test
@@ -241,11 +241,11 @@
 <p><code>test</code> → <code>backup</code> → <code>deploy</code>: if one fails, the next never runs. If the deploy fails while building, nothing is published and the previous release keeps serving; if the new release is live but doesn't answer, the step rolls it back. <a href="/docs/ci-pipelines#deploy-step">Why it's written this way</a>.</p>
 <h2 id="restore">Restore<a class="anchor" href="#restore" aria-label="Link to this section">#</a></h2>
 <div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>ls -lh /var/log/cipi/backups/shop_*.sql.gz
-<span class="p"></span>cipi db restore shop /var/log/cipi/backups/shop_20261103_143012.sql.gz
-<span class="p"></span>cipi deploy shop --rollback
+<span class="p"></span>sudo cipi db restore shop /var/log/cipi/backups/shop_20261103_143012.sql.gz
+<span class="p"></span>sudo cipi deploy shop --rollback
 <span class="c"># from S3</span>
-<span class="p"></span>cipi backup list --profile=shop-nightly
-<span class="p"></span>cipi backup fetch shop-nightly 2026-11-03_020000 --dest=/root/restore</pre></div>
+<span class="p"></span>sudo cipi backup list --profile=shop-nightly
+<span class="p"></span>sudo cipi backup fetch shop-nightly 2026-11-03_020000 --dest=/root/restore</pre></div>
 <p>Local snapshots are kept until you remove them; see <a href="/docs/backups">Backups</a> for retention rules that prune automatically.</p>
 </section>
 

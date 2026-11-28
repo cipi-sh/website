@@ -103,14 +103,14 @@ Every Vito Deploy feature you use today, and its place in Cipi. Use it as your m
 | In Vito Deploy | In Cipi | Docs |
 | --- | --- | --- |
 | Server | VPS + Cipi installer | [Installation](/docs/installation) |
-| Site | `cipi app create` | [Create an app](/docs/create-app) |
+| Site | `sudo cipi app create` | [Create an app](/docs/create-app) |
 | Modern deployment | Always on | [How deploys work](/docs/how-deploys-work) |
 | Deployment script | Deploy options, `deploy.post` | [Deploy options](/docs/deploy-script) |
-| Workers | `cipi worker add`, Horizon | [Workers](/docs/workers) |
+| Workers | `sudo cipi worker add`, Horizon | [Workers](/docs/workers) |
 | Cronjobs | Scheduler, crontab | [Scheduler](/docs/scheduler) |
-| Databases | `cipi db` | [Databases](/docs/databases) |
-| SSL | `cipi ssl install` | [SSL](/docs/ssl) |
-| Firewall | `cipi firewall` | [Firewall](/docs/firewall) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
+| SSL | `sudo cipi ssl install` | [SSL](/docs/ssl) |
+| Firewall | `sudo cipi firewall` | [Firewall](/docs/firewall) |
 
 ## Moving to Cipi, step by step {#move}
 
@@ -138,14 +138,14 @@ Open Vito's dashboard and write down, for each site you move:
 
 | What | Where to find it in Vito | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | Site → Settings / Aliases | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | Site → Settings / Aliases | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | Site → Application (repository, branch) | `--repository`, `--branch` |
 | PHP version | Site → Settings (PHP version) | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | Site → Application → Update .env | your own keys and `APP_KEY` |
-| Workers | Server → Workers | `cipi worker add` or Horizon |
+| Workers | Server → Workers | `sudo cipi worker add` or Horizon |
 | Cronjobs | Server → Cronjobs | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | Site → Application → Deployment script | Cipi's deploy options or `deploy.post` |
-| Databases | Server → Databases | `cipi db restore` |
+| Databases | Server → Databases | `sudo cipi db restore` |
 
 With modern deployment on, `.env` and `storage` are in the site folder's shared area and the code in `current/`.
 

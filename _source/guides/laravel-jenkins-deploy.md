@@ -67,7 +67,7 @@ First deploy | push and verify
 | --- | --- | --- |
 | Jenkins runs | `ssh cipi@server "sudo cipi deploy shop"` | `cipi-cli prod deploy shop` |
 | The secret can | Run any `cipi` command as root | Only deploy, roll back, unlock, read status |
-| Server needs | Port 22 reachable from Jenkins | [`cipi api`](/docs/api) installed on a hostname |
+| Server needs | Port 22 reachable from Jenkins | [`sudo cipi api`](/docs/api) installed on a hostname |
 | Jenkins agent needs | `ssh` | [`cipi-cli`](/docs/cli-client) |
 
 For production, prefer the API. For a first try, SSH works in five minutes. Both are shown below.

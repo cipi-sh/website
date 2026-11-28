@@ -51,7 +51,7 @@ $ composer require cipi/agent
 $ git commit -am "Add Cipi Agent" && git push
 ```
 
-On a Cipi server, `cipi app create` already wrote the `.env` variables; the service provider auto-discovers. Laravel 12 or 13, PHP 8.3+.
+On a Cipi server, `sudo cipi app create` already wrote the `.env` variables; the service provider auto-discovers. Laravel 12 or 13, PHP 8.3+.
 
 ## 2. Check it after the deploy
 

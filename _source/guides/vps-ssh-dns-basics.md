@@ -140,9 +140,9 @@ On Cloudflare, keep the cloud **grey** ("DNS only") until the certificate is iss
 | Install Nginx, PHP, MariaDB, Valkey, Supervisor | Hours of setup | One command |
 | Firewall, Fail2ban, key-only SSH | Easy to get wrong | On by default |
 | One user, database and pool per app | Rarely done | Every app |
-| HTTPS certificates and renewals | certbot by hand | `cipi ssl install` |
+| HTTPS certificates and renewals | certbot by hand | `sudo cipi ssl install` |
 | Security patches | Remember to log in | Nightly, automatic |
-| Deploys with rollback | Scripts | `cipi deploy`, on push |
+| Deploys with rollback | Scripts | `sudo cipi deploy`, on push |
 
 Next: [deploy your first Laravel app](/guides/deploy-laravel-ubuntu-vps).
 

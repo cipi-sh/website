@@ -16,7 +16,7 @@ faq:
   - Git or SFTP? | Both work. Git suits a theme or a site under version control; SFTP suits a classic WordPress where plugins update from the dashboard.
   - Can WordPress update itself? | Yes, files in `~/htdocs` belong to the app user, so core, plugin and theme updates work from the dashboard.
   - Does WordPress get isolation like Laravel apps? | Yes: own Linux user, PHP pool and database. A compromised plugin can't read other apps.
-  - Which caching? | OPcache is on by default; add Cipi's own page cache with `cipi cache blog on`: Nginx answers public pages without running PHP. The Cipi Cache plugin purges the pages each change touches, so pages can be kept for hours. A Valkey object cache helps busy WooCommerce shops for the pages that still reach PHP.
+  - Which caching? | OPcache is on by default; add Cipi's own page cache with `sudo cipi cache blog on`: Nginx answers public pages without running PHP. The Cipi Cache plugin purges the pages each change touches, so pages can be kept for hours. A Valkey object cache helps busy WooCommerce shops for the pages that still reach PHP.
   - Do I need a cache plugin like WP Rocket or W3 Total Cache? | Not for page caching: Nginx does it before PHP starts. The only plugin worth adding is Cipi Cache, which tells Nginx which pages to drop when you edit something.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
@@ -135,7 +135,7 @@ $ sudo cipi backup profile add blog-nightly --scope=all --cron='0 3 * * *' --kee
 
 | Problem | Fix |
 | --- | --- |
-| "Error establishing a database connection" | Credentials in `wp-config.php` don't match `cipi db create` output |
+| "Error establishing a database connection" | Credentials in `wp-config.php` don't match `sudo cipi db create` output |
 | Upload size limit | `sudo cipi ini set upload_max_filesize=64M --app=blog` and `post_max_size` |
 | Permalinks 404 | Cipi's vhost already routes to `index.php`; resave permalinks |
 | Mixed content after HTTPS | Update `siteurl`/`home` to `https://` |

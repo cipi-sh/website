@@ -29,19 +29,19 @@ Workers are not stopped before the swap: the deploy never waits for a long job, 
 
 | Command | Does |
 | --- | --- |
-| `cipi deploy myapp` | Deploy the latest commit of the branch |
-| `cipi deploy myapp --rollback` | Back to the previous release, instantly |
-| `cipi deploy myapp --status` | Is a deploy running, queued or interrupted? (safe to poll) |
-| `cipi deploy myapp --history` | Past deploys and rollbacks: result, release, duration, trigger |
-| `cipi deploy --last` | The last deploy of every app |
-| `cipi deploy myapp --releases` | Releases on disk with date, duration, commit |
-| `cipi deploy myapp --log=200` | Timestamped deploy log |
-| `cipi deploy myapp --audit` | Who deployed what, from where ([audit ledger](/docs/deploy-audit)) |
-| `cipi deploy myapp --snapshot` | Dump the database first ([safe deploy](/docs/safe-deploy)) |
-| `cipi deploy myapp --rollback-on-unhealthy` | Undo the release if the [health check](/docs/health-checks) fails |
-| `cipi deploy myapp --key` / `--webhook` | Show the deploy key / webhook URL and token |
-| `cipi deploy myapp --unlock` | Clear the lock of an interrupted deploy now, and resume a [paused commit](#paused) |
-| `cipi deploy myapp --trust-host=git.example.com:2222` | Trust a self-hosted Git server |
+| `sudo cipi deploy myapp` | Deploy the latest commit of the branch |
+| `sudo cipi deploy myapp --rollback` | Back to the previous release, instantly |
+| `sudo cipi deploy myapp --status` | Is a deploy running, queued or interrupted? (safe to poll) |
+| `sudo cipi deploy myapp --history` | Past deploys and rollbacks: result, release, duration, trigger |
+| `sudo cipi deploy --last` | The last deploy of every app |
+| `sudo cipi deploy myapp --releases` | Releases on disk with date, duration, commit |
+| `sudo cipi deploy myapp --log=200` | Timestamped deploy log |
+| `sudo cipi deploy myapp --audit` | Who deployed what, from where ([audit ledger](/docs/deploy-audit)) |
+| `sudo cipi deploy myapp --snapshot` | Dump the database first ([safe deploy](/docs/safe-deploy)) |
+| `sudo cipi deploy myapp --rollback-on-unhealthy` | Undo the release if the [health check](/docs/health-checks) fails |
+| `sudo cipi deploy myapp --key` / `--webhook` | Show the deploy key / webhook URL and token |
+| `sudo cipi deploy myapp --unlock` | Clear the lock of an interrupted deploy now, and resume a [paused commit](#paused) |
+| `sudo cipi deploy myapp --trust-host=git.example.com:2222` | Trust a self-hosted Git server |
 
 ## Know whether it worked {#outcome}
 
@@ -78,10 +78,10 @@ Every command of a deploy runs against a clock, so one that hangs cannot hold th
 | A [Node app](/docs/node-apps): installing the packages, and building | **30 minutes** each | `build_timeout` |
 | A deploy started from the [web panel](/docs/gui), the [REST API](/docs/api), [cipi-cli](/docs/cli-client) or the [PHP SDK](/docs/php-sdk), from start to end | 2 hours | fixed |
 
-When a step runs out of time the deploy fails like any other failed deploy: **the previous release keeps serving**, the lock is released, and `cipi deploy` says which step it was, right under `Deploy failed`:
+When a step runs out of time the deploy fails like any other failed deploy: **the previous release keeps serving**, the lock is released, and `sudo cipi deploy` says which step it was, right under `Deploy failed`:
 
 ```bash
-$ cipi deploy myapp
+$ sudo cipi deploy myapp
 …
 [ERROR] Deploy failed (exit 1)
 [WARN] The step artisan:migrate was stopped after 300 seconds, the most Deployer gives a command.
@@ -95,10 +95,10 @@ The log has a time on every line: the gap before the error is the step that took
 The two clocks are settings of the app, in seconds:
 
 ```bash
-$ cipi app deploy-config myapp                          # shows build_timeout and step_timeout
-$ cipi app deploy-config myapp --build-timeout=2700     # 45 minutes for the build
-$ cipi app deploy-config myapp --step-timeout=900       # 15 minutes for every other command
-$ cipi app deploy-config myapp --build-timeout=1800 --step-timeout=300   # back to the defaults
+$ sudo cipi app deploy-config myapp                     # shows build_timeout and step_timeout
+$ sudo cipi app deploy-config myapp --build-timeout=2700  # 45 minutes for the build
+$ sudo cipi app deploy-config myapp --step-timeout=900  # 15 minutes for every other command
+$ sudo cipi app deploy-config myapp --build-timeout=1800 --step-timeout=300  # back to the defaults
 ```
 
 | Setting | Times | Default | From – to |
@@ -135,7 +135,7 @@ It is a build that is close to its limit, and what tips it over is the server. T
 
 ## Pushes during a deploy {#queue}
 
-A push that arrives while the app is deploying is **queued, not lost**: it deploys as soon as the running deploy is over, post-deploy steps and health check included. Several pushes in the meantime make one deploy, of the branch as it is then. `cipi deploy myapp` by hand while a deploy runs stops at once with *A deploy of 'myapp' is running* (exit 1), before touching anything.
+A push that arrives while the app is deploying is **queued, not lost**: it deploys as soon as the running deploy is over, post-deploy steps and health check included. Several pushes in the meantime make one deploy, of the branch as it is then. `sudo cipi deploy myapp` by hand while a deploy runs stops at once with *A deploy of 'myapp' is running* (exit 1), before touching anything.
 
 ## A commit that fails is paused {#paused}
 
@@ -144,11 +144,11 @@ When an automatic deploy (webhook, agent retry) fails with the code in hand — 
 | What happens next | Result |
 | --- | --- |
 | You push a fix (a new commit) | Deploys as usual and clears the pause |
-| `cipi deploy myapp` or the panel's **Deploy now**, and it succeeds | Clears the pause |
-| `cipi deploy myapp --unlock` | Clears the pause: the next push or webhook may build the same commit again |
+| `sudo cipi deploy myapp` or the panel's **Deploy now**, and it succeeds | Clears the pause |
+| `sudo cipi deploy myapp --unlock` | Clears the pause: the next push or webhook may build the same commit again |
 | The failure happened before the code was fetched (SSH, disk, Deployer) | Nothing is paused: it is not the commit's fault |
 
-The failure alert names the paused commit; `cipi deploy myapp --status` shows it as **Paused**, and the [web panel](/docs/gui) shows it above the app's tabs with *Deploy now* and *Resume automatic deploys*.
+The failure alert names the paused commit; `sudo cipi deploy myapp --status` shows it as **Paused**, and the [web panel](/docs/gui) shows it above the app's tabs with *Deploy now* and *Resume automatic deploys*.
 
 ## In the web panel {#in-the-panel}
 
@@ -160,13 +160,13 @@ Deploy, follow the release and read the audit from the browser. The [web panel](
 
 | Problem | Fix |
 | --- | --- |
-| `Permission denied (publickey)` | Deploy key missing on the repository: `cipi deploy myapp --key` |
-| *A deploy of 'myapp' is running* | One is in flight: `cipi deploy myapp --status`. A push waits in the queue by itself |
+| `Permission denied (publickey)` | Deploy key missing on the repository: `sudo cipi deploy myapp --key` |
+| *A deploy of 'myapp' is running* | One is in flight: `sudo cipi deploy myapp --status`. A push waits in the queue by itself |
 | A push did not deploy | The same commit failed before and is [paused](#paused): push a fix, or `--unlock` to let it build again |
 | Composer fails on PHP version | Align `--php` with what `composer.lock` needs |
-| `The command "… node-build.sh …" exceeded the timeout of 300 seconds` at `cipi:node_build` | The recipe was written by an old release, which gave the build the 5 minutes of every other step: `cipi self-update` gives every app's recipe the build's own [clock](#time-limits). A recipe you edited by hand is left alone — `cipi deploy` then names the command that regenerates it |
-| `exceeded the timeout` at another step | That command ran for its [5 minutes](#time-limits). `cipi deploy myapp --log` shows what it was doing. If the step is simply long — a migration on a large table — [give the app more](#change-limits): `cipi app deploy-config myapp --step-timeout=900`. A migration that takes longer than half an hour is better taken out of the deploy (`--no-migrate`) and run by hand once the release is live: `cipi app artisan myapp migrate --force` |
-| The build is stopped at 30 minutes | Look at [why it is slow](#flaky-build) first; then `cipi app deploy-config myapp --build-timeout=3600` gives it up to an hour |
+| `The command "… node-build.sh …" exceeded the timeout of 300 seconds` at `cipi:node_build` | The recipe was written by an old release, which gave the build the 5 minutes of every other step: `sudo cipi self-update` gives every app's recipe the build's own [clock](#time-limits). A recipe you edited by hand is left alone — `sudo cipi deploy` then names the command that regenerates it |
+| `exceeded the timeout` at another step | That command ran for its [5 minutes](#time-limits). `sudo cipi deploy myapp --log` shows what it was doing. If the step is simply long — a migration on a large table — [give the app more](#change-limits): `sudo cipi app deploy-config myapp --step-timeout=900`. A migration that takes longer than half an hour is better taken out of the deploy (`--no-migrate`) and run by hand once the release is live: `sudo cipi app artisan myapp migrate --force` |
+| The build is stopped at 30 minutes | Look at [why it is slow](#flaky-build) first; then `sudo cipi app deploy-config myapp --build-timeout=3600` gives it up to an hour |
 | Migration fails | The old release keeps serving; fix the migration and deploy again |
 
 ## Questions {#questions}
@@ -175,8 +175,8 @@ Deploy, follow the release and read the audit from the browser. The [web panel](
 | --- | --- |
 | Does a failed deploy take the site down? | No. The new release goes live only after every step succeeded. |
 | Do I have to unlock after a failure? | No. A failed deploy releases its lock, an interrupted one is cleared by the next deploy, and a new push deploys even after a failed commit. |
-| How do I go back? | `cipi deploy myapp --rollback`, instant. |
+| How do I go back? | `sudo cipi deploy myapp --rollback`, instant. |
 | How long can a deploy take? | Each step has [its own limit](#time-limits): 5 minutes, 30 for the front-end build, and [both can be changed per app](#change-limits). A deploy from the panel, the API, cipi-cli or the SDK has two hours in all. |
-| Can I change the limits for every app at once? | They are per app. Put `deploy.build_timeout` and `deploy.step_timeout` in each repository's [cipi.yml](/docs/yml), or run `cipi app deploy-config` for each app. |
+| Can I change the limits for every app at once? | They are per app. Put `deploy.build_timeout` and `deploy.step_timeout` in each repository's [cipi.yml](/docs/yml), or run `sudo cipi app deploy-config` for each app. |
 | My build takes more than 5 minutes. Is that a problem? | No: the build has 30. |
 | Are migrations rolled back too? | No: rollback restores code. Use a [pre-deploy snapshot](/docs/safe-deploy) for data. |

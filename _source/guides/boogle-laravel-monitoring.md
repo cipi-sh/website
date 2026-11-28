@@ -23,7 +23,7 @@ faq:
   - Does it slow my app down? | The client sends the exception in the request that failed and Boogle processes it on its queue. Apps report only from the environments you allow (`production` by default).
   - How do I get alerts? | By e-mail: outage and recovery alerts, plus digests of open exceptions. Boogle needs working mail settings and a queue worker, both of which Cipi sets up.
   - Can I share an issue with a client? | Yes, with a read-only public link that you can turn off, with privacy toggles to hide headers or session data.
-  - How is Boogle updated? | It updates itself from its Settings page, and it understands Cipi's release folders. A normal `cipi deploy` keeps working too.
+  - How is Boogle updated? | It updates itself from its Settings page, and it understands Cipi's release folders. A normal `sudo cipi deploy` keeps working too.
   - What about personal data in exceptions? | Exceptions can include user and request details. Hide headers or session data with the privacy toggles, and remember that exceptions are pruned after 24 months.
 ---
 When a Laravel app throws an exception in production, you want to know **before** your users tell you. [Boogle](https://boogle.web.ap.it) is a free, self-hosted exception tracker and uptime monitor for Laravel. This guide installs it as a Cipi app on its own small server, connects your apps, and sets up alerts.
@@ -92,7 +92,7 @@ What you get for free on Cipi, which Boogle's README asks you to set up by hand:
 | A queue worker under Supervisor | Created with the app |
 | The scheduler every minute (uptime checks, digests) | Already in the app user's crontab |
 | A database | Created, credentials in `.env` |
-| HTTPS | `cipi ssl install` |
+| HTTPS | `sudo cipi ssl install` |
 
 ## 3. Configure it {#configure}
 

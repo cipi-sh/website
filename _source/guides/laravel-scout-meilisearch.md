@@ -125,4 +125,4 @@ deploy:
 | No results | Not imported yet: `scout:import "App\Models\Product"` |
 | `Attribute is not filterable` | Declare it in `scout.meilisearch.index-settings`, then `scout:sync-index-settings` |
 | Changes don't show up | `SCOUT_QUEUE=true` and no worker running, or `searchable()` not called |
-| `invalid_api_key` | Key rotated: check `MEILISEARCH_KEY` in `.env`, `cipi search status --check` |
+| `invalid_api_key` | Key rotated: check `MEILISEARCH_KEY` in `.env`, `sudo cipi search status --check` |

@@ -95,7 +95,7 @@ Need tests before deploying? Turn the webhook off and use [a pipeline](/guides/l
 
 | Problem | Fix |
 | --- | --- |
-| Provider shows 401/403 | Secret or token mismatch: copy it again from `cipi deploy shop --webhook` |
+| Provider shows 401/403 | Secret or token mismatch: copy it again from `sudo cipi deploy shop --webhook` |
 | 200 but no deploy | Push to a branch that isn't the deploy branch |
 | Deploy starts a minute later | Normal: the cron picks the trigger up within a minute |
 | Nothing at all reaches the server | Webhook URL wrong, or the app is behind Zero Trust without a bypass rule for `/cipi/webhook` |

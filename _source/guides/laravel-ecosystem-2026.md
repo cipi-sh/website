@@ -30,19 +30,19 @@ Laravel is a framework plus a family of first-party and community tools. Choosin
 | --- | --- | --- | --- |
 | PHP-FPM | Classic request handling | A pool per app | Default |
 | [Octane](/guides/laravel-octane-frankenphp) (FrankenPHP) | App kept in memory, much faster responses | A long-running process, a proxy | `--octane` |
-| [Horizon](/guides/laravel-horizon-queues) | Queues with a dashboard | Redis, a supervised process | `cipi worker horizon enable` |
+| [Horizon](/guides/laravel-horizon-queues) | Queues with a dashboard | Redis, a supervised process | `sudo cipi worker horizon enable` |
 | Queue workers | Background jobs | Supervisor | One per app by default |
 | Scheduler | Cron-like tasks | One cron line | Built in |
-| [Reverb](/guides/laravel-reverb-websockets) | WebSockets | A process, a WebSocket proxy, open-file limits | `cipi app reverb enable` |
+| [Reverb](/guides/laravel-reverb-websockets) | WebSockets | A process, a WebSocket proxy, open-file limits | `sudo cipi app reverb enable` |
 
 ## Data and search
 
 | Tool | Job | On Cipi |
 | --- | --- | --- |
 | MariaDB / MySQL | Default relational store | Default |
-| [PostgreSQL](/guides/laravel-postgresql) | JSONB, extensions, analytics | `cipi db install pgsql` |
+| [PostgreSQL](/guides/laravel-postgresql) | JSONB, extensions, analytics | `sudo cipi db install pgsql` |
 | Valkey (Redis) | Cache, sessions, queues for Horizon | Included |
-| [Scout + Meilisearch](/guides/laravel-scout-meilisearch) | Full-text search | `cipi search install` |
+| [Scout + Meilisearch](/guides/laravel-scout-meilisearch) | Full-text search | `sudo cipi search install` |
 
 ## UI
 

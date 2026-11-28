@@ -21,7 +21,7 @@ faq:
   - Which versions? | PHP 8.1 to 8.6, Laravel 8 to 13.
   - Will it block my deploy? | Only if you make it: in CI, a FAIL exits with code 1 and stops the pipeline before the deploy step. Warnings pass unless you add `--fail-on-warn`.
   - How do I silence a false positive? | Copy its hash (shown next to the finding) into `suppressed` in `config/checkpoint.php`. Review that list now and then.
-  - Does it check production settings? | Environment checks read the config of the process running Artisan. In CI that's the CI environment, not production. Check production's `.env` separately (`cipi app env shop --get=APP_DEBUG`).
+  - Does it check production settings? | Environment checks read the config of the process running Artisan. In CI that's the CI environment, not production. Check production's `.env` separately (`sudo cipi app env shop --get=APP_DEBUG`).
   - Can I add my own checks? | Yes: extend `AbstractCheck`, return a `CheckResult`, and register the class in `extra_checks`.
 ---
 Most security bugs in Laravel apps are small and repeated: a `whereRaw` with a variable, `$guarded = []`, `{!! $input !!}` in a view, a forgotten `dd()`, a dependency with a known CVE. [Checkpoint](https://checkpoint.web.ap.it) finds them in seconds, on your laptop and in CI, so they never reach the server.

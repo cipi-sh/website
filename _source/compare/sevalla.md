@@ -88,7 +88,7 @@ Sevalla is a managed platform from Kinsta for applications (built from Git or im
 
 **Root access.** Install what you need, read any log, tune PHP and Nginx.
 
-**No lock-in.** A standard Ubuntu stack on any provider; move with `cipi sync`.
+**No lock-in.** A standard Ubuntu stack on any provider; move with `sudo cipi sync`.
 
 ## Where everything goes in Cipi {#map}
 
@@ -96,11 +96,11 @@ Every Sevalla feature you use today, and its place in Cipi. Use it as your migra
 
 | In Sevalla | In Cipi | Docs |
 | --- | --- | --- |
-| Application | `cipi app create` | [Create an app](/docs/create-app) |
-| Environment variables | `cipi app env` | [Environment](/docs/environment) |
-| Database | `cipi db` | [Databases](/docs/databases) |
+| Application | `sudo cipi app create` | [Create an app](/docs/create-app) |
+| Environment variables | `sudo cipi app env` | [Environment](/docs/environment) |
+| Database | `sudo cipi db` | [Databases](/docs/databases) |
 | Object storage | Keep the bucket, or any S3-compatible provider |  |
-| Processes | `cipi worker add` | [Workers](/docs/workers) |
+| Processes | `sudo cipi worker add` | [Workers](/docs/workers) |
 
 ## Moving to Cipi, step by step {#move}
 

@@ -14,7 +14,7 @@ Release starts | CodePipeline, CI or console
 Agent picks it up | outbound HTTPS only
 > The CodeDeploy agent on the Cipi server polls AWS over HTTPS (port 443, outgoing). No inbound port opens.
 ApplicationStart | scripts/deploy.sh → cipi deploy
-> CodeDeploy runs `scripts/deploy.sh`, which runs `cipi deploy shop`. Cipi pulls the branch from Git, builds the release and switches to it with zero downtime.
+> CodeDeploy runs `scripts/deploy.sh`, which runs `sudo cipi deploy shop`. Cipi pulls the branch from Git, builds the release and switches to it with zero downtime.
 ValidateService | scripts/validate.sh
 > CodeDeploy runs `scripts/validate.sh`: it calls the health URL and, if the app doesn't answer, rolls back with Cipi and fails the deployment.
 Next server | one at a time or all at once
@@ -57,7 +57,7 @@ In the CodeDeploy console (or with the AWS CLI):
 | Load balancer | Off (Cipi switches releases without downtime on each server) |
 | **Rollbacks** | **Off**: see below |
 
-> [!warning] **Turn CodeDeploy's automatic rollback off.** CodeDeploy rolls back by deploying the previous bundle again. With Cipi, that would run `cipi deploy` again, and Cipi always deploys the latest commit of the branch: you would get the new code a second time, not the old one. The `validate.sh` script below rolls back with Cipi instead, which really returns to the previous release.
+> [!warning] **Turn CodeDeploy's automatic rollback off.** CodeDeploy rolls back by deploying the previous bundle again. With Cipi, that would run `sudo cipi deploy` again, and Cipi always deploys the latest commit of the branch: you would get the new code a second time, not the old one. The `validate.sh` script below rolls back with Cipi instead, which really returns to the previous release.
 
 ## 3. The bundle: appspec.yml and two scripts {#bundle}
 
@@ -151,8 +151,8 @@ A typical pipeline: **Source** (GitHub, GitLab, Bitbucket or CodeCommit) → **B
 | Problem | Cause | Fix |
 | --- | --- | --- |
 | Deployment stuck in "Pending" | The agent isn't running or can't reach AWS | `systemctl status codedeploy-agent`; check outgoing HTTPS |
-| `ScriptFailed` in ApplicationStart | `cipi deploy` failed | Read the deploy log: `cipi app logs shop --type=deploy`. Nothing was published |
-| `ScriptFailed` in ValidateService | The app didn't answer and Cipi rolled back | Check the release that failed: `cipi deploy shop --log` |
+| `ScriptFailed` in ApplicationStart | `sudo cipi deploy` failed | Read the deploy log: `sudo cipi app logs shop --type=deploy`. Nothing was published |
+| `ScriptFailed` in ValidateService | The app didn't answer and Cipi rolled back | Check the release that failed: `sudo cipi deploy shop --log` |
 | "appspec.yml not found" | The bundle root is wrong | With S3, `--source codedeploy`; with GitHub, `appspec.yml` at the repository root |
 | New code deployed again after a failure | CodeDeploy's automatic rollback is on | Turn it off in the deployment group |
 | Permission denied on the scripts | Scripts not executable in Git | `chmod +x codedeploy/scripts/*.sh` and commit |

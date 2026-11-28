@@ -19,7 +19,7 @@ related:
 faq:
   - Which channel should I start with? | E-mail for a record of everything, plus one chat or push channel you actually look at (Telegram, Slack or ntfy) for what needs action. Two channels cover most teams.
   - Can a broken webhook block a deploy? | No. Delivery is best-effort with a 5-second timeout and runs in the background. A dead endpoint never stalls a deploy, a backup or a cron job.
-  - Are my tokens stored safely? | Secrets you omit from the command line are asked without echo, stored encrypted, and never printed back, not even by `cipi notification`.
+  - Are my tokens stored safely? | Secrets you omit from the command line are asked without echo, stored encrypted, and never printed back, not even by `sudo cipi notification`.
   - I muted a trigger. Is the event lost? | No. Every event is written to `/var/log/cipi/events.log` (kept a year) whatever you mute.
   - Can different events go to different channels? | Yes, since Cipi 5.15.0: each channel takes everything or only the events you give it — `sudo cipi notification events oncall urgent` sends failures and security events alone to the phone, `events team deploy` only deploys to the team's chat. Triggers still decide which events notify at all.
   - How do I get alerts for my own cron jobs? | Wrap them with `cipi-cron-notify`: when the command exits non-zero you get a `cron_fail` notification with its output.
@@ -201,6 +201,6 @@ $ sudo cipi notification triggers set --off=monitor_load,monitor_ok
 | --- | --- |
 | Telegram test doesn't arrive | Wrong chat id (groups are negative), or you never sent `/start` to the bot |
 | E-mail in spam | Use a provider; add SPF and DKIM for the `--from` domain |
-| Slack 404 | The webhook was revoked: create a new one and `cipi notification add` again |
+| Slack 404 | The webhook was revoked: create a new one and `sudo cipi notification add` again |
 | Too many messages | Disable noisy triggers (step 6) |
 | Need history | `sudo tail -f /var/log/cipi/events.log` |

@@ -88,7 +88,7 @@ IndieStats needs PHP 8.4 or newer. Its built front-end assets are committed to t
 | --- | --- |
 | The scheduler every minute (pruning, GeoIP updates) | Already on |
 | A queue worker (Excel exports) | Created with the app |
-| HTTPS | `cipi ssl install` (needed: an HTTP script on an HTTPS site is blocked) |
+| HTTPS | `sudo cipi ssl install` (needed: an HTTP script on an HTTPS site is blocked) |
 
 ## 2. Add your site {#site}
 
@@ -174,7 +174,7 @@ $ sudo cipi app artisan stats config:cache
 | Problem | Fix |
 | --- | --- |
 | No visits arrive | The site's domain isn't in the allowlist, or the snippet isn't on the page |
-| Browser blocks the script | Mixed content: IndieStats must be on HTTPS (`cipi ssl install stats`) |
+| Browser blocks the script | Mixed content: IndieStats must be on HTTPS (`sudo cipi ssl install stats`) |
 | Every visitor from one country/network | Behind a proxy without real IP: see [Cloudflare guide](/guides/cloudflare-proxy-ssl-wildcard#real-ip) |
 | Excel export never finishes | Queue worker not running: `sudo cipi worker list stats` |
 | Old data not deleted | Scheduler off: `sudo cipi schedule status stats` |

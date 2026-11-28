@@ -99,13 +99,13 @@ Every Cleavr feature you use today, and its place in Cipi. Use it as your migrat
 
 | In Cleavr | In Cipi | Docs |
 | --- | --- | --- |
-| Site | `cipi app create` | [Create an app](/docs/create-app) |
+| Site | `sudo cipi app create` | [Create an app](/docs/create-app) |
 | Deployment workflow | Releases + `deploy.post` | [How deploys work](/docs/how-deploys-work) |
-| Environment | `cipi app env` | [Environment](/docs/environment) |
-| Queues / daemons | `cipi worker add`, Horizon | [Workers](/docs/workers) |
+| Environment | `sudo cipi app env` | [Environment](/docs/environment) |
+| Queues / daemons | `sudo cipi worker add`, Horizon | [Workers](/docs/workers) |
 | Scheduler | On by default |  |
-| Databases | `cipi db` | [Databases](/docs/databases) |
-| SSL | `cipi ssl install` | [SSL](/docs/ssl) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
+| SSL | `sudo cipi ssl install` | [SSL](/docs/ssl) |
 | Node apps | [Node apps](/docs/node-apps) | SPA, static or SSR |
 
 ## Moving to Cipi, step by step {#move}
@@ -135,14 +135,14 @@ Open Cleavr's dashboard and write down, for each site you move:
 
 | What | Where to find it in Cleavr | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | the site's domain settings | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | the site's domain settings | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | the site's Git / deployment settings | `--repository`, `--branch` |
 | PHP version | the site's PHP settings | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | the site's environment or `.env` file | your own keys and `APP_KEY` |
-| Daemons | the server's daemons / Supervisor section | `cipi worker add` or Horizon |
+| Daemons | the server's daemons / Supervisor section | `sudo cipi worker add` or Horizon |
 | Scheduled jobs | the server's cron section | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | the site's deploy script or hooks | Cipi's deploy options or `deploy.post` |
-| Databases | the server's databases section | `cipi db restore` |
+| Databases | the server's databases section | `sudo cipi db restore` |
 
 Replace `SITE_PATH` below with the folder Cleavr shows for the site (with releases, use its `current` folder for `.env` and `storage`).
 

@@ -10,10 +10,10 @@ Two different questions, two checks: *is the site up?* and *did the release I ju
 | Post-deploy check | Right after every release, CLI and webhook alike | Immediately (`deploy_health_fail`) |
 
 ```bash
-$ cipi health set myapp --url=https://myapp.com/up --expect=200
-$ cipi health check myapp
-$ cipi health list [--json]
-$ cipi health unset myapp
+$ sudo cipi health set myapp --url=https://myapp.com/up --expect=200
+$ sudo cipi health check myapp
+$ sudo cipi health list [--json]
+$ sudo cipi health unset myapp
 ```
 
 Laravel 11+ serves `/up` when `health: '/up'` is set in `bootstrap/app.php`. The URL must belong to the app's own domains.
@@ -34,9 +34,9 @@ Optional rollback | if unhealthy
 ```
 
 ```bash
-$ cipi health set myapp --grace=15            # longer warm-up (max 120 s)
-$ cipi health set myapp --no-postdeploy       # keep the 5-minute probe only
-$ cipi health postdeploy myapp                # run the verification now
+$ sudo cipi health set myapp --grace=15       # longer warm-up (max 120 s)
+$ sudo cipi health set myapp --no-postdeploy  # keep the 5-minute probe only
+$ sudo cipi health postdeploy myapp           # run the verification now
 ```
 
 The success notification is sent **after** the verdict, so it never announces a release that returns errors. A failed verdict tells you where the check is configured and how to change it.
@@ -44,8 +44,8 @@ The success notification is sent **after** the verdict, so it never announces a 
 ## Automatic rollback {#auto-rollback}
 
 ```bash
-$ cipi health set myapp --rollback-on-unhealthy   # always, for this app
-$ cipi deploy myapp --rollback-on-unhealthy       # this deploy only
+$ sudo cipi health set myapp --rollback-on-unhealthy  # always, for this app
+$ sudo cipi deploy myapp --rollback-on-unhealthy  # this deploy only
 ```
 
 | Outcome reported | Meaning |
@@ -64,7 +64,7 @@ Also in [cipi.yml](/docs/yml) (`health:`), the REST API and the panel. To watch 
 The URL is also probed **every minute** by the [metrics](/docs/metrics) collector, which keeps the status and response time: uptime over 24 hours, 7 and 30 days, minutes down, incidents and uptime per day.
 
 ```bash
-$ cipi metrics uptime myapp --range=30d
+$ sudo cipi metrics uptime myapp --range=30d
 ```
 
-The alerts above don't change: the history only records. `cipi metrics probe off` stops the per-minute probe.
+The alerts above don't change: the history only records. `sudo cipi metrics probe off` stops the per-minute probe.

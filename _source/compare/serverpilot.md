@@ -100,11 +100,11 @@ Every ServerPilot feature you use today, and its place in Cipi. Use it as your m
 
 | In ServerPilot | In Cipi | Docs |
 | --- | --- | --- |
-| App | `cipi app create` (Laravel) or `--custom` | [Create an app](/docs/create-app) |
+| App | `sudo cipi app create` (Laravel) or `--custom` | [Create an app](/docs/create-app) |
 | SFTP uploads | SFTP as the app user into `~/htdocs` (custom apps) | [Custom apps](/docs/custom-apps) |
-| PHP version | `--php`, `cipi app edit --php` | [PHP](/docs/php) |
-| SSL | `cipi ssl install` | [SSL](/docs/ssl) |
-| Databases | `cipi db` | [Databases](/docs/databases) |
+| PHP version | `--php`, `sudo cipi app edit --php` | [PHP](/docs/php) |
+| SSL | `sudo cipi ssl install` | [SSL](/docs/ssl) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
 
 ## Moving to Cipi, step by step {#move}
 
@@ -133,14 +133,14 @@ Open ServerPilot's dashboard and write down, for each site you move:
 
 | What | Where to find it in ServerPilot | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | the site's domain settings | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | the site's domain settings | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | the site's Git / deployment settings | `--repository`, `--branch` |
 | PHP version | the site's PHP settings | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | the site's environment or `.env` file | your own keys and `APP_KEY` |
-| Background processes | the server's daemons / Supervisor section | `cipi worker add` or Horizon |
+| Background processes | the server's daemons / Supervisor section | `sudo cipi worker add` or Horizon |
 | Cron jobs | the server's cron section | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | the site's deploy script or hooks | Cipi's deploy options or `deploy.post` |
-| Databases | the server's databases section | `cipi db restore` |
+| Databases | the server's databases section | `sudo cipi db restore` |
 
 On ServerPilot, an app's public files are in `/srv/users/<user>/apps/<app>/public`. Laravel apps in Git become Cipi Laravel apps; WordPress and other PHP sites become **custom apps** (upload the files to `~/htdocs`).
 

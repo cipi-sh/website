@@ -18,10 +18,10 @@ related:
   - hackly-security-scanning
 faq:
   - What does CrowdSec do? | It reads your web and SSH logs, recognises attack behaviour (vulnerability scanners, credential stuffing, exploit probes, brute force), and a firewall "bouncer" drops traffic from those IPs. It also receives a community blocklist of IPs other users have seen attacking.
-  - Do I still need Fail2ban? | Cipi keeps both. Fail2ban guards SSH logins; CrowdSec adds behaviour-based detection on web traffic and the shared blocklist. `cipi ban list` shows bans from both.
+  - Do I still need Fail2ban? | Cipi keeps both. Fail2ban guards SSH logins; CrowdSec adds behaviour-based detection on web traffic and the shared blocklist. `sudo cipi ban list` shows bans from both.
   - Is it a WAF? | No. A WAF inspects each request and blocks bad ones; CrowdSec blocks IPs after it has seen bad behaviour. For request filtering, put Cloudflare in front ([guide](/guides/cloudflare-proxy-ssl-wildcard)).
-  - Can it ban my own users? | It bans on behaviour, not on normal browsing. Shared IPs (offices, mobile carriers) can rarely be caught; allowlist known addresses with `cipi crowdsec allow`.
-  - I'm behind Cloudflare. Will it ban Cloudflare? | Cipi refuses to enable it behind a proxy until the real visitor IP is configured, which `cipi zt enable` does. Then CrowdSec sees and bans real visitors, not Cloudflare.
+  - Can it ban my own users? | It bans on behaviour, not on normal browsing. Shared IPs (offices, mobile carriers) can rarely be caught; allowlist known addresses with `sudo cipi crowdsec allow`.
+  - I'm behind Cloudflare. Will it ban Cloudflare? | Cipi refuses to enable it behind a proxy until the real visitor IP is configured, which `sudo cipi zt enable` does. Then CrowdSec sees and bans real visitors, not Cloudflare.
   - How much memory does it need? | Cipi refuses below 512 MB of available RAM. On small servers, keep Fail2ban only.
   - Does it share my data? | CrowdSec's community blocklist works by sharing signals about attacking IPs with CrowdSec. Read their privacy terms; Cipi doesn't send your app data anywhere.
   - How do I remove it? | `sudo cipi crowdsec disable` flushes its firewall rules first, then removes it. Nothing is left blocking traffic.
@@ -130,7 +130,7 @@ Firewall rules are flushed **before** the packages are removed, so nothing stays
 | --- | --- | --- |
 | Firewall (UFW) | Everything except 22, 80, 443 | Always on |
 | Fail2ban | SSH password guessing | Always on |
-| CrowdSec | Scanners, probes, known attackers on the web | `cipi crowdsec enable` |
+| CrowdSec | Scanners, probes, known attackers on the web | `sudo cipi crowdsec enable` |
 | Cloudflare proxy / Zero Trust | Bad requests before they reach you; closed ports | [Zero Trust guide](/guides/cloudflare-zero-trust-laravel) |
 | Patching | Known vulnerabilities in PHP and Nginx | Nightly ([CVE case study](/guides/php-nginx-cve-patching)) |
 | Your code | App-level bugs | [Checkpoint](/guides/checkpoint-laravel-sast-ci), [Hackly](/guides/hackly-security-scanning) |
@@ -143,5 +143,5 @@ Firewall rules are flushed **before** the packages are removed, so nothing stays
 | `enable` refused: not enough RAM | Free memory or keep Fail2ban only |
 | A colleague is banned | `sudo cipi ban unban <ip>`, then `sudo cipi crowdsec allow <ip>` |
 | Uptime monitor shows outages | Allowlist the monitor's IPs |
-| Git pushes stopped deploying | Run `sudo cipi crowdsec refresh` to update webhook ranges; check `cipi ban list` |
+| Git pushes stopped deploying | Run `sudo cipi crowdsec refresh` to update webhook ranges; check `sudo cipi ban list` |
 | You're locked out | Rescue curl (step 4), or the provider's web console |

@@ -7,14 +7,14 @@ UFW allows only SSH, HTTP and HTTPS; everything else is closed. Fail2ban bans ad
 ## Ports {#ports}
 
 ```bash
-$ cipi firewall status [--json]                    # UFW, fail2ban and CrowdSec at a glance
-$ cipi firewall list [--json]
-$ cipi firewall allow 3306 --from=10.0.0.5         # one address
-$ cipi firewall allow 3306 --from=10.0.0.0/24      # a private subnet
-$ cipi firewall allow 8000:8100 --proto=udp        # a range, UDP
-$ cipi firewall remove 3306 --from=10.0.0.5        # drop what allow made
-$ cipi firewall deny 8080                          # ahead of every allow
-$ cipi firewall attempts [5|default]               # failed logins before a ban
+$ sudo cipi firewall status [--json]               # UFW, fail2ban and CrowdSec at a glance
+$ sudo cipi firewall list [--json]
+$ sudo cipi firewall allow 3306 --from=10.0.0.5    # one address
+$ sudo cipi firewall allow 3306 --from=10.0.0.0/24  # a private subnet
+$ sudo cipi firewall allow 8000:8100 --proto=udp   # a range, UDP
+$ sudo cipi firewall remove 3306 --from=10.0.0.5   # drop what allow made
+$ sudo cipi firewall deny 8080                     # ahead of every allow
+$ sudo cipi firewall attempts [5|default]          # failed logins before a ban
 ```
 
 | Protection | Default |
@@ -28,14 +28,14 @@ The threshold is written to a drop-in that updates never reset, validated with `
 
 To close a port you opened, `remove` it: the rule goes and the port is closed again by the default policy. `deny` is for refusing what an allow would let in (a port to one address, say). It goes **ahead of every allow** (`ufw prepend`): UFW stops at the first rule that matches, so a deny placed after an allow of the same port would change nothing.
 
-> [!tip] Zero Trust closes what UFW keeps open: behind Cloudflare, [cipi zt](/docs/zero-trust) can close 80/443 to everyone but Cloudflare and close 22 entirely; on a [Tailscale or NetBird network](/docs/mesh-network), `cipi zt tailscale|netbird lock` leaves 22 and 80/443 open on the mesh only.
+> [!tip] Zero Trust closes what UFW keeps open: behind Cloudflare, [cipi zt](/docs/zero-trust) can close 80/443 to everyone but Cloudflare and close 22 entirely; on a [Tailscale or NetBird network](/docs/mesh-network), `sudo cipi zt tailscale|netbird lock` leaves 22 and 80/443 open on the mesh only.
 
 ## Blocked addresses {#block}
 
 ```bash
-$ cipi firewall block 198.51.100.23        # every port refused to it
-$ cipi firewall block 198.51.100.0/24      # a range
-$ cipi firewall unblock 198.51.100.23
+$ sudo cipi firewall block 198.51.100.23   # every port refused to it
+$ sudo cipi firewall block 198.51.100.0/24  # a range
+$ sudo cipi firewall unblock 198.51.100.23
 ```
 
 A block refuses **every port** to an address or a range, ahead of every allow, until you unblock it: a scanner, an abuser, a range that keeps knocking. Unlike a [ban](#ban) it never expires. Ranges wider than `/8` (IPv4) or `/16` (IPv6) are refused.
@@ -48,7 +48,7 @@ The firewall commands refuse what would cut the server off:
 | --- | --- |
 | `deny` of the SSH port, 80 or 443 to everyone; `remove` of the rule that opens them | They are how the server is reached. The SSH ports are read from `sshd -T`, so a custom port counts. One address can still be denied with `--from=` |
 | `block` of a range that takes in the address of your SSH session | You would cut yourself off. The same holds for `deny --from=` on the SSH port |
-| `allow` to everyone of what a Zero Trust lock keeps closed | `cipi zt lock http` keeps 80/443 to Cloudflare, `cipi zt lock ssh` keeps SSH closed, and a [mesh network's lock](/docs/mesh-network#lock) keeps a port to the mesh: the message names who holds it and which command reopens it. `cipi firewall status` says it too |
+| `allow` to everyone of what a Zero Trust lock keeps closed | `sudo cipi zt lock http` keeps 80/443 to Cloudflare, `sudo cipi zt lock ssh` keeps SSH closed, and a [mesh network's lock](/docs/mesh-network#lock) keeps a port to the mesh: the message names who holds it and which command reopens it. `sudo cipi firewall status` says it too |
 
 `--force` gets past these at the server's shell, when you know why. **From the panel it is ignored**, whatever the panel sends.
 
@@ -59,9 +59,9 @@ Every change is written to `cipi.log`, and says when the rule was already there,
 ## Bans {#ban}
 
 ```bash
-$ cipi ban list                   # banned IPs, by jail (Fail2ban and CrowdSec)
-$ cipi ban unban 203.0.113.42     # from every jail at once
-$ cipi ban unban 203.0.113.0/24   # a CrowdSec range decision
+$ sudo cipi ban list              # banned IPs, by jail (Fail2ban and CrowdSec)
+$ sudo cipi ban unban 203.0.113.42  # from every jail at once
+$ sudo cipi ban unban 203.0.113.0/24  # a CrowdSec range decision
 ```
 
 The address is matched whole (`unban 1.2.3.4` never lifts a ban on `11.2.3.45`), and `ban unban` takes nothing but an address or a CIDR. Locked out a colleague or a CI runner by mistake? Unban from another session, the provider's console or the [panel](#panel). For CI, use a dedicated key (key logins don't fail).
@@ -93,14 +93,14 @@ The server page of the [web panel](/docs/gui-overview) has a **Firewall** tab (o
 
 Reading needs a level on the server, changing needs **Manage**. The panel takes only what the page lists, and the server refuses [what keeps it reachable](#protected) whatever is sent: the Firewall tab can't close SSH, 80 or 443, undo a Zero Trust lock or block the panel's own address. Closing those three ports to the world is Zero Trust's job: the mesh network's locks have their own buttons in the [Zero Trust tab](/docs/mesh-network#panel), with [their own guards](/docs/mesh-network#panel-guards). It doesn't deny ports either (it opens ports and blocks addresses), and the [CrowdSec rescue](/docs/crowdsec#rescue) stays at the server.
 
-The server's API token needs `firewall-view` and `firewall-manage` (a `--full-access` token has them). On an older server the tab says what to update: `cipi self-update`, then `cipi api update`.
+The server's API token needs `firewall-view` and `firewall-manage` (a `--full-access` token has them). On an older server the tab says what to update: `sudo cipi self-update`, then `sudo cipi api update`.
 
 ## Questions {#questions}
 
 | Question | Answer |
 | --- | --- |
-| I locked myself out. | Use the provider's web console to log in, then `cipi ban unban <your IP>` (or Unban in the panel, from another network). Key logins never count as failures, only passwords. |
+| I locked myself out. | Use the provider's web console to log in, then `sudo cipi ban unban <your IP>` (or Unban in the panel, from another network). Key logins never count as failures, only passwords. |
 | Should I open the database port? | Avoid it. Connect over SSH (TablePlus, DBeaver support it). If you must, allow one address with `--from`. |
-| How do I close a port I opened? | `cipi firewall remove <port>` with the same `--from` and `--proto` you opened it with, or Remove in the panel. |
+| How do I close a port I opened? | `sudo cipi firewall remove <port>` with the same `--from` and `--proto` you opened it with, or Remove in the panel. |
 | Deny, block or ban? | `deny` refuses a port; `block` refuses every port to an address until you unblock it; a ban is Fail2ban's or CrowdSec's, and expires. |
 | Does the provider's firewall conflict? | No. Keep 22, 80 and 443 open in both. |

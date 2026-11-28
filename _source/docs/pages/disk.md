@@ -1,13 +1,13 @@
 @section cli-disk
 
-The [monitor](/docs/monitor) tells you the disk is filling up; `cipi disk` tells you **who** is filling it.
+The [monitor](/docs/monitor) tells you the disk is filling up; `sudo cipi disk` tells you **who** is filling it.
 
 ## Commands {#commands}
 
 ```bash
-$ cipi disk              # filesystems, then every app, largest first
-$ cipi disk db           # every database of every engine
-$ cipi disk --json       # for scripts (also: cipi disk db --json)
+$ sudo cipi disk         # filesystems, then every app, largest first
+$ sudo cipi disk db      # every database of every engine
+$ sudo cipi disk --json  # for scripts (also: sudo cipi disk db --json)
 ```
 
 ## Reading the report {#report}
@@ -33,7 +33,7 @@ $ cipi disk --json       # for scripts (also: cipi disk db --json)
 | LIMIT | The [soft disk limit](/docs/limits#disk) and how much is used |
 | Everything else | System, packages, local backups, databases that belong to no app |
 
-`cipi disk db` lists MariaDB and PostgreSQL databases, Valkey key counts and memory, and Meilisearch indexes with document counts, each engine with its total on disk. From your laptop: `cipi-cli disk`; in the panel: Server → Disk.
+`sudo cipi disk db` lists MariaDB and PostgreSQL databases, Valkey key counts and memory, and Meilisearch indexes with document counts, each engine with its total on disk. From your laptop: `cipi-cli disk`; in the panel: Server → Disk.
 
 > [!note] Limits are soft by design: they alert, they never take a site down. Hard quotas couldn't cover the database and would break the app at the worst moment.
 
@@ -41,7 +41,7 @@ $ cipi disk --json       # for scripts (also: cipi disk db --json)
 
 | Usually | Do |
 | --- | --- |
-| Old releases | Keep fewer: `cipi app deploy-config myapp --keep-releases=3` |
+| Old releases | Keep fewer: `sudo cipi app deploy-config myapp --keep-releases=3` |
 | Local backups | Send them off-site and lower `--keep` ([backups](/docs/backups)) |
 | Logs | Rotated automatically ([log retention](/docs/log-retention)); check `storage/logs` for apps writing huge logs |
-| Databases | `cipi disk db`: prune old rows (Telescope, activity logs) |
+| Databases | `sudo cipi disk db`: prune old rows (Telescope, activity logs) |

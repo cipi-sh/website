@@ -8,7 +8,7 @@ $ git commit -am "Add Cipi Agent" && git push
 $ php artisan cipi:status        # after the next deploy
 ```
 
-On a Cipi server, `cipi app create` already wrote the `.env` variables the agent needs; the service provider auto-discovers. Health, MCP, `cipi.yml` validation and the anonymizer also work on any Laravel host.
+On a Cipi server, `sudo cipi app create` already wrote the `.env` variables the agent needs; the service provider auto-discovers. Health, MCP, `cipi.yml` validation and the anonymizer also work on any Laravel host.
 
 ## What you get {#features}
 

@@ -18,7 +18,7 @@ faq:
   - Which assistants work? | Any MCP client that speaks HTTP: Claude Code, Claude Desktop, Cursor, VS Code, Windsurf and others.
   - Can I limit what the assistant does on the server MCP? | Yes. Give its API token only the abilities it needs, for example read-only `apps-view` plus `deploy`, instead of full access.
   - Does the assistant run commands on my laptop or the server? | Only through the tools the MCP server exposes, over HTTPS, with your token. It can't open a shell.
-  - How do I revoke access? | Rotate the agent token (`php artisan cipi:generate-token mcp`) or delete the API token (`cipi api token revoke`). The old one stops working at once.
+  - How do I revoke access? | Rotate the agent token (`php artisan cipi:generate-token mcp`) or delete the API token (`sudo cipi api token revoke`). The old one stops working at once.
 docs:
   - mcp
   - agent-config
@@ -31,7 +31,7 @@ MCP (Model Context Protocol) lets an AI assistant call tools. Cipi ships two MCP
 | --- | --- | --- |
 | Endpoint | `https://shop.example.com/cipi/mcp` | `https://api.example.com/mcp` |
 | Scope | One app: health, logs, database, Artisan, deploy, `cipi.yml` | The server: apps, domains, SSL, databases, backups, PHP |
-| Installed with | `composer require cipi/agent` | `cipi api api.example.com` |
+| Installed with | `composer require cipi/agent` | `sudo cipi api api.example.com` |
 
 ## Key ideas, in plain words {#ideas}
 

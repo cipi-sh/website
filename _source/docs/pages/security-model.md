@@ -45,4 +45,4 @@ If one app is compromised (a vulnerable plugin, a leaked `.env`), the attacker g
 | Change the web server | Vhosts and pools are root-owned |
 | Reuse the deploy key elsewhere | One key per repository, read-only |
 
-> [!tip] Reboots after kernel updates are never automatic unless you enable [cipi reboot auto](/docs/stack-upgrades#reboot); `cipi pending` tells you when one is due.
+> [!tip] Reboots after kernel updates are never automatic unless you enable [cipi reboot auto](/docs/stack-upgrades#reboot); `sudo cipi pending` tells you when one is due.

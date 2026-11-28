@@ -15,7 +15,7 @@ faq:
   - Is the site down while a deploy fails? | No. The previous release keeps serving; the new one never goes live, and the lock is released.
   - What are the default limits? | 5 minutes for each step (clone, Composer, a migration, `optimize`), 30 minutes for the front-end build — for a Node app, 30 for the install and 30 for the build.
   - What are the maximums? | 1 hour for the build, 30 minutes for every other step. A deploy started from the panel, the API, cipi-cli or the SDK is followed for 2 hours in all.
-  - Where do I set them? | `cipi app deploy-config`, `deploy.build_timeout` and `deploy.step_timeout` in cipi.yml, the panel's Deploy pipeline, the API or the SDK.
+  - Where do I set them? | `sudo cipi app deploy-config`, `deploy.build_timeout` and `deploy.step_timeout` in cipi.yml, the panel's Deploy pipeline, the API or the SDK.
   - Does a custom app have limits? | It deploys with a `git pull`, with no steps to time.
   - What if a step fails? | Read the table below first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community.
 docs:
@@ -37,7 +37,7 @@ Every command of a deploy runs against a clock: a step that hangs — a migratio
 
 ## 1. Find the step {#find}
 
-`cipi deploy` names it, right under the failure:
+`sudo cipi deploy` names it, right under the failure:
 
 ```bash
 $ sudo cipi deploy shop
@@ -102,7 +102,7 @@ A build that can't finish in an hour on the server is better done elsewhere: run
 
 | Problem | Fix |
 | --- | --- |
-| The panel stopped following a deploy | It follows one for 2 hours; the deploy itself goes on. `cipi deploy shop --status` |
+| The panel stopped following a deploy | It follows one for 2 hours; the deploy itself goes on. `sudo cipi deploy shop --status` |
 | `--build-timeout` refused | 60 to 3600 seconds; `--step-timeout` 60 to 1800 |
-| The limit in cipi.yml is ignored | The file is applied with its plan: `cipi yml plan shop` shows whether it's pending, `cipi yml apply shop` applies it (or turn on auto-apply). A value outside the range blocks the plan |
-| The deploy is locked after the failure | It isn't: a timed-out deploy releases its lock. An interrupted one (reboot) does with `cipi deploy shop --unlock` |
+| The limit in cipi.yml is ignored | The file is applied with its plan: `sudo cipi yml plan shop` shows whether it's pending, `sudo cipi yml apply shop` applies it (or turn on auto-apply). A value outside the range blocks the plan |
+| The deploy is locked after the failure | It isn't: a timed-out deploy releases its lock. An interrupted one (reboot) does with `sudo cipi deploy shop --unlock` |

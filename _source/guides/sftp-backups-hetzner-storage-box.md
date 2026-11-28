@@ -14,7 +14,7 @@ related:
 faq:
   - Why SFTP instead of S3? | Price and simplicity. A Storage Box, or a small VPS with a big disk, often costs less per terabyte than object storage, and many people already have one. Cipi treats it like a bucket: same profiles, retention, encryption and restore.
   - Is a password stored anywhere? | No. Cipi makes an SSH key for the destination on the server and signs in with it. The box's password is typed once, by you, to install the key, and never given to Cipi.
-  - Can the Storage Box read my backups? | With `--encrypt`, archives are encrypted on the server before they leave: the box only holds encrypted files. Keep the key from `cipi backup key show` in your password manager.
+  - Can the Storage Box read my backups? | With `--encrypt`, archives are encrypted on the server before they leave: the box only holds encrypted files. Keep the key from `sudo cipi backup key show` in your password manager.
   - Can several servers share one box? | Yes. Give each server its own sub-account, or at least its own folder (`--path=cipi/web1`), so one server can't touch another's backups.
   - Does it work with a NAS or my own VPS? | Yes: anything that speaks SFTP with key authentication — OpenSSH on a VPS, Synology or QNAP, TrueNAS, rsync.net.
   - Can I add it from the web panel? | Yes. Server → Backups → *Add an SFTP server* (with a Storage Box preset) makes the key on the server and shows the command that installs it on the box. S3 buckets stay on the CLI, because they take a secret key.
@@ -113,7 +113,7 @@ $ sudo cipi backup fetch nightly 2026-11-28_020000 --dest=/root/restore
 $ sudo cipi db restore shop /root/restore/databases/mariadb/shop.sql.gz
 ```
 
-A backup you haven't restored is a hope. `cipi backup verify` checks every night that the newest run opens; a restore into a scratch folder now and then checks the rest.
+A backup you haven't restored is a hope. `sudo cipi backup verify` checks every night that the newest run opens; a restore into a scratch folder now and then checks the rest.
 
 ## Several servers, one box {#several}
 

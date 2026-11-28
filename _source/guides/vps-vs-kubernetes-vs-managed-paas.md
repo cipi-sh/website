@@ -14,11 +14,11 @@ related:
 faq:
   - Is a VPS always cheaper? | For steady traffic, almost always: one price covers app, database, cache and bandwidth. For apps that are idle most of the time, or whose peaks are many times their average, usage billing with scale-to-zero can win. The [elasticity test](#elasticity) tells you which case you're in.
   - Isn't my time more expensive than the price difference? | Sometimes. That's why the first test in this guide converts the premium into hours. If the managed platform doesn't save you that many hours a month, the premium isn't buying time.
-  - What if the VPS provider raises its prices? | It happens: Hetzner raised cloud prices twice in 2026. The difference is that a VPS price is one number, announced in advance, and Cipi is the same on every provider, so moving is a `cipi sync` away.
+  - What if the VPS provider raises its prices? | It happens: Hetzner raised cloud prices twice in 2026. The difference is that a VPS price is one number, announced in advance, and Cipi is the same on every provider, so moving is a `sudo cipi sync` away.
   - Do spending limits fix unpredictable bills? | They cap the bill, not the cause. When the cap is hit, the app degrades or stops, which is what a VPS does at full capacity, but you've paid more per unit of capacity up to that point.
   - Should a Laravel monolith run on Kubernetes? | Rarely on its own. Kubernetes pays off when many services and teams share a platform that someone already operates. For one app with queues and a scheduler, it's mostly overhead.
   - Can I mix them? | Yes. Common mixes: Cipi for production with a managed database for the data, Cipi for Laravel apps next to a Kubernetes platform for other services, or a managed platform for previews and Cipi for production.
-  - Does Cipi do autoscaling or high availability? | No autoscaling: you size the server. For availability: monitoring, health checks with auto-rollback, verified backups and a warm standby with `cipi sync`. If you need multi-zone failover without thinking about it, a managed platform is the better fit.
+  - Does Cipi do autoscaling or high availability? | No autoscaling: you size the server. For availability: monitoring, health checks with auto-rollback, verified backups and a warm standby with `sudo cipi sync`. If you need multi-zone failover without thinking about it, a managed platform is the better fit.
 docs:
   - vs-alternatives
   - design-decisions
@@ -73,7 +73,7 @@ Many managed platforms are Kubernetes underneath (Ploi Cloud, for example, deplo
 | Backups | Built in: encrypted, verified, off-site | Vendor (check retention and restore options) | You choose and run a tool |
 | Monitoring and alerts | Built in: monitor, health checks, metrics, heartbeat | Vendor dashboards | You install a stack |
 | Scaling | You resize or add servers | Automatic | Automatic, after you tune it |
-| Failover across zones | You plan it (warm standby with `cipi sync`) | Vendor, on higher plans | You design it |
+| Failover across zones | You plan it (warm standby with `sudo cipi sync`) | Vendor, on higher plans | You design it |
 | Incident at 3 a.m. on the infrastructure | **You** | Vendor (and you, waiting) | **You** |
 | Bugs, slow queries, bad deploys | You | You | You |
 | Security of your code | You | You | You |
@@ -109,7 +109,7 @@ Fixed isn't frozen either: [Hetzner raised its cloud prices](https://docs.hetzne
 
 **Every decision stops being a pricing decision.** Add a queue worker, keep logs longer, cache more, run a nightly report: on a fixed bill you decide on technical grounds. On a variable bill each choice is also a cost forecast.
 
-**Leaving stays cheap.** A Cipi server is standard Ubuntu with standard packages; another provider is one [`cipi sync`](/guides/migrate-server-cipi-sync) away. Once an app depends on a platform's serverless database, managed queues and storage, leaving costs engineering time, and that cost belongs in the comparison.
+**Leaving stays cheap.** A Cipi server is standard Ubuntu with standard packages; another provider is one [`sudo cipi sync`](/guides/migrate-server-cipi-sync) away. Once an app depends on a platform's serverless database, managed queues and storage, leaving costs engineering time, and that cost belongs in the comparison.
 
 ## Three tests: what must a variable bill buy you? {#tests}
 
@@ -155,7 +155,7 @@ Two corrections make the test fairer. A Cipi server hosts many apps for one pric
 justified if  12 × P  ≤  (cost of one hour down) × (hours of downtime it avoids per year)
 ```
 
-With P = €200 (€2,400 a year) and an hour of downtime costing you €300, the platform must avoid **8 hours of downtime a year** that you would otherwise have. Compare like with like: single-server commitments from VPS providers commonly sit between 99.5% and 99.99% (Hetzner's is 99.9%, about 8.8 hours a year), so check what the managed platform commits to on the plan you'd actually buy. What changes the number more is your **recovery time**: on Cipi, health checks with automatic rollback undo a bad release in seconds, the [monitor](/docs/monitor) and the [heartbeat](/docs/metrics#heartbeat) tell you the server is in trouble, and a warm standby fed by `cipi sync` every few hours is a DNS change away.
+With P = €200 (€2,400 a year) and an hour of downtime costing you €300, the platform must avoid **8 hours of downtime a year** that you would otherwise have. Compare like with like: single-server commitments from VPS providers commonly sit between 99.5% and 99.99% (Hetzner's is 99.9%, about 8.8 hours a year), so check what the managed platform commits to on the plan you'd actually buy. What changes the number more is your **recovery time**: on Cipi, health checks with automatic rollback undo a bad release in seconds, the [monitor](/docs/monitor) and the [heartbeat](/docs/metrics#heartbeat) tell you the server is in trouble, and a warm standby fed by `sudo cipi sync` every few hours is a DNS change away.
 
 If your downtime costs thousands per hour and you need multi-zone failover without designing it yourself, test 3 says "managed", and you should listen.
 
@@ -196,7 +196,7 @@ Cipi deliberately doesn't use containers on the server ([why](/docs/design-decis
 | "Nobody here will ever SSH into a server" | Managed platform |
 | "Two days a year we get 40× the traffic" | Managed platform, or Cipi with a planned resize |
 | "We have a platform team and 50 microservices" | Kubernetes, with Laravel apps on it or next to it |
-| "We need a SOC 2 report from our hosting vendor" | Managed platform, or a certified provider for the VPS plus [`cipi compliance`](/docs/compliance) evidence for your own controls |
+| "We need a SOC 2 report from our hosting vendor" | Managed platform, or a certified provider for the VPS plus [`sudo cipi compliance`](/docs/compliance) evidence for your own controls |
 
 Mixes that work well:
 
@@ -219,8 +219,8 @@ Mixes that work well:
 | **Configuration as code** | [`cipi.yml`](/cipi-yml) keeps workers, cron, domains and backups in the repository, planned and applied all or nothing |
 | **Security on autopilot** | Nightly PHP and stack patches, firewall, Fail2ban, optional CrowdSec and malware scans, encrypted secrets |
 | **Operations included** | Encrypted, verified backups; monitor, health checks and [metrics](/guides/cipi-metrics-server-app-uptime); alerts on Slack, Telegram, e-mail and more |
-| **Evidence for audits** | A hash-chained deploy ledger and [`cipi compliance`](/docs/compliance) mapped to ISO 27001 and SOC 2 |
-| **Portable** | Any provider, any region; move with `cipi sync` |
+| **Evidence for audits** | A hash-chained deploy ledger and [`sudo cipi compliance`](/docs/compliance) mapped to ISO 27001 and SOC 2 |
+| **Portable** | Any provider, any region; move with `sudo cipi sync` |
 | **Automation and AI** | CLI, REST API, PHP SDK, cipi-cli and MCP servers with guardrails |
 
 And what you give up, so the comparison stays fair: no autoscaling, no vendor to call at 3 a.m., Ubuntu LTS only, and the server is yours to own.

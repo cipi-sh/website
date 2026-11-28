@@ -103,13 +103,13 @@ Every Coolify feature you use today, and its place in Cipi. Use it as your migra
 
 | In Coolify | In Cipi | Docs |
 | --- | --- | --- |
-| Application (Nixpacks/Dockerfile) | `cipi app create` (native build) | [Create an app](/docs/create-app) |
-| Environment variables | `cipi app env` | [Environment](/docs/environment) |
-| Database resource | `cipi db` (MariaDB, PostgreSQL) | [Databases](/docs/databases) |
-| Scheduled database backups | `cipi backup` profiles to S3 | [Backups](/docs/backups) |
+| Application (Nixpacks/Dockerfile) | `sudo cipi app create` (native build) | [Create an app](/docs/create-app) |
+| Environment variables | `sudo cipi app env` | [Environment](/docs/environment) |
+| Database resource | `sudo cipi db` (MariaDB, PostgreSQL) | [Databases](/docs/databases) |
+| Scheduled database backups | `sudo cipi backup` profiles to S3 | [Backups](/docs/backups) |
 | Persistent storage / volumes | `/home/<app>/shared/storage` | [Deploying](/docs/deploying) |
-| Worker / scheduler containers | `cipi worker add`, scheduler built in | [Workers](/docs/workers) |
-| Proxy and certificates | Nginx + `cipi ssl install` | [SSL](/docs/ssl) |
+| Worker / scheduler containers | `sudo cipi worker add`, scheduler built in | [Workers](/docs/workers) |
+| Proxy and certificates | Nginx + `sudo cipi ssl install` | [SSL](/docs/ssl) |
 | Services catalogue | Meilisearch, Valkey, PostgreSQL, packages | [Services](/docs/services) |
 
 ## Moving to Cipi, step by step {#move}

@@ -16,7 +16,7 @@ faq:
   - Do I need the ngx_cache_purge module? | No. Cipi finds a page's cached files by the request name Nginx writes in each of them, and deletes them as Nginx's user. The Nginx Ubuntu ships is enough.
   - Will a signed-in user ever see someone else's page? | No. A session or login cookie bypasses the cache in both directions, as do the admin, POST requests, carts and query strings.
   - How long should pages be kept? | 10 minutes without a purge on change; hours with the WordPress plugin or cipi/cache, since an edit no longer waits for expiry.
-  - Does it replace Cloudflare's cache? | It's the one on your server; Cloudflare's sits in front. `cipi zt purge` empties Cloudflare's after a deploy; for single pages, purge both.
+  - Does it replace Cloudflare's cache? | It's the one on your server; Cloudflare's sits in front. `sudo cipi zt purge` empties Cloudflare's after a deploy; for single pages, purge both.
   - Can I purge from CI or from another server? | Yes: over SSH as the app's user (`sudo /usr/local/bin/cipi-cache-clear app /page/`), or through the API (`POST /api/apps/{name}/cache/purge`) with an `nginx-manage` token.
   - What if a step fails? | Read the troubleshooting table below first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 docs:
@@ -147,7 +147,7 @@ The app's user may run `cipi-cache-clear` for its own app only, without a passwo
 
 ## 6. Behind Cloudflare {#cloudflare}
 
-Two caches in a row: Cloudflare's in front, Nginx's on the server. Cloudflare caches HTML only if you tell it to. If you do, purge there too — `cipi zt purge blog --on-deploy=on` empties Cloudflare's after every deploy ([Cloudflare's cache](/docs/zero-trust#purge)); for single pages, Cloudflare's own purge by URL.
+Two caches in a row: Cloudflare's in front, Nginx's on the server. Cloudflare caches HTML only if you tell it to. If you do, purge there too — `sudo cipi zt purge blog --on-deploy=on` empties Cloudflare's after every deploy ([Cloudflare's cache](/docs/zero-trust#purge)); for single pages, Cloudflare's own purge by URL.
 
 ## Troubleshooting {#troubleshooting}
 
@@ -156,6 +156,6 @@ Two caches in a row: Cloudflare's in front, Nginx's on the server. Cloudflare ca
 | Always `MISS` | A cookie is set on every response (a plugin, a session): find it with `curl -sI`. Laravel: the route needs `cipi.cache` |
 | Always `BYPASS` | A query string, a login cookie, an admin path or one of the app's excluded paths |
 | An edit doesn't show | `HIT` on the old page: purge it, or install the plugin / package |
-| `Not a page of 'blog'` | The URL's host isn't a domain or alias of the app: `cipi alias add` |
+| `Not a page of 'blog'` | The URL's host isn't a domain or alias of the app: `sudo cipi alias add` |
 | `sudo: a password is required` | The app predates purging by page: `sudo cipi self-update` adds the rule |
 | `purged: 0` | The page wasn't cached (yet, or any more) — not an error |

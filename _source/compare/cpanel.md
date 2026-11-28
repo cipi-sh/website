@@ -114,14 +114,14 @@ Every cPanel feature you use today, and its place in Cipi. Use it as your migrat
 | In cPanel | In Cipi | Docs |
 | --- | --- | --- |
 | cPanel account | One Cipi app per site, each with its own Linux user | [App SSH](/docs/app-ssh) |
-| Addon domains / aliases | `cipi alias add` | [Domains](/docs/domains) |
-| MySQL databases | `cipi db create`, `cipi db restore` | [Databases](/docs/databases) |
+| Addon domains / aliases | `sudo cipi alias add` | [Domains](/docs/domains) |
+| MySQL databases | `sudo cipi db create`, `sudo cipi db restore` | [Databases](/docs/databases) |
 | phpMyAdmin | TablePlus/DBeaver over SSH (`mariadb+ssh://`) | [Databases](/docs/databases) |
 | Cron jobs | Laravel scheduler; app user's crontab |  |
-| SSL/TLS (AutoSSL) | `cipi ssl install` | [SSL](/docs/ssl) |
-| Backup Wizard | `cipi backup` to S3 | [Backups](/docs/backups) |
+| SSL/TLS (AutoSSL) | `sudo cipi ssl install` | [SSL](/docs/ssl) |
+| Backup Wizard | `sudo cipi backup` to S3 | [Backups](/docs/backups) |
 | Git Version Control | Webhook deploys with releases | [Auto-deploy](/docs/auto-deploy) |
-| MultiPHP Manager | `--php`, `cipi php` | [PHP](/docs/php) |
+| MultiPHP Manager | `--php`, `sudo cipi php` | [PHP](/docs/php) |
 | Email accounts | Not included | Use a mail provider |
 | Zone editor | Not included | Use your DNS provider |
 

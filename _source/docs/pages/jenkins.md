@@ -12,7 +12,7 @@ Trigger | Git notifies Jenkins | #trigger
 Webhook off | one trigger per app | #webhook-off
 > Turn the Cipi webhook off for the app, so the push doesn't also deploy directly.
 First run | push and watch | #verify
-> Push a small change and follow it in Jenkins and with `cipi deploy shop --status`.
+> Push a small change and follow it in Jenkins and with `sudo cipi deploy shop --status`.
 ```
 
 ## What you need {#requirements}
@@ -21,7 +21,7 @@ First run | push and watch | #verify
 | --- | --- |
 | Jenkins | A Pipeline or **Multibranch Pipeline** job, the **SSH Agent** plugin (for the SSH way) and the **Credentials Binding** plugin (installed with the suggested plugins) |
 | Jenkins agent | `ssh` and `curl`; for the API way, [`cipi-cli`](/docs/cli-client); for the test stage, PHP and Composer or Docker |
-| Cipi server | Port 22 open to Jenkins (SSH way) or [`cipi api`](/docs/api) installed (API way) |
+| Cipi server | Port 22 open to Jenkins (SSH way) or [`sudo cipi api`](/docs/api) installed (API way) |
 
 ## 1. Credentials {#credentials}
 
@@ -149,8 +149,8 @@ Otherwise every push deploys twice: once directly through the app's webhook, onc
 
 ```bash
 # push a small change to main, then on the server:
-$ cipi deploy shop --status      # running, queued or idle
-$ cipi deploy shop --audit       # origin "cipi-cli" (SSH) or "panel" (API)
+$ sudo cipi deploy shop --status  # running, queued or idle
+$ sudo cipi deploy shop --audit  # origin "cipi-cli" (SSH) or "panel" (API)
 ```
 
 ## A rollback button {#rollback-job}

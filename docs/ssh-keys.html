@@ -206,22 +206,22 @@
 <section class="doc-section" id="cli-ssh">
 <p>The <code>cipi</code> user is the admin entry point: <strong>key-only</strong>, no passwords, no root login. Manage its keys from the CLI, with guards against locking yourself out.</p>
 <h2 id="keys">Admin keys<a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi ssh list<span class="c">                         # keys, fingerprints, current-session marker</span>
-<span class="p"></span>cipi ssh add "ssh-ed25519 AAAA… john@laptop"
-<span class="p"></span>cipi ssh rename 2 "john-macbook"
-<span class="p"></span>cipi ssh remove 2</pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi ssh list<span class="c">                    # keys, fingerprints, current-session marker</span>
+<span class="p"></span>sudo cipi ssh add "ssh-ed25519 AAAA… john@laptop"
+<span class="p"></span>sudo cipi ssh rename 2 "john-macbook"
+<span class="p"></span>sudo cipi ssh remove 2</pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Guard</th><th>Effect</th></tr></thead><tbody><tr><td>Format validation, duplicate check</td><td>No broken or repeated keys</td></tr><tr><td>Current-session protection</td><td>You can't remove the key you're logged in with</td></tr><tr><td>Last-key protection</td><td>You can't remove the last key</td></tr><tr><td>Alerts</td><td>Every add, remove, rename notified with fingerprint and remaining count</td></tr></tbody></table></div>
 <p>Also via REST (<code>GET|POST /api/ssh/keys</code>) and the panel.</p>
 </section>
 <section class="doc-section" id="cli-ssh-apps">
 <h2 id="cli-ssh-apps">App users' SSH and SFTP<a class="anchor" href="#cli-ssh-apps" aria-label="Link to this section">#</a></h2>
 <p>Each app user can log in with its own password and keys; the server's admin keys always work for every app (<code>ssh shop@server</code> with your usual key). Decide per app, or for all of them, whether more is allowed from outside:</p>
-<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>cipi ssh apps<span class="c">                    # every app: enabled or disabled</span>
-<span class="p"></span>cipi ssh apps disable shop<span class="c">       # from outside: admin keys only</span>
-<span class="p"></span>cipi ssh apps enable shop<span class="c">        # also its password and its own keys</span>
-<span class="p"></span>cipi ssh apps disable --all<span class="c">      # every app, and new apps from now on</span></pre></div>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi ssh apps<span class="c">               # every app: enabled or disabled</span>
+<span class="p"></span>sudo cipi ssh apps disable shop<span class="c">  # from outside: admin keys only</span>
+<span class="p"></span>sudo cipi ssh apps enable shop<span class="c">   # also its password and its own keys</span>
+<span class="p"></span>sudo cipi ssh apps disable --all<span class="c">  # every app, and new apps from now on</span></pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>State</th><th>From another machine</th><th>From the server (deploys)</th></tr></thead><tbody><tr><td>Enabled</td><td>Admin keys, app password, app's own keys</td><td>Unchanged</td></tr><tr><td>Disabled</td><td>Admin keys only</td><td>Unchanged</td></tr></tbody></table></div>
-<p>New servers create apps <strong>disabled</strong> (safer for agencies handing out SFTP rarely). Changes are validated with <code>sshd -t</code> on a copy and applied with a reload, so a bad config never replaces the live one. Removing a key with <code>cipi ssh remove</code> revokes it for every app at once.</p>
+<p>New servers create apps <strong>disabled</strong> (safer for agencies handing out SFTP rarely). Changes are validated with <code>sshd -t</code> on a copy and applied with a reload, so a bad config never replaces the live one. Removing a key with <code>sudo cipi ssh remove</code> revokes it for every app at once.</p>
 </section>
 
 </div>

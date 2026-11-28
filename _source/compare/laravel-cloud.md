@@ -17,7 +17,7 @@ choose_them:
   - You need autoscaling or scale-to-zero
 faq:
   - Is a VPS cheaper than Laravel Cloud? | For steady traffic, usually yes: one fixed price covers app, database and cache. For very spiky or idle apps, scale-to-zero can win.
-  - How do I export my database? | Use the connection details from the dashboard with `pg_dump` or `mysqldump`, then `cipi db restore`.
+  - How do I export my database? | Use the connection details from the dashboard with `pg_dump` or `mysqldump`, then `sudo cipi db restore`.
   - Do I lose preview environments? | You can rebuild them with CI and a wildcard domain: [guide](/guides/laravel-preview-environments).
   - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
   - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
@@ -94,7 +94,7 @@ Laravel Cloud is a fully managed platform from the Laravel team. You connect a r
 
 **Root access.** Install what you need, read any log, tune PHP and Nginx.
 
-**No lock-in.** A standard Ubuntu stack on any provider; move with `cipi sync`.
+**No lock-in.** A standard Ubuntu stack on any provider; move with `sudo cipi sync`.
 
 **Same Laravel features.** Octane, Horizon, Reverb, Meilisearch, scheduler, health checks and rollback.
 
@@ -104,12 +104,12 @@ Every Laravel Cloud feature you use today, and its place in Cipi. Use it as your
 
 | In Laravel Cloud | In Cipi | Docs |
 | --- | --- | --- |
-| Application / environment | `cipi app create` (one app per environment) | [Create an app](/docs/create-app) |
-| Environment variables | `cipi app env` | [Environment](/docs/environment) |
-| Serverless Postgres / MySQL | `cipi db` (PostgreSQL or MariaDB) on the server | [Databases](/docs/databases) |
+| Application / environment | `sudo cipi app create` (one app per environment) | [Create an app](/docs/create-app) |
+| Environment variables | `sudo cipi app env` | [Environment](/docs/environment) |
+| Serverless Postgres / MySQL | `sudo cipi db` (PostgreSQL or MariaDB) on the server | [Databases](/docs/databases) |
 | Valkey cache | Per-app Valkey | [Valkey](/docs/valkey) |
 | Object storage | Keep your S3 bucket, or any S3-compatible provider |  |
-| Workers | `cipi worker add`, Horizon | [Workers](/docs/workers) |
+| Workers | `sudo cipi worker add`, Horizon | [Workers](/docs/workers) |
 | Scheduler | On by default |  |
 | Preview environments | CI + wildcard domain | [Guide](/guides/laravel-preview-environments) |
 

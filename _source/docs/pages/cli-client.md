@@ -4,7 +4,7 @@
 
 <cipi-term name="cli-client"></cipi-term>
 
-> [!info] Each server needs [`cipi api`](/docs/api) installed, and a token from `cipi api token create`.
+> [!info] Each server needs [`sudo cipi api`](/docs/api) installed, and a token from `sudo cipi api token create`.
 
 ## Install {#install}
 
@@ -310,7 +310,7 @@ $ cipi-cli backup destination add offsite --bucket acme-offsite --key AKIA… --
 | `php list` | Installed versions, FPM status, default; legacy versions marked |
 | `php install <version>` | `8.3`, `8.4`, `8.5` or `8.6` (async job) |
 
-Switching the default and removing versions stay on the server (`cipi php switch|remove`).
+Switching the default and removing versions stay on the server (`sudo cipi php switch|remove`).
 
 ## `octane` {#octane}
 
@@ -355,7 +355,7 @@ Needs the `php-view` / `php-manage` abilities.
 | `valkey restart <app>` | Restart an app's instance |
 | `valkey flush-shared` | Once nobody uses it: empty the shared instance and change its password |
 
-No password travels through the API: the new shared one stays on the server (`cipi credentials`). Needs the `services-view` / `services-manage` abilities.
+No password travels through the API: the new shared one stays on the server (`sudo cipi credentials`). Needs the `services-view` / `services-manage` abilities.
 
 @section cli-smtp
 
@@ -520,7 +520,7 @@ $ cipi-cli disk
 $ cipi-cli disk db          # every database, in MB
 ```
 
-Same figures as [`cipi disk`](/docs/disk). Sizes are measured on request (up to three minutes). LIMIT is the soft limit from [`cipi app limits`](/docs/limits): alerts only.
+Same figures as [`sudo cipi disk`](/docs/disk). Sizes are measured on request (up to three minutes). LIMIT is the soft limit from [`sudo cipi app limits`](/docs/limits): alerts only.
 
 @section cli-jobs
 
@@ -581,4 +581,4 @@ $ cipi-cli apps list --json | jq '.[].name'
 | `zt join/leave/lock/unlock/ssh` | `zt-manage` (`zt` alone: `zt-view`) |
 | `status`, `disk`, insights | `status-view`, `disk-view`, `*-view` |
 
-Simplest: `cipi api token create --name=laptop --full-access`. Keep server and API current with `cipi self-update` so every command is available.
+Simplest: `sudo cipi api token create --name=laptop --full-access`. Keep server and API current with `sudo cipi self-update` so every command is available.

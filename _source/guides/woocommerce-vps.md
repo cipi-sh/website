@@ -20,13 +20,13 @@ related:
   - php-ecommerce-vps
   - backup-vps-s3
 faq:
-  - How big a server do I need? | For a small shop with up to a few hundred orders a day, 2 GB of RAM and 2 vCPU are comfortable. Large catalogues, many concurrent shoppers or heavy plugins need 4 GB or more. Watch `cipi status` and add RAM before CPU.
+  - How big a server do I need? | For a small shop with up to a few hundred orders a day, 2 GB of RAM and 2 vCPU are comfortable. Large catalogues, many concurrent shoppers or heavy plugins need 4 GB or more. Watch `sudo cipi status` and add RAM before CPU.
   - Can WooCommerce share the server with my Laravel apps? | Yes. Each app runs as its own Linux user with its own PHP pool and `open_basedir`, so a vulnerable plugin can't read the other apps' files.
   - Why disable WP-Cron? | WP-Cron only runs when someone visits the site. Orders, stock holds, subscription renewals and webhooks scheduled by Action Scheduler can wait or pile up. A real cron runs them every minute, whatever the traffic.
-  - Which payment plugins work? | All of them: the server doesn't restrict outgoing HTTPS. Make sure the shop is on HTTPS (`cipi ssl force`) before you enable live payments, and keep test keys on staging.
-  - How do I update plugins safely? | On the staging copy first, then on production right after a fresh database backup (`cipi db backup shop`). Cipi patches PHP itself every night; plugins and WordPress core are updated by you from the dashboard.
-  - Does Cipi have a page cache like Varnish? | Yes: `cipi cache shop on` turns on Nginx's own page cache. Catalogue pages are answered without running PHP; the cart, the checkout, the account and every signed-in visitor are never cached. No plugin needed.
-  - What if the shop gets hacked? | Restore files and database from the last clean backup, rotate passwords (`cipi db password shop`), update every plugin, and run `cipi scan shop`. Backups every 30 minutes keep the loss small.
+  - Which payment plugins work? | All of them: the server doesn't restrict outgoing HTTPS. Make sure the shop is on HTTPS (`sudo cipi ssl force`) before you enable live payments, and keep test keys on staging.
+  - How do I update plugins safely? | On the staging copy first, then on production right after a fresh database backup (`sudo cipi db backup shop`). Cipi patches PHP itself every night; plugins and WordPress core are updated by you from the dashboard.
+  - Does Cipi have a page cache like Varnish? | Yes: `sudo cipi cache shop on` turns on Nginx's own page cache. Catalogue pages are answered without running PHP; the cart, the checkout, the account and every signed-in visitor are never cached. No plugin needed.
+  - What if the shop gets hacked? | Restore files and database from the last clean backup, rotate passwords (`sudo cipi db password shop`), update every plugin, and run `sudo cipi scan shop`. Backups every 30 minutes keep the loss small.
   - Can I send order e-mails from the server? | Send them through an SMTP or API provider (Postmark, Mailgun, SES, Brevo…) with an SMTP plugin. Direct mail from a VPS usually lands in spam, and many providers block port 25.
 ---
 WooCommerce turns WordPress into a shop. A shop is more demanding than a blog: orders arrive all day, payment webhooks must never be missed, and losing a day of data means losing orders. This guide sets up a WooCommerce shop on your own server with Cipi, from an empty VPS to a protected, backed-up store, explaining each step.

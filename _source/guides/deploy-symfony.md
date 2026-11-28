@@ -94,4 +94,4 @@ Everything else (firewall, PHP patches, monitoring) is server-wide and already o
 | --- | --- |
 | 500 with no details | Check `var/log/prod.log`; `APP_ENV=prod` hides errors on screen |
 | Database connection refused | Wrong `DATABASE_URL`; MariaDB on 3306 or PostgreSQL on 5432, both localhost |
-| Cache permission errors | `var/` must belong to the app user: `cipi app fix-permissions billing` |
+| Cache permission errors | `var/` must belong to the app user: `sudo cipi app fix-permissions billing` |

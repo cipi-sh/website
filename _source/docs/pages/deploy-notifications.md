@@ -5,10 +5,10 @@ Know about every deploy, success or failure, without watching logs. The simplest
 ## From the server (recommended) {#server}
 
 ```bash
-$ cipi notification add slack ops --url=https://hooks.slack.com/services/…
-$ cipi notification add telegram team --token=<bot-token> --chat-id=<chat-id>
-$ cipi notification test
-$ cipi notification events team deploy        # only deploys to the team's chat
+$ sudo cipi notification add slack ops --url=https://hooks.slack.com/services/…
+$ sudo cipi notification add telegram team --token=<bot-token> --chat-id=<chat-id>
+$ sudo cipi notification test
+$ sudo cipi notification events team deploy   # only deploys to the team's chat
 ```
 
 | Event | Sent when |
@@ -21,7 +21,7 @@ Messages include app, branch, release, commit and author, duration and health ve
 
 ## From CI {#ci}
 
-When the message should come from the pipeline (with the CI run link), add a step after `cipi deploy`:
+When the message should come from the pipeline (with the CI run link), add a step after `sudo cipi deploy`:
 
 ```yaml
 # GitHub Actions, after the deploy step

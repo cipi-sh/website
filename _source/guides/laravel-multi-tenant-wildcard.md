@@ -143,7 +143,7 @@ The certificate needs a plan. An app has one certificate; with a wildcard issued
 | Approach | How | Good for |
 | --- | --- | --- |
 | **Cloudflare for SaaS** (recommended) | Customers CNAME to a hostname you proxy; Cloudflare issues each customer's certificate at the edge; your origin keeps its wildcard and Full (strict) | Many customers, self-service |
-| **Separate app for custom domains** | A second Cipi app from the same repository, pointed at the same database, with the customer names as aliases and an HTTP-01 certificate (`cipi ssl install`) | A handful of customers, no Cloudflare |
+| **Separate app for custom domains** | A second Cipi app from the same repository, pointed at the same database, with the customer names as aliases and an HTTP-01 certificate (`sudo cipi ssl install`) | A handful of customers, no Cloudflare |
 | **No wildcard** | List every tenant subdomain and custom domain as aliases, HTTP-01, up to 100 names per certificate | Few, known tenants |
 
 Automate whichever you pick from your app with the [Cipi API](/docs/api) when a customer saves the domain (`POST /api/apps/{name}/aliases`, then `POST /api/apps/{name}/ssl`).
@@ -169,7 +169,7 @@ For the last two, create apps through the API from your signup flow (`POST /api/
 | --- | --- |
 | `ERR_TOO_MANY_REDIRECTS` | Cloudflare SSL/TLS is Flexible: set Full (strict) |
 | 525 SSL handshake failed | The name has no alias or certificate yet |
-| 526 Invalid SSL certificate | Certificate doesn't cover the name: `cipi ssl status`, reissue |
+| 526 Invalid SSL certificate | Certificate doesn't cover the name: `sudo cipi ssl status`, reissue |
 | `a.b.yourapp.com` fails | One-level wildcard only: keep tenants one label deep |
 | Every subdomain shows the same tenant | Middleware reads the wrong part of the host; log `$request->getHost()` |
 | Unknown subdomain shows another site | It can't: unknown hosts are closed by Cipi's default server |

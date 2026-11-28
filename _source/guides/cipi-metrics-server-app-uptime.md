@@ -17,7 +17,7 @@ faq:
   - Does any data leave the server? | No. The heartbeat calls a URL of yours, and OpenMetrics is served only if you enable it, behind an IP allowlist and a token.
   - Is the uptime the same as an external monitor's? | Not exactly: the probe runs on the server itself, so it can't see a network or DNS problem between your users and the server. Pair it with the heartbeat and, for public services, an external monitor.
   - Why is there a gap in the chart? | The collector didn't run in those minutes: the server was off or rebooting, or metrics were disabled. If you didn't expect it, the heartbeat should have told you.
-  - Can I keep data longer? | Yes: up to 90 days of minutes, 400 days of rollups and 730 days of events (`cipi metrics retention`). Or scrape it into your Prometheus.
+  - Can I keep data longer? | Yes: up to 90 days of minutes, 400 days of rollups and 730 days of events (`sudo cipi metrics retention`). Or scrape it into your Prometheus.
   - Does it replace an APM or an error tracker? | No. Metrics see the app from the outside (CPU, memory, requests, 5xx, pool usage). For slow routes and queries use Laravel Pulse or Telescope; for exceptions, [Boogle](/guides/boogle-laravel-monitoring) or a similar tracker.
 docs:
   - metrics
@@ -75,7 +75,7 @@ $ sudo cipi metrics               # now, last hour, uptime per app
 | **Load (1 min)** | Processes running or waiting for CPU or disk | Above the number of cores for long; the monitor alerts at 4× the cores for two runs in a row |
 | **Memory % and MB** | RAM in use, without cache | High *and* swap rising |
 | **Swap %** | Memory pushed to disk | Any steady growth on a PHP server: too many FPM children or workers for the RAM |
-| **Disk % of `/`** | The root filesystem | The monitor warns at 80% and goes critical at 90%; `cipi disk` says who uses it |
+| **Disk % of `/`** | The root filesystem | The monitor warns at 80% and goes critical at 90%; `sudo cipi disk` says who uses it |
 | **Network in / out** | Bytes per second | Sudden outbound spikes: a crawler, a big export, or something that shouldn't be there |
 
 Load and CPU together tell a story: high load with low CPU usually means processes are **waiting for disk**, not computing. On a database-heavy app, look at the slow queries before buying a bigger server.
@@ -114,7 +114,7 @@ $ sudo cipi app limits shop --fpm-max-children=20       # if RAM allows
 
 ## Uptime {#uptime}
 
-When an app has a health URL ([`cipi health set`](/docs/health-checks)), the collector calls it every minute and keeps the status code and response time.
+When an app has a health URL ([`sudo cipi health set`](/docs/health-checks)), the collector calls it every minute and keeps the status code and response time.
 
 ```bash
 $ sudo cipi health set shop --url=https://shop.example.com/up --expect=200
@@ -161,13 +161,13 @@ In the panel, events are the dotted vertical lines on every chart: blue for rele
 
 | Symptom | Look at | Likely cause | Next step |
 | --- | --- | --- | --- |
-| 5xx jump right after a release marker | App 5xx, events | The release | `sudo cipi deploy shop --rollback`, then read `cipi app logs shop --type=laravel` |
+| 5xx jump right after a release marker | App 5xx, events | The release | `sudo cipi deploy shop --rollback`, then read `sudo cipi app logs shop --type=laravel` |
 | Site slow, app CPU high, pool at the cap | App CPU, `max_children` hits | CPU-bound code or a traffic spike | Compare requests/min with last week; profile; resize if it's real traffic |
 | Site slow, app CPU low, pool at the cap | `max_children` hits, server load | Workers waiting on the database or an API | Slow query log, timeouts on outgoing calls |
-| Memory climbs for days, swap grows | App memory, server swap | Too many workers for the RAM, or a leaking worker | Fewer workers (`cipi app limits --worker-procs`); let leaking workers restart (`maxJobs` / `maxTime` in Horizon, `--max-jobs` / `--max-time` on `queue:work`) |
-| Queue workers below configured | Queue workers | A worker crashing on start | `cipi app logs shop --type=worker` |
-| Uptime red, server and app metrics normal | Healthcheck status code | A dependency the health URL checks, or the certificate | Open the URL; `cipi health check shop` |
-| One app's CPU high, others slow | Every app's CPU on the server tab | A noisy neighbour | Limits: `cipi app limits` ([docs](/docs/limits)), or move it with `cipi sync` |
+| Memory climbs for days, swap grows | App memory, server swap | Too many workers for the RAM, or a leaking worker | Fewer workers (`sudo cipi app limits --worker-procs`); let leaking workers restart (`maxJobs` / `maxTime` in Horizon, `--max-jobs` / `--max-time` on `queue:work`) |
+| Queue workers below configured | Queue workers | A worker crashing on start | `sudo cipi app logs shop --type=worker` |
+| Uptime red, server and app metrics normal | Healthcheck status code | A dependency the health URL checks, or the certificate | Open the URL; `sudo cipi health check shop` |
+| One app's CPU high, others slow | Every app's CPU on the server tab | A noisy neighbour | Limits: `sudo cipi app limits` ([docs](/docs/limits)), or move it with `sudo cipi sync` |
 | Gap in every chart | Nothing recorded | The server was down or rebooting | Check the heartbeat service's history and `uptime` |
 | Disk % climbing steadily | Server disk | Logs, local backups, uploads | `sudo cipi disk`, then [exclude big folders](/guides/exclude-files-from-backups) from local backups |
 

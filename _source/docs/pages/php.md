@@ -7,11 +7,11 @@ Run several PHP versions side by side, give each app its own, and keep all of th
 ## Versions {#versions}
 
 ```bash
-$ cipi php list                # versions, patch level, security state, default
-$ cipi php install 8.4         # add a version (8.3–8.6)
-$ cipi php switch 8.6          # server default (CLI, panel pools)
-$ cipi php remove 8.1          # refused while it's the default or an app uses it
-$ cipi app edit myapp --php=8.6  # move one app, zero downtime
+$ sudo cipi php list           # versions, patch level, security state, default
+$ sudo cipi php install 8.4    # add a version (8.3–8.6)
+$ sudo cipi php switch 8.6     # server default (CLI, panel pools)
+$ sudo cipi php remove 8.1     # refused while it's the default or an app uses it
+$ sudo cipi app edit myapp --php=8.6  # move one app, zero downtime
 ```
 
 | Version | Status on Cipi |
@@ -40,7 +40,7 @@ When a new minor comes out, the extension packages (`redis`, `memcached`, `imagi
 PHP is excluded from Ubuntu's unattended upgrades: Cipi patches it itself **every night at 03:30**, restarts only the affected PHP-FPM services and reports the result.
 
 ```bash
-$ cipi php upgrade      # patch now and print the patch level
+$ sudo cipi php upgrade  # patch now and print the patch level
 ```
 
 | State | Meaning |
@@ -51,7 +51,7 @@ $ cipi php upgrade      # patch now and print the patch level
 | `END OF LIFE` | No more fixes from PHP: move apps off it |
 | `prerelease` | Release candidate, not compared |
 
-[Octane](/docs/octane) apps run the PHP inside their FrankenPHP binary, which apt never touches; `cipi php upgrade` lists them too and `cipi frankenphp upgrade` fixes them. To put an Octane app on **another PHP version**, say which: `cipi frankenphp php myapp 8.6` (or `cipi app edit myapp --php=8.6`) moves Octane and the server's PHP together ([switch by version](/docs/octane#octane-php)).
+[Octane](/docs/octane) apps run the PHP inside their FrankenPHP binary, which apt never touches; `sudo cipi php upgrade` lists them too and `sudo cipi frankenphp upgrade` fixes them. To put an Octane app on **another PHP version**, say which: `sudo cipi frankenphp php myapp 8.6` (or `sudo cipi app edit myapp --php=8.6`) moves Octane and the server's PHP together ([switch by version](/docs/octane#octane-php)).
 
 ## Hardening {#hardening}
 
@@ -66,18 +66,18 @@ They are set as admin flags, so neither `.user.ini` nor `ini_set()` can turn the
 
 @section cli-ini
 
-## php.ini settings: `cipi ini` {#ini}
+## php.ini settings: `sudo cipi ini` {#ini}
 
 Change PHP settings without hunting for the right file. Server-wide changes reach **PHP-FPM and CLI**, so web requests, workers, Artisan and cron agree.
 
 ```bash
-$ cipi ini list [--app=shop]                  # effective values and where each comes from
-$ cipi ini get memory_limit [--app=shop]      # one setting
-$ cipi ini set upload_max_filesize=50M        # server-wide
-$ cipi ini set memory_limit=512M --app=shop   # one app only (wins)
-$ cipi ini unset memory_limit --app=shop
-$ cipi ini reset [--app=shop]
-$ cipi ini keys                               # what can and can't be set
+$ sudo cipi ini list [--app=shop]             # effective values and where each comes from
+$ sudo cipi ini get memory_limit [--app=shop]  # one setting
+$ sudo cipi ini set upload_max_filesize=50M   # server-wide
+$ sudo cipi ini set memory_limit=512M --app=shop  # one app only (wins)
+$ sudo cipi ini unset memory_limit --app=shop
+$ sudo cipi ini reset [--app=shop]
+$ sudo cipi ini keys                          # what can and can't be set
 ```
 
 | Behaviour | Why |
@@ -94,7 +94,7 @@ Per-app settings can also live in [cipi.yml](/docs/yml) as `app.ini`.
 | Problem | Fix |
 | --- | --- |
 | Assigning a version is refused | An extension isn't published yet for it: the message lists which; `--force` if unused |
-| `VULNERABLE` in `cipi php list` | Run `cipi php upgrade` now |
+| `VULNERABLE` in `sudo cipi php list` | Run `sudo cipi php upgrade` now |
 | Wrong `php -v` in the shell | That's the server default; apps use their own |
 
 ## Questions {#questions}

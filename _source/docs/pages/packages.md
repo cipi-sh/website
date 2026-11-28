@@ -5,12 +5,12 @@ Tools and libraries some Laravel packages need on the host, through a **closed a
 ## Commands {#commands}
 
 ```bash
-$ cipi package list [--json]
-$ cipi package install browsershot
-$ cipi package install libreoffice
-$ cipi package install webp            # one apt package of a group
-$ cipi package remove ffmpeg
-$ cipi package remove pandoc --yes     # no prompt; required without a terminal
+$ sudo cipi package list [--json]
+$ sudo cipi package install browsershot
+$ sudo cipi package install libreoffice
+$ sudo cipi package install webp       # one apt package of a group
+$ sudo cipi package remove ffmpeg
+$ sudo cipi package remove pandoc --yes  # no prompt; required without a terminal
 ```
 
 ## Available packages {#available}
@@ -29,7 +29,7 @@ $ cipi package remove pandoc --yes     # no prompt; required without a terminal
 | `pandoc` | `pandoc` | `ueberdosis/pandoc`: Markdown, HTML, DOCX, ODT, EPUB |
 | `tesseract` | `tesseract`, English, Italian, German, French and Spanish | `thiagoalessio/tesseract_ocr` |
 
-`cipi package list` marks each entry installed, **partial** (some apt packages missing — `install` completes it) or not installed; `--json` adds what each brings (`binaries`), whether it is tools or libraries (`kind`) and what a partial install lacks (`missing`). Install shows what apt will do (packages, disk space) and asks first; afterwards Cipi checks each binary is on the `PATH`. It refuses to start with less than 1 GB free.
+`sudo cipi package list` marks each entry installed, **partial** (some apt packages missing — `install` completes it) or not installed; `--json` adds what each brings (`binaries`), whether it is tools or libraries (`kind`) and what a partial install lacks (`missing`). Install shows what apt will do (packages, disk space) and asks first; afterwards Cipi checks each binary is on the `PATH`. It refuses to start with less than 1 GB free.
 
 Every entry has to be **stateless** (binaries, libraries, fonts: no daemon, no port, no credentials), **from an Ubuntu repository** (Ubuntu ships its security updates) or an [upstream release pinned in Cipi](#upstream), and backed by a real Laravel or PHP package. Why the catalog is closed, and why that lets the panel use it: [design decisions](/docs/design-decisions#packages). Anything with a daemon, a port or state is a service, not a package: see [search](/docs/search) and [databases](/docs/databases). Names that changed between Ubuntu releases (the 24.04 `t64` libraries) are resolved on the server, so the same entry works on 24.04 and later.
 
@@ -53,10 +53,10 @@ Every entry has to be **stateless** (binaries, libraries, fonts: no daemon, no p
 $ for p in sec-recon sec-gitleaks sec-nuclei sec-zap sec-nikto sec-wpscan sec-trivy sec-semgrep sec-checkov; do
     sudo cipi package install "$p" --yes
   done
-$ cipi app artisan hackly hackly:check-binaries
+$ sudo cipi app artisan hackly hackly:check-binaries
 ```
 
-A command name works as well (`cipi package install nuclei`). Hackly finds them on the `PATH` (`/usr/local/bin`): no `.env` changes. Install only what the scans you run need — ZAP takes about 1 GB of RAM while it scans, so keep it off a small server that also serves production apps.
+A command name works as well (`sudo cipi package install nuclei`). Hackly finds them on the `PATH` (`/usr/local/bin`): no `.env` changes. Install only what the scans you run need — ZAP takes about 1 GB of RAM while it scans, so keep it off a small server that also serves production apps.
 
 > [!warning] Scan only what you're allowed to. Hackly checks DNS ownership before a scan; the tools themselves don't.
 
@@ -75,10 +75,10 @@ Ubuntu has no nuclei, ZAP, WPScan, Trivy, Semgrep or Checkov, and its Nikto is t
 
 Each lives in `/opt/cipi/packages/<id>/<version>`, `current` points at the live version, and its commands are linked into `/usr/local/bin`. A command already there that Cipi didn't install (a script's, Hackly's own installers') is left alone: remove it, or replace it with `--force` at the server's shell, never from the panel. The apt packages an entry needs (a Java runtime, Ruby, Perl modules) come and go with it; one that another package already brought (Java, for `pdftk`) is kept for the entry too, so removing `pdftk` doesn't take it away under ZAP. Build tools (WPScan's `build-essential`) are removed right after the build, and an install that fails puts back what apt installed for it. One `install` or `remove` runs at a time: a second one waits.
 
-Upstream entries aren't updated by unattended-upgrades. When a Cipi release pins a newer version, `cipi package list` marks the entry outdated and `cipi self-update` names it; installing it again updates it (the new version first, `current` swapped, the old one removed):
+Upstream entries aren't updated by unattended-upgrades. When a Cipi release pins a newer version, `sudo cipi package list` marks the entry outdated and `sudo cipi self-update` names it; installing it again updates it (the new version first, `current` swapped, the old one removed):
 
 ```bash
-$ cipi package list                    # ◐ sec-nuclei   3.10.0 installed, 3.11.1 available
+$ sudo cipi package list               # ◐ sec-nuclei   3.10.0 installed, 3.11.1 available
 $ sudo cipi package install sec-nuclei --yes
 ```
 
@@ -88,7 +88,7 @@ Browsershot drives Chrome through Puppeteer, and Puppeteer downloads **its own C
 
 ```bash
 $ sudo cipi package install browsershot            # once per server
-$ cipi app run shop npm install puppeteer          # per app: Chrome comes with it
+$ sudo cipi app run shop npm install puppeteer     # per app: Chrome comes with it
 ```
 
 Better still, keep `puppeteer` in the app's `package.json`, so every deploy installs it. Point Browsershot at the app's Node and npm if they aren't on the `PATH` of PHP-FPM (`setNodeBinary()`, `setNpmBinary()`), and render in a queue worker, not in the request: a page takes seconds and hundreds of MB of RAM.
@@ -97,7 +97,7 @@ There is **no `chromium` entry on purpose.** On Ubuntu 24.04 `chromium-browser` 
 
 ## Removing {#remove}
 
-`cipi package remove` takes **only what no other package needs**: for an upstream entry, its directory, its links and the apt packages only it needed. Before asking, it shows what goes: the entry's packages, and the dependencies that become unused because of them. Dependencies that were already unused before stay where they are; `--autoremove` takes them too, at the server's shell.
+`sudo cipi package remove` takes **only what no other package needs**: for an upstream entry, its directory, its links and the apt packages only it needed. Before asking, it shows what goes: the entry's packages, and the dependencies that become unused because of them. Dependencies that were already unused before stay where they are; `--autoremove` takes them too, at the server's shell.
 
 When something else on the server depends on a tool entry (software you installed by hand on top of `ffmpeg`, say), the removal stops and names it: nothing is changed. `--force` at the server's shell removes them as well. A tool another package pulled in (`dig`, for `ubuntu-standard`) was never the entry's: it stays.
 

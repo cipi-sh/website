@@ -15,7 +15,7 @@ docs:
   - design-decisions
 faq:
   - Isn't self-hosting more work? | The work is mostly automated: installs, patches, certificates, backups and alerts run on their own. What's left is choosing a server and reading alerts.
-  - What if the server dies? | Encrypted off-site backups restore on any new server, and `cipi sync` moves whole apps. Keep a written restore checklist and test it.
+  - What if the server dies? | Encrypted off-site backups restore on any new server, and `sudo cipi sync` moves whole apps. Keep a written restore checklist and test it.
   - What if a step fails? | Check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
   - Can I run these commands from my laptop? | Many of them, through [cipi-cli](/docs/cli-client) and the [API](/api), with a scoped token. Otherwise `ssh cipi@your-server` and use `sudo cipi …`.
@@ -29,7 +29,7 @@ Every SaaS in a Laravel team's toolchain is reasonable on its own. Together they
 | Job | Self-hosted option | Bought option | Own it when |
 | --- | --- | --- | --- |
 | Server management and deploys | [Cipi](/) (free) | Forge, Ploi | Almost always: it's the part you run every day |
-| Backups | `cipi backup` to any S3-compatible bucket | Panel add-ons | Always: you need them anyway |
+| Backups | `sudo cipi backup` to any S3-compatible bucket | Panel add-ons | Always: you need them anyway |
 | Search | Meilisearch on the server | Algolia | Index fits in RAM |
 | Object storage | [Johnny](https://johnny.web.ap.it/), MinIO | S3, R2 | You have a second VPS |
 | Error tracking and uptime | [Boogle](https://boogle.web.ap.it/) | Sentry, Flare, Better Stack | Error payloads contain personal data |

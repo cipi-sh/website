@@ -15,7 +15,7 @@ choose_them:
   - You run many languages as managed services
   - You need autoscaling
 faq:
-  - Can I keep PostgreSQL? | Yes: `cipi db install pgsql` and create the app with `--engine=pgsql`.
+  - Can I keep PostgreSQL? | Yes: `sudo cipi db install pgsql` and create the app with `--engine=pgsql`.
   - Do I need Docker on Cipi? | No. Cipi builds Laravel natively.
   - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
   - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
@@ -90,7 +90,7 @@ Render is a managed cloud platform for web services, background workers, cron jo
 
 **Root access.** Install what you need, read any log, tune PHP and Nginx.
 
-**No lock-in.** A standard Ubuntu stack on any provider; move with `cipi sync`.
+**No lock-in.** A standard Ubuntu stack on any provider; move with `sudo cipi sync`.
 
 ## Where everything goes in Cipi {#map}
 
@@ -98,11 +98,11 @@ Every Render feature you use today, and its place in Cipi. Use it as your migrat
 
 | In Render | In Cipi | Docs |
 | --- | --- | --- |
-| Web service | `cipi app create` | [Create an app](/docs/create-app) |
-| Background worker | `cipi worker add` | [Workers](/docs/workers) |
+| Web service | `sudo cipi app create` | [Create an app](/docs/create-app) |
+| Background worker | `sudo cipi worker add` | [Workers](/docs/workers) |
 | Cron job | Scheduler built in | [Scheduler](/docs/scheduler) |
-| Render Postgres | `cipi db` with `--engine=pgsql` | [Databases](/docs/databases) |
-| Environment groups | `cipi app env` | [Environment](/docs/environment) |
+| Render Postgres | `sudo cipi db` with `--engine=pgsql` | [Databases](/docs/databases) |
+| Environment groups | `sudo cipi app env` | [Environment](/docs/environment) |
 | Persistent disk | `/home/<app>/shared/storage` |  |
 
 ## Moving to Cipi, step by step {#move}

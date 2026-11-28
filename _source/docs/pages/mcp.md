@@ -16,7 +16,7 @@ Step-by-step with real prompts: [Manage Laravel in production with Claude and th
 | --- | --- | --- |
 | Endpoint | `https://myapp.com/cipi/mcp` | `https://api.example.com/mcp` |
 | Scope | One app: logs, DB, Artisan, deploy, `cipi.yml` | The whole server: create apps, SSL, databases, backups |
-| Installed with | `composer require cipi/agent` | `cipi api api.example.com` |
+| Installed with | `composer require cipi/agent` | `sudo cipi api api.example.com` |
 | Use for | Debugging and deploying an app | Operating the server |
 
 ## Tools {#tools}
@@ -98,7 +98,7 @@ With [cipi/sdk](/docs/php-sdk) and a server API token, the same MCP server gains
 
 ```bash
 $ composer require cipi/sdk
-# on the server: cipi api token create   (abilities: apps-view, deploy-manage, dbs-manage, status-view)
+# on the server: sudo cipi api token create   (abilities: apps-view, deploy-manage, dbs-manage, status-view)
 ```
 
 ```ini

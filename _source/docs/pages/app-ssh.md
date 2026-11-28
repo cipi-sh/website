@@ -24,9 +24,9 @@ In the [web panel](/docs/gui-overview), the app page shows the user, the server'
 ## Control access {#access}
 
 ```bash
-$ cipi app reset-password myapp           # new password, shown once
-$ cipi ssh apps disable myapp             # no password logins for this app
-$ cipi ssh apps disable --all             # for every app, present and future
+$ sudo cipi app reset-password myapp      # new password, shown once
+$ sudo cipi ssh apps disable myapp        # no password logins for this app
+$ sudo cipi ssh apps disable --all        # for every app, present and future
 ```
 
 Disabling app logins does not affect deploys or the admin path. See [SSH keys](/docs/ssh-keys#cli-ssh-apps).
@@ -37,7 +37,7 @@ Disabling app logins does not affect deploys or the admin path. See [SSH keys](/
 
 | Problem | Fix |
 | --- | --- |
-| `Permission denied` with the password | App logins may be disabled: `cipi ssh apps` shows it; enable with `cipi ssh apps enable myapp` |
-| Lost the app password | `cipi app reset-password myapp` prints a new one, once |
+| `Permission denied` with the password | App logins may be disabled: `sudo cipi ssh apps` shows it; enable with `sudo cipi ssh apps enable myapp` |
+| Lost the app password | `sudo cipi app reset-password myapp` prints a new one, once |
 | Can't read files of another app | Expected: each app is isolated |
 | `php` is the wrong version in the shell | Use `php8.6` (the app's version) or the `deploy`/`composer` shortcuts, which already use it |

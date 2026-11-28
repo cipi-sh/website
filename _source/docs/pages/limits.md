@@ -3,11 +3,11 @@
 Cap what one app can use, so a busy or misbehaving app cannot starve the others.
 
 ```bash
-$ cipi app limits myapp                                   # show
-$ cipi app limits myapp --fpm-max-children=20 --memory-limit=256M
-$ cipi app limits myapp --octane-workers=4 --worker-procs=3
-$ cipi app limits myapp --disk=10                          # soft limit, GB
-$ cipi app limits myapp --disk=none
+$ sudo cipi app limits myapp                              # show
+$ sudo cipi app limits myapp --fpm-max-children=20 --memory-limit=256M
+$ sudo cipi app limits myapp --octane-workers=4 --worker-procs=3
+$ sudo cipi app limits myapp --disk=10                     # soft limit, GB
+$ sudo cipi app limits myapp --disk=none
 ```
 
 | Flag | Controls |
@@ -29,7 +29,7 @@ No app has one unless you set it. It never blocks the app: it drives the [monito
 | Over the limit | Critical alert, repeated every 4 hours |
 | Back under | Recovery notice |
 
-`cipi disk` shows usage next to the limit. The limit is kept outside `cipi.yml` on purpose: **a repository cannot raise the space its server grants it**. Also via REST (`GET|PUT /api/apps/{name}/limits`) and the panel.
+`sudo cipi disk` shows usage next to the limit. The limit is kept outside `cipi.yml` on purpose: **a repository cannot raise the space its server grants it**. Also via REST (`GET|PUT /api/apps/{name}/limits`) and the panel.
 
 @section cli-app-suspend
 
@@ -38,8 +38,8 @@ No app has one unless you set it. It never blocks the app: it drives the [monito
 Take an app offline without deleting anything: for unpaid invoices, maintenance or a staging site you want dark.
 
 ```bash
-$ cipi app suspend myapp
-$ cipi app unsuspend myapp
+$ sudo cipi app suspend myapp
+$ sudo cipi app unsuspend myapp
 ```
 
 | While suspended | |
@@ -48,7 +48,7 @@ $ cipi app unsuspend myapp
 | HTTPS | Covered too |
 | Certificate renewals | Keep working |
 | Vhost changes (aliases, PHP, SSL) | Respect the suspension |
-| `cipi app list`, `cipi domains` | Mark the app as suspended |
+| `sudo cipi app list`, `sudo cipi domains` | Mark the app as suspended |
 
 Also from the REST API (`POST /api/apps/{name}/suspend`), cipi-cli and the [WHMCS module](/docs/whmcs).
 

@@ -13,11 +13,11 @@ related:
   - backup-vps-s3
 faq:
   - Which instance size? | Start with 2 GB of RAM (for example a t3.small) for one or two apps; add RAM before CPU when you add Octane, Meilisearch or more apps.
-  - Can I use RDS or S3? | Yes. Point an app's `DB_*` variables at RDS if you prefer a managed database, and use S3 as the destination for `cipi backup`.
+  - Can I use RDS or S3? | Yes. Point an app's `DB_*` variables at RDS if you prefer a managed database, and use S3 as the destination for `sudo cipi backup`.
   - Why can't I send e-mail from the instance? | AWS restricts outbound port 25 by default. Use SES (or another SMTP provider) on port 587 for the app and for Cipi's notifications.
   - Can I use Graviton (ARM) instances? | Choose x86 to be safe: parts of the stack, such as the AWS CLI used for S3 backups, are installed as x86_64 builds.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
-  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `sudo cipi sync`.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 docs:
   - installation

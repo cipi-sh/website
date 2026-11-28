@@ -96,10 +96,10 @@ Every Kamal feature you use today, and its place in Cipi. Use it as your migrati
 
 | In Kamal | In Cipi | Docs |
 | --- | --- | --- |
-| `deploy.yml` service | `cipi app create` + [cipi.yml](/cipi-yml) | [Create an app](/docs/create-app) |
-| `env` / secrets | `cipi app env` | [Environment](/docs/environment) |
-| Accessories (db, redis) | `cipi db`, Valkey per app | [Databases](/docs/databases) |
-| Roles (job workers) | `cipi worker add`, Horizon | [Workers](/docs/workers) |
+| `deploy.yml` service | `sudo cipi app create` + [cipi.yml](/cipi-yml) | [Create an app](/docs/create-app) |
+| `env` / secrets | `sudo cipi app env` | [Environment](/docs/environment) |
+| Accessories (db, redis) | `sudo cipi db`, Valkey per app | [Databases](/docs/databases) |
+| Roles (job workers) | `sudo cipi worker add`, Horizon | [Workers](/docs/workers) |
 | kamal-proxy | Nginx + releases | [How deploys work](/docs/how-deploys-work) |
 
 ## Moving to Cipi, step by step {#move}

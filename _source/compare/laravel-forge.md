@@ -126,17 +126,17 @@ Every Laravel Forge feature you use today, and its place in Cipi. Use it as your
 | In Laravel Forge | In Cipi | Docs |
 | --- | --- | --- |
 | Server (provider connection) | A VPS you create, then `wget -O - https://cipi.sh/setup.sh \| bash` | Any provider with Ubuntu 24.04/26.04 |
-| Site | `cipi app create` | Laravel, Octane, Node or custom PHP |
+| Site | `sudo cipi app create` | Laravel, Octane, Node or custom PHP |
 | Quick deploy | Webhook, created with the app | [Auto-deploy](/docs/auto-deploy) |
 | Deploy script | Deploy options, `deploy.post`, Deployer tasks | [Deploy script](/docs/deploy-script) |
 | Zero-downtime deployments | Always on | Releases with rollback |
-| Environment | `cipi app env` | `/home/<app>/shared/.env` |
-| Daemons / queue workers | `cipi worker add`, Horizon | [Workers](/docs/workers) |
+| Environment | `sudo cipi app env` | `/home/<app>/shared/.env` |
+| Daemons / queue workers | `sudo cipi worker add`, Horizon | [Workers](/docs/workers) |
 | Scheduler | On for every Laravel app | [Scheduler](/docs/scheduler) |
-| Databases | `cipi db` (MariaDB, PostgreSQL) | [Databases](/docs/databases) |
-| Let's Encrypt | `cipi ssl install` (wildcards via Cloudflare) | [SSL](/docs/ssl) |
-| Backups | `cipi backup` profiles to S3, encrypted | [Backups](/docs/backups) |
-| Monitoring | `cipi monitor`, health checks, alerts | [Monitor](/docs/monitor) |
+| Databases | `sudo cipi db` (MariaDB, PostgreSQL) | [Databases](/docs/databases) |
+| Let's Encrypt | `sudo cipi ssl install` (wildcards via Cloudflare) | [SSL](/docs/ssl) |
+| Backups | `sudo cipi backup` profiles to S3, encrypted | [Backups](/docs/backups) |
+| Monitoring | `sudo cipi monitor`, health checks, alerts | [Monitor](/docs/monitor) |
 | Team / circles | Panel users and roles, scoped API tokens | [Web panel](/web-panel) |
 | Forge API | Cipi REST API + MCP | [API](/api) |
 
@@ -168,14 +168,14 @@ Open Forge's dashboard and write down, for each site you move:
 
 | What | Where to find it in Forge | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | Site → Domains | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | Site → Domains | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | Site → Repository | `--repository`, `--branch` |
 | PHP version | Site → Settings (PHP version) | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | Site → Environment | your own keys and `APP_KEY` |
-| Daemons | Server → Daemons / Background processes | `cipi worker add` or Horizon |
+| Daemons | Server → Daemons / Background processes | `sudo cipi worker add` or Horizon |
 | Scheduled jobs | Server → Scheduler | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | Site → Deployments → Deploy script | Cipi's deploy options or `deploy.post` |
-| Databases | Server → Databases | `cipi db restore` |
+| Databases | Server → Databases | `sudo cipi db restore` |
 
 On the old server, the site's files are usually in `/home/forge/shop.example.com`. You'll log in with `ssh forge@OLD_IP`.
 

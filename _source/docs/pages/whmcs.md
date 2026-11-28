@@ -15,7 +15,7 @@ Lifecycle | suspend, change package, terminate
 
 ## Requirements {#requirements}
 
-WHMCS 8.x, a Cipi server with [`cipi api`](/docs/api), and a token with these abilities:
+WHMCS 8.x, a Cipi server with [`sudo cipi api`](/docs/api), and a token with these abilities:
 
 | Ability | For |
 | --- | --- |
@@ -50,8 +50,8 @@ your-whmcs/
 
 | App type | Cipi equivalent | Good for |
 | --- | --- | --- |
-| `laravel` | `cipi app create` | Laravel apps with Deployer releases, workers, database |
-| `custom` | `cipi app create --custom` | WordPress, static sites, SPAs, any PHP; Git optional (SFTP-only hosting) |
+| `laravel` | `sudo cipi app create` | Laravel apps with Deployer releases, workers, database |
+| `custom` | `sudo cipi app create --custom` | WordPress, static sites, SPAs, any PHP; Git optional (SFTP-only hosting) |
 
 ## Lifecycle {#lifecycle}
 

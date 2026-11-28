@@ -12,7 +12,7 @@ related:
   - backup-vps-s3
   - laravel-preview-environments
 faq:
-  - Does rollback undo migrations? | No. `--rollback` restores code. To undo data changes, restore the pre-deploy snapshot with `cipi db restore`.
+  - Does rollback undo migrations? | No. `--rollback` restores code. To undo data changes, restore the pre-deploy snapshot with `sudo cipi db restore`.
   - What does "zero downtime" mean exactly? | The new release is built and migrated next to the live one, then a single symlink swap makes it live. Requests never hit a half-built release.
   - Can I rename a column safely? | In two deploys: add the new column and write to both, backfill, switch reads, then drop the old one in a later deploy.
   - What about long migrations on big tables? | Adding an index or a column with a default can lock a big table. On MariaDB use `ALGORITHM=INSTANT`/`INPLACE` where possible; on PostgreSQL create indexes `CONCURRENTLY` (outside a transaction).

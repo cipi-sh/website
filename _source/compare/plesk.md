@@ -18,7 +18,7 @@ choose_them:
 faq:
   - Does Plesk's Laravel Toolkit do the same? | It helps manage Laravel apps, but deploys aren't release-based with instant rollback, and Plesk keeps the hosting features you may not need.
   - Where are site files on Plesk? | On Linux, usually `/var/www/vhosts/<domain>/httpdocs`.
-  - Can I export databases from Plesk? | Yes: Databases → Export Dump, then `cipi db restore` on Cipi.
+  - Can I export databases from Plesk? | Yes: Databases → Export Dump, then `sudo cipi db restore` on Cipi.
   - Is Cipi really free? | Yes. Cipi is MIT licensed with no subscription, no per-server and no per-site fees. You pay only for the VPS, to the provider you choose.
   - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
   - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
@@ -103,12 +103,12 @@ Every Plesk feature you use today, and its place in Cipi. Use it as your migrati
 | In Plesk | In Cipi | Docs |
 | --- | --- | --- |
 | Subscription / domain | One Cipi app per site |  |
-| Databases | `cipi db` | [Databases](/docs/databases) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
 | Git extension | Webhook deploys with releases | [Auto-deploy](/docs/auto-deploy) |
 | Laravel Toolkit | Built in: workers, scheduler, Horizon, Octane | [Workers](/docs/workers) |
 | Scheduled tasks | Scheduler, crontab | [Scheduler](/docs/scheduler) |
-| Let's Encrypt | `cipi ssl install` | [SSL](/docs/ssl) |
-| Backup Manager | `cipi backup` | [Backups](/docs/backups) |
+| Let's Encrypt | `sudo cipi ssl install` | [SSL](/docs/ssl) |
+| Backup Manager | `sudo cipi backup` | [Backups](/docs/backups) |
 | Mail, DNS | Not included | Specialised providers |
 
 ## Moving to Cipi, step by step {#move}

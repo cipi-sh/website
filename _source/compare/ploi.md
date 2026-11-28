@@ -21,7 +21,7 @@ faq:
   - Can I move one site at a time? | Yes. Each site moves independently; DNS decides which server serves it.
   - Does Cipi have a dashboard? | Yes, optional and self-hosted: [Web panel](/web-panel).
   - What if I used Ploi's backups? | Download the last backup or dump the database directly (step 5), then set up [Cipi backups](/guides/backup-vps-s3).
-  - Will queues and cron jobs move automatically? | No: add them once with `cipi worker add` or [cipi.yml](/cipi-yml). The Laravel scheduler is already on.
+  - Will queues and cron jobs move automatically? | No: add them once with `sudo cipi worker add` or [cipi.yml](/cipi-yml). The Laravel scheduler is already on.
   - What do I need to run Cipi? | A VPS (full virtual machine) with Ubuntu 24.04 or 26.04, a public IPv4 and ports 22, 80 and 443. 2 GB of RAM is comfortable for a few apps. See [Installation](/docs/installation).
   - Can I try Cipi without moving anything? | Yes. Install it on a new, cheap VPS, deploy a copy of one app and compare. Your current setup stays untouched until you change DNS.
   - Where do I get help? | The [docs](/docs/), the [guides](/guides/), GitHub issues, and the [Telegram channel](https://t.me/cipicloud) for releases and security notes. There's no paid support desk.
@@ -119,15 +119,15 @@ Every Ploi feature you use today, and its place in Cipi. Use it as your migratio
 | In Ploi | In Cipi | Docs |
 | --- | --- | --- |
 | Server | A VPS + Cipi installer | [Installation](/docs/installation) |
-| Site | `cipi app create` | [Create an app](/docs/create-app) |
+| Site | `sudo cipi app create` | [Create an app](/docs/create-app) |
 | Deploy script / zero downtime | Built-in releases, `deploy.post` | [How deploys work](/docs/how-deploys-work) |
-| Environment | `cipi app env` | [Environment](/docs/environment) |
-| Daemons | `cipi worker add`, Horizon | [Workers](/docs/workers) |
+| Environment | `sudo cipi app env` | [Environment](/docs/environment) |
+| Daemons | `sudo cipi worker add`, Horizon | [Workers](/docs/workers) |
 | Cronjobs | Scheduler on by default; `crons:` in cipi.yml | [Scheduler](/docs/scheduler) |
-| Databases | `cipi db` | [Databases](/docs/databases) |
-| SSL | `cipi ssl install` | [SSL](/docs/ssl) |
-| Backups | `cipi backup` profiles | [Backups](/docs/backups) |
-| Monitoring | `cipi monitor`, health checks | [Monitor](/docs/monitor) |
+| Databases | `sudo cipi db` | [Databases](/docs/databases) |
+| SSL | `sudo cipi ssl install` | [SSL](/docs/ssl) |
+| Backups | `sudo cipi backup` profiles | [Backups](/docs/backups) |
+| Monitoring | `sudo cipi monitor`, health checks | [Monitor](/docs/monitor) |
 | Status pages | An external uptime service ([guide](/guides/cipi-agent-health-monitoring)) | Not built in |
 | Load balancer servers | Not built in | Run several Cipi servers behind your provider's balancer |
 
@@ -158,14 +158,14 @@ Open Ploi's dashboard and write down, for each site you move:
 
 | What | Where to find it in Ploi | You'll need it for |
 | --- | --- | --- |
-| Domain and aliases | Site → Settings / Aliases | `cipi app create --domain`, `cipi alias add` |
+| Domain and aliases | Site → Settings / Aliases | `sudo cipi app create --domain`, `sudo cipi alias add` |
 | Repository and branch | Site → Repository | `--repository`, `--branch` |
 | PHP version | Site → PHP version | `--php` (Cipi offers 8.3–8.6) |
 | Environment (`.env`) | Site → Environment | your own keys and `APP_KEY` |
-| Daemons | Server → Daemons | `cipi worker add` or Horizon |
+| Daemons | Server → Daemons | `sudo cipi worker add` or Horizon |
 | Cronjobs | Server → Cronjobs | the scheduler (automatic) or `crons:` in cipi.yml |
 | Deploy script | Site → Deploy script | Cipi's deploy options or `deploy.post` |
-| Databases | Server → Databases | `cipi db restore` |
+| Databases | Server → Databases | `sudo cipi db restore` |
 
 On the old server, the site's files are usually in `/home/ploi/shop.example.com`. You'll log in with `ssh ploi@OLD_IP`.
 

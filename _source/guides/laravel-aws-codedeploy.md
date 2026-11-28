@@ -20,7 +20,7 @@ docs:
 faq:
   - Do I need CodeDeploy to use Cipi on AWS? | No. Cipi deploys on its own, from a push or from any CI. CodeDeploy is worth it when your releases are already managed in AWS, or to roll a release across several servers one at a time.
   - Does CodeDeploy upload my Laravel app? | No. It sends a small bundle with `appspec.yml` and two scripts. The scripts call Cipi, which pulls the app from Git with its own deploy key.
-  - Why turn off CodeDeploy's automatic rollback? | CodeDeploy rolls back by deploying the previous bundle again, which would run `cipi deploy` again and publish the newest commit a second time. The validate script rolls back with Cipi, which really returns to the previous release.
+  - Why turn off CodeDeploy's automatic rollback? | CodeDeploy rolls back by deploying the previous bundle again, which would run `sudo cipi deploy` again and publish the newest commit a second time. The validate script rolls back with Cipi, which really returns to the previous release.
   - Can I use it on Hetzner or another provider? | Yes, as an on-premises instance. The server needs the CodeDeploy agent and outgoing HTTPS to AWS. AWS charges per on-premises instance update; on EC2 there's no CodeDeploy charge.
   - Which Ubuntu versions work? | The CodeDeploy agent 2.x supports Ubuntu Server 24.04 and 26.04 LTS, on x86_64 and arm64, the same versions Cipi supports.
   - Can I release a specific commit? | Cipi deploys the latest commit of the branch. With revisions from GitHub, the validate script compares it with the commit CodeDeploy asked for and tells you if they differ.
@@ -93,7 +93,7 @@ In the CodeDeploy console:
 4. **Load balancer**: off. Cipi already switches without downtime on each server.
 5. **Rollbacks**: **untick** "Roll back when a deployment fails".
 
-> [!warning] Step 5 matters. CodeDeploy rolls back by deploying the previous bundle again. With Cipi that would run `cipi deploy` again, which always takes the newest commit of the branch: you'd get the broken code a second time. The validate script in the next step rolls back with Cipi instead.
+> [!warning] Step 5 matters. CodeDeploy rolls back by deploying the previous bundle again. With Cipi that would run `sudo cipi deploy` again, which always takes the newest commit of the branch: you'd get the broken code a second time. The validate script in the next step rolls back with Cipi instead.
 
 ## 4. Add the bundle to the repository
 
@@ -158,7 +158,7 @@ What happens at each hook:
 
 | Hook | Script | If it fails |
 | --- | --- | --- |
-| `ApplicationStart` | `cipi deploy shop`: pull, build, migrate, switch | Nothing was published; the deployment stops here, and the old release keeps serving |
+| `ApplicationStart` | `sudo cipi deploy shop`: pull, build, migrate, switch | Nothing was published; the deployment stops here, and the old release keeps serving |
 | `ValidateService` | Health check; Cipi rollback if the app doesn't answer | The release is rolled back and the deployment is marked failed, so CodeDeploy doesn't touch the next server |
 
 If the app also deploys on push, turn its webhook off now (GitHub: **Settings → Webhooks** → the `/cipi/webhook` hook → untick **Active**), otherwise every push would deploy before CodeDeploy does.
@@ -237,7 +237,7 @@ The job turns red if the deploy or the health check fails, and the CodeDeploy co
 
 Tag every Cipi server that runs `shop` with `app=shop` and set the deployment group to `CodeDeployDefault.OneAtATime`. CodeDeploy then deploys the first server, waits for `ValidateService` to pass, and only then moves to the next. If one server fails its health check, Cipi rolls that server back and CodeDeploy stops before touching the others.
 
-Each server must already have the app created with Cipi (same name, same branch). [`cipi sync`](/docs/sync) can copy an app from one server to another.
+Each server must already have the app created with Cipi (same name, same branch). [`sudo cipi sync`](/docs/sync) can copy an app from one server to another.
 
 ## Troubleshooting {#troubleshooting}
 
@@ -245,7 +245,7 @@ Each server must already have the app created with Cipi (same name, same branch)
 | --- | --- | --- |
 | Deployment stays "Pending" | Agent not running, or no outgoing HTTPS | `systemctl status codedeploy-agent`; `sudo systemctl start codedeploy-agent` |
 | "No instances found" | Tag mismatch | Same tag on the instance and in the deployment group |
-| `ScriptFailed` at ApplicationStart | `cipi deploy` failed while building | `sudo cipi app logs shop --type=deploy`; nothing was published |
+| `ScriptFailed` at ApplicationStart | `sudo cipi deploy` failed while building | `sudo cipi app logs shop --type=deploy`; nothing was published |
 | `ScriptFailed` at ValidateService | The app didn't answer; Cipi rolled back | `sudo cipi deploy shop --log` for the failed release |
 | "appspec.yml not found" | Bundle root is wrong | `--source codedeploy` with S3; `appspec.yml` at the repository root for GitHub revisions |
 | Broken code deployed twice | CodeDeploy rollback is on | Turn it off in the deployment group |

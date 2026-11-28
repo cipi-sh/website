@@ -19,12 +19,12 @@ docs:
 faq:
   - Do visitors notice? | No. Public apps stay public and get Cloudflare's CDN and WAF. Only the hostnames you protect with Access ask for a login (an e-mailed code, Google, GitHub or your SSO).
   - Do Git webhooks still deploy? | Yes. When you protect an app with Access, Cipi bypasses `/cipi/webhook` automatically, so pushes still deploy.
-  - What if Cloudflare is down? | Traffic through the tunnel stops. Keep a break-glass path: your provider's web console can always reach the server, and `cipi zt unlock http` / `cipi zt ssh unlock` reopen the ports.
+  - What if Cloudflare is down? | Traffic through the tunnel stops. Keep a break-glass path: your provider's web console can always reach the server, and `sudo cipi zt unlock http` / `sudo cipi zt ssh unlock` reopen the ports.
   - Do deploys still work with port 22 closed? | Yes. Deploys run on the server itself. Your CI can deploy through the tunnel (`cloudflared access ssh`) or with [cipi-cli](/docs/cli-client) over the API.
-  - Can a CI job or a monitor get through Access? | Yes, since Cipi 5.16.0: `cipi zt service-token create ci --for=shop` prints a pair of headers (`CF-Access-Client-Id`, `CF-Access-Client-Secret`) that Access lets through. The web panel uses one to reach a server's API behind Access.
-  - Can I still open the database from my laptop? | Yes, since Cipi 5.16.0: `cipi zt tcp add mysql --hostname=db.example.com` puts it behind Access, and `cloudflared access tcp` gives you a local port for TablePlus or DBeaver. Port 3306 stays closed.
+  - Can a CI job or a monitor get through Access? | Yes, since Cipi 5.16.0: `sudo cipi zt service-token create ci --for=shop` prints a pair of headers (`CF-Access-Client-Id`, `CF-Access-Client-Secret`) that Access lets through. The web panel uses one to reach a server's API behind Access.
+  - Can I still open the database from my laptop? | Yes, since Cipi 5.16.0: `sudo cipi zt tcp add mysql --hostname=db.example.com` puts it behind Access, and `cloudflared access tcp` gives you a local port for TablePlus or DBeaver. Port 3306 stays closed.
   - Is it free? | Cloudflare Tunnel is free, and Cloudflare Zero Trust is free for small teams (check Cloudflare's current limits). Cipi is free.
-  - Can I undo it? | Every step has its undo, and `cipi zt disable` reopens 22/80/443 and removes everything Cipi created in your Cloudflare account. Let's Encrypt certificates are left alone.
+  - Can I undo it? | Every step has its undo, and `sudo cipi zt disable` reopens 22/80/443 and removes everything Cipi created in your Cloudflare account. Let's Encrypt certificates are left alone.
   - How is this different from just the orange cloud? | The orange cloud hides your IP but the server's ports stay open, so attackers who find the IP can bypass Cloudflare. With a tunnel and locked ports, there's nothing to reach.
 ---
 Normally a server waits for visitors on open ports (80, 443 for websites, 22 for SSH), and anyone on the internet can knock. With a **Cloudflare Tunnel**, your server dials out to Cloudflare instead, and visitors reach it **through** Cloudflare. Once every app goes through the tunnel you can close the ports completely: nothing left to attack directly. Cipi does it in small, reversible steps, and nothing closes until you ask.
@@ -134,7 +134,7 @@ Once port 80 is closed, Let's Encrypt can't check your server over HTTP. Switch 
 | Let's Encrypt over DNS | `sudo cipi ssl dns set --token=…` then `sudo cipi ssl install shop --dns=cloudflare` | Renews automatically; also works without the tunnel |
 | Cloudflare Origin CA | `sudo cipi zt origin-cert shop` | 15 years; trusted only by Cloudflare, fine behind the proxy |
 
-`cipi zt lock http` refuses to run while any app still renews over HTTP, so you can't forget one.
+`sudo cipi zt lock http` refuses to run while any app still renews over HTTP, so you can't forget one.
 
 ## 5. Test everything from outside {#test}
 

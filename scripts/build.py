@@ -421,7 +421,7 @@ def build_docs() -> list[dict]:
     body = start + '<div class="docs-home-grid">' + "".join(groups_html) + "</div>"
     out = page_shell(slug="index", title="Documentation",
                      desc="Everything about Cipi: install it, create and deploy apps, domains and SSL, backups, security, the web panel and the API.",
-                     lead="Install Cipi, create and deploy apps, and run them in production. Press / anywhere to search.",
+                     lead="Install Cipi, create and deploy apps, and run them in production. Commands are written the way the cipi user types them, sudo cipi …; from a root shell, leave out sudo. Press / anywhere to search.",
                      body=body, toc=toc_html([], None), crumbs=[("Docs", "/docs/")], uses=set(),
                      extra_body_attrs=' data-legacy-page="index"')
     write(os.path.join(ROOT, "docs", "index.html"), out)

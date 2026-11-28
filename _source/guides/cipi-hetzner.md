@@ -21,7 +21,7 @@ faq:
   - Is a Primary IPv4 needed? | Yes. Let's Encrypt and most visitors still need IPv4. Keep it as a Primary IP so it survives a rebuild.
   - Is Hetzner good for GDPR? | Data stays in the location you choose (Germany or Finland for the EU) and Hetzner offers a DPA. Your obligations as controller stay yours.
   - Does Cipi need root? | Only to install. The installer runs as root (or with `sudo -i`), then disables root login; you work as `cipi` with `sudo cipi …`.
-  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `cipi sync`.
+  - Can I resize the server later? | Yes. Resizing at the provider keeps the disk; Cipi adapts. To change provider or region, move apps with `sudo cipi sync`.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
   - Do I need the web panel for this? | No. Every step works from the CLI. The optional [web panel](/web-panel) shows the same things in a browser.
 ---
@@ -79,9 +79,9 @@ $ dig +short shop.example.com      # must print the server IP
 
 | Need | Use |
 | --- | --- |
-| Off-site backups | **Object Storage** (S3-compatible) as a `cipi backup` destination, in another location |
+| Off-site backups | **Object Storage** (S3-compatible) as a `sudo cipi backup` destination, in another location |
 | More disk | Volumes for large uploads; keep `shared/` on fast local disk |
-| A second server | Move or replicate apps with [`cipi sync`](/guides/migrate-server-cipi-sync) |
+| A second server | Move or replicate apps with [`sudo cipi sync`](/guides/migrate-server-cipi-sync) |
 
 ## Off-site backups on Hetzner Object Storage {#object-storage}
 

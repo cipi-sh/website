@@ -22,9 +22,11 @@ Save the credentials it prints. Requirements, SSH keys and unattended installs: 
 
 ## 2. Log in as cipi {#qs-login}
 
-Root login over SSH is now off. Connect as `cipi` with your key and prefix commands with `sudo` (no password needed for `cipi`).
+Root login over SSH is now off. Connect as `cipi` with your key. Every Cipi command runs as root: from the `cipi` user you type it after `sudo`, and no password is asked. That is how the whole documentation writes them: `sudo cipi …`.
 
 <cipi-term name="qs-login"></cipi-term>
+
+> [!tip] Rather work in a root shell? Become root once with `su root` (the root password is in the install summary; `sudo cipi credentials` shows it again), then type the commands without `sudo`: `cipi status`, `cipi app create`, `cipi deploy shop`. It is the same command either way; the rest of the docs always writes `sudo cipi`.
 
 ## 3. Create your first app {#qs-create}
 
@@ -68,7 +70,7 @@ Migrations run on every deploy. Prefer Valkey for speed or Horizon? Switch per a
 
 <cipi-term name="qs-deploy"></cipi-term>
 
-The new release is built in its own folder, migrated, then made live with one atomic symlink swap. Visitors never see a half-deployed app, and `cipi deploy myapp --rollback` goes back in a second. How it works: [Deploy & roll back](/docs/deploying).
+The new release is built in its own folder, migrated, then made live with one atomic symlink swap. Visitors never see a half-deployed app, and `sudo cipi deploy myapp --rollback` goes back in a second. How it works: [Deploy & roll back](/docs/deploying).
 
 ## 7. Turn on HTTPS {#qs-ssl}
 

@@ -14,10 +14,10 @@ related:
 faq:
   - How much does it cost? | Cipi is free and MIT licensed. You pay only for the server, from a few euros a month at Hetzner or DigitalOcean.
   - Can I host several apps on one server? | Yes. Each app gets its own Linux user, PHP pool, database and certificate, so apps can't read each other's files or data.
-  - What if a deploy breaks the site? | Migrations and builds run on the new release before it goes live, and `cipi deploy myapp --rollback` swaps back in a second. With a health check set, a broken release is rolled back automatically.
+  - What if a deploy breaks the site? | Migrations and builds run on the new release before it goes live, and `sudo cipi deploy myapp --rollback` swaps back in a second. With a health check set, a broken release is rolled back automatically.
   - What does "zero downtime" mean here? | The new release is built in its own folder while the old one keeps serving. When it's ready, one atomic symlink switch makes it live, and workers restart on the new code. Visitors never hit a half-installed app.
   - Where are my files on the server? | `/home/shop/current` is the live release, `/home/shop/shared` holds `.env` and `storage`, `/home/shop/releases` keeps the last five releases for rollback.
-  - Do I need to know Nginx or PHP-FPM? | No. Cipi writes and maintains the configuration. You can still tune things with `cipi ini`, `cipi nginx` and the deploy options.
+  - Do I need to know Nginx or PHP-FPM? | No. Cipi writes and maintains the configuration. You can still tune things with `sudo cipi ini`, `sudo cipi nginx` and the deploy options.
   - My repository is private. | That's the normal case: the per-app deploy key gives the server read-only access to that one repository.
   - Can I deploy a Laravel app that also has a Vue or React front end? | Yes. Set `--node-build='npm ci && npm run build'` and Vite builds during the deploy, before the release goes live.
 docs:

@@ -13,11 +13,11 @@ related:
   - server-monitoring-alerts
 faq:
   - Which storage works? | Any S3-compatible bucket: AWS S3, Hetzner Object Storage, DigitalOcean Spaces, Backblaze B2, Wasabi, Cloudflare R2, MinIO or [Johnny](https://johnny.web.ap.it/) on another VPS.
-  - Are backups encrypted? | With `encrypt: true` (or `--encrypt`) archives are encrypted on the server before upload. Keep the key safe: `cipi backup key show`.
+  - Are backups encrypted? | With `encrypt: true` (or `--encrypt`) archives are encrypted on the server before upload. Keep the key safe: `sudo cipi backup key show`.
   - What isn't in a backup? | Certificates (re-issued in a minute) and the releases folder (rebuilt by a deploy). Code is in Git; backups hold databases and `shared/` (`.env`, uploads), minus any `--exclude-paths` you set.
   - Which bucket provider? | Any S3-compatible one: AWS S3, Hetzner, Backblaze B2, Wasabi, Cloudflare R2, Scaleway, DigitalOcean Spaces. Pick one in another region or provider than the server.
-  - Where is the encryption key? | `cipi backup key show` prints it. Store it in your password manager: without it, encrypted archives can't be opened.
-  - How long does a restore take? | Minutes for a typical app. Test it now so you know: `cipi backup fetch` into a scratch folder, then restore a database.
+  - Where is the encryption key? | `sudo cipi backup key show` prints it. Store it in your password manager: without it, encrypted archives can't be opened.
+  - How long does a restore take? | Minutes for a typical app. Test it now so you know: `sudo cipi backup fetch` into a scratch folder, then restore a database.
   - What if a step fails? | Read the troubleshooting table above first. Then check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
 docs:
   - backups
@@ -55,7 +55,7 @@ $ sudo cipi backup configure                 # on the server; then "s3": bucket,
 $ sudo cipi backup destination test
 ```
 
-The bucket is reached with the keys before anything is saved. `configure` sets backups up on the server and offers to add the bucket right after (or later: `cipi backup destination add s3 --bucket=… --key=… --use=default`). The same from the [web panel](/docs/backups#panel) — *Set up backups*, then *Add an S3 bucket* — or the API: the secret key goes to the server once, on the CLI's standard input, never on a command line, and neither panel nor API keeps it.
+The bucket is reached with the keys before anything is saved. `configure` sets backups up on the server and offers to add the bucket right after (or later: `sudo cipi backup destination add s3 --bucket=… --key=… --use=default`). The same from the [web panel](/docs/backups#panel) — *Set up backups*, then *Add an S3 bucket* — or the API: the secret key goes to the server once, on the CLI's standard input, never on a command line, and neither panel nor API keeps it.
 
 ## 2. Create profiles {#profiles}
 ```bash
@@ -72,7 +72,7 @@ $ sudo cipi backup status
 | `files` | Each app's `shared/` (`.env`, `storage`, uploads) |
 | `all` | Both |
 
-`cipi backup status` flags apps and databases that **no enabled profile covers**, so a new app can't silently go unprotected.
+`sudo cipi backup status` flags apps and databases that **no enabled profile covers**, so a new app can't silently go unprotected.
 
 A very large uploads folder (hundreds of GB) is better copied with `rsync` than archived every night. Leave it out of a profile (Cipi 5.13.0+):
 
@@ -109,7 +109,7 @@ $ sudo cipi backup fetch nightly 2026-11-22_020000 --dest=/root/restore
 $ sudo cipi db restore shop /root/restore/shop.sql.gz
 ```
 
-For a whole server, restoring backups works, but moving with [`cipi sync`](/guides/migrate-server-cipi-sync) is faster when the old server is still alive.
+For a whole server, restoring backups works, but moving with [`sudo cipi sync`](/guides/migrate-server-cipi-sync) is faster when the old server is still alive.
 
 ## Before risky deploys
 
@@ -120,6 +120,6 @@ A local snapshot before migrations is cheap: `sudo cipi app edit shop --predeplo
 | Problem | Fix |
 | --- | --- |
 | `destination test` fails | Key lacks bucket permissions, wrong region or endpoint |
-| Backups overdue | `cipi backup status` names the profile; check disk space and the log |
-| Can't open an archive | Wrong key: use the one from `cipi backup key show` at that time |
+| Backups overdue | `sudo cipi backup status` names the profile; check disk space and the log |
+| Can't open an archive | Wrong key: use the one from `sudo cipi backup key show` at that time |
 | Restore refuses an empty dump | By design: an empty backup never wipes a database |

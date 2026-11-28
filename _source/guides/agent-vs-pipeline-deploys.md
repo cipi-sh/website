@@ -108,7 +108,7 @@ What it costs: a secret in CI, a workflow file to maintain, and slower releases 
 | App requirement | `cipi/agent` (Laravel); built in for Node apps | None |
 | Approvals before production | No | Yes, with your CI's environments |
 | Several servers | One webhook per app on each server | One pipeline deploys them in order |
-| Where you see the result | [Deploy notifications](/docs/deploy-notifications), panel, `cipi deploy --status` | The CI job, plus the same notifications |
+| Where you see the result | [Deploy notifications](/docs/deploy-notifications), panel, `sudo cipi deploy --status` | The CI job, plus the same notifications |
 | Audit ledger origin | `webhook`, with pusher and commit | `cipi-cli` (SSH) or `panel` (API), with the operator |
 
 ## When to choose push to deploy {#choose-agent}
@@ -140,10 +140,10 @@ Two Cipi apps from the same repository, one per environment, each with its own b
 
 ```bash
 # staging follows develop and keeps its webhook
-$ cipi app create --user=shop-staging --domain=staging.shop.example.com \
+$ sudo cipi app create --user=shop-staging --domain=staging.shop.example.com \
     --repository=git@github.com:you/shop.git --branch=develop --env=staging
 # production follows main; turn its webhook off and deploy from CI
-$ cipi app edit shop --branch=main
+$ sudo cipi app edit shop --branch=main
 ```
 
 Each app can read its own [`cipi-staging.yml`](/docs/yml) or `cipi.yml`, so workers, crons and limits can differ.
@@ -160,7 +160,7 @@ Turn the webhook off | in the Git provider
 Push | first pipeline deploy
 > Push a small change. Only the pipeline deploys now.
 Verify | audit origin
-> `cipi deploy shop --audit`: the newest entry should not say `webhook`.
+> `sudo cipi deploy shop --audit`: the newest entry should not say `webhook`.
 ```
 
 Keep the agent installed: its health endpoint and MCP server are still useful.
@@ -183,13 +183,13 @@ Then remove the deploy job from your pipeline (keep the tests: they still protec
 | Rolling back whenever the deploy command fails | A failed build publishes nothing; the rollback takes you to older code | Roll back only when the new release is live and unhealthy ([why](/docs/ci-pipelines#deploy-step)) |
 | Giving CI a personal SSH key | Leaks your access with the CI | A dedicated key, or an API token with `deploy-manage` |
 | Calling the agent webhook from CI and expecting a result | CI turns green before the deploy even starts | Use SSH or the API when CI must wait |
-| No health URL | A release that returns 500 counts as deployed | Set `cipi health set shop --url=https://shop.example.com/up` |
+| No health URL | A release that returns 500 counts as deployed | Set `sudo cipi health set shop --url=https://shop.example.com/up` |
 
 ## Troubleshooting {#troubleshooting}
 
 | Problem | Fix |
 | --- | --- |
-| Push doesn't deploy (agent mode) | Wrong branch, or no webhook: `cipi git status`, then `cipi app webhook recreate shop` |
+| Push doesn't deploy (agent mode) | Wrong branch, or no webhook: `sudo cipi git status`, then `sudo cipi app webhook recreate shop` |
 | 404 on `/cipi/webhook` | The agent isn't deployed yet: `sudo cipi deploy shop` once after adding it |
 | Two deploys per push | Turn the webhook off for the app that uses a pipeline |
 | *A deploy of 'shop' is running* in CI | Limit your CI to one deploy at a time and keep one trigger per app; a stale lock is removed by the next deploy (Cipi 5.13.0+) |

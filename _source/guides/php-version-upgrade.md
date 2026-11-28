@@ -20,8 +20,8 @@ faq:
   - Is the switch really without downtime? | Yes. Cipi starts the new pool, points the app's vhost at it and reloads Nginx; requests in flight finish on the old pool.
   - What if the new version breaks the app? | Move it back with the same command (`--php=` the old version). Both versions stay installed until you remove one.
   - Which versions can I install? | 8.3 to 8.6. Older versions on old servers are listed, patched by the distro if possible and can be removed, but aren't offered to apps.
-  - Do I need to patch PHP myself? | No. Cipi applies PHP security releases every night at 03:30 and restarts only the affected pools. `cipi php upgrade` does it now.
-  - What about Octane apps? | They run the PHP inside their FrankenPHP binary. `cipi frankenphp upgrade` updates it; `cipi php upgrade` lists them too.
+  - Do I need to patch PHP myself? | No. Cipi applies PHP security releases every night at 03:30 and restarts only the affected pools. `sudo cipi php upgrade` does it now.
+  - What about Octane apps? | They run the PHP inside their FrankenPHP binary. `sudo cipi frankenphp upgrade` updates it; `sudo cipi php upgrade` lists them too.
   - A new PHP minor is out but an extension isn't. | Cipi installs what's available, records what's missing and adds it as soon as it's published. Assigning the version to an app that needs the missing extension is refused, with the list.
 ---
 PHP has a new minor version every year (8.4, 8.5, 8.6…), each supported with security fixes for a few years. Moving apps forward keeps them fast and patched. On a Cipi server you can do it **one app at a time**, test it, and move back in seconds if needed.
@@ -132,11 +132,11 @@ $ sudo cipi php remove 8.3                  # refused while any app uses it
 | Check now | Any time | `sudo cipi php upgrade` |
 | Octane apps | With FrankenPHP | `sudo cipi frankenphp upgrade` |
 
-`cipi php list` shows the state of each version: `patched`, `VULNERABLE` (a fix exists, not installed yet), `distro`, `END OF LIFE`, `prerelease`. [How CVEs are handled](/guides/php-nginx-cve-patching).
+`sudo cipi php list` shows the state of each version: `patched`, `VULNERABLE` (a fix exists, not installed yet), `distro`, `END OF LIFE`, `prerelease`. [How CVEs are handled](/guides/php-nginx-cve-patching).
 
 ## php.ini settings survive {#ini}
 
-Settings set with `cipi ini` move with the app. Check them after the switch:
+Settings set with `sudo cipi ini` move with the app. Check them after the switch:
 
 ```bash
 $ sudo cipi ini list --app=shop
@@ -149,5 +149,5 @@ $ sudo cipi ini list --app=shop
 | `Your lock file does not contain a compatible set of packages` | A dependency doesn't support the version yet: `composer why-not php 8.6`, update or wait |
 | Assigning is refused: missing extensions | The extension isn't published for that version yet; `--force` only if the app doesn't use it |
 | Deprecation warnings flood the log | Set `LOG_DEPRECATIONS_CHANNEL=null` while you fix them |
-| `php -v` shows the old version | That's the server default: `cipi php switch` (apps use their own anyway) |
+| `php -v` shows the old version | That's the server default: `sudo cipi php switch` (apps use their own anyway) |
 | Worker still on the old version | `sudo cipi worker restart shop` |

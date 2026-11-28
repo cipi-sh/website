@@ -6,7 +6,7 @@
 $ composer require cipi/sdk
 ```
 
-PHP 8.2+ with `ext-curl` and `ext-json`; Laravel optional. Source: [github.com/cipi-sh/sdk](https://github.com/cipi-sh/sdk) (MIT). The server needs [`cipi api`](/docs/api) and a token with only the abilities this code needs.
+PHP 8.2+ with `ext-curl` and `ext-json`; Laravel optional. Source: [github.com/cipi-sh/sdk](https://github.com/cipi-sh/sdk) (MIT). The server needs [`sudo cipi api`](/docs/api) and a token with only the abilities this code needs.
 
 @section sdk-client
 
@@ -305,7 +305,7 @@ $cipi->zeroTrust()->leaveMesh();
 
 Options of `joinMesh()`: `hostname`, `control_url`, `direct`, `accept_dns`, `accept_routes`, and for Tailscale `tags`, `ssh`, `reauth`. The key is sent once and is neither stored nor returned; without one, a client already connected on the server is adopted.
 
-The server [refuses what would lock people out](/docs/mesh-network#panel-guards): a `ValidationException` whose message is the reason — nobody has signed in over the mesh yet, the node key can expire, your call reaches the API on the address the lock would close. Nothing is retried. The tunnel itself is changed with `cipi zt` on the server.
+The server [refuses what would lock people out](/docs/mesh-network#panel-guards): a `ValidationException` whose message is the reason — nobody has signed in over the mesh yet, the node key can expire, your call reaches the API on the address the lock would close. Nothing is retried. The tunnel itself is changed with `sudo cipi zt` on the server.
 
 @section sdk-security
 

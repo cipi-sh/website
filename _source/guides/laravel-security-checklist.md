@@ -17,7 +17,7 @@ docs:
   - crowdsec
   - malware-scan
 faq:
-  - Is this list enough for a security audit? | It covers the common ground. For ISO 27001 or SOC 2 evidence, `cipi compliance` collects the server side; your app's controls stay yours.
+  - Is this list enough for a security audit? | It covers the common ground. For ISO 27001 or SOC 2 evidence, `sudo cipi compliance` collects the server side; your app's controls stay yours.
   - How often should I review it? | At every major release and after adding a feature that handles money, uploads or personal data.
   - What's the single most common mistake? | `APP_DEBUG=true` in production, which shows secrets in error pages.
   - What if a step fails? | Check the matching [docs](/docs/) page, open a GitHub issue, or ask in the community. Most commands print the fix when they refuse something.
@@ -62,14 +62,14 @@ Security on your own server is a list of boring things done every time. Here's t
 | --- | --- |
 | Per-person SSH keys, removed when people leave | `sudo cipi ssh add`, `sudo cipi ssh remove` |
 | Panel with 2FA or SSO, least-privilege roles | [Web panel](/docs/gui-sso) |
-| API tokens scoped and expiring | `cipi api token create --abilities=… --expires=…` |
+| API tokens scoped and expiring | `sudo cipi api token create --abilities=… --expires=…` |
 | Staging and admin behind a login | [Cloudflare Access](/guides/cloudflare-zero-trust-laravel) or basic auth |
 
 ## Data
 
 | Check | How |
 | --- | --- |
-| Encrypted off-site backups, restored at least once | [Backups to S3](/guides/backup-vps-s3) with `encrypt: true` and `cipi backup verify` |
+| Encrypted off-site backups, restored at least once | [Backups to S3](/guides/backup-vps-s3) with `encrypt: true` and `sudo cipi backup verify` |
 | No production data on laptops | [Anonymized dumps](/guides/anonymized-database-dumps) |
 | Logs that expire | [Log retention](/docs/log-retention) |
 

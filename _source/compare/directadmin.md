@@ -112,11 +112,11 @@ Every DirectAdmin feature you use today, and its place in Cipi. Use it as your m
 | In DirectAdmin | In Cipi | Docs |
 | --- | --- | --- |
 | User (hosting account) | One Cipi app per site, each with its own Linux user | [App SSH](/docs/app-ssh) |
-| Domains / pointers | `cipi app create --domain`, `cipi alias add` | [Domains](/docs/domains) |
-| MySQL management | `cipi db` | [Databases](/docs/databases) |
+| Domains / pointers | `sudo cipi app create --domain`, `sudo cipi alias add` | [Domains](/docs/domains) |
+| MySQL management | `sudo cipi db` | [Databases](/docs/databases) |
 | Cron jobs | Scheduler, crontab | [Scheduler](/docs/scheduler) |
-| SSL (Let's Encrypt) | `cipi ssl install` | [SSL](/docs/ssl) |
-| Create/Restore Backups | `cipi backup` | [Backups](/docs/backups) |
+| SSL (Let's Encrypt) | `sudo cipi ssl install` | [SSL](/docs/ssl) |
+| Create/Restore Backups | `sudo cipi backup` | [Backups](/docs/backups) |
 | PHP version selector | `--php` | [PHP](/docs/php) |
 | E-mail, DNS, FTP | Not included | Specialised providers |
 
