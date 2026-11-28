@@ -17,7 +17,7 @@ Audit | deploy ledger, event log, compliance
 | --- | --- | --- |
 | **Network** | UFW allows only 22, 80, 443; the panel can open ports and block addresses, never close those three. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](/docs/firewall), [Nginx](/docs/nginx#default-server) |
 | **SSH** | Root login off; the `cipi` admin user is key-only; app users have their own password logins, which you can switch off | [SSH keys](/docs/ssh-keys) |
-| **Privilege** | App users can't `su`; their only sudo is emptying their own app's [page cache](/docs/page-cache#recipe). The web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist. Abilities that reach as far as SSH — `ssh-manage`, `zt-manage`, `sync-manage` — are given one by one | [Panel architecture](/docs/gui-architecture), [API tokens](/docs/api#tokens) |
+| **Privilege** | App users can't `su`; their sudo is a short list of helpers that take their own app's name and nothing else — restarting its workers, recording its deploys, its post-deploy health check, emptying its [page cache](/docs/page-cache#recipe). The web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist. Abilities that reach as far as SSH — `ssh-manage`, `zt-manage`, `sync-manage` — are given one by one | [Panel architecture](/docs/gui-architecture), [API tokens](/docs/api#tokens) |
 | **App isolation** | One Linux user per app (home `750`), its own PHP-FPM pool, `open_basedir` to its home, its own database user and Valkey instance | [How Cipi works](/docs/how-cipi-works#what-every-app-gets) |
 | **Git** | A separate read-only deploy key per app; signed webhooks; deploys run as the app user | [Git](/docs/git), [Auto-deploy](/docs/auto-deploy) |
 | **Secrets** | Configs, tokens and passwords encrypted at rest (AES-256); backups and sync archives encrypted before they leave | [Vault](/docs/vault), [Backups](/docs/backups#encryption) |
@@ -40,7 +40,7 @@ If one app is compromised (a vulnerable plugin, a leaked `.env`), the attacker g
 | --- | --- |
 | Read other apps' files | Homes are `750`, `open_basedir` confines PHP |
 | Read other apps' data | Each database and Valkey instance has its own credentials |
-| Become root or `cipi` | `su` is restricted to the sudo group; an app user's only sudo is `cipi-cache-clear` for its own app, which takes nothing but page addresses |
+| Become root or `cipi` | `su` is restricted to the sudo group; an app user's sudo is a few helpers bound to its own app (workers, deploy audit, health check, `cipi-cache-clear`), each checking what it is given |
 | Read Cipi's secrets | Encrypted, readable by root only |
 | Change the web server | Vhosts and pools are root-owned |
 | Reuse the deploy key elsewhere | One key per repository, read-only |

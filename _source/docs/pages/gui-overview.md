@@ -150,7 +150,7 @@ The Overview's details say where to connect and as whom: the app's Linux **user*
 
 Deploys, SSL and database operations run as async jobs. The overlay polls `GET /api/jobs/{id}`, shows elapsed time and colour-codes the output; closing it leaves the job running.
 
-A job that fails says why in one line above its output, and a failed deploy adds what to check. A deploy stopped because a step ran out of time — the front-end build has [30 minutes, every other step 5](/docs/deploying#time-limits) — names the step and how long it ran. The panel follows a deploy for up to an hour.
+A job that fails says why in one line above its output, and a failed deploy adds what to check. A deploy stopped because a step ran out of time — the front-end build has [30 minutes, every other step 5](/docs/deploying#time-limits) — names the step and how long it ran. The panel follows a deploy for as long as it runs: the API gives one two hours.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">

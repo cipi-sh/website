@@ -5316,7 +5316,7 @@ With `--verify=on`, the server installs a release only when:
 - is signed with an SSH key listed in **`/etc/cipi/release-signers`** on this server,
 - and points at the very commit that was downloaded.
 
-Anything else — no tag, a tag signed by an unknown key, a tag on another commit — is **refused**: nothing is installed, the server stays on the version it has, and you get a notification with the reason. The next night it tries again.
+Anything else — no tag, a tag signed by an unknown key, a tag on another commit, or a signed release **older** than the one installed (a branch pointed back at an old release with a known flaw) — is **refused**: nothing is installed, the server stays on the version it has, and you get a notification with the reason. The next night it tries again.
 
 ```bash
 $ sudo cipi self-update
@@ -5371,6 +5371,7 @@ $ cipi self-update policy
 | **When a release is seen** | At the nightly update, and at an hourly check (`/etc/cron.d/cipi-selfupdate-delay`, at minute 17) that only asks GitHub which commit is the latest — nothing is downloaded until one is due |
 | **When it is installed** | At the first hourly check after its delay has passed: not only at night |
 | **A newer release meanwhile** | Its own delay starts when it is seen: a release replaced within the delay is never installed |
+| **The version already running** | Not held: right after turning the delay on, the commit of the version installed is recorded as installed, not waited for |
 | **Install it now** | `cipi self-update --now` — skips the delay, never the signature check |
 | **Suggested** | 12 hours: a bad release is usually noticed within a few. Longer for servers that matter most; a mix is fine — a staging server with no delay sees a release first |
 
@@ -6367,7 +6368,7 @@ Audit | deploy ledger, event log, compliance
 | --- | --- | --- |
 | **Network** | UFW allows only 22, 80, 443; the panel can open ports and block addresses, never close those three. Fail2ban bans after 3 attempts, doubling up to 7 days; repeat offenders get a 7-day block. Unknown hostnames get an empty reply | [Firewall & bans](https://cipi.sh/docs/firewall), [Nginx](https://cipi.sh/docs/nginx#default-server) |
 | **SSH** | Root login off; the `cipi` admin user is key-only; app users have their own password logins, which you can switch off | [SSH keys](https://cipi.sh/docs/ssh-keys) |
-| **Privilege** | App users can't `su`; their only sudo is emptying their own app's [page cache](https://cipi.sh/docs/page-cache#recipe). The web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist. Abilities that reach as far as SSH — `ssh-manage`, `zt-manage`, `sync-manage` — are given one by one | [Panel architecture](https://cipi.sh/docs/gui-architecture), [API tokens](https://cipi.sh/docs/api#tokens) |
+| **Privilege** | App users can't `su`; their sudo is a short list of helpers that take their own app's name and nothing else — restarting its workers, recording its deploys, its post-deploy health check, emptying its [page cache](https://cipi.sh/docs/page-cache#recipe). The web user's sudo is limited to an explicit list of `cipi` sub-commands; the API checks every command against a whitelist. Abilities that reach as far as SSH — `ssh-manage`, `zt-manage`, `sync-manage` — are given one by one | [Panel architecture](https://cipi.sh/docs/gui-architecture), [API tokens](https://cipi.sh/docs/api#tokens) |
 | **App isolation** | One Linux user per app (home `750`), its own PHP-FPM pool, `open_basedir` to its home, its own database user and Valkey instance | [How Cipi works](https://cipi.sh/docs/how-cipi-works#what-every-app-gets) |
 | **Git** | A separate read-only deploy key per app; signed webhooks; deploys run as the app user | [Git](https://cipi.sh/docs/git), [Auto-deploy](https://cipi.sh/docs/auto-deploy) |
 | **Secrets** | Configs, tokens and passwords encrypted at rest (AES-256); backups and sync archives encrypted before they leave | [Vault](https://cipi.sh/docs/vault), [Backups](https://cipi.sh/docs/backups#encryption) |
@@ -6390,7 +6391,7 @@ If one app is compromised (a vulnerable plugin, a leaked `.env`), the attacker g
 | --- | --- |
 | Read other apps' files | Homes are `750`, `open_basedir` confines PHP |
 | Read other apps' data | Each database and Valkey instance has its own credentials |
-| Become root or `cipi` | `su` is restricted to the sudo group; an app user's only sudo is `cipi-cache-clear` for its own app, which takes nothing but page addresses |
+| Become root or `cipi` | `su` is restricted to the sudo group; an app user's sudo is a few helpers bound to its own app (workers, deploy audit, health check, `cipi-cache-clear`), each checking what it is given |
 | Read Cipi's secrets | Encrypted, readable by root only |
 | Change the web server | Vhosts and pools are root-owned |
 | Reuse the deploy key elsewhere | One key per repository, read-only |
@@ -7816,7 +7817,7 @@ The Overview's details say where to connect and as whom: the app's Linux **user*
 
 Deploys, SSL and database operations run as async jobs. The overlay polls `GET /api/jobs/{id}`, shows elapsed time and colour-codes the output; closing it leaves the job running.
 
-A job that fails says why in one line above its output, and a failed deploy adds what to check. A deploy stopped because a step ran out of time — the front-end build has [30 minutes, every other step 5](https://cipi.sh/docs/deploying#time-limits) — names the step and how long it ran. The panel follows a deploy for up to an hour.
+A job that fails says why in one line above its output, and a failed deploy adds what to check. A deploy stopped because a step ran out of time — the front-end build has [30 minutes, every other step 5](https://cipi.sh/docs/deploying#time-limits) — names the step and how long it ran. The panel follows a deploy for as long as it runs: the API gives one two hours.
 
 ### Databases and server
 
@@ -8807,7 +8808,7 @@ Some routes have no ability of their own and sit under an area's: `nginx-*` for 
 
 ## REST endpoints 
 
-Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. **A job has a time limit**: an hour for a deploy (its front-end build alone may take [30 minutes](https://cipi.sh/docs/deploying#time-limits)), ten minutes for any other; one that runs out of it ends as `failed` with `exit_code` 124, the output it had, and a line that says so. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+Every call needs `Authorization: Bearer `. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. **A job has a time limit**: two hours for a deploy and for a [transfer](#endpoints-sync) (a front-end build alone may take [30 minutes](https://cipi.sh/docs/deploying#time-limits), up to an hour where the app asks for it), ten minutes for any other; one that runs out of it ends as `failed` with `exit_code` 124, the output it had, and a line that says so. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 The API and the server's Cipi are updated separately (`cipi api update`, `cipi self-update`). A route whose command the server's Cipi doesn't have yet answers `503` and says so: update the server.
 
@@ -9653,7 +9654,7 @@ Same figures as [`cipi disk`](https://cipi.sh/docs/disk). Sizes are measured on 
 
 ## `jobs` 
 
-`jobs show ` and `jobs wait ` (blocking). Write commands wait for their job by default. `deploy` follows its job for up to an hour — a front-end build alone may take [30 minutes](https://cipi.sh/docs/deploying#time-limits) — and every other command for ten minutes; a command whose wait is over says that the job is still running and how to pick it up: `jobs wait `.
+`jobs show ` and `jobs wait ` (blocking). Write commands wait for their job by default. `deploy` and `sync push` follow their job for up to two hours — as long as the API lets one run; a front-end build alone may take [30 minutes](https://cipi.sh/docs/deploying#time-limits), up to an hour where the app asks for it — and every other command for ten minutes; a command whose wait is over says that the job is still running and how to pick it up: `jobs wait `.
 
 ## `update` 
 
@@ -9813,7 +9814,7 @@ $cipi->deployConfig()->update('shop', ['keep_releases' => 5, 'migrate' => true])
 $cipi->jobs()->wait($job, timeoutSeconds: 120, intervalSeconds: 1.0);
 ```
 
-`wait()` throws `JobFailedException` (payload on `$e->job`) when a job fails, and `TimeoutException` when the job is still running at the end of the wait: an hour for a deploy — as long as the panel lets one run, since a front-end build alone may take [30 minutes](https://cipi.sh/docs/deploying#time-limits) — and 300 s for every other job, unless you pass `timeoutSeconds`. The timeout ends the wait, not the job: `wait()` on the same id picks it up again.
+`wait()` throws `JobFailedException` (payload on `$e->job`) when a job fails, and `TimeoutException` when the job is still running at the end of the wait: two hours for a deploy and for a transfer (`sync()->push()`) — as long as the panel lets one run, since a front-end build alone may take [30 minutes](https://cipi.sh/docs/deploying#time-limits), up to an hour where the app asks for it — and 300 s for every other job, unless you pass `timeoutSeconds`. The timeout ends the wait, not the job: `wait()` on the same id picks it up again.
 
 ```php
 $plan = $cipi->yml()->status('shop')['data'];      // file, env, valid, in_sync, changes, blockers
@@ -19064,7 +19065,7 @@ Not everything on a server is Laravel. The marketing site from 2014, the client'
 
 ```bash
 # A legacy PHP site, uploaded over SFTP, with a database
-$ sudo cipi app create --custom --user=legacy --domain=old.example.com --db=legacy --php=8.2
+$ sudo cipi app create --custom --user=legacy --domain=old.example.com --db=legacy --php=8.3
 
 # A static site from Git, serving dist/
 $ sudo cipi app create --custom --user=docs --domain=docs.example.com \
@@ -19107,11 +19108,11 @@ deploy:
 
 ```bash
 $ sudo cipi ssl install legacy
-$ sudo cipi app edit legacy --php=8.3               # when the code is ready for it
+$ sudo cipi app edit legacy --php=8.4               # when the code is ready for it
 $ sudo cipi ini set memory_limit=256M --app=legacy
 ```
 
-An old site on an old PHP? Install that PHP for it alone: `sudo cipi php install 8.1`. Each app picks its own. Behaviours of your own in Nginx — headers, a redirect, `location` blocks — go in the app's [own directives](https://cipi.sh/docs/nginx#custom).
+Each app picks its own PHP among those installed on the server — 8.3 to 8.6 (`sudo cipi php install 8.5`). A site that only runs on an older PHP has to be brought to 8.3 first: Cipi doesn't install older ones, which no longer get security fixes. Behaviours of your own in Nginx — headers, a redirect, `location` blocks — go in the app's [own directives](https://cipi.sh/docs/nginx#custom).
 
 ## 5. Make it fast
 
@@ -19140,7 +19141,7 @@ $ sudo cipi app logs legacy
 | --- | --- |
 | Still *Coming soon* after the upload | The files aren't in the document root: `cipi app show legacy` says which folder it is |
 | 404 on pretty URLs | The vhost already routes unknown paths to `/index.php`; check the CMS's base URL setting |
-| A blank page | PHP errors: `cipi app logs legacy`. An old site on a too-new PHP is the usual reason |
+| A blank page | PHP errors: `cipi app logs legacy`. Code written for an older PHP than 8.3 is the usual reason |
 | `Permission denied` writing files | Upload as the app user, not root; `cipi app fix-permissions legacy` repairs ownership |
 | `cipi.yml` downloaded by visitors | It can't be: every vhost refuses `/cipi.yml` and `/cipi-*.yml` |
 

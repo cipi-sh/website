@@ -514,7 +514,7 @@ Same figures as [`cipi disk`](/docs/disk). Sizes are measured on request (up to 
 
 ## `jobs` {#jobs}
 
-`jobs show <id>` and `jobs wait <id>` (blocking). Write commands wait for their job by default. `deploy` follows its job for up to an hour — a front-end build alone may take [30 minutes](/docs/deploying#time-limits) — and every other command for ten minutes; a command whose wait is over says that the job is still running and how to pick it up: `jobs wait <id>`.
+`jobs show <id>` and `jobs wait <id>` (blocking). Write commands wait for their job by default. `deploy` and `sync push` follow their job for up to two hours — as long as the API lets one run; a front-end build alone may take [30 minutes](/docs/deploying#time-limits), up to an hour where the app asks for it — and every other command for ten minutes; a command whose wait is over says that the job is still running and how to pick it up: `jobs wait <id>`.
 
 @section cli-update
 

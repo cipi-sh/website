@@ -24,7 +24,7 @@ With `--verify=on`, the server installs a release only when:
 - is signed with an SSH key listed in **`/etc/cipi/release-signers`** on this server,
 - and points at the very commit that was downloaded.
 
-Anything else — no tag, a tag signed by an unknown key, a tag on another commit — is **refused**: nothing is installed, the server stays on the version it has, and you get a notification with the reason. The next night it tries again.
+Anything else — no tag, a tag signed by an unknown key, a tag on another commit, or a signed release **older** than the one installed (a branch pointed back at an old release with a known flaw) — is **refused**: nothing is installed, the server stays on the version it has, and you get a notification with the reason. The next night it tries again.
 
 ```bash
 $ sudo cipi self-update
@@ -79,6 +79,7 @@ $ cipi self-update policy
 | **When a release is seen** | At the nightly update, and at an hourly check (`/etc/cron.d/cipi-selfupdate-delay`, at minute 17) that only asks GitHub which commit is the latest — nothing is downloaded until one is due |
 | **When it is installed** | At the first hourly check after its delay has passed: not only at night |
 | **A newer release meanwhile** | Its own delay starts when it is seen: a release replaced within the delay is never installed |
+| **The version already running** | Not held: right after turning the delay on, the commit of the version installed is recorded as installed, not waited for |
 | **Install it now** | `cipi self-update --now` — skips the delay, never the signature check |
 | **Suggested** | 12 hours: a bad release is usually noticed within a few. Longer for servers that matter most; a mix is fine — a staging server with no delay sees a release first |
 
