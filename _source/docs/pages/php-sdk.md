@@ -114,7 +114,7 @@ $cipi->deployConfig()->update('shop', ['keep_releases' => 5, 'migrate' => true])
 $cipi->jobs()->wait($job, timeoutSeconds: 120, intervalSeconds: 1.0);
 ```
 
-`wait()` throws `JobFailedException` (payload on `$e->job`) when a job fails, and `TimeoutException` when the job is still running at the end of the wait: an hour for a deploy — as long as the panel lets one run, since a front-end build alone may take [30 minutes](/docs/deploying#time-limits) — and 300 s for every other job, unless you pass `timeoutSeconds`. The timeout ends the wait, not the job: `wait()` on the same id picks it up again.
+`wait()` throws `JobFailedException` (payload on `$e->job`) when a job fails, and `TimeoutException` when the job is still running at the end of the wait: two hours for a deploy and for a transfer (`sync()->push()`) — as long as the panel lets one run, since a front-end build alone may take [30 minutes](/docs/deploying#time-limits), up to an hour where the app asks for it — and 300 s for every other job, unless you pass `timeoutSeconds`. The timeout ends the wait, not the job: `wait()` on the same id picks it up again.
 
 ```php
 $plan = $cipi->yml()->status('shop')['data'];      // file, env, valid, in_sync, changes, blockers
@@ -256,7 +256,7 @@ $cipi->updates()->setPolicy(delayHours: 12);
 $cipi->updates()->setPolicy(verify: true, fingerprint: 'SHA256:…');
 ```
 
-`sync()` [moves apps to another server](/docs/sync): this server is the source, `push()` is a job (`sync-push`), and the target trusts the source's key first — `key()` here, `trust($key)` there (`untrust()` takes it back); `check()` says why the way isn't open. There's no passphrase to handle. Ability `sync-manage`, as strong as `ssh-manage`. `updates()` is [how the server updates Cipi](/docs/self-update): only signed releases, a delay — both off by default; starting an update isn't in the API. Abilities `updates-view`, `updates-manage`.
+`sync()` [moves apps to another server](/docs/sync): this server is the source, `push()` is a job (`sync-push`), and the target trusts the source's key first — `key()` here, `trust($key)` there (`untrust()` takes it back); `check()` says why the way isn't open. There's no passphrase to handle. Ability `sync-manage`, as strong as `ssh-manage`. `updates()` is [how the server updates Cipi](/docs/self-update): only signed releases (not available at the moment), a delay — both off by default; starting an update isn't in the API. Abilities `updates-view`, `updates-manage`.
 
 `octane()` is [the PHP of an Octane app](/docs/octane#octane-php), `valkey()` is [Valkey per app](/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](/docs/notifications#written).
 

@@ -457,7 +457,7 @@ The two optional safeguards of [self-update](/docs/self-update), both off by def
 | --- | --- |
 | `updates` | Whether releases must be signed, the delay, the keys trusted, the release waiting, why the last one wasn't installed |
 | `updates --delay 12h` | Install a new release once the server has seen it for 12 hours (`6h` … `7d`, `off`) |
-| `updates --verify on --fingerprint SHA256:…` | Only releases signed by a trusted key — the first time with the fingerprint you compared with [the published one](/docs/self-update#signers) |
+| `updates --verify on --fingerprint SHA256:…` | Only releases signed by a trusted key — the first time with the fingerprint you compared with [the published one](/docs/self-update#signers). Signed releases are not available at the moment |
 | `updates --verify off` | Back to any release |
 
 ```bash
@@ -514,7 +514,7 @@ Same figures as [`cipi disk`](/docs/disk). Sizes are measured on request (up to 
 
 ## `jobs` {#jobs}
 
-`jobs show <id>` and `jobs wait <id>` (blocking). Write commands wait for their job by default. `deploy` follows its job for up to an hour — a front-end build alone may take [30 minutes](/docs/deploying#time-limits) — and every other command for ten minutes; a command whose wait is over says that the job is still running and how to pick it up: `jobs wait <id>`.
+`jobs show <id>` and `jobs wait <id>` (blocking). Write commands wait for their job by default. `deploy` and `sync push` follow their job for up to two hours — as long as the API lets one run; a front-end build alone may take [30 minutes](/docs/deploying#time-limits), up to an hour where the app asks for it — and every other command for ten minutes; a command whose wait is over says that the job is still running and how to pick it up: `jobs wait <id>`.
 
 @section cli-update
 

@@ -4,13 +4,13 @@ Every night, at 03:50, each Cipi server installs the latest Cipi from GitHub ([U
 
 | | What it does | Against |
 | --- | --- | --- |
-| **[Signed releases only](#verify)** | A release is installed only when its tag is signed by a key the server already trusts | A taken-over GitHub account, a tampered download: pushing code is not enough, it has to be signed with a key that is not on GitHub |
+| **[Signed releases only](#verify)** — *not available at the moment* | A release is installed only when its tag is signed by a key the server already trusts | A taken-over GitHub account, a tampered download: pushing code is not enough, it has to be signed with a key that is not on GitHub |
 | **[A delay](#delay)** | A new release is installed once the server has seen it for a while — 12 hours, suggested | A bad release, signed or not: time for it to be noticed and reverted before it lands on your servers |
 
 ```bash
 $ cipi self-update policy                                 # how this server updates Cipi   (--json)
 $ cipi self-update policy --delay=12h                     # wait 12 hours before a new release
-$ cipi self-update policy --verify=on --fingerprint=SHA256:…   # signed releases only
+$ cipi self-update policy --verify=on --fingerprint=SHA256:…   # signed releases only — not available at the moment
 $ cipi self-update policy --delay=off --verify=off        # back to the default
 ```
 
@@ -18,13 +18,15 @@ Nothing else changes: the nightly update, `cipi self-update` at the shell, the b
 
 ## Signed releases only {#verify}
 
+> [!warning] **Signed releases are not available at the moment.** Cipi releases are not signed yet, so there is no key to trust: `--verify=on` is refused (*No signer to trust*) and nothing changes on the server. Until they are, the [delay](#delay) is the safeguard to use. The signing key will be listed [below](#signers) when signed releases are available.
+
 With `--verify=on`, the server installs a release only when:
 
 - its tag `v<version>` (the version in the downloaded `version.md`) exists,
 - is signed with an SSH key listed in **`/etc/cipi/release-signers`** on this server,
 - and points at the very commit that was downloaded.
 
-Anything else — no tag, a tag signed by an unknown key, a tag on another commit — is **refused**: nothing is installed, the server stays on the version it has, and you get a notification with the reason. The next night it tries again.
+Anything else — no tag, a tag signed by an unknown key, a tag on another commit, or a signed release **older** than the one installed (a branch pointed back at an old release with a known flaw) — is **refused**: nothing is installed, the server stays on the version it has, and you get a notification with the reason. The next night it tries again.
 
 ```bash
 $ sudo cipi self-update
@@ -51,7 +53,7 @@ From a script, the panel or the API, there is no question to answer: pass the fi
 $ cipi self-update policy --verify=on --fingerprint=SHA256:…
 ```
 
-> [!warning] Turn the check on only when releases are signed: until the signers are published here, `--verify=on` is refused (*No signer to trust*), and with it on an unsigned release is never installed. A server whose check refuses every release stays on its version — and misses its security fixes too.
+> [!note] With the check on, an unsigned release is never installed: a server whose check refuses every release stays on its version — and misses its security fixes too.
 
 ### Release signers {#signers}
 
@@ -59,9 +61,9 @@ The keys Cipi releases are signed with. Compare the fingerprint with the one you
 
 | Fingerprint | Principal | Since |
 | --- | --- | --- |
-| *Published with the first signed release* | | |
+| *Signed releases are not available at the moment* | | |
 
-Until a key is listed here, releases are not signed, and the delay is the safeguard to use.
+No key is listed yet: releases are not signed, and the [delay](#delay) is the safeguard to use.
 
 ## A delay {#delay}
 
@@ -79,6 +81,7 @@ $ cipi self-update policy
 | **When a release is seen** | At the nightly update, and at an hourly check (`/etc/cron.d/cipi-selfupdate-delay`, at minute 17) that only asks GitHub which commit is the latest — nothing is downloaded until one is due |
 | **When it is installed** | At the first hourly check after its delay has passed: not only at night |
 | **A newer release meanwhile** | Its own delay starts when it is seen: a release replaced within the delay is never installed |
+| **The version already running** | Not held: right after turning the delay on, the commit of the version installed is recorded as installed, not waited for |
 | **Install it now** | `cipi self-update --now` — skips the delay, never the signature check |
 | **Suggested** | 12 hours: a bad release is usually noticed within a few. Longer for servers that matter most; a mix is fine — a staging server with no delay sees a release first |
 

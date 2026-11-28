@@ -98,7 +98,7 @@ Some routes have no ability of their own and sit under an area's: `nginx-*` for 
 
 ## REST endpoints {#endpoints}
 
-Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. **A job has a time limit**: an hour for a deploy (its front-end build alone may take [30 minutes](/docs/deploying#time-limits)), ten minutes for any other; one that runs out of it ends as `failed` with `exit_code` 124, the output it had, and a line that says so. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
+Every call needs `Authorization: Bearer <token>`. **Reads are synchronous. Writes are async jobs**: they answer `202` with a `job_id`; poll `GET /api/jobs/{id}` (with the ability the job was created under) for status, output and a structured `result` (credentials, backup path, webhook token). A `running` job already carries `output` — what its command has printed so far, refreshed about once a second — so a deploy or an install can be followed while it runs; `result` comes with the finished job. **A job has a time limit**: two hours for a deploy and for a [transfer](#endpoints-sync) (a front-end build alone may take [30 minutes](/docs/deploying#time-limits), up to an hour where the app asks for it), ten minutes for any other; one that runs out of it ends as `failed` with `exit_code` 124, the output it had, and a line that says so. The [firewall](#endpoints-firewall) is the exception: its changes take a second and answer at once.
 
 The API and the server's Cipi are updated separately (`cipi api update`, `cipi self-update`). A route whose command the server's Cipi doesn't have yet answers `503` and says so: update the server.
 
@@ -232,7 +232,7 @@ There is no passphrase in any of them: the source makes one for the transfer and
 
 ### How the server updates Cipi {#endpoints-self-update}
 
-The two optional safeguards of [self-update](/docs/self-update): only releases signed by a trusted key, and a delay before a new release is installed.
+The two optional safeguards of [self-update](/docs/self-update): only releases signed by a trusted key (signed releases are not available at the moment), and a delay before a new release is installed.
 
 | Method | Path | Ability |
 | --- | --- | --- |

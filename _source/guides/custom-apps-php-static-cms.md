@@ -51,7 +51,7 @@ Not everything on a server is Laravel. The marketing site from 2014, the client'
 
 ```bash
 # A legacy PHP site, uploaded over SFTP, with a database
-$ sudo cipi app create --custom --user=legacy --domain=old.example.com --db=legacy --php=8.2
+$ sudo cipi app create --custom --user=legacy --domain=old.example.com --db=legacy --php=8.3
 
 # A static site from Git, serving dist/
 $ sudo cipi app create --custom --user=docs --domain=docs.example.com \
@@ -94,11 +94,11 @@ deploy:
 
 ```bash
 $ sudo cipi ssl install legacy
-$ sudo cipi app edit legacy --php=8.3               # when the code is ready for it
+$ sudo cipi app edit legacy --php=8.4               # when the code is ready for it
 $ sudo cipi ini set memory_limit=256M --app=legacy
 ```
 
-An old site on an old PHP? Install that PHP for it alone: `sudo cipi php install 8.1`. Each app picks its own. Behaviours of your own in Nginx — headers, a redirect, `location` blocks — go in the app's [own directives](/docs/nginx#custom).
+Each app picks its own PHP among those installed on the server — 8.3 to 8.6 (`sudo cipi php install 8.5`). A site that only runs on an older PHP has to be brought to 8.3 first: Cipi doesn't install older ones, which no longer get security fixes. Behaviours of your own in Nginx — headers, a redirect, `location` blocks — go in the app's [own directives](/docs/nginx#custom).
 
 ## 5. Make it fast
 
@@ -127,6 +127,6 @@ $ sudo cipi app logs legacy
 | --- | --- |
 | Still *Coming soon* after the upload | The files aren't in the document root: `cipi app show legacy` says which folder it is |
 | 404 on pretty URLs | The vhost already routes unknown paths to `/index.php`; check the CMS's base URL setting |
-| A blank page | PHP errors: `cipi app logs legacy`. An old site on a too-new PHP is the usual reason |
+| A blank page | PHP errors: `cipi app logs legacy`. Code written for an older PHP than 8.3 is the usual reason |
 | `Permission denied` writing files | Upload as the app user, not root; `cipi app fix-permissions legacy` repairs ownership |
 | `cipi.yml` downloaded by visitors | It can't be: every vhost refuses `/cipi.yml` and `/cipi-*.yml` |
