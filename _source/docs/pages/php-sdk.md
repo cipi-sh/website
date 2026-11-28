@@ -198,7 +198,7 @@ $cipi->wait($cipi->backups()->verify('nightly'));
 An SFTP server — a VPS with a backup user, a Hetzner Storage Box, a NAS — is added from here; Cipi makes its key on the server and returns the public half:
 
 ```php
-$box = $cipi->backups()->addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi')['data'];
+$box = $cipi->backups()->addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi', profiles: ['default'])['data'];
 $box['public_key'];                                      // install it on the remote, then:
 $cipi->backups()->testDestinations('box');              // a file written and removed there
 $cipi->backups()->updateProfile('nightly', ['destinations' => ['local', 'box']]);
@@ -207,14 +207,11 @@ $cipi->backups()->destinationKey('box');
 $cipi->backups()->removeDestination('box');             // no profile may use it; its archives stay
 ```
 
-Setting backups up — this server only, the default bucket or an SFTP server — more S3 buckets, the encryption key and the retention (cipi/api 1.49+, Cipi 5.19.0+; an SFTP setup 5.19.1+):
+Backups start on the server, then S3 buckets and SFTP servers are added on a par; the encryption key and the retention too:
 
 ```php
-$cipi->backups()->configureS3('acme-backups', 'AKIA…', $secret, endpoint: 'https://fsn1.your-objectstorage.com');
-$setup = $cipi->backups()->configureSftp('u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi');
-$setup['destination']['public_key'];                     // install it on the remote, then testDestinations('sftp')
-$cipi->backups()->configureLocalOnly();                  // this server only
-
+$cipi->backups()->configure();                           // on the server: the local folder and a nightly profile
+$cipi->backups()->addS3Destination('s3', 'acme-backups', 'AKIA…', $secret, endpoint: 'https://fsn1.your-objectstorage.com', profiles: ['default']);
 $cipi->backups()->addS3Destination('offsite', 'acme-offsite', 'AKIA…', $secret, 'auto', 'https://<account-id>.r2.cloudflarestorage.com');
 $cipi->backups()->updateS3Destination('offsite', ['region' => 'eu-west-1']);   // a key or a secret left out stays
 $cipi->backups()->encryptionKey()['data']['key'];       // keep it off the server; logged and notified there

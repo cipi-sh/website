@@ -36,7 +36,7 @@ cipi CLI | does the work, as on SSH
 | Octane | For an Octane app: the PHP that answers the requests next to the PHP that runs Composer, artisan, cron and the workers, a warning when they are two versions, [**Switch PHP** by its number](/docs/octane#octane-panel), restart, update the FrankenPHP build |
 | App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order), a block of variables pasted or [edited as text](/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
-| Backups | **[Set up](/docs/backups#setup)** on a server without backups — an S3 bucket, an SFTP server or this server only. A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations; **S3 buckets** added, tested, changed and removed — the secret key sent once and never kept; **[SFTP destinations](/docs/backups#sftp)** — a VPS, a Hetzner Storage Box — with the key to install on the remote; the **encryption key** shown and rotated; the **retention** previewed and applied |
+| Backups | **[Set up](/docs/backups#setup)** on a server without backups — on the server first. A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations; **S3 buckets** and **[SFTP servers](/docs/backups#sftp)** on a par — added, tested, changed and removed the same way, the profiles to send there chosen as each is added; a bucket's secret sent once and never kept, an SFTP server's key shown with how to install it; the **encryption key** shown and rotated; the **retention** previewed and applied |
 | Transfer | [Move apps to another server](/docs/sync#panel) as a wizard: which apps, with databases and files or not, the target from the panel's servers or by address, the connection checked first, the transfer as a job with its output — encryption handled by the servers, no passphrase to type; *Bring apps here* from the other side |
 | Updates | [How the server updates Cipi](/docs/self-update#panel): only releases signed by a trusted key (the first time, with the fingerprint you compared — signed releases are not available at the moment), a delay before a new release is installed; the keys trusted, the release waiting, why the last one wasn't installed. Starting an update stays the server's |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics)) |
@@ -189,26 +189,26 @@ A job that fails says why in one line above its output, and a failed deploy adds
 
 ### Backups, transfers and updates
 
-**Backups** starts here on a server without them: *Use an S3 bucket*, *Use an SFTP server* or *On this server only* — then a nightly profile takes every app and every database there. See [where backups go](/docs/backups#setup).
+**Backups** starts here on a server without them: *Set up backups* — a nightly profile takes every app and every database and keeps them on the server. Then S3 buckets and SFTP servers are added on a par. See [set up](/docs/backups#setup).
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-backups-setup-light.webp" width="1168" height="1073" alt="Backups not configured on the staging server: Use an S3 bucket, Use an SFTP server, On this server only; the S3 form open with Hetzner Object Storage picked, the bucket, region, endpoint, access key and a masked secret key" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-backups-setup.webp" width="1168" height="1073" alt="Backups not configured on the staging server: Use an S3 bucket, Use an SFTP server, On this server only; the S3 form open with Hetzner Object Storage picked, the bucket, region, endpoint, access key and a masked secret key" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-backups-setup-light.webp" width="1168" height="459" alt="Backups not set up on the staging server: one button, Set up backups, and Check again" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-backups-setup.webp" width="1168" height="459" alt="Backups not set up on the staging server: one button, Set up backups, and Check again" class="shot-dark" loading="lazy" decoding="async">
 </div>
-<figcaption>A server without backups: the default bucket on Hetzner, typed in — nothing is saved until the bucket answers.</figcaption>
+<figcaption>A server without backups: one button, on the server first.</figcaption>
 </figure>
 
-Then: what each profile takes, against every app and database; the destinations — the server's disk, S3 buckets and SFTP servers. *Add an S3 bucket*: a provider fills in the endpoint and the region; the server reaches the bucket with the keys **before it saves anything**, and the secret key goes to it once, on its standard input — the panel keeps nothing. *Edit* leaves a key or a secret empty to keep the one the server has.
+Then: what each profile takes, against every app and database; the destinations — the server's disk, and S3 buckets and SFTP servers on a par. While backups are only on the server, the tab says so. *Add an S3 bucket*: a provider fills in the endpoint and the region; the server reaches the bucket with the keys **before it saves anything**, and the secret key goes to it once, on its standard input — the panel keeps nothing. Adding a bucket or an SFTP server lists the profiles to send there too, the ones that keep their runs on the server only ticked. *Edit* leaves a key or a secret empty to keep the one the server has.
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-backups-s3-light.webp" width="1168" height="797" alt="Backups destinations: local and the default s3 bucket with Test and Edit; below, a new S3 bucket offsite on Cloudflare R2 with the account ID still to fill in in the endpoint" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-backups-s3.webp" width="1168" height="797" alt="Backups destinations: local and the default s3 bucket with Test and Edit; below, a new S3 bucket offsite on Cloudflare R2 with the account ID still to fill in in the endpoint" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-backups-s3-light.webp" width="1168" height="953" alt="Backups destinations: only local, with the warning that a copy on the server alone is lost with it; below, a new S3 bucket named s3 on Hetzner Object Storage, the nightly profile ticked to send its runs there too" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-backups-s3.webp" width="1168" height="953" alt="Backups destinations: only local, with the warning that a copy on the server alone is lost with it; below, a new S3 bucket named s3 on Hetzner Object Storage, the nightly profile ticked to send its runs there too" class="shot-dark" loading="lazy" decoding="async">
 </div>
-<figcaption>A second bucket on Cloudflare R2: the endpoint says what to fill in.</figcaption>
+<figcaption>Right after the setup: backups only on the server, so a bucket on Hetzner named s3 — the nightly profile ticked, to send its runs there too.</figcaption>
 </figure>
 
 *Add an SFTP server* makes the key on the server and shows its public half with the command that installs it on the remote — `ssh-copy-id -s` for a Hetzner Storage Box, whose preset fills in port 23 — then *Test* writes a file there and removes it. See [SFTP destinations](/docs/backups#sftp). **Encryption key**: *Show the key* (logged and notified on the server) and *Rotate*. **Stored runs**: *Preview the retention* and *Apply the retention*.
