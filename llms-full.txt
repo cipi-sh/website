@@ -5296,19 +5296,21 @@ Every night, at 03:50, each Cipi server installs the latest Cipi from GitHub ([U
 
 | | What it does | Against |
 | --- | --- | --- |
-| **[Signed releases only](#verify)** | A release is installed only when its tag is signed by a key the server already trusts | A taken-over GitHub account, a tampered download: pushing code is not enough, it has to be signed with a key that is not on GitHub |
+| **[Signed releases only](#verify)** — *not available at the moment* | A release is installed only when its tag is signed by a key the server already trusts | A taken-over GitHub account, a tampered download: pushing code is not enough, it has to be signed with a key that is not on GitHub |
 | **[A delay](#delay)** | A new release is installed once the server has seen it for a while — 12 hours, suggested | A bad release, signed or not: time for it to be noticed and reverted before it lands on your servers |
 
 ```bash
 $ cipi self-update policy                                 # how this server updates Cipi   (--json)
 $ cipi self-update policy --delay=12h                     # wait 12 hours before a new release
-$ cipi self-update policy --verify=on --fingerprint=SHA256:…   # signed releases only
+$ cipi self-update policy --verify=on --fingerprint=SHA256:…   # signed releases only — not available at the moment
 $ cipi self-update policy --delay=off --verify=off        # back to the default
 ```
 
 Nothing else changes: the nightly update, `cipi self-update` at the shell, the backup of the installation before it and the migrations after it work as before. From the [panel](#panel), the API, `cipi-cli` and the PHP SDK too.
 
 ## Signed releases only 
+
+> [!warning] **Signed releases are not available at the moment.** Cipi releases are not signed yet, so there is no key to trust: `--verify=on` is refused (*No signer to trust*) and nothing changes on the server. Until they are, the [delay](#delay) is the safeguard to use. The signing key will be listed [below](#signers) when signed releases are available.
 
 With `--verify=on`, the server installs a release only when:
 
@@ -5343,7 +5345,7 @@ From a script, the panel or the API, there is no question to answer: pass the fi
 $ cipi self-update policy --verify=on --fingerprint=SHA256:…
 ```
 
-> [!warning] Turn the check on only when releases are signed: until the signers are published here, `--verify=on` is refused (*No signer to trust*), and with it on an unsigned release is never installed. A server whose check refuses every release stays on its version — and misses its security fixes too.
+> [!note] With the check on, an unsigned release is never installed: a server whose check refuses every release stays on its version — and misses its security fixes too.
 
 ### Release signers 
 
@@ -5351,9 +5353,9 @@ The keys Cipi releases are signed with. Compare the fingerprint with the one you
 
 | Fingerprint | Principal | Since |
 | --- | --- | --- |
-| *Published with the first signed release* | | |
+| *Signed releases are not available at the moment* | | |
 
-Until a key is listed here, releases are not signed, and the delay is the safeguard to use.
+No key is listed yet: releases are not signed, and the [delay](#delay) is the safeguard to use.
 
 ## A delay 
 
@@ -6373,7 +6375,7 @@ Audit | deploy ledger, event log, compliance
 | **Git** | A separate read-only deploy key per app; signed webhooks; deploys run as the app user | [Git](https://cipi.sh/docs/git), [Auto-deploy](https://cipi.sh/docs/auto-deploy) |
 | **Secrets** | Configs, tokens and passwords encrypted at rest (AES-256); backups and sync archives encrypted before they leave | [Vault](https://cipi.sh/docs/vault), [Backups](https://cipi.sh/docs/backups#encryption) |
 | **Patching** | Ubuntu security updates daily; PHP nightly with a patch-level report; Nginx, databases, Valkey, Node and FrankenPHP nightly, one at a time | [Stack upgrades](https://cipi.sh/docs/stack-upgrades), [PHP](https://cipi.sh/docs/php#security) |
-| **Updates of Cipi** | Nightly from GitHub, backed up first. Optionally: only releases signed by a key the server already trusts, and a delay before a new release is installed — so a taken-over account can't reach every server overnight | [Safer self-updates](https://cipi.sh/docs/self-update) |
+| **Updates of Cipi** | Nightly from GitHub, backed up first. Optionally: a delay before a new release is installed — and, once they are available, only releases signed by a key the server already trusts (signed releases are not available at the moment) — so a taken-over account can't reach every server overnight | [Safer self-updates](https://cipi.sh/docs/self-update) |
 | **Hardening** | PHP pools lock down settings used by recent CVEs; Nginx never enables HTTP/2; TLS 1.2/1.3 with modern ciphers | [PHP](https://cipi.sh/docs/php#hardening), [Nginx](https://cipi.sh/docs/nginx) |
 | **Detection** | Alerts on SSH logins, sudo/su, key changes; nightly malware scan; 5xx and service monitor | [Notifications](https://cipi.sh/docs/notifications#security), [Malware scan](https://cipi.sh/docs/malware-scan) |
 | **Audit** | Hash-chained deploy ledger, one-year event log, ISO 27001 / SOC 2 evidence report | [Deploy audit](https://cipi.sh/docs/deploy-audit), [Compliance](https://cipi.sh/docs/compliance) |
@@ -7780,7 +7782,7 @@ cipi CLI | does the work, as on SSH
 | Databases | MariaDB (or [MySQL](https://cipi.sh/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
 | Backups | A matrix of apps and databases against [backup profiles](https://cipi.sh/docs/backups): schedule, destination, retention, [paths left out](https://cipi.sh/docs/backups#exclude-paths), last run; run now, verify, test destinations; **[SFTP destinations](https://cipi.sh/docs/backups#sftp)** — a VPS, a Hetzner Storage Box — added, tested, changed and removed, with the key to install on the remote (no password, no secret through the panel) |
 | Transfer | [Move apps to another server](https://cipi.sh/docs/sync#panel) as a wizard: which apps, with databases and files or not, the target from the panel's servers or by address, the connection checked first, the transfer as a job with its output — encryption handled by the servers, no passphrase to type; *Bring apps here* from the other side |
-| Updates | [How the server updates Cipi](https://cipi.sh/docs/self-update#panel): only releases signed by a trusted key (the first time, with the fingerprint you compared), a delay before a new release is installed; the keys trusted, the release waiting, why the last one wasn't installed. Starting an update stays the server's |
+| Updates | [How the server updates Cipi](https://cipi.sh/docs/self-update#panel): only releases signed by a trusted key (the first time, with the fingerprint you compared — signed releases are not available at the moment), a delay before a new release is installed; the keys trusted, the release waiting, why the last one wasn't installed. Starting an update stays the server's |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](https://cipi.sh/docs/metrics)) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](https://cipi.sh/docs/notifications#events) — everything, or *Urgent* and the categories you choose; every trigger on or off by category ([notifications](https://cipi.sh/docs/notifications#panel)); *Written as* — the [server's name and the time zone](https://cipi.sh/docs/notifications#written) of every notification, the panel's own name in one click |
 | Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](https://cipi.sh/docs/disk), monitor; [Valkey per app](https://cipi.sh/docs/valkey#panel) — who shares the server's instance, *Isolate* one app or all, empty the shared one; the machine's **hostname** next to the name the server has in the panel, in Connections, the dashboard and the switcher: it is what a notification calls it |
@@ -8942,7 +8944,7 @@ There is no passphrase in any of them: the source makes one for the transfer and
 
 ### How the server updates Cipi 
 
-The two optional safeguards of [self-update](https://cipi.sh/docs/self-update): only releases signed by a trusted key, and a delay before a new release is installed.
+The two optional safeguards of [self-update](https://cipi.sh/docs/self-update): only releases signed by a trusted key (signed releases are not available at the moment), and a delay before a new release is installed.
 
 | Method | Path | Ability |
 | --- | --- | --- |
@@ -9603,7 +9605,7 @@ The two optional safeguards of [self-update](https://cipi.sh/docs/self-update), 
 | --- | --- |
 | `updates` | Whether releases must be signed, the delay, the keys trusted, the release waiting, why the last one wasn't installed |
 | `updates --delay 12h` | Install a new release once the server has seen it for 12 hours (`6h` … `7d`, `off`) |
-| `updates --verify on --fingerprint SHA256:…` | Only releases signed by a trusted key — the first time with the fingerprint you compared with [the published one](https://cipi.sh/docs/self-update#signers) |
+| `updates --verify on --fingerprint SHA256:…` | Only releases signed by a trusted key — the first time with the fingerprint you compared with [the published one](https://cipi.sh/docs/self-update#signers). Signed releases are not available at the moment |
 | `updates --verify off` | Back to any release |
 
 ```bash
@@ -9950,7 +9952,7 @@ $cipi->updates()->setPolicy(delayHours: 12);
 $cipi->updates()->setPolicy(verify: true, fingerprint: 'SHA256:…');
 ```
 
-`sync()` [moves apps to another server](https://cipi.sh/docs/sync): this server is the source, `push()` is a job (`sync-push`), and the target trusts the source's key first — `key()` here, `trust($key)` there (`untrust()` takes it back); `check()` says why the way isn't open. There's no passphrase to handle. Ability `sync-manage`, as strong as `ssh-manage`. `updates()` is [how the server updates Cipi](https://cipi.sh/docs/self-update): only signed releases, a delay — both off by default; starting an update isn't in the API. Abilities `updates-view`, `updates-manage`.
+`sync()` [moves apps to another server](https://cipi.sh/docs/sync): this server is the source, `push()` is a job (`sync-push`), and the target trusts the source's key first — `key()` here, `trust($key)` there (`untrust()` takes it back); `check()` says why the way isn't open. There's no passphrase to handle. Ability `sync-manage`, as strong as `ssh-manage`. `updates()` is [how the server updates Cipi](https://cipi.sh/docs/self-update): only signed releases (not available at the moment), a delay — both off by default; starting an update isn't in the API. Abilities `updates-view`, `updates-manage`.
 
 `octane()` is [the PHP of an Octane app](https://cipi.sh/docs/octane#octane-php), `valkey()` is [Valkey per app](https://cipi.sh/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](https://cipi.sh/docs/notifications#written).
 

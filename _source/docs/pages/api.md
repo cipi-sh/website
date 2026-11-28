@@ -232,7 +232,7 @@ There is no passphrase in any of them: the source makes one for the transfer and
 
 ### How the server updates Cipi {#endpoints-self-update}
 
-The two optional safeguards of [self-update](/docs/self-update): only releases signed by a trusted key, and a delay before a new release is installed.
+The two optional safeguards of [self-update](/docs/self-update): only releases signed by a trusted key (signed releases are not available at the moment), and a delay before a new release is installed.
 
 | Method | Path | Ability |
 | --- | --- | --- |

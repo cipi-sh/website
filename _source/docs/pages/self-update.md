@@ -4,19 +4,21 @@ Every night, at 03:50, each Cipi server installs the latest Cipi from GitHub ([U
 
 | | What it does | Against |
 | --- | --- | --- |
-| **[Signed releases only](#verify)** | A release is installed only when its tag is signed by a key the server already trusts | A taken-over GitHub account, a tampered download: pushing code is not enough, it has to be signed with a key that is not on GitHub |
+| **[Signed releases only](#verify)** — *not available at the moment* | A release is installed only when its tag is signed by a key the server already trusts | A taken-over GitHub account, a tampered download: pushing code is not enough, it has to be signed with a key that is not on GitHub |
 | **[A delay](#delay)** | A new release is installed once the server has seen it for a while — 12 hours, suggested | A bad release, signed or not: time for it to be noticed and reverted before it lands on your servers |
 
 ```bash
 $ cipi self-update policy                                 # how this server updates Cipi   (--json)
 $ cipi self-update policy --delay=12h                     # wait 12 hours before a new release
-$ cipi self-update policy --verify=on --fingerprint=SHA256:…   # signed releases only
+$ cipi self-update policy --verify=on --fingerprint=SHA256:…   # signed releases only — not available at the moment
 $ cipi self-update policy --delay=off --verify=off        # back to the default
 ```
 
 Nothing else changes: the nightly update, `cipi self-update` at the shell, the backup of the installation before it and the migrations after it work as before. From the [panel](#panel), the API, `cipi-cli` and the PHP SDK too.
 
 ## Signed releases only {#verify}
+
+> [!warning] **Signed releases are not available at the moment.** Cipi releases are not signed yet, so there is no key to trust: `--verify=on` is refused (*No signer to trust*) and nothing changes on the server. Until they are, the [delay](#delay) is the safeguard to use. The signing key will be listed [below](#signers) when signed releases are available.
 
 With `--verify=on`, the server installs a release only when:
 
@@ -51,7 +53,7 @@ From a script, the panel or the API, there is no question to answer: pass the fi
 $ cipi self-update policy --verify=on --fingerprint=SHA256:…
 ```
 
-> [!warning] Turn the check on only when releases are signed: until the signers are published here, `--verify=on` is refused (*No signer to trust*), and with it on an unsigned release is never installed. A server whose check refuses every release stays on its version — and misses its security fixes too.
+> [!note] With the check on, an unsigned release is never installed: a server whose check refuses every release stays on its version — and misses its security fixes too.
 
 ### Release signers {#signers}
 
@@ -59,9 +61,9 @@ The keys Cipi releases are signed with. Compare the fingerprint with the one you
 
 | Fingerprint | Principal | Since |
 | --- | --- | --- |
-| *Published with the first signed release* | | |
+| *Signed releases are not available at the moment* | | |
 
-Until a key is listed here, releases are not signed, and the delay is the safeguard to use.
+No key is listed yet: releases are not signed, and the [delay](#delay) is the safeguard to use.
 
 ## A delay {#delay}
 

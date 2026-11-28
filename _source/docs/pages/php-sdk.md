@@ -256,7 +256,7 @@ $cipi->updates()->setPolicy(delayHours: 12);
 $cipi->updates()->setPolicy(verify: true, fingerprint: 'SHA256:…');
 ```
 
-`sync()` [moves apps to another server](/docs/sync): this server is the source, `push()` is a job (`sync-push`), and the target trusts the source's key first — `key()` here, `trust($key)` there (`untrust()` takes it back); `check()` says why the way isn't open. There's no passphrase to handle. Ability `sync-manage`, as strong as `ssh-manage`. `updates()` is [how the server updates Cipi](/docs/self-update): only signed releases, a delay — both off by default; starting an update isn't in the API. Abilities `updates-view`, `updates-manage`.
+`sync()` [moves apps to another server](/docs/sync): this server is the source, `push()` is a job (`sync-push`), and the target trusts the source's key first — `key()` here, `trust($key)` there (`untrust()` takes it back); `check()` says why the way isn't open. There's no passphrase to handle. Ability `sync-manage`, as strong as `ssh-manage`. `updates()` is [how the server updates Cipi](/docs/self-update): only signed releases (not available at the moment), a delay — both off by default; starting an update isn't in the API. Abilities `updates-view`, `updates-manage`.
 
 `octane()` is [the PHP of an Octane app](/docs/octane#octane-php), `valkey()` is [Valkey per app](/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](/docs/notifications#written).
 
