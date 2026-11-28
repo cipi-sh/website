@@ -27,7 +27,7 @@
     <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
     <link rel="stylesheet" href="/assets/css/base.css">
     <link rel="stylesheet" href="/assets/css/docs.css">
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Customize the pipeline", "description": "Deploy options and your own Deployer tasks.", "url": "https://cipi.sh/docs/deploy-script", "dateModified": "2026-11-26", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Customize the pipeline", "description": "Deploy options and your own Deployer tasks.", "url": "https://cipi.sh/docs/deploy-script", "dateModified": "2026-11-28", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://github.com/andreapollastri"}, "isPartOf": {"@type": "WebSite", "name": "Cipi", "url": "https://cipi.sh/"}, "about": {"@type": "SoftwareApplication", "name": "Cipi", "url": "https://cipi.sh/"}}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Docs", "item": "https://cipi.sh/docs/"}, {"@type": "ListItem", "position": 2, "name": "Deploy", "item": "https://cipi.sh/docs/deploy"}, {"@type": "ListItem", "position": 3, "name": "Customize the pipeline", "item": "https://cipi.sh/docs/deploy-script"}]}</script>
 </head>
 <body class="docs">
@@ -141,10 +141,11 @@
 <li><a href="/docs/packages">Packages</a></li>
 <li><a href="/docs/stack-upgrades">Stack upgrades</a></li>
 <li><a href="/docs/server-commands">Server commands &amp; updates</a></li>
+<li><a href="/docs/self-update">Safer self-updates</a></li>
 <li><a href="/docs/uninstall">Uninstall</a></li>
 </ul></details>
 <details class="side-group"><summary>Backups &amp; monitoring</summary><ul>
-<li><a href="/docs/backups">Backups to S3</a></li>
+<li><a href="/docs/backups">Backups to S3 &amp; SFTP</a></li>
 <li><a href="/docs/sync">Server sync &amp; migration</a></li>
 <li><a href="/docs/health-checks">Health checks</a></li>
 <li><a href="/docs/monitor">Server monitor</a></li>
@@ -160,6 +161,7 @@
 <li><a href="/docs/vault">Vault &amp; encryption</a></li>
 <li><a href="/docs/crowdsec">CrowdSec</a></li>
 <li><a href="/docs/zero-trust">Cloudflare Zero Trust</a></li>
+<li><a href="/docs/mesh-network">Tailscale &amp; NetBird</a></li>
 <li><a href="/docs/malware-scan">Malware scan</a></li>
 <li><a href="/docs/compliance">Compliance evidence</a></li>
 </ul></details>
@@ -210,9 +212,11 @@
 <span class="p"></span>cipi app deploy-config myapp --horizon-terminate --queue-restart
 <span class="p"></span>cipi app deploy-config myapp --extra-artisan=view:clear,event:cache
 <span class="p"></span>cipi app deploy-config myapp --node-build='npm ci &amp;&amp; npm run build'
-<span class="p"></span>cipi app deploy-config myapp --predeploy-snapshot</pre></div>
-<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Option</th><th>Effect</th><th>Default</th></tr></thead><tbody><tr><td><code>--keep-releases</code></td><td>Releases kept for rollback</td><td>5</td></tr><tr><td><code>--migrate</code> / <code>--no-migrate</code></td><td><code>migrate --force</code></td><td>on</td></tr><tr><td><code>--optimize</code> / <code>--no-optimize</code></td><td><code>artisan optimize</code></td><td>on</td></tr><tr><td><code>--storage-link</code></td><td><code>storage:link</code></td><td>on</td></tr><tr><td><code>--queue-restart</code>, <code>--horizon-terminate</code></td><td>Reload workers / Horizon</td><td>on</td></tr><tr><td><code>--extra-artisan</code></td><td>More Artisan commands after migrations</td><td>none</td></tr><tr><td><code>--node-build</code></td><td>Front-end build before the swap (npm, yarn, pnpm, bun)</td><td>none</td></tr><tr><td><code>--predeploy-snapshot</code></td><td>Database dump before migrations</td><td>off</td></tr></tbody></table></div>
+<span class="p"></span>cipi app deploy-config myapp --predeploy-snapshot
+<span class="p"></span>cipi app deploy-config myapp --build-timeout=2700 --step-timeout=600</pre></div>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Option</th><th>Effect</th><th>Default</th></tr></thead><tbody><tr><td><code>--keep-releases</code></td><td>Releases kept for rollback</td><td>5</td></tr><tr><td><code>--migrate</code> / <code>--no-migrate</code></td><td><code>migrate --force</code></td><td>on</td></tr><tr><td><code>--optimize</code> / <code>--no-optimize</code></td><td><code>artisan optimize</code></td><td>on</td></tr><tr><td><code>--storage-link</code></td><td><code>storage:link</code></td><td>on</td></tr><tr><td><code>--queue-restart</code>, <code>--horizon-terminate</code></td><td>Reload workers / Horizon</td><td>on</td></tr><tr><td><code>--extra-artisan</code></td><td>More Artisan commands after migrations</td><td>none</td></tr><tr><td><code>--node-build</code></td><td>Front-end build before the swap (npm, yarn, pnpm, bun)</td><td>none</td></tr><tr><td><code>--predeploy-snapshot</code></td><td>Database dump before migrations</td><td>off</td></tr><tr><td><code>--build-timeout</code></td><td>Seconds the front-end build may run, 60 to 3600 (<a href="/docs/deploying#time-limits">time limits</a>)</td><td>1800</td></tr><tr><td><code>--step-timeout</code></td><td>Seconds every other command of the deploy may run, 60 to 1800</td><td>300</td></tr></tbody></table></div>
 <p>Saving regenerates <code>deploy.php</code> from Cipi's template. Also via REST (<code>GET|PUT /api/apps/{name}/deploy-config</code>), MCP and the panel's Deploy tab. The same settings can live in <a href="/docs/yml">cipi.yml</a>.</p>
+<p><strong>A <a href="/docs/node-apps">Node app</a></strong> has a recipe too, without the artisan hooks: it takes <code>--keep-releases</code>, <code>--build-timeout</code>, <code>--step-timeout</code> and <code>--predeploy-snapshot</code> (its build command is <code>cipi app edit myapp --build="…"</code>). A custom app deploys with a <code>git pull</code> and has no recipe to configure.</p>
 </section>
 <section class="doc-section" id="cli-deploy-script">
 <h2 id="custom">Custom Deployer tasks<a class="anchor" href="#custom" aria-label="Link to this section">#</a></h2>
@@ -224,13 +228,17 @@ task('app:warm', function () {
 after('artisan:migrate', 'app:warm');</pre></div>
 <div class="table-scroll"><table class="cmd-table"><thead><tr><th>Hook point</th><th>Use for</th></tr></thead><tbody><tr><td><code>after('deploy:shared', …)</code></td><td>Builds that need <code>.env</code> (e.g. Vite reads <code>VITE_*</code>)</td></tr><tr><td><code>after('artisan:migrate', …)</code></td><td>Seeders, cache warm-up</td></tr><tr><td><code>before('deploy:symlink', …)</code></td><td>Last checks before going live</td></tr><tr><td><code>after('deploy:symlink', …)</code></td><td>Notifications, cache purges — e.g. <a href="/docs/page-cache#recipe">emptying the page cache</a> from a recipe of your own (a deploy run by Cipi empties it by itself)</td></tr></tbody></table></div>
 <p>The default order: prepare → vendors → shared → (build) → migrate → optimize → storage link → <strong>symlink</strong> → restart workers → cleanup.</p>
+<p><strong>A task of your own has the time of every step but the build</strong> — 5 minutes per command unless the app's <a href="/docs/deploying#change-limits"><code>--step-timeout</code></a> says otherwise. Give one long command its own limit, in seconds, without changing the others:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">php</span><button class="code-copy-btn" type="button">Copy</button></div><pre>task('app:import', function () {
+    run('{{bin/php}} {{release_path}}/artisan app:import-catalog', timeout: 1200);
+});</pre></div>
 <p><strong>Each step runs once.</strong> A Laravel deploy runs <code>artisan:storage:link</code>, <code>artisan:optimize</code> and <code>artisan:migrate</code> one time each — the deploy log shows one <code>artisan:migrate</code> and one <code>artisan:optimize</code> — and a step turned off with <code>--no-migrate</code> or <code>--no-optimize</code> is really skipped. A log that shows them twice comes from a recipe written by an old release: <code>cipi self-update</code> rewrites the recipe of every app. A recipe you edited by hand is left alone and named, with the command that regenerates it.</p>
 <div class="callout warning"><svg class="callout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><div><p>Changing PHP or branch with <code>cipi app edit</code> regenerates <code>deploy.php</code>. Keep custom tasks in one clearly marked block at the bottom and back it up, or prefer <code>deploy-config</code> and <a href="/docs/yml">cipi.yml</a>, which are never lost.</p></div></div>
 <p>Test every change with a normal deploy; <code>cipi deploy myapp --rollback</code> is always one command away, and the log is in <code>cipi app logs myapp --type=deploy</code>.</p>
 </section>
 
 </div>
-<nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/yml" rel="prev"><small>Previous</small><b>cipi.yml</b></a><a class="next" href="/docs/safe-deploy" rel="next"><small>Next</small><b>Safe deploy &amp; DB snapshots</b></a></nav>
+<aside class="doc-guides" aria-labelledby="doc-guides-h"><h2 id="doc-guides-h">Step-by-step guides</h2><ul><li><a href="/guides/deploy-timeouts-slow-builds"><b>When a deploy runs out of time — slow builds, long migrations, npm on a small VPS</b><span>Find the step that makes a Laravel or Node deploy fail on time, decide whether it needs more time or a fix, and set per-app limits from the CLI, cipi.yml, the web panel or the API — with the previous release serving throughout.</span></a></li></ul></aside><nav class="pager" aria-label="Previous and next page"><a class="prev" href="/docs/yml" rel="prev"><small>Previous</small><b>cipi.yml</b></a><a class="next" href="/docs/safe-deploy" rel="next"><small>Next</small><b>Safe deploy &amp; DB snapshots</b></a></nav>
 </main>
 <nav class="docs-toc" aria-label="On this page">
 <h2>On this page</h2><ol>

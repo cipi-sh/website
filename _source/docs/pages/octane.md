@@ -49,6 +49,7 @@ $ cipi frankenphp upgrade --all
 $ cipi frankenphp php myapp 8.6        # another PHP version: Octane and the rest together
 $ cipi frankenphp restart myapp        # restart Octane on its build, checked
 $ cipi frankenphp use myapp            # pin a specific build
+$ cipi frankenphp fetch [version]      # download a release into the builds (the latest by default)
 $ cipi frankenphp import ./frankenphp  # a build you compiled (other PHP minor)
 $ cipi frankenphp adopt myapp          # pin the binary Octane downloaded
 $ cipi frankenphp prune                # remove unused builds

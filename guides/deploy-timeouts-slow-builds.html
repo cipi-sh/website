@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-follow-system>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>When a deploy runs out of time — slow builds, long migrations, npm on a small VPS — Cipi guides</title>
+    <meta name="description" content="Find the step that makes a Laravel or Node deploy fail on time, decide whether it needs more time or a fix, and set per-app limits from the CLI, cipi.yml, the web panel or the API — with the previous release serving throughout.">
+    <meta name="keywords" content="deploy timeout laravel, npm run build timeout vps, vite build killed, deployer timeout, laravel migration timeout deploy, nuxt build out of memory vps">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Andrea Pollastri">
+    <link rel="canonical" href="https://cipi.sh/guides/deploy-timeouts-slow-builds">
+    <link rel="alternate" type="application/rss+xml" title="Cipi guides" href="https://cipi.sh/guides/feed.xml">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Cipi">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:url" content="https://cipi.sh/guides/deploy-timeouts-slow-builds">
+    <meta property="og:title" content="When a deploy runs out of time — slow builds, long migrations, npm on a small VPS">
+    <meta property="og:description" content="Find the step that makes a Laravel or Node deploy fail on time, decide whether it needs more time or a fix, and set per-app limits from the CLI, cipi.yml, the web panel or the API — with the previous release serving throughout.">
+    <meta property="og:image" content="https://cipi.sh/img/og/home.jpg?v=067363f5">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="When a deploy runs out of time — slow builds, long migrations, npm on a small VPS">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="When a deploy runs out of time — slow builds, long migrations, npm on a small VPS">
+    <meta name="twitter:description" content="Find the step that makes a Laravel or Node deploy fail on time, decide whether it needs more time or a fix, and set per-app limits from the CLI, cipi.yml, the web panel or the API — with the previous release serving throughout.">
+    <meta name="twitter:image" content="https://cipi.sh/img/og/home.jpg?v=067363f5">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap">
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-light-96.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/favicon-light-192.png">
+    <meta name="theme-color" content="#F2F4F1">
+    <script>(function(){try{var t=localStorage.getItem('cipi-theme');if(!t&&document.documentElement.hasAttribute('data-follow-system')&&matchMedia('(prefers-color-scheme: dark)').matches)t='dark';if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+    <link rel="stylesheet" href="/assets/css/base.css">
+    <link rel="stylesheet" href="/assets/css/docs.css">
+    <link rel="stylesheet" href="/assets/css/article.css">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "When a deploy runs out of time — slow builds, long migrations, npm on a small VPS", "description": "Find the step that makes a Laravel or Node deploy fail on time, decide whether it needs more time or a fix, and set per-app limits from the CLI, cipi.yml, the web panel or the API — with the previous release serving throughout.", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds", "mainEntityOfPage": "https://cipi.sh/guides/deploy-timeouts-slow-builds", "datePublished": "2026-11-28", "dateModified": "2026-11-28", "inLanguage": "en", "author": {"@type": "Person", "name": "Andrea Pollastri", "url": "https://web.ap.it/"}, "publisher": {"@type": "Organization", "name": "Cipi", "url": "https://cipi.sh/", "logo": {"@type": "ImageObject", "url": "https://cipi.sh/favicon-light-192.png"}}, "image": "https://cipi.sh/img/og/home.jpg?v=067363f5", "articleSection": "Operations", "timeRequired": "PT3M", "about": {"@type": "SoftwareApplication", "name": "Cipi", "applicationCategory": "DeveloperApplication", "operatingSystem": "Ubuntu", "url": "https://cipi.sh/"}, "keywords": "deploy timeout laravel, npm run build timeout vps, vite build killed, deployer timeout, laravel migration timeout deploy, nuxt build out of memory vps"}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "When a deploy runs out of time — slow builds, long migrations, npm on a small VPS", "description": "Find the step that makes a Laravel or Node deploy fail on time, decide whether it needs more time or a fix, and set per-app limits from the CLI, cipi.yml, the web panel or the API — with the previous release serving throughout.", "totalTime": "PT13M", "step": [{"@type": "HowToStep", "position": 1, "name": "Key ideas, in plain words", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds#ideas"}, {"@type": "HowToStep", "position": 2, "name": "1. Find the step", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds#find"}, {"@type": "HowToStep", "position": 3, "name": "2. More time, or a fix?", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds#decide"}, {"@type": "HowToStep", "position": 4, "name": "3. Give the app more time", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds#raise"}, {"@type": "HowToStep", "position": 5, "name": "4. A build that passes some days and not others", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds#flaky"}, {"@type": "HowToStep", "position": 6, "name": "5. Or don't build on the server", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds#ci"}, {"@type": "HowToStep", "position": 7, "name": "Troubleshooting", "url": "https://cipi.sh/guides/deploy-timeouts-slow-builds#troubleshooting"}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is the site down while a deploy fails?", "acceptedAnswer": {"@type": "Answer", "text": "No. The previous release keeps serving; the new one never goes live, and the lock is released."}}, {"@type": "Question", "name": "What are the default limits?", "acceptedAnswer": {"@type": "Answer", "text": "5 minutes for each step (clone, Composer, a migration, optimize ), 30 minutes for the front-end build — for a Node app, 30 for the install and 30 for the build."}}, {"@type": "Question", "name": "What are the maximums?", "acceptedAnswer": {"@type": "Answer", "text": "1 hour for the build, 30 minutes for every other step. A deploy started from the panel, the API, cipi-cli or the SDK is followed for 2 hours in all."}}, {"@type": "Question", "name": "Where do I set them?", "acceptedAnswer": {"@type": "Answer", "text": "cipi app deploy-config , deploy.build_timeout and deploy.step_timeout in cipi.yml, the panel's Deploy pipeline, the API or the SDK."}}, {"@type": "Question", "name": "Does a custom app have limits?", "acceptedAnswer": {"@type": "Answer", "text": "It deploys with a git pull , with no steps to time."}}, {"@type": "Question", "name": "What if a step fails?", "acceptedAnswer": {"@type": "Answer", "text": "Read the table below first. Then check the matching docs page, open a GitHub issue, or ask in the community."}}]}</script>
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://cipi.sh/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://cipi.sh/guides/"}, {"@type": "ListItem", "position": 3, "name": "When a deploy runs out of time — slow builds, long migrations, npm on a small VPS", "item": "https://cipi.sh/guides/deploy-timeouts-slow-builds"}]}</script>
+</head>
+<body class="article">
+<!-- site:nav -->
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-nav">
+    <div class="page-w">
+        <a class="sn-brand" href="/" aria-label="Cipi home">
+            <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+            <span>cipi</span>
+        </a>
+        <nav class="sn-links" aria-label="Main">
+            <a href="/docs/">Docs</a>
+            <a href="/cipi-yml">cipi.yml</a>
+            <a href="/web-panel">Web panel</a>
+            <a href="/api">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/ecosystem">Ecosystem</a>
+            <a href="/guides/">Guides</a>
+            <a href="/alternatives">Compare</a>
+        </nav>
+        <div class="sn-actions">
+            <button class="sn-search" type="button" data-search-open aria-label="Search the docs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                <span>Search docs</span><kbd>/</kbd>
+            </button>
+            <button class="icon-btn sn-theme" type="button" aria-label="Switch light or dark theme">
+                <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+                <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>
+            </button>
+            <a class="gh-btn" href="https://github.com/cipi-sh/cipi" target="_blank" rel="noopener" aria-label="Cipi on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.1.83-.26.83-.57v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span class="gh-label">GitHub</span><span class="gh-stars">1.2k</span>
+            </a>
+            <button class="icon-btn sn-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+        </div>
+    </div>
+</header>
+<div class="sn-mobile" id="mobileMenu">
+    <a href="/docs/">Docs</a>
+    <a href="/cipi-yml">cipi.yml</a>
+    <a href="/web-panel">Web panel</a>
+    <a href="/api">API</a>
+    <a href="/mcp">MCP</a>
+    <a href="/ecosystem">Ecosystem</a>
+    <a href="/guides/">Guides</a>
+    <a href="/alternatives">Compare</a>
+    <a href="https://github.com/cipi-sh/cipi">GitHub</a>
+    <a href="https://t.me/cipicloud">Telegram channel</a>
+    <button class="btn btn-ghost" type="button" data-search-open>Search the docs</button>
+</div>
+<!-- /site:nav -->
+<main id="main">
+<header class="art-hero">
+<div class="page-w">
+<ol class="crumbs"><li><a href="/">Home</a></li><li><a href="/guides/">Guides</a></li><li aria-current="page">When a deploy runs out of time — slow builds, long migrations, npm on a small VPS</li></ol>
+<a class="art-eyebrow" href="/guides/#ops">Operations</a>
+<h1>When a deploy runs out of time — slow builds, long migrations, npm on a small VPS</h1>
+<p class="art-lead">Find the step that makes a Laravel or Node deploy fail on time, decide whether it needs more time or a fix, and set per-app limits from the CLI, cipi.yml, the web panel or the API — with the previous release serving throughout.</p>
+<p class="art-meta"><span>By <a href="https://web.ap.it/" rel="author">Andrea Pollastri</a></span><span>Updated <time datetime="2026-11-28">November 28, 2026</time></span><span>3 min read</span></p>
+<div class="share" aria-label="Share this page"><span class="share-label">Share</span><a class="share-btn share-x" href="https://x.com/intent/post?text=When%20a%20deploy%20runs%20out%20of%20time%20%E2%80%94%20slow%20builds%2C%20long%20migrations%2C%20npm%20on%20a%20small%20VPS&url=https%3A%2F%2Fcipi.sh%2Fguides%2Fdeploy-timeouts-slow-builds" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.8 3h3.1l-6.8 7.8L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.3-8.3L2 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"/></svg></a><a class="share-btn share-linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fdeploy-timeouts-slow-builds" target="_blank" rel="noopener" aria-label="Share on LinkedIn" title="Share on LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-1 1.8-2 3.8-2 4 0 4.8 2.7 4.8 6.1V21h-4v-5.4c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21H9z"/></svg></a><a class="share-btn share-reddit" href="https://www.reddit.com/submit?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fdeploy-timeouts-slow-builds&title=When%20a%20deploy%20runs%20out%20of%20time%20%E2%80%94%20slow%20builds%2C%20long%20migrations%2C%20npm%20on%20a%20small%20VPS" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22 12.1a2.2 2.2 0 00-3.7-1.6 10.7 10.7 0 00-5.8-1.8l1-4.6 3.2.7a1.6 1.6 0 101.6-1.6 1.6 1.6 0 00-1.5 1l-3.6-.8a.4.4 0 00-.5.3l-1.1 5.1a10.8 10.8 0 00-5.9 1.8 2.2 2.2 0 10-2.4 3.6 4.3 4.3 0 000 .7c0 3.4 3.9 6.1 8.8 6.1s8.8-2.7 8.8-6.1a4.3 4.3 0 000-.7A2.2 2.2 0 0022 12.1zM7 13.7a1.6 1.6 0 113.2 0 1.6 1.6 0 01-3.2 0zm8.9 4.2a5.6 5.6 0 01-3.9 1.2 5.6 5.6 0 01-3.9-1.2.4.4 0 01.6-.6 4.8 4.8 0 003.3 1 4.8 4.8 0 003.3-1 .4.4 0 01.6.6zm-.3-2.6a1.6 1.6 0 111.6-1.6 1.6 1.6 0 01-1.6 1.6z"/></svg></a><a class="share-btn share-hn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fcipi.sh%2Fguides%2Fdeploy-timeouts-slow-builds&t=When%20a%20deploy%20runs%20out%20of%20time%20%E2%80%94%20slow%20builds%2C%20long%20migrations%2C%20npm%20on%20a%20small%20VPS" target="_blank" rel="noopener" aria-label="Share on Hacker News" title="Share on Hacker News"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 2h20v20H2zm9.2 11.5V18h1.6v-4.5L17 6h-1.8l-3 5.4L9.2 6H7.4z"/></svg></a><a class="share-btn share-telegram" href="https://t.me/share/url?url=https%3A%2F%2Fcipi.sh%2Fguides%2Fdeploy-timeouts-slow-builds&text=When%20a%20deploy%20runs%20out%20of%20time%20%E2%80%94%20slow%20builds%2C%20long%20migrations%2C%20npm%20on%20a%20small%20VPS" target="_blank" rel="noopener" aria-label="Share on Telegram" title="Share on Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg></a><a class="share-btn share-whatsapp" href="https://wa.me/?text=When%20a%20deploy%20runs%20out%20of%20time%20%E2%80%94%20slow%20builds%2C%20long%20migrations%2C%20npm%20on%20a%20small%20VPS%20https%3A%2F%2Fcipi.sh%2Fguides%2Fdeploy-timeouts-slow-builds" target="_blank" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 01-1.7-.6 13.3 13.3 0 01-5.1-4.5 5.8 5.8 0 01-1.2-3.1 3.4 3.4 0 011-2.5 1.1 1.1 0 01.8-.4h.6c.2 0 .5 0 .7.6l1 2.4a.6.6 0 010 .6 2.3 2.3 0 01-.4.6l-.5.6c-.2.2-.4.4-.2.7a10.4 10.4 0 001.9 2.4 9.4 9.4 0 002.8 1.7c.3.2.5.1.7-.1l1-1.2c.2-.3.5-.3.8-.2l2.3 1.1c.3.2.6.2.6.4a2.6 2.6 0 01-.2 1.4z"/></svg></a><button class="share-btn share-copy" type="button" data-share-copy="https://cipi.sh/guides/deploy-timeouts-slow-builds" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.1 0l3-3a5 5 0 00-7.1-7.1l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.1 0l-3 3a5 5 0 007.1 7.1l1.7-1.7"/></svg><span class="share-done">Copied</span></button></div>
+</div>
+</header>
+<div class="page-w art-grid">
+<article class="prose art-body">
+<p>Every command of a deploy runs against a clock: a step that hangs — a migration waiting on a lock, an <code>npm install</code> stuck on a registry, a build that asks a question — can't hold the deploy and its lock for ever. When the clock runs out, the deploy fails like any other: <strong>the previous release keeps serving</strong>, and Cipi says which step it was.</p>
+<h2 id="ideas">Key ideas, in plain words<a class="anchor" href="#ideas" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><strong>Step</strong></td><td>One command of the deploy: clone, <code>composer install</code>, a migration, <code>optimize</code>, a task of yours</td></tr><tr><td><strong>Build</strong></td><td>The front-end build (<code>npm run build</code>), the step that is long by nature</td></tr><tr><td><strong><code>step_timeout</code></strong></td><td>How long any step may take: 300 seconds by default, up to 1800</td></tr><tr><td><strong><code>build_timeout</code></strong></td><td>How long the build may take: 1800 seconds by default, up to 3600</td></tr></tbody></table></div>
+<h2 id="find">1. Find the step<a class="anchor" href="#find" aria-label="Link to this section">#</a></h2>
+<p><code>cipi deploy</code> names it, right under the failure:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi deploy shop
+…
+[ERROR] Deploy failed (exit 1)
+[WARN] The step artisan:migrate was stopped after 300 seconds, the most Deployer gives a command.</pre></div>
+<p>The log has a time on every line: the gap before the error is the step that took it.</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi deploy shop --log=200
+<span class="p"></span>sudo cipi deploy shop --history<span class="c">          # how long the last deploys took</span></pre></div>
+<p>The panel shows the same in the app's <strong>Deploy</strong> tab and in each deploy's log. A deploy failed on time is also in the failure notification.</p>
+<h2 id="decide">2. More time, or a fix?<a class="anchor" href="#decide" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>The slow step</th><th>Usually</th><th>Do</th></tr></thead><tbody><tr><td>A migration rewriting a large table</td><td>Legitimately long</td><td>More <code>step_timeout</code>, and consider a <a href="/guides/laravel-zero-downtime-migrations">migration that doesn't lock</a></td></tr><tr><td><code>composer install</code> on a slow disk or first deploy</td><td>Legitimately long</td><td>More <code>step_timeout</code></td></tr><tr><td><code>npm ci</code> / <code>npm run build</code> that passes some days and not others</td><td>Close to the limit; the server is the variable</td><td>See <a href="#flaky">below</a> before raising anything</td></tr><tr><td>A build that never ends</td><td>It waits for an answer</td><td><code>CI=true</code> in front of the script in <code>package.json</code></td></tr><tr><td>A step that stops with <code>Killed</code></td><td>Out of memory, not out of time</td><td>More RAM or swap; more time won't help</td></tr></tbody></table></div>
+<h2 id="raise">3. Give the app more time<a class="anchor" href="#raise" aria-label="Link to this section">#</a></h2>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">bash</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="p"></span>sudo cipi app deploy-config shop<span class="c">                         # the current limits</span>
+<span class="p"></span>sudo cipi app deploy-config shop --step-timeout=900<span class="c">      # 15 minutes for every step</span>
+<span class="p"></span>sudo cipi app deploy-config shop --build-timeout=2700<span class="c">    # 45 minutes for the build</span></pre></div>
+<p>Or in the repository, so it travels with the code:</p>
+<div class="code-block"><div class="code-block-header"><span class="code-block-lang">yaml</span><button class="code-copy-btn" type="button">Copy</button></div><pre><span class="c"># cipi.yml</span>
+version: 1
+deploy:
+  step_timeout: 900
+  build_timeout: 2700</pre></div>
+<p>From the <strong>web panel</strong>: the app → <strong>Deploy</strong> → <em>Deploy pipeline</em>, two fields with the minutes beside them. Over the API: <code>PUT /api/apps/shop/deploy-config</code> with <code>step_timeout</code>, <code>build_timeout</code>; <code>cipi-cli deploy config set shop --step-timeout 900</code>. The change counts from the next deploy. A value outside the range is refused, and nothing changes.</p>
+<h2 id="flaky">4. A build that passes some days and not others<a class="anchor" href="#flaky" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Cause</th><th>Check</th><th>Fix</th></tr></thead><tbody><tr><td>The server swaps during the build</td><td>Memory and swap in the <a href="/docs/metrics">metrics</a>; deploys are marked on the charts</td><td>More RAM; or build in CI</td></tr><tr><td>A backup or another deploy at the same time</td><td>The time of the failures</td><td>Move the nightly work, or deploy at another time</td></tr><tr><td>A slow registry</td><td>The install step is the long one</td><td>A lockfile in the repository; it still fits the 30 minutes</td></tr><tr><td>An interactive script</td><td>The log stops at a question</td><td><code>CI=true</code></td></tr></tbody></table></div>
+<h2 id="ci">5. Or don't build on the server<a class="anchor" href="#ci" aria-label="Link to this section">#</a></h2>
+<p>A build that can't finish in an hour on the server is better done elsewhere: run <code>npm run build</code> in CI and commit the built assets to the branch Cipi deploys (or a release branch), and leave the front-end build off the app. The server then only pulls and links. See <a href="/guides/laravel-ci-cd-git-workflow">CI/CD workflows</a>.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class="table-scroll"><table class="cmd-table"><thead><tr><th>Problem</th><th>Fix</th></tr></thead><tbody><tr><td>The panel stopped following a deploy</td><td>It follows one for 2 hours; the deploy itself goes on. <code>cipi deploy shop --status</code></td></tr><tr><td><code>--build-timeout</code> refused</td><td>60 to 3600 seconds; <code>--step-timeout</code> 60 to 1800</td></tr><tr><td>The limit in cipi.yml is ignored</td><td>The file is applied with its plan: <code>cipi yml plan shop</code> shows whether it's pending, <code>cipi yml apply shop</code> applies it (or turn on auto-apply). A value outside the range blocks the plan</td></tr><tr><td>The deploy is locked after the failure</td><td>It isn't: a timed-out deploy releases its lock. An interrupted one (reboot) does with <code>cipi deploy shop --unlock</code></td></tr></tbody></table></div>
+<aside class="art-refs"><h2>Reference docs</h2><ul><li><a href="/docs/deploying">Deploy &amp; roll back</a></li><li><a href="/docs/deploy-script">Customize the pipeline</a></li><li><a href="/docs/node-apps">Node apps</a></li><li><a href="/docs/yml">cipi.yml</a></li></ul></aside><section class="art-faq"><h2 id="faq">Questions</h2><details><summary>Is the site down while a deploy fails?</summary><p>No. The previous release keeps serving; the new one never goes live, and the lock is released.</p></details><details><summary>What are the default limits?</summary><p>5 minutes for each step (clone, Composer, a migration, <code>optimize</code>), 30 minutes for the front-end build — for a Node app, 30 for the install and 30 for the build.</p></details><details><summary>What are the maximums?</summary><p>1 hour for the build, 30 minutes for every other step. A deploy started from the panel, the API, cipi-cli or the SDK is followed for 2 hours in all.</p></details><details><summary>Where do I set them?</summary><p><code>cipi app deploy-config</code>, <code>deploy.build_timeout</code> and <code>deploy.step_timeout</code> in cipi.yml, the panel's Deploy pipeline, the API or the SDK.</p></details><details><summary>Does a custom app have limits?</summary><p>It deploys with a <code>git pull</code>, with no steps to time.</p></details><details><summary>What if a step fails?</summary><p>Read the table below first. Then check the matching <a href="/docs/">docs</a> page, open a GitHub issue, or ask in the community.</p></details></section>
+</article>
+<nav class="docs-toc art-toc" aria-label="On this page"><h2>On this page</h2><ol><li><a class="l2" href="#ideas">Key ideas, in plain words</a></li><li><a class="l2" href="#find">1. Find the step</a></li><li><a class="l2" href="#decide">2. More time, or a fix?</a></li><li><a class="l2" href="#raise">3. Give the app more time</a></li><li><a class="l2" href="#flaky">4. A build that passes some days and not others</a></li><li><a class="l2" href="#ci">5. Or don&#x27;t build on the server</a></li><li><a class="l2" href="#troubleshooting">Troubleshooting</a></li><li><a class="l2" href="#faq">Questions</a></li></ol></nav>
+</div>
+<div class="page-w art-after">
+<aside class="tg-card"><div><strong>Cipi on Telegram</strong><p>New guides, releases and security notes, as they ship.</p></div><a class="btn" href="https://t.me/cipicloud" target="_blank" rel="noopener">Join t.me/cipicloud</a></aside><section class="art-related"><h2>Keep reading</h2><ul class="g-cards"><li><a class="g-card" href="/guides/laravel-ci-cd-git-workflow"><span class="g-cat">Laravel</span><b>CI/CD for Laravel with GitHub Actions or GitLab CI</b><span class="g-desc">Test on every push and deploy only when tests pass, with a health check that rolls back a broken release, a dedicated CI key, an optional backup step and zero-downtime releases.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/laravel-zero-downtime-migrations"><span class="g-cat">Laravel</span><b>Zero-downtime Laravel deploys with safe migrations</b><span class="g-desc">How atomic releases work, how to write migrations that never break the live release, and how to take a database snapshot and roll back automatically when something goes wrong.</span><span class="g-meta">2 min read</span></a></li><li><a class="g-card" href="/guides/server-monitoring-alerts"><span class="g-cat">Operations</span><b>Server monitoring and alerts on Telegram, Slack and e-mail</b><span class="g-desc">Watch CPU, memory, disk, services, certificates and app health on your own server, and get alerted on Telegram, Slack, e-mail or a webhook when something actually breaks.</span><span class="g-meta">2 min read</span></a></li></ul></section><section class="art-cta"><div><h2>Try it on your own server</h2><p>Free and open source. One command on a fresh Ubuntu 24.04 or 26.04 VPS.</p></div><div class="cmd"><code>wget -O - https://cipi.sh/setup.sh | bash</code><button class="copy-btn" type="button" data-copy="wget -O - https://cipi.sh/setup.sh | bash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg><span class="label">Copy</span></button></div><a class="btn btn-lime" href="/docs/quickstart">Read the quickstart</a></section>
+</div>
+</main>
+<!-- site:footer -->
+<footer class="site-footer">
+    <div class="page-w">
+        <div class="sf-grid">
+            <div class="sf-brand">
+                <a class="sn-brand" href="/" aria-label="Cipi home">
+                    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="28" height="28" fill="currentColor"/><rect class="mark-signal" x="34" y="2" width="28" height="28"/><rect x="2" y="34" width="28" height="28" fill="currentColor"/><rect x="34" y="34" width="28" height="28" fill="currentColor"/><path d="M40 9l7 7-7 7" fill="none" stroke="#14201A" stroke-width="4"/><rect x="49" y="20" width="8" height="4" fill="#14201A"/></svg>
+                    <span>cipi</span>
+                </a>
+                <p>The self-hosted deploy platform for Laravel and PHP. Free and open source under the MIT license.</p>
+                <a class="sf-tg" href="https://t.me/cipicloud" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.8 15.3l-.4 5.3c.6 0 .8-.3 1.1-.6l2.7-2.5 5.5 4c1 .6 1.7.3 2-.9l3.6-16.9c.3-1.5-.6-2.1-1.6-1.7L1.6 9.9c-1.4.6-1.4 1.4-.2 1.8l5.4 1.7L19.3 5.5c.6-.4 1.1-.2.7.2z"/></svg>
+                    <span><strong>Follow on Telegram</strong><small>Releases and security notes, first.</small></span>
+                </a>
+            </div>
+            <nav class="sf-col" aria-label="Product">
+                <h2>Product</h2>
+                <ul>
+                    <li><a href="/docs/quickstart">Get started</a></li>
+                    <li><a href="/docs/">Documentation</a></li>
+                    <li><a href="/web-panel">Web panel</a></li>
+                    <li><a href="/api">REST API</a></li>
+                    <li><a href="/mcp">MCP for AI</a></li>
+                    <li><a href="/ecosystem">Ecosystem</a></li>
+                    <li><a href="/cipi-yml">cipi.yml</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Compare Cipi">
+                <h2>Compare</h2>
+                <ul>
+                    <li><a href="/alternative-to-laravel-forge">Cipi vs Laravel Forge</a></li>
+                    <li><a href="/alternative-to-ploi">Cipi vs Ploi</a></li>
+                    <li><a href="/alternative-to-laravel-cloud">Cipi vs Laravel Cloud</a></li>
+                    <li><a href="/alternative-to-coolify">Cipi vs Coolify</a></li>
+                    <li><a href="/alternative-to-cpanel">Cipi vs cPanel</a></li>
+                    <li><a href="/best-laravel-forge-alternatives">Best Forge alternatives</a></li>
+                    <li><a href="/alternatives">All comparisons</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Guides">
+                <h2>Guides</h2>
+                <ul>
+                    <li><a href="/guides/deploy-laravel-ubuntu-vps">Laravel on a VPS in 15 minutes</a></li>
+                    <li><a href="/guides/manage-apps-with-cipi-yml">Server settings in Git</a></li>
+                    <li><a href="/guides/cloudflare-zero-trust-laravel">Close every port with Zero Trust</a></li>
+                    <li><a href="/guides/php-nginx-cve-patching">How CVEs get patched overnight</a></li>
+                    <li><a href="/guides/cipi-mcp-ai-agents">Run production with AI, safely</a></li>
+                    <li><a href="/guides/migrate-from-laravel-forge">Move from Forge, step by step</a></li>
+                    <li><a href="/guides/">All guides</a></li>
+                </ul>
+            </nav>
+            <nav class="sf-col" aria-label="Project">
+                <h2>Project</h2>
+                <ul>
+                    <li><a href="https://github.com/cipi-sh/cipi">GitHub</a></li>
+                    <li><a href="https://t.me/cipicloud">Telegram channel</a></li>
+                    <li><a href="/docs/community">Community &amp; tools</a></li>
+                    <li><a href="/docs/history">History</a></li>
+                    <li><a href="https://github.com/cipi-sh/cipi/blob/master/SECURITY.md">Security policy</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="sf-base">
+            <span>Made with <span aria-label="love">❤️</span> in Italy by <a href="https://web.ap.it/" target="_blank" rel="noopener">Andrea Pollastri</a></span>
+            <span><a href="/llms.txt">llms.txt</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
+        </div>
+    </div>
+</footer>
+<!-- /site:footer -->
+<div class="search-modal" id="searchModal" role="dialog" aria-modal="true" aria-label="Search the documentation" hidden>
+    <div class="search-backdrop" data-search-close></div>
+    <div class="search-panel">
+        <div class="search-field">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="searchInput" type="search" placeholder="Search commands, options, guides…" autocomplete="off" spellcheck="false" aria-controls="searchResults" aria-autocomplete="list">
+            <button type="button" class="kbd" data-search-close aria-label="Close search">Esc</button>
+        </div>
+        <div class="search-results" id="searchResults" role="listbox"></div>
+        <div class="search-foot"><span><span class="kbd">↑</span> <span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span>Try <button type="button" data-q="ssl">ssl</button> <button type="button" data-q="rollback">rollback</button> <button type="button" data-q="horizon">horizon</button> <button type="button" data-q="backup s3">backup s3</button></span></div>
+    </div>
+</div>
+<script src="/assets/js/site.js" defer></script>
+<script src="/assets/js/docs.js" defer></script>
+<script src="/assets/js/search.js" defer></script>
+<script src="/assets/js/share.js" defer></script>
+<script src="/assets/js/stepper.js" defer></script>
+
+</body>
+</html>

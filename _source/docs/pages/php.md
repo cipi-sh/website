@@ -72,6 +72,7 @@ Change PHP settings without hunting for the right file. Server-wide changes reac
 
 ```bash
 $ cipi ini list [--app=shop]                  # effective values and where each comes from
+$ cipi ini get memory_limit [--app=shop]      # one setting
 $ cipi ini set upload_max_filesize=50M        # server-wide
 $ cipi ini set memory_limit=512M --app=shop   # one app only (wins)
 $ cipi ini unset memory_limit --app=shop

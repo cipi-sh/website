@@ -25,6 +25,7 @@ $ cipi monitor test               # sample alert to every channel
 | `fs` | `/etc/cipi`, `/var/log/cipi` | No longer writable (read-only remount) |
 | `load` | 1-minute load | Above 4× the cores for 2 runs in a row |
 | `tunnel` | The [Cloudflare Tunnel](/docs/zero-trust#monitor), when Zero Trust is on | Degraded (warn); cloudflared stopped, or Cloudflare sees the tunnel down or inactive (critical) |
+| `mesh` | The [mesh network](/docs/mesh-network#monitor) — Tailscale or NetBird — while the server is on one | The node key expires within 14 days, or the coordination server can't be reached (warn); the client stopped, the server off the network, the node key expired (critical) |
 
 Tune any threshold: `--ssl --days=21`, `http_5xx --count=50 --ratio=10`, `load --factor=6 --runs=3`, `app_disk --minutes=30`.
 

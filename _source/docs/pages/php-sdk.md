@@ -114,7 +114,7 @@ $cipi->deployConfig()->update('shop', ['keep_releases' => 5, 'migrate' => true])
 $cipi->jobs()->wait($job, timeoutSeconds: 120, intervalSeconds: 1.0);
 ```
 
-`wait()` times out after 300 s by default and throws `JobFailedException` (payload on `$e->job`) when a job fails.
+`wait()` throws `JobFailedException` (payload on `$e->job`) when a job fails, and `TimeoutException` when the job is still running at the end of the wait: an hour for a deploy — as long as the panel lets one run, since a front-end build alone may take [30 minutes](/docs/deploying#time-limits) — and 300 s for every other job, unless you pass `timeoutSeconds`. The timeout ends the wait, not the job: `wait()` on the same id picks it up again.
 
 ```php
 $plan = $cipi->yml()->status('shop')['data'];      // file, env, valid, in_sync, changes, blockers
@@ -159,11 +159,12 @@ $cipi->nginx()->reset('shop');
 $cipi->cache()->enable('blog', ttl: '1h', size: '1g');   // nginx's page cache: sync, nginx -t first
 $cipi->cache()->show('blog')['data'];                    // enabled, ttl, files, bytes, clear_command, …
 $cipi->cache()->exclude('blog', ['/wishlist*', '/feed']);  // its own paths never cached: the whole list, [] for none
+$cipi->cache()->purge('blog', ['/hello-world/', '/category/news/*'])['data']['purged'];   // only those pages
 $cipi->cache()->clear('blog')['data']['cleared'];        // pages deleted
 $cipi->cache()->disable('blog');
 ```
 
-`cache()` is the [page cache](/docs/page-cache) of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call `clear()` when content changes without one. `exclude()` sets the [paths of its own](/docs/page-cache#exclude) an app keeps out — `*` is anything — and `enable()` takes the same list as `exclude:`.
+`cache()` is the [page cache](/docs/page-cache) of an app: Nginx keeps the page PHP made and answers the next visitors without running PHP — not OPcache, which is always on. Cipi empties it after every deploy; call `purge()` with the pages that changed — a path, a prefix ending in `*`, a URL on a domain of the app, 500 at most — or `clear()` for all of them. Inside the app itself, the [WordPress plugin](/docs/page-cache#wordpress) and the [`cipi/cache` package](/docs/page-cache#php) purge without a token. `exclude()` sets the [paths of its own](/docs/page-cache#exclude) an app keeps out — `*` is anything — and `enable()` takes the same list as `exclude:`.
 
 @section sdk-data
 
@@ -194,7 +195,19 @@ $cipi->backups()->run('nightly');                  // starts and returns, not a 
 $cipi->wait($cipi->backups()->verify('nightly'));
 ```
 
-Destinations and their keys are configured on the server and never returned.
+An SFTP server — a VPS with a backup user, a Hetzner Storage Box, a NAS — is added from here; Cipi makes its key on the server and returns the public half:
+
+```php
+$box = $cipi->backups()->addSftpDestination('box', 'u123456.your-storagebox.de', 'u123456', port: 23, path: 'cipi')['data'];
+$box['public_key'];                                      // install it on the remote, then:
+$cipi->backups()->testDestinations('box');              // a file written and removed there
+$cipi->backups()->updateProfile('nightly', ['destinations' => ['local', 'box']]);
+$cipi->backups()->updateSftpDestination('box', ['new_key' => true]);
+$cipi->backups()->destinationKey('box');
+$cipi->backups()->removeDestination('box');             // no profile may use it; its archives stay
+```
+
+S3 destinations and their keys are configured on the server and never returned. See [SFTP destinations](/docs/backups#sftp).
 
 @section sdk-server
 
@@ -233,9 +246,54 @@ $cipi->notifications()->setTimezone('Europe/Rome');   // the Time line of every 
 $cipi->notifications()->setServerName('production');  // "production (vmi12334)"
 ```
 
+```php
+$cipi->sync()->key();                                    // this server's sync key: what a target trusts
+$cipi->sync()->ready('203.0.113.77');                    // key accepted there, Cipi answering
+$cipi->wait($cipi->sync()->push('203.0.113.77', ['shop'], withDb: true));
+
+$cipi->updates()->policy()['data'];                      // verify, delay_hours, signers, pending, held
+$cipi->updates()->setPolicy(delayHours: 12);
+$cipi->updates()->setPolicy(verify: true, fingerprint: 'SHA256:…');
+```
+
+`sync()` [moves apps to another server](/docs/sync): this server is the source, `push()` is a job (`sync-push`), and the target trusts the source's key first — `key()` here, `trust($key)` there (`untrust()` takes it back); `check()` says why the way isn't open. There's no passphrase to handle. Ability `sync-manage`, as strong as `ssh-manage`. `updates()` is [how the server updates Cipi](/docs/self-update): only signed releases, a delay — both off by default; starting an update isn't in the API. Abilities `updates-view`, `updates-manage`.
+
 `octane()` is [the PHP of an Octane app](/docs/octane#octane-php), `valkey()` is [Valkey per app](/docs/valkey#manage) — no password is ever returned — and the notification settings are [how notifications are written](/docs/notifications#written).
 
-Monitor, Zero Trust and disk usage are read-only, as on the API. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
+Monitor, the Cloudflare side of Zero Trust and disk usage are read-only, as on the API; the [mesh network](#zero-trust) is managed. [Optional packages](/docs/packages) are listed, installed and removed (`packages()->list()`, `install()`, `remove()`): the catalog is closed and lives on the server.
+
+## Zero Trust {#zero-trust}
+
+```php
+$zt = $cipi->zeroTrust()->status()['data'];   // both sides: the Cloudflare tunnel and the mesh
+$zt['enabled'];                               // the tunnel — says nothing of the mesh
+$zt['mesh'];                                  // 'tailscale', 'netbird' or null
+$zt['mesh_ip'];                               // the server's address on the network
+
+$mesh = $cipi->zeroTrust()->mesh();           // details.mesh, or null while the server is on none
+$mesh['lock']['ssh'];                         // port 22 closed to the world
+$mesh['panel']['blocked']['lock_http'];       // null, or why the server would refuse it from here
+```
+
+The [mesh network](/docs/mesh-network) — Tailscale or NetBird — is managed too, with a token that has `zt-manage`. Synchronous; each call answers Zero Trust after the change (`data`) and what the CLI said (`message`):
+
+```php
+use Cipi\Sdk\Resources\ZeroTrust;
+
+$cipi = new Cipi($url, $token, ['timeout' => 240]);   // a join installs the client and signs in
+
+$cipi->zeroTrust()->joinMesh(ZeroTrust::TAILSCALE, $authKey, ['hostname' => 'web1', 'tags' => ['cipi']]);
+$cipi->zeroTrust()->joinMesh(ZeroTrust::NETBIRD, $setupKey, ['control_url' => 'https://netbird.example.com']);
+$cipi->zeroTrust()->lockMesh('ssh');          // 22 on the mesh only
+$cipi->zeroTrust()->lockMesh('http');         // 80/443 on the mesh only
+$cipi->zeroTrust()->unlockMesh('ssh');
+$cipi->zeroTrust()->tailscaleSsh(true);
+$cipi->zeroTrust()->leaveMesh();
+```
+
+Options of `joinMesh()`: `hostname`, `control_url`, `direct`, `accept_dns`, `accept_routes`, and for Tailscale `tags`, `ssh`, `reauth`. The key is sent once and is neither stored nor returned; without one, a client already connected on the server is adopted.
+
+The server [refuses what would lock people out](/docs/mesh-network#panel-guards): a `ValidationException` whose message is the reason — nobody has signed in over the mesh yet, the node key can expire, your call reaches the API on the address the lock would close. Nothing is retried. The tunnel itself is changed with `cipi zt` on the server.
 
 @section sdk-security
 

@@ -75,7 +75,7 @@ Log in as the app user and download WordPress into the web folder:
 
 ```bash
 $ ssh shop@203.0.113.10          # password and key from the create summary
-$ cd ~/htdocs && rm -f index.html
+$ cd ~/htdocs                    # the Coming soon page gives way to WordPress by itself
 $ curl -sO https://wordpress.org/latest.tar.gz
 $ tar xzf latest.tar.gz --strip-components=1 && rm latest.tar.gz
 ```

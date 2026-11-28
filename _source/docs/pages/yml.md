@@ -67,6 +67,8 @@ deploy:
   keep_releases: 5
   predeploy_snapshot: true
   node_build: "npm ci && npm run build"
+  build_timeout: 2700              # seconds the front-end build may run (60-3600; 1800 unless set)
+  step_timeout: 600                # seconds every other command may run (60-1800; 300 unless set)
   post:
     - artisan cache:clear
 
@@ -92,7 +94,7 @@ backup:
 | `workers`, `schedule` | [Queues](/docs/workers), [Reverb](/docs/reverb), [Scheduler](/docs/scheduler) | Laravel apps only |
 | `search` | [cipi search](/docs/search) | Needs `cipi search install` by root first |
 | `health` | [Health checks](/docs/health-checks) | Probed every 5 minutes and after every deploy |
-| `deploy` | [deploy-config](/docs/deploy-script) | `branch` takes effect from the next deploy |
+| `deploy` | [deploy-config](/docs/deploy-script) | `branch` takes effect from the next deploy. `build_timeout` and `step_timeout` are [how long a step may take](/docs/deploying#time-limits), in seconds: a number outside the range blocks the plan |
 | `ssl.force_https` | `cipi ssl force` | Can only be turned on from the file |
 | `env.required` | | A missing variable blocks the plan |
 | `crons` | | Allowlisted runners only; your other cron lines are untouched |
@@ -145,6 +147,8 @@ node:
 ```
 
 Applied by the deploy itself, from the release being deployed, so the commit that changes the build is built with it. Requires `cipi yml auto myapp on`.
+
+Under `deploy:`, a Node app takes `branch`, `keep_releases`, `build_timeout`, `step_timeout`, `predeploy_snapshot` and `post`. The artisan hooks (`migrate`, `optimize`, `storage_link`, `queue_restart`, `horizon_terminate`, `extra_artisan`) and `node_build` are for Laravel apps: in a Node app's file they block the plan, with a line that says which (its build is `node.build`).
 
 ## Post-deploy steps: `deploy.post` {#cli-yml-deploy-post}
 

@@ -32,15 +32,17 @@ cipi CLI | does the work, as on SSH
 | Deploy | Deploy, roll back, unlock; a deploy in progress, whoever started it, with its live log; a [paused commit](/docs/deploying#paused) with *Deploy now* and *Resume automatic deploys*; the hash-chained [deploy audit](/docs/deploy-audit) with durations and each commit's title; a log per deploy |
 | `cipi.yml` | The file of the live release, whether it's valid, what applying would change, apply as a job, toggle auto-apply |
 | Routing | Whole-app and path redirects, prefix reverse proxies; for server managers, the app's [own Nginx directives](/docs/nginx#custom) — headers, caching, limits, `location` blocks — tested with `nginx -t` before the reload |
-| Page cache | An app's [Nginx page cache](/docs/page-cache#panel): on and off, how long a page is kept, how much disk, the [paths that are never cached](/docs/page-cache#exclude), **Empty the cache now** — with what it is next to OPcache (which is on already), what it gives WordPress and content sites, what is never cached, and the command for a deploy recipe of your own, ready to copy |
+| Page cache | An app's [Nginx page cache](/docs/page-cache#panel): on and off, how long a page is kept, how much disk, the [paths that are never cached](/docs/page-cache#exclude), **Empty the cache now**, [**Purge some pages**](/docs/page-cache#purge) — only those, the rest stays warm — with what it is next to OPcache (which is on already), what it gives WordPress and content sites, what is never cached, the command for a deploy recipe of your own, and how to install the [WordPress plugin](/docs/page-cache#wordpress) and the [PHP package](/docs/page-cache#php) that purge what a change touches |
 | Octane | For an Octane app: the PHP that answers the requests next to the PHP that runs Composer, artisan, cron and the workers, a warning when they are two versions, [**Switch PHP** by its number](/docs/octane#octane-panel), restart, update the FrankenPHP build |
 | App tooling | `.env` editor with masked secrets and [drag-and-drop ordering](/docs/environment#order), a block of variables pasted or [edited as text](/docs/environment#in-the-panel), Composer `auth.json`, Artisan, allowlisted app commands, saved one-click commands |
 | Databases | MariaDB (or [MySQL](/docs/databases#mysql), shown as such in the list, the engine filter and its card) or PostgreSQL per app; create, link to apps, back up, restore (also by uploading a `.sql`/`.sql.gz` from your computer, chunked), rotate passwords |
-| Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations |
+| Backups | A matrix of apps and databases against [backup profiles](/docs/backups): schedule, destination, retention, [paths left out](/docs/backups#exclude-paths), last run; run now, verify, test destinations; **[SFTP destinations](/docs/backups#sftp)** — a VPS, a Hetzner Storage Box — added, tested, changed and removed, with the key to install on the remote (no password, no secret through the panel) |
+| Transfer | [Move apps to another server](/docs/sync#panel) as a wizard: which apps, with databases and files or not, the target from the panel's servers or by address, the connection checked first, the transfer as a job with its output — encryption handled by the servers, no passphrase to type; *Bring apps here* from the other side |
+| Updates | [How the server updates Cipi](/docs/self-update#panel): only releases signed by a trusted key (the first time, with the fingerprint you compared), a delay before a new release is installed; the keys trusted, the release waiting, why the last one wasn't installed. Starting an update stays the server's |
 | Metrics | Live charts of CPU, memory, load, network and, per app, requests, 5xx, response time, PHP-FPM and workers, from 1 hour to 30 days, with deploys and incidents marked; uptime bars per day; events; retention and heartbeat ([metrics](/docs/metrics)) |
 | Notifications | Every channel — SMTP, Resend, SES, Slack, Discord, Mattermost, Google Chat, Telegram, ntfy, Pushover, webhooks — added, edited (secrets kept), paused, tested, removed; what each channel [receives](/docs/notifications#events) — everything, or *Urgent* and the categories you choose; every trigger on or off by category ([notifications](/docs/notifications#panel)); *Written as* — the [server's name and the time zone](/docs/notifications#written) of every notification, the panel's own name in one click |
 | Server | Status, public IPv4 and IPv6, CPU, memory, disk, services, PHP versions, Node runtimes, SSH keys, health checks, IP allowlist, [disk usage](/docs/disk), monitor; [Valkey per app](/docs/valkey#panel) — who shares the server's instance, *Isolate* one app or all, empty the shared one; the machine's **hostname** next to the name the server has in the panel, in Connections, the dashboard and the switcher: it is what a notification calls it |
-| Zero Trust | The server's [Cloudflare Tunnel](/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet |
+| Zero Trust | The server's [Cloudflare Tunnel](/docs/zero-trust#panel) in full, read-only: the tunnel as Cloudflare sees it and its connectors (this server and its replicas), what is closed, every hostname with its Access paths and people, service tokens, previews and cache purge, the panel and the API, TCP services, SSH and its short-lived certificates, what is not on the tunnel yet. And the [mesh network](/docs/mesh-network#panel) — Tailscale or NetBird — **managed**: join with a key, close SSH and 80/443 to the world and reopen them, Tailscale SSH, leave; what the server would refuse is greyed out with its reason |
 | Packages | The [optional packages](/docs/packages#panel) of the server — Browsershot, ffmpeg, LibreOffice, OCR, image optimisers, the [security scanners](/docs/packages#sec) Hackly runs and the rest of the catalog — with what each brings; **Install**, **Update** and **Remove** as jobs |
 | Firewall | UFW rules in order, open a port or a range, remove what may be removed, block and unblock addresses, Fail2ban and CrowdSec bans with *Unban*, the SSH login threshold, CrowdSec on or off and its allowlist, [Cloudflare real IP](/docs/nginx#real-ip-panel) on, refreshed or off; SSH, 80 and 443 always stay open ([firewall](/docs/firewall#panel)) |
 | Logs and jobs | App and server logs with filters and live refresh; async jobs in an overlay that follows the command's output while it runs, colour-coded; one-time credentials with copy buttons |
@@ -51,7 +53,7 @@ cipi CLI | does the work, as on SSH
 
 Light and dark themes, a phone layout, a time zone per account. A server with an older API or a narrower token keeps working for everything it supports; where it lacks something, the panel says to update Cipi on it (`cipi self-update && cipi api update`) and which abilities the token needs.
 
-> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](/docs/design-decisions#packages), monitor thresholds, Zero Trust changes and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
+> [!security] Permissions are checked on every request, server-side, against the app, server and job the page works on. Installing software outside the [closed package catalog](/docs/design-decisions#packages), monitor thresholds, changes to the Cloudflare tunnel, S3 secret keys, starting a self-update and the CrowdSec rescue stay on the CLI by design, and the server refuses to close its own SSH, 80 and 443 to the panel.
 
 @section gui-tour
 
@@ -148,6 +150,8 @@ The Overview's details say where to connect and as whom: the app's Linux **user*
 
 Deploys, SSL and database operations run as async jobs. The overlay polls `GET /api/jobs/{id}`, shows elapsed time and colour-codes the output; closing it leaves the job running.
 
+A job that fails says why in one line above its output, and a failed deploy adds what to check. A deploy stopped because a step ran out of time — the front-end build has [30 minutes, every other step 5](/docs/deploying#time-limits) — names the step and how long it ran. The panel follows a deploy for up to an hour.
+
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
@@ -181,6 +185,41 @@ Deploys, SSL and database operations run as async jobs. The overlay polls `GET /
 <img src="/img/gui/server-overview.webp" width="1440" height="1000" alt="Server overview with system, resources, attention list, services and PHP-FPM pools" class="shot-dark" loading="lazy" decoding="async">
 </div>
 <figcaption>Server overview: system, resources, monitor and healthcheck alerts, services with restart, PHP-FPM pools.</figcaption>
+</figure>
+
+### Backups, transfers and updates
+
+**Backups**: what each profile takes, against every app and database; the destinations — the server's disk, S3 buckets and SFTP servers. *Add an SFTP server* makes the key on the server and shows its public half with the command that installs it on the remote — `ssh-copy-id -s` for a Hetzner Storage Box, whose preset fills in port 23 — then *Test* writes a file there and removes it. See [SFTP destinations](/docs/backups#sftp).
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-backups-sftp-light.webp" width="1168" height="579" alt="Backups destinations: local, the default S3 bucket and an SFTP destination box on a Hetzner Storage Box with Key, Test, Edit and remove; below, the public key the remote has to accept and the ssh-copy-id command for the Storage Box" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-backups-sftp.webp" width="1168" height="579" alt="Backups destinations: local, the default S3 bucket and an SFTP destination box on a Hetzner Storage Box with Key, Test, Edit and remove; below, the public key the remote has to accept and the ssh-copy-id command for the Storage Box" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>An SFTP destination on a Storage Box, right after it was added: the key to install, then <em>Test</em>.</figcaption>
+</figure>
+
+**Transfer** sends the apps of the server to another one — [server sync](/docs/sync#panel) as a wizard, the connection checked before anything moves, the archive encrypted with a passphrase the servers make and keep to themselves.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-transfer-light.webp" width="1440" height="1288" alt="Transfer tab: what to send, where — the target picked from the panel's servers and the connection checked — and the transfer, with Bring apps here beside it" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-transfer.webp" width="1440" height="1288" alt="Transfer tab: what to send, where — the target picked from the panel's servers and the connection checked — and the transfer, with Bring apps here beside it" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Transfer: production's apps to staging, the connection checked.</figcaption>
+</figure>
+
+**Updates** has the two optional safeguards of [self-update](/docs/self-update#panel): only signed releases, and a delay — here 12 hours, with a release waiting for it.
+
+<figure class="gui-shot">
+<div class="gui-shot-frame">
+<div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
+<img src="/img/gui/server-updates-light.webp" width="1440" height="900" alt="Updates tab: Install only signed releases unchecked, Wait before installing a new release set to 12 hours; beside it the state — signature not checked, delay 12 hours, no trusted keys yet, a release waiting and why it was held" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-updates.webp" width="1440" height="900" alt="Updates tab: Install only signed releases unchecked, Wait before installing a new release set to 12 hours; beside it the state — signature not checked, delay 12 hours, no trusted keys yet, a release waiting and why it was held" class="shot-dark" loading="lazy" decoding="async">
+</div>
+<figcaption>Updates: a 12-hour delay, and the release it is holding.</figcaption>
 </figure>
 
 ### Metrics
@@ -242,15 +281,17 @@ UFW, Fail2ban and CrowdSec of the server on one tab: the rules in UFW's order wi
 
 ### Zero Trust
 
-The server's Cloudflare Tunnel as the CLI set it up: healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it. Read-only: every change stays on `cipi zt`. See [Zero Trust](/docs/zero-trust#panel).
+Both sides of Zero Trust on one tab. On top, the server's Cloudflare Tunnel as the CLI set it up: healthy, degraded or down, every connector with its addresses, the locks, and each hostname with who may open it — read-only, every change to the tunnel stays on `cipi zt`. See [Cloudflare Zero Trust](/docs/zero-trust#panel).
+
+Under it, the **mesh network** — Tailscale or NetBird — is managed from the page: join a network with its key, see the server's address on it and the last SSH login that came over it, close SSH and 80/443 to the world, turn Tailscale SSH on, leave. A button the server would refuse — nobody has signed in over the mesh yet, the panel would lose the server — is greyed out, with the server's reason beside it. See [Tailscale & NetBird](/docs/mesh-network#panel).
 
 <figure class="gui-shot">
 <div class="gui-shot-frame">
 <div class="gui-shot-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gui-shot-url">panel.example.com</span></div>
-<img src="/img/gui/server-zero-trust-light.webp" width="1440" height="797" alt="Zero Trust tab: tunnel healthy, two connectors, 80/443 and 22 closed, hostnames with Access, service tokens and purge after deploy" class="shot-light" loading="lazy" decoding="async">
-<img src="/img/gui/server-zero-trust.webp" width="1440" height="797" alt="Zero Trust tab: tunnel healthy, two connectors, 80/443 and 22 closed, hostnames with Access, service tokens and purge after deploy" class="shot-dark" loading="lazy" decoding="async">
+<img src="/img/gui/server-zero-trust-light.webp" width="1440" height="1466" alt="Zero Trust tab: the Cloudflare tunnel healthy with 80/443 to Cloudflare only; the mesh network card, Tailscale connected, SSH closed to the world with Reopen, Close for 80/443, Tailscale SSH and Leave the network; the hostnames with Access, service tokens and purge after deploy" class="shot-light" loading="lazy" decoding="async">
+<img src="/img/gui/server-zero-trust.webp" width="1440" height="1466" alt="Zero Trust tab: the Cloudflare tunnel healthy with 80/443 to Cloudflare only; the mesh network card, Tailscale connected, SSH closed to the world with Reopen, Close for 80/443, Tailscale SSH and Leave the network; the hostnames with Access, service tokens and purge after deploy" class="shot-dark" loading="lazy" decoding="async">
 </div>
-<figcaption>Zero Trust: a tunnel on two servers, no inbound port open, Access on <code>/admin</code> and <code>/horizon</code> only, a preview of a branch, the API for service tokens only, MySQL for one person, SSH with short-lived certificates.</figcaption>
+<figcaption>Zero Trust: the sites through a Cloudflare tunnel — Access on <code>/admin</code> and <code>/horizon</code> only, a preview of a branch, the API for service tokens only, MySQL for one person — and, beside it, a tailnet: SSH closed to the world, each lock with its button.</figcaption>
 </figure>
 
 ### Infrastructure

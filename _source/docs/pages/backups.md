@@ -13,8 +13,8 @@ Integrity check | before upload
 > Every archive is opened and checked before upload. A broken archive is reported, not shipped as if it were fine.
 Encrypt | AES-256, on the server
 > With `--encrypt`, archives are encrypted with AES-256 on the server before leaving it. The bucket only ever sees encrypted files. Keep the key from `cipi backup key show`.
-Upload | local, S3, other buckets
-> The archive goes to each destination of the profile: the server's disk, an S3 bucket, or several buckets.
+Upload | local, S3, SFTP
+> The archive goes to each destination of the profile: the server's disk, an S3 bucket, an SFTP server (a VPS, a Hetzner Storage Box), or several of them.
 Prune & watch | retention, staleness alert
 > Old runs beyond `--keep`/`--keep-days` are deleted. If a profile stops producing backups, you get a staleness alert.
 ```
@@ -25,7 +25,10 @@ Prune & watch | retention, staleness alert
 $ cipi backup configure          # the default bucket ("s3"); leave empty for local-only
 $ cipi backup destination add offsite --bucket=acme-backups --key=AKIA… --secret=… \
     --region=eu-central-1 --endpoint=https://eu-central-1.your-objectstorage.com
-$ cipi backup destination test   # reach every bucket with its own credentials
+$ cipi backup destination add box --type=sftp --host=… --user=… --port=23   # an SFTP server — below
+$ cipi backup destination test   # reach every bucket and SFTP server with its own credentials
+$ cipi backup destination list   # local, s3 and every named destination
+$ cipi backup destination show offsite | edit offsite --region=… | remove offsite   # remove keeps the archives
 $ cipi backup status [--json]    # destinations, profiles, last run, overdue, uncovered
 ```
 
@@ -40,6 +43,35 @@ $ cipi backup status [--json]    # destinations, profiles, last run, overdue, un
 | MinIO | `https://your-minio-host` |
 
 `local` (`/var/backups/cipi`) is always available. A profile can send each run to several destinations at once.
+
+### SFTP: a VPS, a Storage Box, a NAS {#sftp}
+
+A server reached over SSH is a destination like a bucket: a cheap VPS with a user for backups, a [Hetzner Storage Box](https://www.hetzner.com/storage/storage-box/), a NAS at the office. Only SFTP is asked of it — no shell, no software of Cipi's.
+
+```bash
+$ cipi backup destination add box --type=sftp --host=u123456.your-storagebox.de \
+    --user=u123456 --port=23 --path=cipi
+$ ssh-copy-id -p 23 -s -i /etc/cipi/backup-keys/box.pub u123456@u123456.your-storagebox.de   # a Storage Box: its password, once
+$ cipi backup destination test box
+$ cipi backup profile edit nightly --dest=local,box
+```
+
+| | |
+| --- | --- |
+| **The key** | Cipi makes an SSH key (ed25519) for each SFTP destination, kept on the server in `/etc/cipi/backup-keys`, readable by root only. It signs in with it, never with a password: no password of the remote is stored, anywhere |
+| **The remote accepts it** | A server of yours: append the public key to `~<user>/.ssh/authorized_keys` there. A Storage Box: `ssh-copy-id -p 23 -s …` as above, which asks the box's password once. `cipi backup destination key box` prints it again (`--raw` for the key alone) |
+| **The host key** | Learned at the first connection and checked at every other one (`/etc/cipi/backup-keys/known_hosts`): a server that changes key afterwards is refused, not trusted |
+| **`--path`** | The folder for the backups, created if missing — relative to the user's login folder, or absolute with a leading `/`. Empty: the login folder |
+| **`--port`** | 22 by default; 23 for a Storage Box |
+| **`--test`** | On `add` and `edit`: write a small file there and remove it, as `destination test` does |
+| **`--new-key`** | On `edit`: a new key; install its public half on the remote again |
+| **Remove** | `cipi backup destination remove box` deletes its key here; the archives stay on the remote, and the public key in its `authorized_keys` until you take it out |
+
+Everything else is the same as for a bucket: retention prunes the old runs there, `backup list`, `fetch` and `verify` read them back, the archives are encrypted first with `--encrypt`. Several servers can share a Storage Box: each one writes under `cipi/<profile>/` of its own `--path`, so give each its own folder (`--path=cipi/web1`).
+
+> [!tip] On a Hetzner Storage Box, turn on **SSH support** in its settings (port 23), and give each server a sub-account of its own with its own folder: a compromised server then reaches only its own backups. On a VPS of yours, a user that can only use SFTP in its folder (`ForceCommand internal-sftp` with `ChrootDirectory`) does the same.
+
+How to choose, and a step-by-step for a Storage Box: [Backups to a Hetzner Storage Box over SFTP](/guides/sftp-backups-hetzner-storage-box).
 
 ## 2. Profiles {#profiles}
 
@@ -108,6 +140,7 @@ $ cipi backup key rotate     # new key for future runs
 $ cipi backup run [--profile=nightly] [--dry-run] [--detach]
 $ cipi backup list [--profile=nightly]
 $ cipi backup verify [--deep]               # does the newest run open?
+$ cipi backup prune [--profile=nightly] [--dry-run]   # apply the retention now
 $ cipi backup fetch nightly 2026-11-02_020000 --dest=/root/restore
 $ cipi db restore myapp /root/restore/databases/mariadb/myapp.sql.gz
 $ tar -xzf /root/restore/apps/myapp/files.tar.gz -C /tmp/restore-files
@@ -136,6 +169,8 @@ Files and databases are stored separately, so a database restores without unpack
 | Problem | Fix |
 | --- | --- |
 | `destination test` fails | Wrong endpoint, region or key permissions on the bucket |
+| SFTP: `Permission denied (publickey)` | The remote doesn't accept the key yet: `cipi backup destination key <name>` and add it there |
+| SFTP: `Host key verification failed` | The remote's host key changed since the first connection. If you know why (a reinstalled server), remove its line from `/etc/cipi/backup-keys/known_hosts` |
 | Profile overdue | `cipi backup status` names it; check disk space and the run log |
 | Can't open an encrypted archive | You need the backup key from `cipi backup key show` (store it off-server) |
 | Archives too big, runs too slow | Leave large uploads or media out with [`--exclude-paths`](#exclude-paths) and sync them with `rsync` |
@@ -144,6 +179,7 @@ Files and databases are stored separately, so a database restores without unpack
 
 | Question | Answer |
 | --- | --- |
-| Where should backups go? | Off-site: another provider or region, S3-compatible. Your own: [Johnny](/guides/johnny-s3-storage). |
+| Where should backups go? | Off-site: another provider or region — an S3-compatible bucket, or an [SFTP server](#sftp) such as a Storage Box. Your own: [Johnny](/guides/johnny-s3-storage). |
+| Can the panel add a destination? | An SFTP one, yes — the **Backups** tab makes the key and shows the public half to install. An S3 bucket is added here, on the server: it takes a secret key, which doesn't go through the panel. |
 | How often? | Databases every 30–60 minutes for busy apps, everything nightly. [Backup guide](/guides/backup-vps-s3). |
 | Have I tested a restore? | Do it now with `cipi backup fetch` into a scratch folder: a backup you haven't restored is a hope. |

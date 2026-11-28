@@ -31,6 +31,7 @@ Run the export from your laptop (`ssh cipi@server sudo cipi credentials export >
 ```bash
 $ cipi self-update --check
 $ cipi self-update
+$ cipi self-update policy        # signed releases only, a delay — optional
 ```
 
 ```flow
@@ -46,7 +47,7 @@ Done | apps untouched
 > Your apps keep running throughout: no deploy, no restart of your code.
 ```
 
-Updates never deploy your apps or touch their code and data. Migrations bring existing servers in line with new defaults (a security setting, a new hook); each one is written to be safe to re-run and to degrade to a warning instead of breaking the update. A nightly job (03:50) applies updates automatically; run it yourself first if you'd rather watch. What changed in each release: [What's new](/whats-new) and the [changelog on GitHub](https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md).
+Updates never deploy your apps or touch their code and data. Migrations bring existing servers in line with new defaults (a security setting, a new hook); each one is written to be safe to re-run and to degrade to a warning instead of breaking the update. A nightly job (03:50) applies updates automatically; run it yourself first if you'd rather watch. To install only releases signed by a trusted key, or to wait some hours before a new release lands, see [Safer self-updates](/docs/self-update) — both optional, both off by default. What changed in each release: [What's new](/whats-new) and the [changelog on GitHub](https://github.com/cipi-sh/cipi/blob/master/CHANGELOG.md).
 
 @section cli-completion
 
