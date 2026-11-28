@@ -36,7 +36,7 @@ In a docs fragment:
 - `<cipi-term name="deploy"></cipi-term>` inserts an animated terminal from `_source/docs/terms.json`
   (plays when scrolled into view; click to skip; reduced motion shows the final state).
 - `<cipi-panel></cipi-panel>` inserts the animated web panel tour.
-- `h2` / `h3` get ids and anchors automatically and feed the "On this page" list and search.
+- `h2` / `h3` get ids and anchors automatically and feed search. Docs pages have no "On this page" column: the layout uses the same box as the rest of the site, and "Edit this page" / "Report a problem" sit at the bottom of each page.
 
 To add a page, add it to `nav.json`, create `_source/docs/pages/<slug>.html`, and run the build.
 
